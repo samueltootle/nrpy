@@ -1,6 +1,10 @@
 #include "BHaH_defines.h"
-#include "BHaH_gpu_defines.h"
 #include "BHaH_function_prototypes.h"
+
+// Call here to initialize GPU memory constants
+#include "BHaH_gpu_defines.h"
+#include "BHaH_gpu_function_prototypes.h"
+#include "init_gpu_consts.h"
 /*
  * -={ main() function }=-
  * Step 1.a: Set each commondata CodeParameter to default.
@@ -20,7 +24,9 @@
  */
 int main(int argc, const char *argv[]) {
   commondata_struct commondata;       // commondata contains parameters common to all grids.
-  griddata_struct *restrict griddata; // griddata contains data specific to an individual grid.
+  
+  // WARN: restrict doesn't work for cuda
+  griddata_struct * griddata; // griddata contains data specific to an individual grid.
 
   // Step 1.a: Set each commondata CodeParameter to default.
   commondata_struct_set_to_default(&commondata);
@@ -29,7 +35,8 @@ int main(int argc, const char *argv[]) {
   cmdline_input_and_parfile_parser(&commondata, argc, argv);
 
   // Step 1.c: Allocate NUMGRIDS griddata arrays, each containing data specific to an individual grid.
-  griddata = (griddata_struct *restrict)malloc(sizeof(griddata_struct) * commondata.NUMGRIDS);
+  // griddata = (griddata_struct *restrict)malloc(sizeof(griddata_struct) * commondata.NUMGRIDS);
+  cudaMallocManaged(&griddata, sizeof(griddata_struct) * commondata.NUMGRIDS);
 
   // Step 1.d: Set each CodeParameter in griddata.params to default.
   params_struct_set_to_default(&commondata, griddata);
@@ -74,9 +81,9 @@ int main(int argc, const char *argv[]) {
   for (int grid = 0; grid < commondata.NUMGRIDS; grid++) {
     MoL_free_memory_y_n_gfs(&griddata[grid].gridfuncs);
     MoL_free_memory_non_y_n_gfs(&griddata[grid].gridfuncs);
-    for (int i = 0; i < 3; i++)
-      free(griddata[grid].xx[i]);
+    // for (int i = 0; i < 3; i++)
+      // free(griddata[grid].xx[i]);
   }
-  free(griddata);
+  // free(griddata);
   return 0;
 }
