@@ -1,5 +1,6 @@
-CC ?= gcc  # assigns the value CC to gcc only if environment variable CC is not already set
-CFLAGS = -O2 -march=native -g -Wall -Wno-unused-variable -std=gnu99
+CC = nvcc  # assigns the value CC to gcc only if environment variable CC is not already set
+# CFLAGS = -O2 -march=native -g -Wall -Wno-unused-variable -std=gnu99
+CFLAGS = -Xptxas=-O3 -arch=native -O3 -Xcompiler=-march=native -Xcompiler -Wall --forward-unknown-to-host-compiler --Werror cross-execution-space-call --relocatable-device-code=true -allow-unsupported-compiler
 #CFLAGS = -O3 -funroll-loops -march=native -g -Wall -Wno-unused-variable -std=gnu99 -std=gnu99
 #CFLAGS = -O2 -g -Wall -Wno-unused-variable -Wno-unknown-pragmas -std=gnu99
 
@@ -11,7 +12,7 @@ OPENMP_FLAG = -fopenmp
 COMPILER_SUPPORTS_OPENMP := $(shell echo | $(CC) $(OPENMP_FLAG) -E - >/dev/null 2>&1 && echo YES || echo NO)
 
 ifeq ($(COMPILER_SUPPORTS_OPENMP), YES)
-    CFLAGS += $(OPENMP_FLAG)
+    CFLAGS += -Xcompiler $(OPENMP_FLAG)
     LDFLAGS += $(OPENMP_FLAG)  # -lgomp does not work with clang in termux
 endif
 
