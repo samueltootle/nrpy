@@ -156,7 +156,7 @@ static const REAL gridfunctions_wavespeed[NUM_EVOL_GFS] = {1.0, 1.0};
 typedef struct __griddata__ {
   // griddata_struct stores data needed on each grid
   // xx[3] stores the uniform grid coordinates.
-  REAL *restrict xx[3];
+  REAL *xx[3];
   // NRPy+ MODULE: nrpy.infrastructures.BHaH.MoLtimestepping.MoL
   MoL_gridfunctions_struct gridfuncs; // <- MoL gridfunctions
   // NRPy+ MODULE: params
