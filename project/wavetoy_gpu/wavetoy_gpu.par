@@ -1,0 +1,23 @@
+#### wavetoy_gpu BH@H parameter file. NOTE: only commondata CodeParameters appear here ###
+###########################
+###########################
+### Module: __main__
+convergence_factor = 1.0        # (type: REAL)
+diagnostics_output_every = 0.2  # (type: REAL)
+###########################
+###########################
+### Module: nrpy.equations.wave_equation.CommonParams
+wavespeed = 1.0                 # (type: REAL)
+###########################
+###########################
+### Module: nrpy.equations.wave_equation.WaveEquation_Solutions_InitialData
+sigma = 3.0                     # (type: REAL)
+###########################
+###########################
+### Module: nrpy.grid
+NUMGRIDS = 1                    # (type: int)
+###########################
+###########################
+### Module: nrpy.infrastructures.BHaH.MoLtimestepping.MoL
+CFL_FACTOR = 0.5                # (type: REAL)
+t_final = 8.0                   # (type: REAL)
