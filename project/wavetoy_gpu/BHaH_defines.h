@@ -11,6 +11,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#ifdef __cplusplus
+#define restrict __restrict__
+#endif
 #define REAL double
 
 #define MIN(A, B) (((A) < (B)) ? (A) : (B))
@@ -159,26 +162,3 @@ typedef struct __griddata__ {
   // NRPy+ MODULE: params
   params_struct params; // <- BHaH parameters, generated from NRPy+'s CodeParameters
 } griddata_struct;
-
-#define GPU_NGRID0 8
-#define GPU_NGRID1 8
-#define GPU_NGRID2 8
-#define GPU_NBLOCK0 32
-#define GPU_NBLOCK1 4
-#define GPU_NBLOCK2 2
-#define SHARED_SIZE_LIMIT 1024U
-
-// error checking macro
-#define cudaCheckErrors(msg) \
-    do { \
-        cudaError_t __err = cudaGetLastError(); \
-        if (__err != cudaSuccess) { \
-            fprintf(stderr, "Fatal error: %s (%s at %s:%d)\n", \
-                msg, cudaGetErrorString(__err), \
-                __FILE__, __LINE__); \
-            fprintf(stderr, "*** FAILED - ABORTING\n"); \
-            exit(1); \
-        } \
-    } while (0)
-
-extern __constant__ REAL wavespeed;
