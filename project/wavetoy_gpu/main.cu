@@ -1,4 +1,5 @@
 #include "BHaH_defines.h"
+#include "BHaH_gpu_defines.h"
 #include "BHaH_function_prototypes.h"
 /*
  * -={ main() function }=-
