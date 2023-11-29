@@ -106,14 +106,15 @@ typedef struct __params_struct__ : public Managed {
 
 //********************************************
 // Basic definitions for module nrpy.infrastructures.BHaH.MoLtimestepping.MoL:
-typedef struct __MoL_gridfunctions_struct__ {
-  REAL *restrict y_n_gfs;
-  REAL *restrict y_nplus1_running_total_gfs;
-  REAL *restrict k_odd_gfs;
-  REAL *restrict k_even_gfs;
-  REAL *restrict auxevol_gfs;
-  REAL *restrict diagnostic_output_gfs;
-  REAL *restrict diagnostic_output_gfs2;
+// Note: restrict not allowed for CUDA/C++
+typedef struct __MoL_gridfunctions_struct__ : public Managed{
+  REAL * y_n_gfs;
+  REAL * y_nplus1_running_total_gfs;
+  REAL * k_odd_gfs;
+  REAL * k_even_gfs;
+  REAL * auxevol_gfs;
+  REAL * diagnostic_output_gfs;
+  REAL * diagnostic_output_gfs2;
 } MoL_gridfunctions_struct;
 
 #define LOOP_ALL_GFS_GPS(ii)                                                                                                                         \
