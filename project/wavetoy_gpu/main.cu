@@ -61,13 +61,13 @@ int main(int argc, const char *argv[]) {
   initial_data(commondata, griddata);
 
   // Step 4: Allocate storage for non-y_n gridfunctions, needed for the Runge-Kutta-like timestepping
-  for (int grid = 0; grid < commondata->NUMGRIDS; grid++)
+  for (int grid = 0; grid < commondata->NUMGRIDS; grid++) {
     MoL_malloc_non_y_n_gfs(commondata, &griddata[grid].params, &griddata[grid].gridfuncs);
-
+  }
   // // Step 5: MAIN SIMULATION LOOP
   // while (commondata->time < commondata->t_final) { // Main loop to progress forward in time.
   //   // Step 5.a: Main loop, part 1: Output diagnostics
-  //   diagnostics(commondata, griddata);
+    diagnostics(commondata, griddata);
 
   //   // Step 5.b: Main loop, part 2 (pre_MoL_step_forward_in_time): Prepare to step forward in time
   //   // (nothing here; specify by setting pre_MoL_step_forward_in_time string in register_CFunction_main_c().)
@@ -83,8 +83,8 @@ int main(int argc, const char *argv[]) {
 
   // Step 5: Free all allocated memory
   for (int grid = 0; grid < commondata->NUMGRIDS; grid++) {
-    // MoL_free_memory_y_n_gfs(&griddata[grid].gridfuncs);
-    // MoL_free_memory_non_y_n_gfs(&griddata[grid].gridfuncs);
+    MoL_free_memory_y_n_gfs(&griddata[grid].gridfuncs);
+    MoL_free_memory_non_y_n_gfs(&griddata[grid].gridfuncs);
     for (int i = 0; i < 3; i++)
       cudaFree(griddata[grid].xx[i]);
       // cudaFree(griddata[grid].params);
