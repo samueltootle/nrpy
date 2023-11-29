@@ -13,7 +13,7 @@ void MoL_malloc_y_n_gfs(const commondata_struct *restrict commondata, const para
   // gridfuncs->y_n_gfs = (REAL *restrict)malloc(sizeof(REAL) * NUM_EVOL_GFS * Nxx_plus_2NGHOSTS_tot);
   cudaMallocManaged(&gridfuncs->y_n_gfs, sizeof(REAL) * NUM_EVOL_GFS * Nxx_plus_2NGHOSTS_tot);
   cudaCheckErrors(gridfuncs->y_n_gfs, "Malloc failed");
-  cudaMemPrefetchAsync(gridfuncs->y_n_gfs, sizeof(REAL) * NUM_EVOL_GFS * Nxx_plus_2NGHOSTS_tot);
+  cudaMemPrefetchAsync(gridfuncs->y_n_gfs, sizeof(REAL) * NUM_EVOL_GFS * Nxx_plus_2NGHOSTS_tot, 0);
   cudaCheckErrors(gridfuncs->y_n_gfs, "prefetch failed");
 
   gridfuncs->diagnostic_output_gfs = gridfuncs->y_nplus1_running_total_gfs;
