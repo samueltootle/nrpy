@@ -52,7 +52,7 @@ public:
 
 //********************************************
 // Basic definitions for module commondata_struct:
-typedef struct __commondata_struct__ {
+typedef struct __commondata_struct__ : public Managed {
   REAL CFL_FACTOR;               // nrpy.infrastructures.BHaH.MoLtimestepping.MoL::CFL_FACTOR
   REAL convergence_factor;       // __main__::convergence_factor
   REAL diagnostics_output_every; // __main__::diagnostics_output_every
@@ -70,7 +70,7 @@ typedef struct __commondata_struct__ {
 
 //********************************************
 // Basic definitions for module params_struct:
-typedef struct __params_struct__ {
+typedef struct __params_struct__ : public Managed {
   REAL Cart_originx;      // nrpy.grid::Cart_originx
   REAL Cart_originy;      // nrpy.grid::Cart_originy
   REAL Cart_originz;      // nrpy.grid::Cart_originz
@@ -177,5 +177,5 @@ typedef struct __griddata__ {
   // NRPy+ MODULE: nrpy.infrastructures.BHaH.MoLtimestepping.MoL
   MoL_gridfunctions_struct gridfuncs; // <- MoL gridfunctions
   // NRPy+ MODULE: params
-  params_struct* params; // <- BHaH parameters, generated from NRPy+'s CodeParameters
+  params_struct params; // <- BHaH parameters, generated from NRPy+'s CodeParameters
 } griddata_struct;
