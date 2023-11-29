@@ -1,35 +1,38 @@
 #include "BHaH_defines.h"
+#include "BHaH_gpu_defines.h"
 /*
  * Set up cell-centered Cartesian grids.
  */
 __global__
-void initialize_grid_gpu(commondata_struct *restrict commondata, 
-                                      griddata_struct *restrict griddata, 
-                                      int grid) {
+void initialize_grid_gpu(params_struct *restrict params, 
+                         REAL *restrict xx0,
+                         REAL *restrict xx1,
+                         REAL *restrict xx2) {
 
   const int index  = blockIdx.x * blockDim.x + threadIdx.x;
   const int stride = blockDim.x * gridDim.x;
   
     
-  params_struct *restrict params = &griddata[grid].params;
+  // params_struct *restrict params = &griddata[grid].params;
   const REAL xxmin0 = params->xxmin0;
   const REAL xxmin1 = params->xxmin1;
   const REAL xxmin2 = params->xxmin2;
 
   for (int j = index; j < params->Nxx_plus_2NGHOSTS0; j+=stride)
-    griddata[grid].xx[0][j] = xxmin0 + ((REAL)(j - NGHOSTS) + (1.0 / 2.0)) * params->dxx0;
+    xx0[j] = xxmin0 + ((REAL)(j - NGHOSTS) + (1.0 / 2.0)) * params->dxx0;
   for (int j = index; j < params->Nxx_plus_2NGHOSTS1; j+=stride)
-    griddata[grid].xx[1][j] = xxmin1 + ((REAL)(j - NGHOSTS) + (1.0 / 2.0)) * params->dxx1;
+    xx1[j] = xxmin1 + ((REAL)(j - NGHOSTS) + (1.0 / 2.0)) * params->dxx1;
   for (int j = index; j < params->Nxx_plus_2NGHOSTS2; j+=stride)
-    griddata[grid].xx[2][j] = xxmin2 + ((REAL)(j - NGHOSTS) + (1.0 / 2.0)) * params->dxx2;
+    xx2[j] = xxmin2 + ((REAL)(j - NGHOSTS) + (1.0 / 2.0)) * params->dxx2;
+  printf("%f \n", xx0[25]);
 }
 
 void numerical_grids_and_timestep(commondata_struct *restrict commondata, griddata_struct *restrict griddata, bool calling_for_first_time) {
   commondata->dt = 1e30;
-  
+  cudaDeviceSynchronize();
   for (int grid = 0; grid < commondata->NUMGRIDS; grid++) {
     
-    params_struct *restrict params = &griddata[grid].params;
+    params_struct *restrict params = griddata[grid].params;
     const REAL convergence_factor = commondata->convergence_factor;
     const REAL xxmin0 = params->xxmin0;
     const REAL xxmin1 = params->xxmin1;
@@ -62,14 +65,18 @@ void numerical_grids_and_timestep(commondata_struct *restrict commondata, gridda
       commondata->time = 0.0;
     }
     commondata->dt = MIN(commondata->dt, commondata->CFL_FACTOR * MIN(params->dxx0, MIN(params->dxx1, params->dxx2))); // CFL condition
+    // malloc(&griddata[grid].xx[0],sizeof(REAL)*(params->Nxx_plus_2NGHOSTS0));
+    // malloc(&griddata[grid].xx[1],sizeof(REAL)*(params->Nxx_plus_2NGHOSTS1));
+    // malloc(&griddata[grid].xx[2],sizeof(REAL)*(params->Nxx_plus_2NGHOSTS2));
     griddata[grid].xx[0] = (REAL *)malloc(sizeof(REAL) * params->Nxx_plus_2NGHOSTS0);
+    cudaCheckErrors("Malloc failed");
     griddata[grid].xx[1] = (REAL *)malloc(sizeof(REAL) * params->Nxx_plus_2NGHOSTS1);
+    cudaCheckErrors("Malloc failed");
     griddata[grid].xx[2] = (REAL *)malloc(sizeof(REAL) * params->Nxx_plus_2NGHOSTS2);
-  }
-  for(int grid; grid < commondata->NUMGRIDS; grid++) {
-      
-    initialize_grid_gpu<<<1,1>>>(commondata, griddata, grid);
-      
-  }
-  
+    cudaCheckErrors("Malloc failed");
+    cudaDeviceSynchronize();
+    initialize_grid_gpu<<<1,1>>>(params, griddata[grid].xx[0], griddata[grid].xx[1], griddata[grid].xx[2]);
+    cudaCheckErrors("initialize failed");
+    cudaDeviceSynchronize();
+  }  
 }
