@@ -1,5 +1,6 @@
 #include "BHaH_defines.h"
 #include "BHaH_function_prototypes.h"
+#include "BHaH_gpu_defines.h"
 /*
  * Diagnostics.
  */
@@ -42,7 +43,12 @@ void diagnostics(commondata_struct *restrict commondata, griddata_struct *restri
         const REAL num_soln_at_center_UUGF = y_n_gfs[IDX4pt(UUGF, center_of_grid_idx)];
         const REAL num_soln_at_center_VVGF = y_n_gfs[IDX4pt(VVGF, center_of_grid_idx)];
         REAL exact_soln_at_center_UUGF, exact_soln_at_center_VVGF;
-        exact_solution_single_Cartesian_point(commondata, params, xx[0][i0_center], xx[1][i1_center], xx[2][i2_center], &exact_soln_at_center_UUGF,
+        exact_solution_single_Cartesian_point(commondata, 
+                                              params, 
+                                              xx[0][i0_center], 
+                                              xx[1][i1_center], 
+                                              xx[2][i2_center], 
+                                              &exact_soln_at_center_UUGF,
                                               &exact_soln_at_center_VVGF);
 
         fprintf(outfile, "%e %e %e %e %e\n", time, fabs(fabs(num_soln_at_center_UUGF - exact_soln_at_center_UUGF) / exact_soln_at_center_UUGF),
