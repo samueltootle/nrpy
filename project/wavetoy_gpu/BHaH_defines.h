@@ -11,6 +11,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <cuda.h>
+#include <cuda_runtime_api.h>
 #ifdef __cplusplus
 #define restrict __restrict__
 #endif
@@ -32,6 +34,21 @@
 #define CURRTIME_FUNC(currtime) time(currtime)
 #define TIME_IN_NS(start, end) (REAL)(difftime(end, start) * 1.0e9 + 1e-6) // Round up to avoid divide-by-zero.
 #endif
+
+class Managed {
+public:
+  void *operator new(size_t len) {
+    void *ptr;
+    cudaMallocManaged(&ptr, len);
+    cudaDeviceSynchronize();
+    return ptr;
+  }
+
+  void operator delete(void *ptr) {
+    cudaDeviceSynchronize();
+    cudaFree(ptr);
+  }
+};
 
 //********************************************
 // Basic definitions for module commondata_struct:
@@ -160,5 +177,5 @@ typedef struct __griddata__ {
   // NRPy+ MODULE: nrpy.infrastructures.BHaH.MoLtimestepping.MoL
   MoL_gridfunctions_struct gridfuncs; // <- MoL gridfunctions
   // NRPy+ MODULE: params
-  params_struct params; // <- BHaH parameters, generated from NRPy+'s CodeParameters
+  params_struct* params; // <- BHaH parameters, generated from NRPy+'s CodeParameters
 } griddata_struct;
