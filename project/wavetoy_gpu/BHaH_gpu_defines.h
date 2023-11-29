@@ -12,14 +12,14 @@ extern __constant__ REAL wavespeed;
 #define SHARED_SIZE_LIMIT 1024U
 
 // error checking macro
-#define cudaCheckErrors(msg) \
+#define cudaCheckErrors(v, msg) \
     do { \
         cudaError_t __err = cudaGetLastError(); \
         if (__err != cudaSuccess) { \
-            fprintf(stderr, "Fatal error: %s (%s at %s:%d)\n", \
-                msg, cudaGetErrorString(__err), \
+            fprintf(stderr, "Fatal error: %s %s (%s at %s:%d)\n", \
+                #v, msg, cudaGetErrorString(__err), \
                 __FILE__, __LINE__); \
             fprintf(stderr, "*** FAILED - ABORTING\n"); \
             exit(1); \
         } \
-    } while (0)
+    } while (0);
