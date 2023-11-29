@@ -18,7 +18,7 @@ endif
 
 #OBJ_FILES = MoL_free_memory_non_y_n_gfs.o MoL_free_memory_y_n_gfs.o MoL_malloc_non_y_n_gfs.o MoL_malloc_y_n_gfs.o MoL_step_forward_in_time.o apply_bcs.o cmdline_input_and_parfile_parser.o commondata_struct_set_to_default.o diagnostics.o exact_solution_single_Cartesian_point.o initial_data.o params_struct_set_to_default.o progress_indicator.o rhs_eval.o
 OBJ_FILES= cmdline_input_and_parfile_parser.o commondata_struct_set_to_default.o
-CU_OBJ_FILES = params_struct_set_to_default.o numerical_grids_and_timestep.o main.o
+CU_OBJ_FILES = MoL_malloc_y_n_gfs.o MoL_free_memory_y_n_gfs.o params_struct_set_to_default.o numerical_grids_and_timestep.o main.o
 
 all: wavetoy_gpu
 
