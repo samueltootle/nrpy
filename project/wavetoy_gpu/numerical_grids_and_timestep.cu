@@ -32,7 +32,7 @@ void numerical_grids_and_timestep(commondata_struct *restrict commondata, gridda
   cudaDeviceSynchronize();
   for (int grid = 0; grid < commondata->NUMGRIDS; grid++) {
     
-    params_struct *restrict params = griddata[grid].params;
+    params_struct *restrict params = &griddata[grid].params;
     const REAL convergence_factor = commondata->convergence_factor;
     const REAL xxmin0 = params->xxmin0;
     const REAL xxmin1 = params->xxmin1;
@@ -69,14 +69,14 @@ void numerical_grids_and_timestep(commondata_struct *restrict commondata, gridda
     // malloc(&griddata[grid].xx[1],sizeof(REAL)*(params->Nxx_plus_2NGHOSTS1));
     // malloc(&griddata[grid].xx[2],sizeof(REAL)*(params->Nxx_plus_2NGHOSTS2));
     griddata[grid].xx[0] = (REAL *)malloc(sizeof(REAL) * params->Nxx_plus_2NGHOSTS0);
-    cudaCheckErrors("Malloc failed");
+    cudaCheckErrors(griddata[grid].xx[0], "Malloc failed");
     griddata[grid].xx[1] = (REAL *)malloc(sizeof(REAL) * params->Nxx_plus_2NGHOSTS1);
-    cudaCheckErrors("Malloc failed");
+    cudaCheckErrors(griddata[grid].xx[1], "Malloc failed");
     griddata[grid].xx[2] = (REAL *)malloc(sizeof(REAL) * params->Nxx_plus_2NGHOSTS2);
-    cudaCheckErrors("Malloc failed");
+    cudaCheckErrors(griddata[grid].xx[2], "Malloc failed");
     cudaDeviceSynchronize();
     initialize_grid_gpu<<<1,1>>>(params, griddata[grid].xx[0], griddata[grid].xx[1], griddata[grid].xx[2]);
-    cudaCheckErrors("initialize failed");
+    cudaCheckErrors(initialize_grid_gpu, "initialize failed");
     cudaDeviceSynchronize();
   }  
 }

@@ -25,6 +25,7 @@
 int main(int argc, const char *argv[]) {
   commondata_struct * commondata;       // commondata contains parameters common to all grids.
   cudaMallocManaged(&commondata, sizeof(commondata_struct));
+  cudaCheckErrors(commondata, "Malloc failed")
   
   // WARN: restrict doesn't work for cuda
   griddata_struct * griddata; // griddata contains data specific to an individual grid.
@@ -38,17 +39,18 @@ int main(int argc, const char *argv[]) {
 
   // Step 1.c: Allocate NUMGRIDS griddata arrays, each containing data specific to an individual grid.
   // griddata = (griddata_struct *restrict)malloc(sizeof(griddata_struct) * commondata->NUMGRIDS);
-  cudaMalloc(&griddata, sizeof(griddata_struct) * commondata->NUMGRIDS);
+  cudaMallocManaged(&griddata, sizeof(griddata_struct) * commondata->NUMGRIDS);
+  cudaCheckErrors(griddata, "Malloc failed")
 
   // Step 1.d: Set each CodeParameter in griddata.params to default.
   params_struct_set_to_default(commondata, griddata);
 
   // Step 1.e: Set up numerical grids: xx[3], masks, Nxx, dxx, invdxx, bcstruct, rfm_precompute, timestep, etc.
-  // {
-  //   // if calling_for_first_time, then initialize commondata time=nn=t_0=nn_0 = 0
-  //   const bool calling_for_first_time = true;
-  //   numerical_grids_and_timestep(commondata, griddata, calling_for_first_time);
-  // }
+  {
+    // if calling_for_first_time, then initialize commondata time=nn=t_0=nn_0 = 0
+    const bool calling_for_first_time = true;
+    numerical_grids_and_timestep(commondata, griddata, calling_for_first_time);
+  }
 
   // for (int grid = 0; grid < commondata->NUMGRIDS; grid++) {
   //   // Step 2: Initial data are set on y_n_gfs gridfunctions. Allocate storage for them first.
@@ -85,8 +87,8 @@ int main(int argc, const char *argv[]) {
     // MoL_free_memory_non_y_n_gfs(&griddata[grid].gridfuncs);
     for (int i = 0; i < 3; i++)
       cudaFree(griddata[grid].xx[i]);
-      cudaFree(griddata[grid].params);
+      // cudaFree(griddata[grid].params);
   }
-  cudaFree(griddata);
+  cudaFree(griddata); cudaFree(commondata);
   return 0;
 }

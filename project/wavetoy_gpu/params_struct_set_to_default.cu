@@ -22,7 +22,7 @@ void params_struct_set_to_default_gpu(params_struct *restrict params) {
 void params_struct_set_to_default(commondata_struct *restrict commondata, griddata_struct *restrict griddata) {
   // Loop over params structs:
   for (int grid = 0; grid < commondata->NUMGRIDS; grid++) {
-    cudaMallocManaged(&griddata[grid].params, sizeof(params_struct));
-    params_struct_set_to_default_gpu<<<1,1>>>(griddata[grid].params);
+    params_struct_set_to_default_gpu<<<1,1>>>(&griddata[grid].params);
   }
+  cudaDeviceSynchronize();
 }
