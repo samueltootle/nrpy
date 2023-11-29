@@ -2,7 +2,7 @@
 
 extern __constant__ REAL wavespeed;
 
-__device__
+__device__ __host__
 void exact_solution_single_Cartesian_point(const commondata_struct *restrict commondata, const params_struct *restrict params,
     const REAL xCart0, const REAL xCart1, const REAL xCart2,  REAL *restrict exact_soln_UUGF, REAL *restrict exact_soln_VVGF
 );
