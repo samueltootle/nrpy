@@ -4,7 +4,7 @@
 // Call here to initialize GPU memory constants
 #include "BHaH_gpu_defines.h"
 #include "BHaH_gpu_function_prototypes.h"
-#include "init_gpu_consts.h"
+#include "init_gpu_globals.h"
 /*
  * -={ main() function }=-
  * Step 1.a: Set each commondata CodeParameter to default.
@@ -44,6 +44,7 @@ int main(int argc, const char *argv[]) {
 
   // Step 1.d: Set each CodeParameter in griddata.params to default.
   params_struct_set_to_default(commondata, griddata);
+  void set_fd_constants();
 
   // Step 1.e: Set up numerical grids: xx[3], masks, Nxx, dxx, invdxx, bcstruct, rfm_precompute, timestep, etc.
   {
@@ -64,17 +65,17 @@ int main(int argc, const char *argv[]) {
   for (int grid = 0; grid < commondata->NUMGRIDS; grid++) {
     MoL_malloc_non_y_n_gfs(commondata, &griddata[grid].params, &griddata[grid].gridfuncs);
   }
-  // // Step 5: MAIN SIMULATION LOOP
+  // Step 5: MAIN SIMULATION LOOP
   // while (commondata->time < commondata->t_final) { // Main loop to progress forward in time.
-  //   // Step 5.a: Main loop, part 1: Output diagnostics
+    // Step 5.a: Main loop, part 1: Output diagnostics
     diagnostics(commondata, griddata);
 
-  //   // Step 5.b: Main loop, part 2 (pre_MoL_step_forward_in_time): Prepare to step forward in time
-  //   // (nothing here; specify by setting pre_MoL_step_forward_in_time string in register_CFunction_main_c().)
+    // Step 5.b: Main loop, part 2 (pre_MoL_step_forward_in_time): Prepare to step forward in time
+    // (nothing here; specify by setting pre_MoL_step_forward_in_time string in register_CFunction_main_c().)
 
-  //   // Step 5.c: Main loop, part 3: Step forward in time using Method of Lines with RK4 algorithm,
-  //   //           applying Quadratic extrapolation, manually defined boundary conditions.
-  //   MoL_step_forward_in_time(commondata, griddata);
+    // Step 5.c: Main loop, part 3: Step forward in time using Method of Lines with RK4 algorithm,
+    //           applying Quadratic extrapolation, manually defined boundary conditions.
+    MoL_step_forward_in_time(commondata, griddata);
 
   //   // Step 5.d: Main loop, part 4 (post_MoL_step_forward_in_time): Finish up step in time
   //   // (nothing here; specify by setting post_MoL_step_forward_in_time string in register_CFunction_main_c().)
