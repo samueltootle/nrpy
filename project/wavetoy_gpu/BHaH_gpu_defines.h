@@ -10,12 +10,6 @@ void exact_solution_single_Cartesian_point(const commondata_struct *restrict com
     const REAL xCart0, const REAL xCart1, const REAL xCart2,  REAL *restrict exact_soln_UUGF, REAL *restrict exact_soln_VVGF
 );
 
-// __global__
-// void rhs_eval(const commondata_struct *restrict commondata, 
-//               const params_struct *restrict params, 
-//               const REAL *restrict in_gfs,
-//               REAL *restrict rhs_gfs);
-
 __global__
 void rk_substep_gpu(commondata_struct *restrict commondata, 
                 params_struct *restrict params,
