@@ -17,8 +17,8 @@ ifeq ($(COMPILER_SUPPORTS_OPENMP), YES)
 endif
 
 #OBJ_FILES = MoL_free_memory_non_y_n_gfs.o MoL_free_memory_y_n_gfs.o MoL_malloc_non_y_n_gfs.o MoL_malloc_y_n_gfs.o MoL_step_forward_in_time.o apply_bcs.o cmdline_input_and_parfile_parser.o commondata_struct_set_to_default.o diagnostics.o exact_solution_single_Cartesian_point.o initial_data.o params_struct_set_to_default.o progress_indicator.o rhs_eval.o
-OBJ_FILES= MoL_step_forward_in_time.o progress_indicator.o diagnostics.o cmdline_input_and_parfile_parser.o commondata_struct_set_to_default.o
-CU_OBJ_FILES = exact_solution_single_Cartesian_point.o initial_data.o MoL_malloc_non_y_n_gfs.o MoL_free_memory_non_y_n_gfs.o MoL_malloc_y_n_gfs.o MoL_free_memory_y_n_gfs.o params_struct_set_to_default.o numerical_grids_and_timestep.o main.o
+OBJ_FILES= apply_bcs.o MoL_step_forward_in_time.o progress_indicator.o diagnostics.o cmdline_input_and_parfile_parser.o commondata_struct_set_to_default.o
+CU_OBJ_FILES = rhs_eval.o MoL_RK_substeps_in_time.o exact_solution_single_Cartesian_point.o initial_data.o MoL_malloc_non_y_n_gfs.o MoL_free_memory_non_y_n_gfs.o MoL_malloc_y_n_gfs.o MoL_free_memory_y_n_gfs.o params_struct_set_to_default.o numerical_grids_and_timestep.o main.o
 
 all: wavetoy_gpu
 

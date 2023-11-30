@@ -66,7 +66,7 @@ int main(int argc, const char *argv[]) {
     MoL_malloc_non_y_n_gfs(commondata, &griddata[grid].params, &griddata[grid].gridfuncs);
   }
   // Step 5: MAIN SIMULATION LOOP
-  // while (commondata->time < commondata->t_final) { // Main loop to progress forward in time.
+  while (commondata->time < commondata->t_final) { // Main loop to progress forward in time.
     // Step 5.a: Main loop, part 1: Output diagnostics
     diagnostics(commondata, griddata);
 
@@ -77,10 +77,10 @@ int main(int argc, const char *argv[]) {
     //           applying Quadratic extrapolation, manually defined boundary conditions.
     MoL_step_forward_in_time(commondata, griddata);
 
-  //   // Step 5.d: Main loop, part 4 (post_MoL_step_forward_in_time): Finish up step in time
-  //   // (nothing here; specify by setting post_MoL_step_forward_in_time string in register_CFunction_main_c().)
+    // Step 5.d: Main loop, part 4 (post_MoL_step_forward_in_time): Finish up step in time
+    // (nothing here; specify by setting post_MoL_step_forward_in_time string in register_CFunction_main_c().)
 
-  // } // End main loop to progress forward in time.
+  } // End main loop to progress forward in time.
 
   // Step 5: Free all allocated memory
   for (int grid = 0; grid < commondata->NUMGRIDS; grid++) {
