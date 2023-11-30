@@ -1,11 +1,11 @@
 #include "BHaH_defines.h"
+#include "BHaH_gpu_defines.h"
 /*
  * Set params_struct to default values specified within NRPy+.
  */
-void params_struct_set_to_default(commondata_struct *restrict commondata, griddata_struct *restrict griddata) {
-  // Loop over params structs:
-  for (int grid = 0; grid < commondata->NUMGRIDS; grid++) {
-    params_struct *restrict params = &griddata[grid].params;
+
+__global__
+void params_struct_set_to_default(params_struct *restrict params) {
     // Set params_struct variables to default
     params->Cart_originx = 0.0; // nrpy.grid::Cart_originx
     params->Cart_originy = 0.0; // nrpy.grid::Cart_originy
@@ -19,5 +19,15 @@ void params_struct_set_to_default(commondata_struct *restrict commondata, gridda
     params->xxmin0 = -10.0;     // __main__::xxmin0
     params->xxmin1 = -10.0;     // __main__::xxmin1
     params->xxmin2 = -10.0;     // __main__::xxmin2
+}
+
+void params_struct_set_to_default(commondata_struct *restrict commondata, griddata_struct *restrict griddata) {
+  // Loop over params structs:
+  for (int grid = 0; grid < commondata->NUMGRIDS; grid++) {
+    params_struct * params = &griddata[grid].params;
+    cudaMalloc(&params, sizeof(params_struct));
+    cudaCheckErrors(malloc, "Malloc failed")
+    params_struct_set_to_default<<<1,1>>>(params);
+    cudaCheckErrors(params_default, "kernel failed")
   }
 }
