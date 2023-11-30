@@ -13,11 +13,16 @@ void MoL_step_forward_in_time(commondata_struct *restrict commondata, griddata_s
 
   // First set the initial time:
   const REAL time_start = commondata->time;
+  const REAL dt = commondata->dt;
+
   // -={ START k1 substep }=-
   for (int grid = 0; grid < commondata->NUMGRIDS; grid++) {
     commondata->time = time_start + 0.00000000000000000e+00 * commondata->dt;
+    // cudaMemPrefetchAsync(griddata[grid].xx[0], sizeof(REAL) * params->Nxx_plus_2NGHOSTS0, 0);
+    // cudaCheckErrors(griddata[grid].xx[0], "prefetch failed");
 
     params_struct *restrict params = &griddata[grid].params;
+    set_param_constants(params);
     
     // Not used...codegen baggage?
     // REAL *restrict xx[3];
@@ -25,16 +30,21 @@ void MoL_step_forward_in_time(commondata_struct *restrict commondata, griddata_s
     //   xx[ww] = griddata[grid].xx[ww];
     REAL *restrict y_n_gfs = griddata[grid].gridfuncs.y_n_gfs;
     REAL *restrict k_odd_gfs = griddata[grid].gridfuncs.k_odd_gfs;
+    REAL *restrict y_nplus1_running_total_gfs = griddata[grid].gridfuncs.y_nplus1_running_total_gfs;
+    REAL *restrict k_even_gfs = griddata[grid].gridfuncs.k_even_gfs;
+    REAL *restrict auxevol_gfs = griddata[grid].gridfuncs.auxevol_gfs;
     rhs_eval(commondata, params, y_n_gfs, k_odd_gfs);
     cudaDeviceSynchronize();
-
-    REAL rk_weight = 1./6.;
-    REAL dt_step_factor = 1./2.;
     
-    rk_substep(commondata, params, &griddata[grid].gridfuncs, \
-                rk_weight, dt_step_factor);
-    
+    rk_substep1(params,
+               y_n_gfs,
+               y_nplus1_running_total_gfs,
+               k_odd_gfs,
+               k_even_gfs,
+               auxevol_gfs,dt);
+    cudaDeviceSynchronize();
     apply_bcs(commondata, params, k_odd_gfs);
+    cudaDeviceSynchronize();
   }
   // -={ END k1 substep }=-
 
@@ -43,6 +53,7 @@ void MoL_step_forward_in_time(commondata_struct *restrict commondata, griddata_s
     commondata->time = time_start + 5.00000000000000000e-01 * commondata->dt;
 
     params_struct *restrict params = &griddata[grid].params;
+    set_param_constants(params);
     
     // Not used...codegen baggage?
     // REAL *restrict xx[3];
@@ -50,16 +61,22 @@ void MoL_step_forward_in_time(commondata_struct *restrict commondata, griddata_s
     //   xx[ww] = griddata[grid].xx[ww];
     REAL *restrict y_n_gfs = griddata[grid].gridfuncs.y_n_gfs;
     REAL *restrict k_odd_gfs = griddata[grid].gridfuncs.k_odd_gfs;
-    rhs_eval(commondata, params, y_n_gfs, k_odd_gfs);
-    cudaDeviceSynchronize();
+    REAL *restrict y_nplus1_running_total_gfs = griddata[grid].gridfuncs.y_nplus1_running_total_gfs;
+    REAL *restrict k_even_gfs = griddata[grid].gridfuncs.k_even_gfs;
+    REAL *restrict auxevol_gfs = griddata[grid].gridfuncs.auxevol_gfs;
 
-    REAL rk_weight = 1./3.;
-    REAL dt_step_factor = 1./2.;
+    rhs_eval(commondata, params, k_odd_gfs, k_even_gfs);
+    cudaDeviceSynchronize();
     
-    rk_substep(commondata, params, &griddata[grid].gridfuncs, \
-                rk_weight, dt_step_factor);
-    
-    apply_bcs(commondata, params, k_odd_gfs);
+    rk_substep2(params,
+               y_n_gfs,
+               y_nplus1_running_total_gfs,
+               k_odd_gfs,
+               k_even_gfs,
+               auxevol_gfs,dt);
+    cudaDeviceSynchronize();
+    apply_bcs(commondata, params, k_even_gfs);
+    cudaDeviceSynchronize();
   }
   // -={ END k2 substep }=-
 
@@ -68,6 +85,7 @@ void MoL_step_forward_in_time(commondata_struct *restrict commondata, griddata_s
     commondata->time = time_start + 5.00000000000000000e-01 * commondata->dt;
 
     params_struct *restrict params = &griddata[grid].params;
+    set_param_constants(params);
     
     // Not used...codegen baggage?
     // REAL *restrict xx[3];
@@ -75,24 +93,36 @@ void MoL_step_forward_in_time(commondata_struct *restrict commondata, griddata_s
     //   xx[ww] = griddata[grid].xx[ww];
     REAL *restrict y_n_gfs = griddata[grid].gridfuncs.y_n_gfs;
     REAL *restrict k_odd_gfs = griddata[grid].gridfuncs.k_odd_gfs;
-    rhs_eval(commondata, params, y_n_gfs, k_odd_gfs);
-    cudaDeviceSynchronize();
+    REAL *restrict y_nplus1_running_total_gfs = griddata[grid].gridfuncs.y_nplus1_running_total_gfs;
+    REAL *restrict k_even_gfs = griddata[grid].gridfuncs.k_even_gfs;
+    REAL *restrict auxevol_gfs = griddata[grid].gridfuncs.auxevol_gfs;
 
-    REAL rk_weight = 1. / 3.;
-    REAL dt_step_factor = 1.;
+    rhs_eval(commondata, params, k_even_gfs, k_odd_gfs);
+    cudaDeviceSynchronize();
     
-    rk_substep(commondata, params, &griddata[grid].gridfuncs, \
-                rk_weight, dt_step_factor);
-    
+    rk_substep3(params,
+               y_n_gfs,
+               y_nplus1_running_total_gfs,
+               k_odd_gfs,
+               k_even_gfs,
+               auxevol_gfs,dt);
+    cudaDeviceSynchronize();
     apply_bcs(commondata, params, k_odd_gfs);
+    cudaDeviceSynchronize();
+    printf("\n RK_32 - %f - %f - %f - %f\n",
+      y_nplus1_running_total_gfs[43],
+      y_n_gfs[43],
+      k_odd_gfs[43],
+      k_even_gfs[43]);
   }
   // -={ END k3 substep }=-
 
   // -={ START k4 substep }=-
   for (int grid = 0; grid < commondata->NUMGRIDS; grid++) {
-    commondata->time = time_start + 5.00000000000000000e-01 * commondata->dt;
+    commondata->time = time_start + 1.00000000000000000e+00 * commondata->dt;
 
     params_struct *restrict params = &griddata[grid].params;
+    set_param_constants(params);
     
     // Not used...codegen baggage?
     // REAL *restrict xx[3];
@@ -100,16 +130,28 @@ void MoL_step_forward_in_time(commondata_struct *restrict commondata, griddata_s
     //   xx[ww] = griddata[grid].xx[ww];
     REAL *restrict y_n_gfs = griddata[grid].gridfuncs.y_n_gfs;
     REAL *restrict k_odd_gfs = griddata[grid].gridfuncs.k_odd_gfs;
-    rhs_eval(commondata, params, y_n_gfs, k_odd_gfs);
-    cudaDeviceSynchronize();
+    REAL *restrict y_nplus1_running_total_gfs = griddata[grid].gridfuncs.y_nplus1_running_total_gfs;
+    REAL *restrict k_even_gfs = griddata[grid].gridfuncs.k_even_gfs;
+    REAL *restrict auxevol_gfs = griddata[grid].gridfuncs.auxevol_gfs;
 
-    REAL rk_weight = 1.;
-    REAL dt_step_factor = 1. / 6.;
+    rhs_eval(commondata, params, k_odd_gfs, k_even_gfs);
+    cudaDeviceSynchronize();
     
-    rk_substep(commondata, params, &griddata[grid].gridfuncs, \
-                rk_weight, dt_step_factor);
-    
-    apply_bcs(commondata, params, k_odd_gfs);
+    rk_substep4(params,
+               y_n_gfs,
+               y_nplus1_running_total_gfs,
+               k_odd_gfs,
+               k_even_gfs,
+               auxevol_gfs,dt);
+    cudaDeviceSynchronize();
+    apply_bcs(commondata, params, y_n_gfs);
+    cudaDeviceSynchronize();    
+    printf("\n RK_42 - %f - %f - %f - %f\n",
+      y_nplus1_running_total_gfs[43],
+      y_n_gfs[43],
+      k_odd_gfs[43],
+      k_even_gfs[43]);
+    cudaDeviceSynchronize();    
   }
   // -={ END k4 substep }=-
 

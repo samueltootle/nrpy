@@ -9,7 +9,19 @@ void rhs_eval_gpu(const commondata_struct *restrict commondata,
               const REAL *restrict in_gfs,
               REAL *restrict rhs_gfs) {
 
-#include "set_CodeParameters.h"
+// #include "set_CodeParameters.h"
+  const REAL & invdxx0 = d_params.invdxx0;
+  const REAL & invdxx1 = d_params.invdxx1;
+  const REAL & invdxx2 = d_params.invdxx2;
+
+  const int & Nxx0 = d_params.Nxx0;
+  const int & Nxx1 = d_params.Nxx1;
+  const int & Nxx2 = d_params.Nxx2;
+
+  const int & Nxx_plus_2NGHOSTS0 = d_params.Nxx_plus_2NGHOSTS0;
+  const int & Nxx_plus_2NGHOSTS1 = d_params.Nxx_plus_2NGHOSTS1;
+  const int & Nxx_plus_2NGHOSTS2 = d_params.Nxx_plus_2NGHOSTS2;
+
   const int tid0  = blockIdx.x * blockDim.x + threadIdx.x;
   const int tid1  = blockIdx.y * blockDim.y + threadIdx.y;
   const int tid2  = blockIdx.z * blockDim.z + threadIdx.z;
@@ -17,7 +29,12 @@ void rhs_eval_gpu(const commondata_struct *restrict commondata,
   const int stride0 = blockDim.x * gridDim.x;
   const int stride1 = blockDim.y * gridDim.y;
   const int stride2 = blockDim.x * gridDim.z;
-
+  // if(tid0 == 0 && tid1 == 0 && tid2 == 0) {
+  //   printf("%f %f %f %u %u %u %u %u %u", 
+  //     invdxx0,invdxx1,invdxx2,
+  //     Nxx0,Nxx2,Nxx2,
+  //     Nxx_plus_2NGHOSTS0,Nxx_plus_2NGHOSTS0,Nxx_plus_2NGHOSTS0);
+  // }
   for (int i2 = tid2+NGHOSTS; i2 < NGHOSTS + Nxx2; i2+=stride2) {
     for (int i1 = tid1+NGHOSTS; i1 < NGHOSTS + Nxx1; i1+=stride1) {
       for (int i0 = tid0+NGHOSTS; i0 < NGHOSTS + Nxx0; i0+=stride0) {

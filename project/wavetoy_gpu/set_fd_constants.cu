@@ -34,3 +34,13 @@ void set_fd_constants() {
 //     cudaMemcpyToSymbol(FDPart3_18, &h_FDPart3_18, sizeof(REAL));
 //     cudaMemcpyToSymbol(FDPart3_22, &h_FDPart3_22, sizeof(REAL));
 }
+
+__host__
+void set_param_constants(params_struct *restrict params) {
+    cudaMemcpyToSymbol(d_params, params, sizeof(params_struct));
+}
+
+__host__
+void set_commondata_constants(commondata_struct *restrict commondata) {
+    cudaMemcpyToSymbol(wavespeed, &commondata->wavespeed, sizeof(REAL));
+}
