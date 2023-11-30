@@ -11,6 +11,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#ifdef __cplusplus
+#define restrict __restrict__
+#endif
 #define REAL double
 
 #define MIN(A, B) (((A) < (B)) ? (A) : (B))
@@ -87,13 +90,13 @@ typedef struct __params_struct__ {
 //********************************************
 // Basic definitions for module nrpy.infrastructures.BHaH.MoLtimestepping.MoL:
 typedef struct __MoL_gridfunctions_struct__ {
-  REAL *restrict y_n_gfs;
-  REAL *restrict y_nplus1_running_total_gfs;
-  REAL *restrict k_odd_gfs;
-  REAL *restrict k_even_gfs;
-  REAL *restrict auxevol_gfs;
-  REAL *restrict diagnostic_output_gfs;
-  REAL *restrict diagnostic_output_gfs2;
+  REAL *y_n_gfs;
+  REAL *y_nplus1_running_total_gfs;
+  REAL *k_odd_gfs;
+  REAL *k_even_gfs;
+  REAL *auxevol_gfs;
+  REAL *diagnostic_output_gfs;
+  REAL *diagnostic_output_gfs2;
 } MoL_gridfunctions_struct;
 
 #define LOOP_ALL_GFS_GPS(ii)                                                                                                                         \
@@ -153,7 +156,7 @@ static const REAL gridfunctions_wavespeed[NUM_EVOL_GFS] = {1.0, 1.0};
 typedef struct __griddata__ {
   // griddata_struct stores data needed on each grid
   // xx[3] stores the uniform grid coordinates.
-  REAL *restrict xx[3];
+  REAL * xx[3];
   // NRPy+ MODULE: nrpy.infrastructures.BHaH.MoLtimestepping.MoL
   MoL_gridfunctions_struct gridfuncs; // <- MoL gridfunctions
   // NRPy+ MODULE: params
