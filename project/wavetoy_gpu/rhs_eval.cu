@@ -94,6 +94,6 @@ void rhs_eval(const commondata_struct *restrict commondata,
     (params->Nxx_plus_2NGHOSTS1 + GPU_NBLOCK1 - 1) / GPU_NBLOCK1,
     (params->Nxx_plus_2NGHOSTS2 + GPU_NBLOCK2 - 1) / GPU_NBLOCK2
   );
-  rhs_eval_gpu<<<grid,block>>>(commondata, params, in_gfs, rhs_gfs);
+  rhs_eval_gpu<<<1,1>>>(commondata, params, in_gfs, rhs_gfs);
   cudaCheckErrors(rhs_eval_gpu, "kernel failed")
 }

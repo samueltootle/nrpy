@@ -5,7 +5,12 @@
  * Method of Lines (MoL) for "RK4" method: Step forward one full timestep.
  *
  */
-
+#define TEST(arg) printf("\n %s - %1.15f - %1.15f - %1.15f - %1.15f\n", \
+      #arg, \
+      y_nplus1_running_total_gfs[43], \
+      y_n_gfs[43], \
+      k_odd_gfs[43], \
+      k_even_gfs[43]); \
 
 void MoL_step_forward_in_time(commondata_struct *restrict commondata, griddata_struct *restrict griddata) {
 
@@ -45,6 +50,8 @@ void MoL_step_forward_in_time(commondata_struct *restrict commondata, griddata_s
     cudaDeviceSynchronize();
     apply_bcs(commondata, params, k_odd_gfs);
     cudaDeviceSynchronize();
+    TEST(RK_12)
+    cudaDeviceSynchronize();
   }
   // -={ END k1 substep }=-
 
@@ -67,7 +74,8 @@ void MoL_step_forward_in_time(commondata_struct *restrict commondata, griddata_s
 
     rhs_eval(commondata, params, k_odd_gfs, k_even_gfs);
     cudaDeviceSynchronize();
-    
+    TEST(RK_20)
+    cudaDeviceSynchronize();
     rk_substep2(params,
                y_n_gfs,
                y_nplus1_running_total_gfs,
@@ -75,7 +83,11 @@ void MoL_step_forward_in_time(commondata_struct *restrict commondata, griddata_s
                k_even_gfs,
                auxevol_gfs,dt);
     cudaDeviceSynchronize();
+    TEST(RK_21)
+    cudaDeviceSynchronize();
     apply_bcs(commondata, params, k_even_gfs);
+    cudaDeviceSynchronize();
+    TEST(RK_22)
     cudaDeviceSynchronize();
   }
   // -={ END k2 substep }=-
@@ -109,11 +121,8 @@ void MoL_step_forward_in_time(commondata_struct *restrict commondata, griddata_s
     cudaDeviceSynchronize();
     apply_bcs(commondata, params, k_odd_gfs);
     cudaDeviceSynchronize();
-    printf("\n RK_32 - %f - %f - %f - %f\n",
-      y_nplus1_running_total_gfs[43],
-      y_n_gfs[43],
-      k_odd_gfs[43],
-      k_even_gfs[43]);
+    TEST(RK_32)
+    cudaDeviceSynchronize();
   }
   // -={ END k3 substep }=-
 
@@ -146,11 +155,7 @@ void MoL_step_forward_in_time(commondata_struct *restrict commondata, griddata_s
     cudaDeviceSynchronize();
     apply_bcs(commondata, params, y_n_gfs);
     cudaDeviceSynchronize();    
-    printf("\n RK_42 - %f - %f - %f - %f\n",
-      y_nplus1_running_total_gfs[43],
-      y_n_gfs[43],
-      k_odd_gfs[43],
-      k_even_gfs[43]);
+    TEST(RK_42)
     cudaDeviceSynchronize();    
   }
   // -={ END k4 substep }=-
