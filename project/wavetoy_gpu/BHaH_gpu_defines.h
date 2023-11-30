@@ -17,12 +17,17 @@ void exact_solution_single_Cartesian_point(const commondata_struct *restrict com
 //               REAL *restrict rhs_gfs);
 
 __global__
+void rk_substep_gpu(commondata_struct *restrict commondata, 
+                params_struct *restrict params,
+                MoL_gridfunctions_struct *restrict gridfuncs,
+                REAL rk_weight,
+                REAL dt_step_factor);
+__host__
 void rk_substep(commondata_struct *restrict commondata, 
                 params_struct *restrict params,
                 MoL_gridfunctions_struct *restrict gridfuncs,
                 REAL rk_weight,
                 REAL dt_step_factor);
-
 __host__
 void set_fd_constants();
 
@@ -46,3 +51,10 @@ void set_fd_constants();
             exit(1); \
         } \
     } while (0);
+
+
+template<class T>
+__global__
+void print_var(T * data, size_t index) {
+    printf("%f\n", data[index]);
+}
