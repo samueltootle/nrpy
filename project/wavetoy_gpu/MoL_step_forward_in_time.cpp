@@ -18,7 +18,16 @@ void MoL_step_forward_in_time(commondata_struct *restrict commondata, griddata_s
     commondata->time = time_start + 0.00000000000000000e+00 * commondata->dt;
 
     params_struct *restrict params = &griddata[grid].params;
+    
+    // Not used...codegen baggage?
+    // REAL *restrict xx[3];
+    // for (int ww = 0; ww < 3; ww++)
+    //   xx[ww] = griddata[grid].xx[ww];
+    REAL *restrict y_n_gfs = griddata[grid].gridfuncs.y_n_gfs;
+    REAL *restrict k_odd_gfs = griddata[grid].gridfuncs.k_odd_gfs;
+    rhs_eval(commondata, params, y_n_gfs, k_odd_gfs);
 
+    // Compute optimal grid/block configuration for GPU
     const int Nxx_plus_2NGHOSTS0 = params->Nxx_plus_2NGHOSTS0;
     const int Nxx_plus_2NGHOSTS1 = params->Nxx_plus_2NGHOSTS1;
     const int Nxx_plus_2NGHOSTS2 = params->Nxx_plus_2NGHOSTS2;
@@ -28,16 +37,9 @@ void MoL_step_forward_in_time(commondata_struct *restrict commondata, griddata_s
                 * NUM_EVOL_GFS;
     int block_threads = 1024;
     int grid_blocks = (N + block_threads - 1) / block_threads;
-    
-    // Not used...codegen baggage?
-    // REAL *restrict xx[3];
-    // for (int ww = 0; ww < 3; ww++)
-    //   xx[ww] = griddata[grid].xx[ww];
-
-    // rhs_eval(commondata, params, y_n_gfs, k_odd_gfs);
-    // REAL rk_weight = 1./6.;
-    // REAL dt_step_factor = 1./2.;
-    // rk_substep<<<grid, block>>>(commondata, 
+    REAL rk_weight = 1./6.;
+    REAL dt_step_factor = 1./2.;
+    // rk_substep<<<grid_blocks, block_threads>>>(commondata, 
     //                             params, 
     //                             &griddata[grid].gridfuncs, 
     //                             rk_weight, 
