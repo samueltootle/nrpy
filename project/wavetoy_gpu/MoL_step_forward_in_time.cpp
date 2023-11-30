@@ -26,26 +26,18 @@ void MoL_step_forward_in_time(commondata_struct *restrict commondata, griddata_s
     REAL *restrict y_n_gfs = griddata[grid].gridfuncs.y_n_gfs;
     REAL *restrict k_odd_gfs = griddata[grid].gridfuncs.k_odd_gfs;
     rhs_eval(commondata, params, y_n_gfs, k_odd_gfs);
+    cudaDeviceSynchronize();
 
-    // Compute optimal grid/block configuration for GPU
-    const int Nxx_plus_2NGHOSTS0 = params->Nxx_plus_2NGHOSTS0;
-    const int Nxx_plus_2NGHOSTS1 = params->Nxx_plus_2NGHOSTS1;
-    const int Nxx_plus_2NGHOSTS2 = params->Nxx_plus_2NGHOSTS2;
-    const int N = Nxx_plus_2NGHOSTS0 \
-                * Nxx_plus_2NGHOSTS1 \
-                * Nxx_plus_2NGHOSTS2 \
-                * NUM_EVOL_GFS;
-    int block_threads = 1024;
-    int grid_blocks = (N + block_threads - 1) / block_threads;
     REAL rk_weight = 1./6.;
     REAL dt_step_factor = 1./2.;
-    // rk_substep<<<grid_blocks, block_threads>>>(commondata, 
-    //                             params, 
-    //                             &griddata[grid].gridfuncs, 
-    //                             rk_weight, 
-    //                             dt_step_factor);
-
-    // apply_bcs(commondata, params, k_odd_gfs);
+    
+    rk_substep(commondata, params, &griddata[grid].gridfuncs, \
+                rk_weight, dt_step_factor);
+    return;
+    // printf("\n\n");
+    // print_var(y_n_gfs, 43);
+    // print_var(k_odd_gfs, 43);
+    // apply_bcs(commondata, par ams, k_odd_gfs);
   }
   // -={ END k1 substep }=-
 
