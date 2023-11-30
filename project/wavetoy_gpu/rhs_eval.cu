@@ -1,14 +1,26 @@
 #include "BHaH_defines.h"
+#include "BHaH_gpu_defines.h"
 /*
  * Set RHSs for wave equation.
  */
-void rhs_eval(const commondata_struct *restrict commondata, const params_struct *restrict params, const REAL *restrict in_gfs,
+__global__
+void rhs_eval(const commondata_struct *restrict commondata, 
+              const params_struct *restrict params, 
+              const REAL *restrict in_gfs,
               REAL *restrict rhs_gfs) {
+
 #include "set_CodeParameters.h"
-#pragma omp parallel for
-  for (int i2 = NGHOSTS; i2 < NGHOSTS + Nxx2; i2++) {
-    for (int i1 = NGHOSTS; i1 < NGHOSTS + Nxx1; i1++) {
-      for (int i0 = NGHOSTS; i0 < NGHOSTS + Nxx0; i0++) {
+  const int tid0  = blockIdx.x * blockDim.x + threadIdx.x;
+  const int tid1  = blockIdx.y * blockDim.y + threadIdx.y;
+  const int tid2  = blockIdx.z * blockDim.z + threadIdx.z;
+  
+  const int stride0 = blockDim.x * gridDim.x;
+  const int stride1 = blockDim.y * gridDim.y;
+  const int stride2 = blockDim.x * gridDim.z;
+
+  for (int i2 = tid2+NGHOSTS; i2 < NGHOSTS + Nxx2; i2+=stride2) {
+    for (int i1 = tid1+NGHOSTS; i1 < NGHOSTS + Nxx1; i1+=stride1) {
+      for (int i0 = tid0+NGHOSTS; i0 < NGHOSTS + Nxx0; i0+=stride0) {
         /*
          * NRPy+-Generated GF Access/FD Code, Step 1 of 2:
          * Read gridfunction(s) from main memory and compute FD stencils as needed.
@@ -27,9 +39,12 @@ void rhs_eval(const commondata_struct *restrict commondata, const params_struct 
         const REAL uu_i2p1 = in_gfs[IDX4(UUGF, i0, i1, i2 + 1)];
         const REAL uu_i2p2 = in_gfs[IDX4(UUGF, i0, i1, i2 + 2)];
         const REAL vv = in_gfs[IDX4(VVGF, i0, i1, i2)];
-        const REAL FDPart1_Rational_5_2 = 5.0 / 2.0;
-        const REAL FDPart1_Rational_1_12 = 1.0 / 12.0;
-        const REAL FDPart1_Rational_4_3 = 4.0 / 3.0;
+        
+        // moved to __constant__ space
+        // const REAL FDPart1_Rational_5_2 = 5.0 / 2.0;
+        // const REAL FDPart1_Rational_1_12 = 1.0 / 12.0;
+        // const REAL FDPart1_Rational_4_3 = 4.0 / 3.0;
+        
         const REAL FDPart1tmp0 = -FDPart1_Rational_5_2 * uu;
         const REAL uu_dDD00 =
             ((invdxx0) * (invdxx0)) * (FDPart1_Rational_1_12 * (-uu_i0m2 - uu_i0p2) + FDPart1_Rational_4_3 * (uu_i0m1 + uu_i0p1) + FDPart1tmp0);
