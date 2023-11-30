@@ -47,8 +47,8 @@ void set_fd_constants();
     } while (0);
 
 
-template<class T>
-__global__
-void print_var(T * data, size_t index) {
-    printf("%f\n", data[index]);
-}
+// template<class T>
+// __global__
+// void print_var(T * data, size_t index) {
+//     printf("%f\n", data[index]);
+// }
