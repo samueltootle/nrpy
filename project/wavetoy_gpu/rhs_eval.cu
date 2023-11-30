@@ -4,7 +4,7 @@
  * Set RHSs for wave equation.
  */
 __global__
-void rhs_eval(const commondata_struct *restrict commondata, 
+void rhs_eval_gpu(const commondata_struct *restrict commondata, 
               const params_struct *restrict params, 
               const REAL *restrict in_gfs,
               REAL *restrict rhs_gfs) {
@@ -64,4 +64,19 @@ void rhs_eval(const commondata_struct *restrict commondata,
       } // END LOOP: for (int i0 = NGHOSTS; i0 < NGHOSTS+Nxx0; i0++)
     }   // END LOOP: for (int i1 = NGHOSTS; i1 < NGHOSTS+Nxx1; i1++)
   }     // END LOOP: for (int i2 = NGHOSTS; i2 < NGHOSTS+Nxx2; i2++)
+}
+
+__host__
+void rhs_eval(const commondata_struct *restrict commondata, 
+              const params_struct *restrict params, 
+              const REAL *restrict in_gfs,
+              REAL *restrict rhs_gfs) {
+  dim3 block(GPU_NBLOCK0,GPU_NBLOCK1,GPU_NBLOCK2);
+  dim3 grid(
+    (params->Nxx_plus_2NGHOSTS0 + GPU_NBLOCK0 - 1) / GPU_NBLOCK0,
+    (params->Nxx_plus_2NGHOSTS1 + GPU_NBLOCK1 - 1) / GPU_NBLOCK1,
+    (params->Nxx_plus_2NGHOSTS2 + GPU_NBLOCK2 - 1) / GPU_NBLOCK2
+  );
+  rhs_eval_gpu<<<grid,block>>>(commondata, params, in_gfs, rhs_gfs);
+  cudaCheckErrors(rhs_eval_gpu, "kernel failed")
 }
