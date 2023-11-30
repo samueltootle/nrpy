@@ -1,5 +1,7 @@
 #include "BHaH_defines.h"
 #include "BHaH_function_prototypes.h"
+#include "BHaH_gpu_defines.h"
+#include "init_gpu_globals.h"
 /*
  * -={ main() function }=-
  * Step 1.a: Set each commondata CodeParameter to default.
@@ -19,63 +21,63 @@
  */
 int main(int argc, const char *argv[]) {
   commondata_struct commondata;       // commondata contains parameters common to all grids.
-  griddata_struct *restrict griddata; // griddata contains data specific to an individual grid.
+  // griddata_struct *restrict griddata; // griddata contains data specific to an individual grid.
 
-  // Step 1.a: Set each commondata CodeParameter to default.
-  commondata_struct_set_to_default(&commondata);
+  // // Step 1.a: Set each commondata CodeParameter to default.
+  // commondata_struct_set_to_default(&commondata);
 
-  // Step 1.b: Overwrite default values to parfile values. Then overwrite parfile values with values set at cmd line.
-  cmdline_input_and_parfile_parser(&commondata, argc, argv);
+  // // Step 1.b: Overwrite default values to parfile values. Then overwrite parfile values with values set at cmd line.
+  // cmdline_input_and_parfile_parser(&commondata, argc, argv);
 
-  // Step 1.c: Allocate NUMGRIDS griddata arrays, each containing data specific to an individual grid.
-  griddata = (griddata_struct *restrict)malloc(sizeof(griddata_struct) * commondata.NUMGRIDS);
+  // // Step 1.c: Allocate NUMGRIDS griddata arrays, each containing data specific to an individual grid.
+  // griddata = (griddata_struct *restrict)malloc(sizeof(griddata_struct) * commondata.NUMGRIDS);
 
-  // Step 1.d: Set each CodeParameter in griddata.params to default.
-  params_struct_set_to_default(&commondata, griddata);
+  // // Step 1.d: Set each CodeParameter in griddata.params to default.
+  // params_struct_set_to_default(&commondata, griddata);
 
-  // Step 1.e: Set up numerical grids: xx[3], masks, Nxx, dxx, invdxx, bcstruct, rfm_precompute, timestep, etc.
-  {
-    // if calling_for_first_time, then initialize commondata time=nn=t_0=nn_0 = 0
-    const bool calling_for_first_time = true;
-    numerical_grids_and_timestep(&commondata, griddata, calling_for_first_time);
-  }
+  // // Step 1.e: Set up numerical grids: xx[3], masks, Nxx, dxx, invdxx, bcstruct, rfm_precompute, timestep, etc.
+  // {
+  //   // if calling_for_first_time, then initialize commondata time=nn=t_0=nn_0 = 0
+  //   const bool calling_for_first_time = true;
+  //   numerical_grids_and_timestep(&commondata, griddata, calling_for_first_time);
+  // }
 
-  for (int grid = 0; grid < commondata.NUMGRIDS; grid++) {
-    // Step 2: Initial data are set on y_n_gfs gridfunctions. Allocate storage for them first.
-    MoL_malloc_y_n_gfs(&commondata, &griddata[grid].params, &griddata[grid].gridfuncs);
-  }
+  // for (int grid = 0; grid < commondata.NUMGRIDS; grid++) {
+  //   // Step 2: Initial data are set on y_n_gfs gridfunctions. Allocate storage for them first.
+  //   MoL_malloc_y_n_gfs(&commondata, &griddata[grid].params, &griddata[grid].gridfuncs);
+  // }
 
-  // Step 3: Finalize initialization: set up initial data, etc.
-  initial_data(&commondata, griddata);
+  // // Step 3: Finalize initialization: set up initial data, etc.
+  // initial_data(&commondata, griddata);
 
-  // Step 4: Allocate storage for non-y_n gridfunctions, needed for the Runge-Kutta-like timestepping
-  for (int grid = 0; grid < commondata.NUMGRIDS; grid++)
-    MoL_malloc_non_y_n_gfs(&commondata, &griddata[grid].params, &griddata[grid].gridfuncs);
+  // // Step 4: Allocate storage for non-y_n gridfunctions, needed for the Runge-Kutta-like timestepping
+  // for (int grid = 0; grid < commondata.NUMGRIDS; grid++)
+  //   MoL_malloc_non_y_n_gfs(&commondata, &griddata[grid].params, &griddata[grid].gridfuncs);
 
-  // Step 5: MAIN SIMULATION LOOP
-  while (commondata.time < commondata.t_final) { // Main loop to progress forward in time.
-    // Step 5.a: Main loop, part 1: Output diagnostics
-    diagnostics(&commondata, griddata);
+  // // Step 5: MAIN SIMULATION LOOP
+  // while (commondata.time < commondata.t_final) { // Main loop to progress forward in time.
+  //   // Step 5.a: Main loop, part 1: Output diagnostics
+  //   diagnostics(&commondata, griddata);
 
-    // Step 5.b: Main loop, part 2 (pre_MoL_step_forward_in_time): Prepare to step forward in time
-    // (nothing here; specify by setting pre_MoL_step_forward_in_time string in register_CFunction_main_c().)
+  //   // Step 5.b: Main loop, part 2 (pre_MoL_step_forward_in_time): Prepare to step forward in time
+  //   // (nothing here; specify by setting pre_MoL_step_forward_in_time string in register_CFunction_main_c().)
 
-    // Step 5.c: Main loop, part 3: Step forward in time using Method of Lines with RK4 algorithm,
-    //           applying Quadratic extrapolation, manually defined boundary conditions.
-    MoL_step_forward_in_time(&commondata, griddata);
+  //   // Step 5.c: Main loop, part 3: Step forward in time using Method of Lines with RK4 algorithm,
+  //   //           applying Quadratic extrapolation, manually defined boundary conditions.
+  //   MoL_step_forward_in_time(&commondata, griddata);
 
-    // Step 5.d: Main loop, part 4 (post_MoL_step_forward_in_time): Finish up step in time
-    // (nothing here; specify by setting post_MoL_step_forward_in_time string in register_CFunction_main_c().)
+  //   // Step 5.d: Main loop, part 4 (post_MoL_step_forward_in_time): Finish up step in time
+  //   // (nothing here; specify by setting post_MoL_step_forward_in_time string in register_CFunction_main_c().)
 
-  } // End main loop to progress forward in time.
+  // } // End main loop to progress forward in time.
 
-  // Step 5: Free all allocated memory
-  for (int grid = 0; grid < commondata.NUMGRIDS; grid++) {
-    MoL_free_memory_y_n_gfs(&griddata[grid].gridfuncs);
-    MoL_free_memory_non_y_n_gfs(&griddata[grid].gridfuncs);
-    for (int i = 0; i < 3; i++)
-      free(griddata[grid].xx[i]);
-  }
-  free(griddata);
+  // // Step 5: Free all allocated memory
+  // for (int grid = 0; grid < commondata.NUMGRIDS; grid++) {
+  //   MoL_free_memory_y_n_gfs(&griddata[grid].gridfuncs);
+  //   MoL_free_memory_non_y_n_gfs(&griddata[grid].gridfuncs);
+  //   for (int i = 0; i < 3; i++)
+  //     free(griddata[grid].xx[i]);
+  // }
+  // free(griddata);
   return 0;
 }
