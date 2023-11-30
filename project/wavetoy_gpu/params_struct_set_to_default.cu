@@ -8,9 +8,9 @@ void params_struct_set_to_default_gpu(params_struct *restrict params) {
   params->Cart_originx = 0.0; // nrpy.grid::Cart_originx
   params->Cart_originy = 0.0; // nrpy.grid::Cart_originy
   params->Cart_originz = 0.0; // nrpy.grid::Cart_originz
-  params->Nxx0 = 64;          // __main__::Nxx0
-  params->Nxx1 = 64;          // __main__::Nxx1
-  params->Nxx2 = 64;          // __main__::Nxx2
+  params->Nxx0 = 128;          // __main__::Nxx0
+  params->Nxx1 = 128;          // __main__::Nxx1
+  params->Nxx2 = 128;          // __main__::Nxx2
   params->xxmax0 = 10.0;      // __main__::xxmax0
   params->xxmax1 = 10.0;      // __main__::xxmax1
   params->xxmax2 = 10.0;      // __main__::xxmax2
