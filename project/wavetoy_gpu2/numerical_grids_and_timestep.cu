@@ -68,11 +68,11 @@ void allocate_grid_storage(REAL *xx[3], int const Nxxtot0, int const Nxxtot1, in
 }
 
 __host__
-void testcpy(REAL *xx) {
+void testcpy(REAL const * const xx) {
   REAL x;
   cudaMemcpy(&x, &xx[42], sizeof(REAL), cudaMemcpyDeviceToHost);
   cudaCheckErrors(cudaMalloc, "memory failed")
-  printf("var %f\n", x);
+  printf("var: %f\n", x);
 }
 
 void numerical_grids_and_timestep(commondata_struct * commondata, griddata_struct *griddata, bool calling_for_first_time) {
