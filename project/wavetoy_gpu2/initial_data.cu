@@ -33,7 +33,7 @@ void initial_data_gpu(const commondata_struct in_commondata,
         REAL const & xCart1 = xx1;
         REAL const & xCart2 = xx2;
 
-        exact_solution_single_Cartesian_point(commondata, params, 
+        exact_solution_single_Cartesian_point_gpu(commondata, params, 
                                               xCart0, xCart1, xCart2, 
                                               &in_gfs[IDX4(UUGF, i0, i1, i2)],
                                               &in_gfs[IDX4(VVGF, i0, i1, i2)]);
