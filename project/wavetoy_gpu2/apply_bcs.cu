@@ -19,39 +19,16 @@ const int MINFACE = +1;
       }
 
 __global__
-void update_faces(size_t which_gf, REAL *restrict gfs, 
-                  size_t i0min, size_t i0max, 
-                  size_t i1min, size_t i1max, 
-                  size_t i2min, size_t i2max) {
+void apply_bcs_gpu(const params_struct *restrict params, REAL *restrict gfs) {
   // Global data index - expecting a 1D dataset
   // Thread indices
-  const int tid0 = threadIdx.x + blockIdx.x*blockDim.x;
+  const int tid = threadIdx.x + blockIdx.x*blockDim.x;
 
-  uint tid = threadIdx.x + threadIdx.y * blockDim.x + threadIdx.z * blockDim.x * blockDim.y;
-}
+  const int Nxx_plus_2NGHOSTS0 = params->Nxx_plus_2NGHOSTS0;
+  const int Nxx_plus_2NGHOSTS1 = params->Nxx_plus_2NGHOSTS1;
+  const int Nxx_plus_2NGHOSTS2 = params->Nxx_plus_2NGHOSTS2;
 
-/*
- * Apply (quadratic extrapolation) spatial boundary conditions to the scalar wave gridfunctions.
- * BCs are applied to all six boundary faces of the cube, filling in the innermost
- * ghost zone first, and moving outward.
- */
-void apply_bcs(const commondata_struct *restrict commondata, const params_struct *restrict params, REAL *restrict gfs) {
-  
-  int Nxx_plus_2NGHOSTS0, Nxx_plus_2NGHOSTS1, Nxx_plus_2NGHOSTS2;
-  cudaMemcpy(&Nxx_plus_2NGHOSTS0, &params->Nxx_plus_2NGHOSTS0, sizeof(int), cudaMemcpyDeviceToHost);
-  cudaCheckErrors(cudaMemcpy, "memory failed")
-  cudaMemcpy(&Nxx_plus_2NGHOSTS1, &params->Nxx_plus_2NGHOSTS1, sizeof(int), cudaMemcpyDeviceToHost);
-  cudaCheckErrors(cudaMemcpy, "memory failed")
-  cudaMemcpy(&Nxx_plus_2NGHOSTS2, &params->Nxx_plus_2NGHOSTS2, sizeof(int), cudaMemcpyDeviceToHost);
-  cudaCheckErrors(cudaMemcpy, "memory failed")
-  
-  int grid = 1;
-  // dim3 block(GPU_NBLOCK0,GPU_NBLOCK1,GPU_NBLOCK2);
-  // Using multi-dimensional thread indexing doesn't
-  // work for some reason...
-  int block = 1;
-
-  for (int which_gf = 0; which_gf < NUM_EVOL_GFS; which_gf++) {
+  for (int which_gf = tid; which_gf < NUM_EVOL_GFS; which_gf++) {
     size_t imin[3] = {(size_t) NGHOSTS, (size_t) NGHOSTS, (size_t) NGHOSTS};
     size_t imax[3] = {
       (size_t) (Nxx_plus_2NGHOSTS0 - NGHOSTS),
@@ -75,4 +52,16 @@ void apply_bcs(const commondata_struct *restrict commondata, const params_struct
     FACE_UPDATE(which_gf, imin[0], imax[0], imin[1], imax[1], imax[2], imax[2] + 1, NUL, NUL, MAXFACE);
     imax[2]++;
   }
+}
+
+/*
+ * Apply (quadratic extrapolation) spatial boundary conditions to the scalar wave gridfunctions.
+ * BCs are applied to all six boundary faces of the cube, filling in the innermost
+ * ghost zone first, and moving outward.
+ */
+void apply_bcs(const commondata_struct *restrict commondata, const params_struct *restrict params, REAL *restrict gfs) {
+  
+  int grid = 1;
+  int block = NUM_EVOL_GFS;
+  apply_bcs_gpu<<<grid, block>>>(params, gfs);
 }
