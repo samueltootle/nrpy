@@ -35,6 +35,7 @@ int main(int argc, const char *argv[]) {
 
   // Step 1.d: Set each CodeParameter in griddata.params to default.
   params_struct_set_to_default(&commondata, griddata);
+  set_fd_constants();
 
   // Step 1.e: Set up numerical grids: xx[3], masks, Nxx, dxx, invdxx, bcstruct, rfm_precompute, timestep, etc.
   {
@@ -66,7 +67,7 @@ int main(int argc, const char *argv[]) {
 
   //   // Step 5.c: Main loop, part 3: Step forward in time using Method of Lines with RK4 algorithm,
   //   //           applying Quadratic extrapolation, manually defined boundary conditions.
-  //   MoL_step_forward_in_time(&commondata, griddata);
+    // MoL_step_forward_in_time(&commondata, griddata);
 
   //   // Step 5.d: Main loop, part 4 (post_MoL_step_forward_in_time): Finish up step in time
   //   // (nothing here; specify by setting post_MoL_step_forward_in_time string in register_CFunction_main_c().)
