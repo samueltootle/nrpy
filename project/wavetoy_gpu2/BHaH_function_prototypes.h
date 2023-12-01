@@ -7,9 +7,6 @@ void apply_bcs(const commondata_struct *restrict commondata, const params_struct
 void cmdline_input_and_parfile_parser(commondata_struct *restrict commondata, int argc, const char *argv[]);
 void commondata_struct_set_to_default(commondata_struct *restrict commondata);
 void diagnostics(commondata_struct *restrict commondata, griddata_struct *restrict griddata);
-void exact_solution_single_Cartesian_point(const commondata_struct *restrict commondata, const params_struct *restrict params,
-    const REAL xCart0, const REAL xCart1, const REAL xCart2,  REAL *restrict exact_soln_UUGF, REAL *restrict exact_soln_VVGF
-);
 void initial_data(const commondata_struct *restrict commondata, griddata_struct *restrict griddata);
 int main(int argc, const char *argv[]);
 void numerical_grids_and_timestep(commondata_struct *restrict commondata, griddata_struct *restrict griddata, bool calling_for_first_time);
