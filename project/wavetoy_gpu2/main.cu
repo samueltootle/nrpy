@@ -1,6 +1,7 @@
 #include "BHaH_defines.h"
 #include "BHaH_function_prototypes.h"
 #include "BHaH_gpu_defines.h"
+#include "BHaH_gpu_function_prototypes.h"
 #include "init_gpu_globals.h"
 /*
  * -={ main() function }=-
