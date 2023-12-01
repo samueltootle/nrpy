@@ -40,7 +40,7 @@ void MoL_step_forward_in_time(commondata_struct *restrict commondata, griddata_s
             k_even_gfs,
             auxevol_gfs,dt);
 
-  //   apply_bcs(commondata, params, k_odd_gfs);
+    apply_bcs(commondata, params, k_odd_gfs);
   }
   // // -={ END k1 substep }=-
 
