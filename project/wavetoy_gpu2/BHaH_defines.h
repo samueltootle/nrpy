@@ -160,5 +160,5 @@ typedef struct __griddata__ {
   // NRPy+ MODULE: nrpy.infrastructures.BHaH.MoLtimestepping.MoL
   MoL_gridfunctions_struct gridfuncs; // <- MoL gridfunctions
   // NRPy+ MODULE: params
-  params_struct params; // <- BHaH parameters, generated from NRPy+'s CodeParameters
+  params_struct* params; // <- BHaH parameters, generated from NRPy+'s CodeParameters
 } griddata_struct;

@@ -24,10 +24,9 @@ void params_struct_set_to_default(params_struct *restrict params) {
 void params_struct_set_to_default(commondata_struct *restrict commondata, griddata_struct *restrict griddata) {
   // Loop over params structs:
   for (int grid = 0; grid < commondata->NUMGRIDS; grid++) {
-    params_struct * params = &griddata[grid].params;
-    cudaMalloc(&params, sizeof(params_struct));
+    cudaMalloc(&griddata[grid].params, sizeof(params_struct));
     cudaCheckErrors(malloc, "Malloc failed")
-    params_struct_set_to_default<<<1,1>>>(params);
+    params_struct_set_to_default<<<1,1>>>(griddata[grid].params);
     cudaCheckErrors(params_default, "kernel failed")
   }
 }
