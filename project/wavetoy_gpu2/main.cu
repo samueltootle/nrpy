@@ -43,10 +43,10 @@ int main(int argc, const char *argv[]) {
     numerical_grids_and_timestep(&commondata, griddata, calling_for_first_time);
   }
 
-  // for (int grid = 0; grid < commondata.NUMGRIDS; grid++) {
-  //   // Step 2: Initial data are set on y_n_gfs gridfunctions. Allocate storage for them first.
-  //   MoL_malloc_y_n_gfs(&commondata, &griddata[grid].params, &griddata[grid].gridfuncs);
-  // }
+  for (int grid = 0; grid < commondata.NUMGRIDS; grid++) {
+    // Step 2: Initial data are set on y_n_gfs gridfunctions. Allocate storage for them first.
+    MoL_malloc_y_n_gfs(&commondata, griddata[grid].params, &griddata[grid].gridfuncs);
+  }
 
   // // Step 3: Finalize initialization: set up initial data, etc.
   // initial_data(&commondata, griddata);
@@ -74,8 +74,8 @@ int main(int argc, const char *argv[]) {
 
   // Step 5: Free all allocated memory
   for (int grid = 0; grid < commondata.NUMGRIDS; grid++) {
-  //   MoL_free_memory_y_n_gfs(&griddata[grid].gridfuncs);
-  //   MoL_free_memory_non_y_n_gfs(&griddata[grid].gridfuncs);
+    MoL_free_memory_y_n_gfs(&griddata[grid].gridfuncs);
+    MoL_free_memory_non_y_n_gfs(&griddata[grid].gridfuncs);
     for (int i = 0; i < 3; i++) {
       cudaFree(griddata[grid].xx[i]);
       cudaFree(griddata[grid].params);
