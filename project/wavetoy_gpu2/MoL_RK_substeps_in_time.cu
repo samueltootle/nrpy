@@ -161,9 +161,14 @@ void rk_substep3(params_struct *restrict params,
                 REAL *restrict k_even_gfs,
                 REAL *restrict auxevol_gfs, REAL const dt) {
     // Compute optimal grid/block configuration for GPU
-    const int Nxx_plus_2NGHOSTS0 = params->Nxx_plus_2NGHOSTS0;
-    const int Nxx_plus_2NGHOSTS1 = params->Nxx_plus_2NGHOSTS1;
-    const int Nxx_plus_2NGHOSTS2 = params->Nxx_plus_2NGHOSTS2;
+    int Nxx_plus_2NGHOSTS0, Nxx_plus_2NGHOSTS1, Nxx_plus_2NGHOSTS2;
+    cudaMemcpy(&Nxx_plus_2NGHOSTS0, &params->Nxx_plus_2NGHOSTS0, sizeof(int), cudaMemcpyDeviceToHost);
+    cudaCheckErrors(cudaMemcpy, "memory failed")
+    cudaMemcpy(&Nxx_plus_2NGHOSTS1, &params->Nxx_plus_2NGHOSTS1, sizeof(int), cudaMemcpyDeviceToHost);
+    cudaCheckErrors(cudaMemcpy, "memory failed")
+    cudaMemcpy(&Nxx_plus_2NGHOSTS2, &params->Nxx_plus_2NGHOSTS2, sizeof(int), cudaMemcpyDeviceToHost);
+    cudaCheckErrors(cudaMemcpy, "memory failed")
+
     const int N = Nxx_plus_2NGHOSTS0 \
                 * Nxx_plus_2NGHOSTS1 \
                 * Nxx_plus_2NGHOSTS2 \
@@ -212,9 +217,14 @@ void rk_substep4(params_struct *restrict params,
                 REAL *restrict k_even_gfs,
                 REAL *restrict auxevol_gfs, REAL const dt) {
     // Compute optimal grid/block configuration for GPU
-    const int Nxx_plus_2NGHOSTS0 = params->Nxx_plus_2NGHOSTS0;
-    const int Nxx_plus_2NGHOSTS1 = params->Nxx_plus_2NGHOSTS1;
-    const int Nxx_plus_2NGHOSTS2 = params->Nxx_plus_2NGHOSTS2;
+    int Nxx_plus_2NGHOSTS0, Nxx_plus_2NGHOSTS1, Nxx_plus_2NGHOSTS2;
+    cudaMemcpy(&Nxx_plus_2NGHOSTS0, &params->Nxx_plus_2NGHOSTS0, sizeof(int), cudaMemcpyDeviceToHost);
+    cudaCheckErrors(cudaMemcpy, "memory failed")
+    cudaMemcpy(&Nxx_plus_2NGHOSTS1, &params->Nxx_plus_2NGHOSTS1, sizeof(int), cudaMemcpyDeviceToHost);
+    cudaCheckErrors(cudaMemcpy, "memory failed")
+    cudaMemcpy(&Nxx_plus_2NGHOSTS2, &params->Nxx_plus_2NGHOSTS2, sizeof(int), cudaMemcpyDeviceToHost);
+    cudaCheckErrors(cudaMemcpy, "memory failed")
+
     const int N = Nxx_plus_2NGHOSTS0 \
                 * Nxx_plus_2NGHOSTS1 \
                 * Nxx_plus_2NGHOSTS2 \
