@@ -68,9 +68,9 @@ void allocate_grid_storage(REAL *xx[3], int const Nxxtot0, int const Nxxtot1, in
 }
 
 __host__
-void testcpy(REAL *xx[3]) {
+void testcpy(REAL *xx) {
   REAL x;
-  cudaMemcpy(&x, &xx[1][42], sizeof(REAL), cudaMemcpyDeviceToHost);
+  cudaMemcpy(&x, &xx[42], sizeof(REAL), cudaMemcpyDeviceToHost);
   cudaCheckErrors(cudaMalloc, "memory failed")
   printf("var %f\n", x);
 }
