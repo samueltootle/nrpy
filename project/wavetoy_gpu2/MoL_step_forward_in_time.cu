@@ -16,6 +16,10 @@ void MoL_step_forward_in_time(commondata_struct *restrict commondata, griddata_s
   for (int grid = 0; grid < commondata->NUMGRIDS; grid++) {
     commondata->time = time_start + 0.00000000000000000e+00 * commondata->dt;
     set_param_constants(griddata[grid].params);
+    rhs_eval(commondata, 
+             griddata[grid].params, 
+             griddata[grid].gridfuncs.y_n_gfs, 
+             griddata[grid].gridfuncs.k_odd_gfs);
     // Set gridfunction aliases from gridfuncs struct
     // y_n gridfunctions
   //   REAL *restrict y_n_gfs = griddata[grid].gridfuncs.y_n_gfs;
