@@ -1,7 +1,10 @@
 #include "BHaH_defines.h"
+#include "BHaH_gpu_defines.h"
+#include "BHaH_gpu_function_prototypes.h"
 /*
  * Exact solution at a single Cartesian point (x, y, z) = (xCart0, xCart1, xCart2).
  */
+__device__
 void exact_solution_single_Cartesian_point(const commondata_struct *restrict commondata, const params_struct *restrict params, const REAL xCart0,
                                            const REAL xCart1, const REAL xCart2, REAL *restrict exact_soln_UUGF, REAL *restrict exact_soln_VVGF) {
 #include "set_CodeParameters.h"
