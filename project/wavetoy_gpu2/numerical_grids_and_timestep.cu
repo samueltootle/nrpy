@@ -119,4 +119,6 @@ void numerical_grids_and_timestep(commondata_struct * commondata, griddata_struc
                                                         griddata[grid].xx[2]);
     cudaCheckErrors(initialize_grid_gpu, "initialize failed");
   }
+  cudaMemcpy(&commondata->dt, d_min_dt, sizeof(REAL), cudaMemcpyDeviceToHost);
+  cudaCheckErrors(cudaMemcpy, "memory failed")
 }
