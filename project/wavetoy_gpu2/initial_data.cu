@@ -21,7 +21,7 @@ void initial_data_gpu(const commondata_struct in_commondata,
   
   const int stride0 = blockDim.x * gridDim.x;
   const int stride1 = blockDim.y * gridDim.y;
-  const int stride2 = blockDim.x * gridDim.z;
+  const int stride2 = blockDim.z * gridDim.z;
 
   for (int i2 = tid2; i2 < Nxx_plus_2NGHOSTS2; i2+=stride2) {
     const REAL xx2 = in_xx0[i2];

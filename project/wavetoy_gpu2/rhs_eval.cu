@@ -29,7 +29,7 @@ void rhs_eval_gpu(const commondata_struct *restrict commondata,
   
   const int stride0 = blockDim.x * gridDim.x;
   const int stride1 = blockDim.y * gridDim.y;
-  const int stride2 = blockDim.x * gridDim.z;
+  const int stride2 = blockDim.z * gridDim.z;
   // if(tid0 == 0 && tid1 == 0 && tid2 == 0) {
   //   printf("%f %f %f %u %u %u %u %u %u", 
   //     invdxx0,invdxx1,invdxx2,
@@ -104,7 +104,7 @@ void rhs_eval(const commondata_struct *restrict commondata,
     (Nxx_plus_2NGHOSTS1 + GPU_NBLOCK1 - 1) / GPU_NBLOCK1,
     (Nxx_plus_2NGHOSTS2 + GPU_NBLOCK2 - 1) / GPU_NBLOCK2
   );
-  rhs_eval_gpu<<<grid,block>>>(commondata, params, in_gfs, rhs_gfs);
+  rhs_eval_gpu<<<1,1>>>(commondata, params, in_gfs, rhs_gfs);
   cudaCheckErrors(rhs_eval_gpu, "kernel failed")
   // testcpy(in_gfs);
 }
