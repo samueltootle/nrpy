@@ -229,8 +229,8 @@ void rk_substep4(params_struct *restrict params,
                 * Nxx_plus_2NGHOSTS1 \
                 * Nxx_plus_2NGHOSTS2 \
                 * NUM_EVOL_GFS;
-    int block_threads = 1024;
-    int grid_blocks = (N + block_threads - 1) / block_threads;
+    int block_threads = 1; //1024;
+    int grid_blocks = 1; //(N + block_threads - 1) / block_threads;
 
     rk_substep4_gpu<<<grid_blocks, block_threads>>>(params, 
                                                    y_n_gfs,

@@ -2,6 +2,14 @@
 #include "BHaH_function_prototypes.h"
 #include "BHaH_gpu_defines.h"
 #include "BHaH_gpu_function_prototypes.h"
+
+#define TEST(arg) printf("\n%s - ", \
+      #arg); \
+      testcpy(y_nplus1_running_total_gfs); \
+      testcpy(y_n_gfs); \
+      testcpy(k_odd_gfs); \
+      testcpy(k_even_gfs); \
+
 /*
  * Method of Lines (MoL) for "RK4" method: Step forward one full timestep.
  *
@@ -41,6 +49,7 @@ void MoL_step_forward_in_time(commondata_struct *restrict commondata, griddata_s
             auxevol_gfs,dt);
 
     apply_bcs(commondata, params, k_odd_gfs);
+    TEST(RK1)
   }
   // -={ END k1 substep }=-
 
@@ -72,6 +81,7 @@ void MoL_step_forward_in_time(commondata_struct *restrict commondata, griddata_s
               auxevol_gfs,dt);
 
     apply_bcs(commondata, params, k_even_gfs);
+    TEST(RK2)
   }
   // -={ END k2 substep }=-
 
@@ -94,7 +104,14 @@ void MoL_step_forward_in_time(commondata_struct *restrict commondata, griddata_s
       xx[ww] = griddata[grid].xx[ww];
     }
     rhs_eval(commondata, params, k_even_gfs, k_odd_gfs);
+    rk_substep3(params,
+            y_n_gfs,
+            y_nplus1_running_total_gfs,
+            k_odd_gfs,
+            k_even_gfs,
+            auxevol_gfs,dt);
     apply_bcs(commondata, params, k_odd_gfs);
+    TEST(RK3)
   }
   // -={ END k3 substep }=-
 
@@ -117,7 +134,14 @@ void MoL_step_forward_in_time(commondata_struct *restrict commondata, griddata_s
       xx[ww] = griddata[grid].xx[ww];
     }
     rhs_eval(commondata, params, k_odd_gfs, k_even_gfs);
+    rk_substep4(params,
+            y_n_gfs,
+            y_nplus1_running_total_gfs,
+            k_odd_gfs,
+            k_even_gfs,
+            auxevol_gfs,dt);
     apply_bcs(commondata, params, y_n_gfs);
+    TEST(RK4)
   }
   // -={ END k4 substep }=-
 
