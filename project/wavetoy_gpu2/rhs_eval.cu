@@ -62,6 +62,8 @@ void rhs_eval_gpu(const commondata_struct *restrict commondata,
         // const REAL FDPart1_Rational_5_2 = 5.0 / 2.0;
         // const REAL FDPart1_Rational_1_12 = 1.0 / 12.0;
         // const REAL FDPart1_Rational_4_3 = 4.0 / 3.0;
+        // printf("%f - %f - %f \n", FDPart1_Rational_5_2, FDPart1_Rational_1_12, FDPart1_Rational_4_3); 
+        // printf("%f \n", wavespeed);
         
         const REAL FDPart1tmp0 = -FDPart1_Rational_5_2 * uu;
         const REAL uu_dDD00 =
@@ -104,7 +106,7 @@ void rhs_eval(const commondata_struct *restrict commondata,
     (Nxx_plus_2NGHOSTS1 + GPU_NBLOCK1 - 1) / GPU_NBLOCK1,
     (Nxx_plus_2NGHOSTS2 + GPU_NBLOCK2 - 1) / GPU_NBLOCK2
   );
-  rhs_eval_gpu<<<1,1>>>(commondata, params, in_gfs, rhs_gfs);
+  rhs_eval_gpu<<<grid,block>>>(commondata, params, in_gfs, rhs_gfs);
   cudaCheckErrors(rhs_eval_gpu, "kernel failed")
   // testcpy(in_gfs);
 }

@@ -46,9 +46,11 @@ void update_face(int which_gf, const params_struct *restrict params, REAL *restr
         gfs[IDX4(which_gf, i0, i1, i2)] = +3.0 * gfs[IDX4(which_gf, i0 + 1 * FACEX0, i1 + 1 * FACEX1, i2 + 1 * FACEX2)] -
                                           3.0 * gfs[IDX4(which_gf, i0 + 2 * FACEX0, i1 + 2 * FACEX1, i2 + 2 * FACEX2)] +
                                           1.0 * gfs[IDX4(which_gf, i0 + 3 * FACEX0, i1 + 3 * FACEX1, i2 + 3 * FACEX2)];
+      // printf("\n%d - %1.15f\n", IDX4(which_gf, i0 + 1 * FACEX0, i1 + 1 * FACEX1, i2 + 1 * FACEX2), gfs[IDX4(which_gf, i0 + 1 * FACEX0, i1 + 1 * FACEX1, i2 + 1 * FACEX2)]);
       }
     }
   }
+  // printf("\n%d, %d - %d, %d - %d, %d\n", imin0, imax0, imin1, imax1, imin2, imax2);
 }
 
 /*
@@ -58,13 +60,13 @@ void update_face(int which_gf, const params_struct *restrict params, REAL *restr
  */
 void apply_bcs(const commondata_struct *restrict commondata, const params_struct *restrict params, REAL *restrict gfs) {
   
-  // dim3 grid(GPU_NGRID0,GPU_NGRID1,GPU_NGRID2);
+  dim3 grid(GPU_NGRID0,GPU_NGRID1,GPU_NGRID2);
   // dim3 block(GPU_NBLOCK0,GPU_NBLOCK1,GPU_NBLOCK2);
   // Using multi-dimensional thread indexing doesn't
   // work for some reason...
-  // dim3 block(1024,1,1);
-  int grid = 1;
-  int block = 1;
+  dim3 block(1024,1,1);
+  // int grid = 1;
+  // int block = 1;
 
   int Nxx_plus_2NGHOSTS0, Nxx_plus_2NGHOSTS1, Nxx_plus_2NGHOSTS2;
   cudaMemcpy(&Nxx_plus_2NGHOSTS0, &params->Nxx_plus_2NGHOSTS0, sizeof(int), cudaMemcpyDeviceToHost);
@@ -75,13 +77,13 @@ void apply_bcs(const commondata_struct *restrict commondata, const params_struct
   cudaCheckErrors(cudaMemcpy, "memory failed")
 
   for (int which_gf = 0; which_gf < NUM_EVOL_GFS; which_gf++) {
-    int imin[3] = {(int) NGHOSTS, (int) NGHOSTS, (int) NGHOSTS};
+    int imin[3] = {NGHOSTS, NGHOSTS, NGHOSTS};
     int imax[3] = {
       (int) (Nxx_plus_2NGHOSTS0 - NGHOSTS),
       (int) (Nxx_plus_2NGHOSTS1 - NGHOSTS),
       (int) (Nxx_plus_2NGHOSTS2 - NGHOSTS)
     };
-    for (int which_gz = 0; which_gz < NGHOSTS; which_gz++) {
+    for (int which_gz = 0; which_gz < NGHOSTS-1; which_gz++) {
       // After updating each face, adjust imin[] and imax[]
       //   to reflect the newly-updated face extents.
       update_face<<<grid, block>>>(which_gf, params, gfs, imin[0] - 1, imin[0], imin[1], imax[1], imin[2], imax[2], MINFACE, NUL, NUL);
