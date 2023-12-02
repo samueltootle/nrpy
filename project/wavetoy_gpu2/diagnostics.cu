@@ -89,7 +89,7 @@ void diagnostics(commondata_struct *restrict commondata, griddata_struct *restri
         cudaMemcpy(&exact_soln_at_center_UUGF, d_exact_soln_at_center_UUGF, sizeof(REAL), cudaMemcpyDeviceToHost);
         cudaMemcpy(&exact_soln_at_center_VVGF, d_exact_soln_at_center_VVGF, sizeof(REAL), cudaMemcpyDeviceToHost);
         
-        fprintf(outfile, "%e %e %e %e %e\n", time, fabs(fabs(num_soln_at_center_UUGF - exact_soln_at_center_UUGF) / exact_soln_at_center_UUGF),
+        fprintf(outfile, "%e %e %e %1.15e %1.15e\n", time, fabs(fabs(num_soln_at_center_UUGF - exact_soln_at_center_UUGF) / exact_soln_at_center_UUGF),
                 fabs(fabs(num_soln_at_center_VVGF - exact_soln_at_center_VVGF) / (1e-16 + exact_soln_at_center_VVGF)), num_soln_at_center_UUGF,
                 exact_soln_at_center_UUGF);
 
