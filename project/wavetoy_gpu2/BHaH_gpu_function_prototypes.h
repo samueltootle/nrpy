@@ -6,7 +6,7 @@ __host__
 REAL find_min(REAL * data, uint const data_length);
 
 __host__
-void testcpy(REAL const * const xx);
+void testcpy(REAL const * const xx, size_t idx = 43);
 
 __device__
 void exact_solution_single_Cartesian_point_gpu(const commondata_struct *restrict commondata, const params_struct *restrict params,
