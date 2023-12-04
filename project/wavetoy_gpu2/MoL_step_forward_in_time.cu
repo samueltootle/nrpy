@@ -2,14 +2,6 @@
 #include "BHaH_function_prototypes.h"
 #include "BHaH_gpu_defines.h"
 #include "BHaH_gpu_function_prototypes.h"
-
-#define TEST(arg) printf("\n%s - ", \
-      #arg); \
-      testcpy(y_nplus1_running_total_gfs, IDX4(UUGF, NGHOSTS-1, NGHOSTS-1, NGHOSTS-1)); \
-      testcpy(y_n_gfs, IDX4(UUGF, NGHOSTS-1, NGHOSTS-1, NGHOSTS-1)); \
-      testcpy(k_odd_gfs, IDX4(UUGF, NGHOSTS-1, NGHOSTS-1, NGHOSTS-1)); \
-      testcpy(k_even_gfs, IDX4(UUGF, NGHOSTS-1, NGHOSTS-1, NGHOSTS-1)); \
-
 /*
  * Method of Lines (MoL) for "RK4" method: Step forward one full timestep.
  *
@@ -39,13 +31,6 @@ void MoL_step_forward_in_time(commondata_struct *restrict commondata, griddata_s
     for (int ww = 0; ww < 3; ww++) {
       xx[ww] = griddata[grid].xx[ww];
     }
-          int Nxx_plus_2NGHOSTS0, Nxx_plus_2NGHOSTS1, Nxx_plus_2NGHOSTS2;
-  cudaMemcpy(&Nxx_plus_2NGHOSTS0, &params->Nxx_plus_2NGHOSTS0, sizeof(int), cudaMemcpyDeviceToHost);
-  cudaCheckErrors(cudaMemcpy, "memory failed")
-  cudaMemcpy(&Nxx_plus_2NGHOSTS1, &params->Nxx_plus_2NGHOSTS1, sizeof(int), cudaMemcpyDeviceToHost);
-  cudaCheckErrors(cudaMemcpy, "memory failed")
-  cudaMemcpy(&Nxx_plus_2NGHOSTS2, &params->Nxx_plus_2NGHOSTS2, sizeof(int), cudaMemcpyDeviceToHost);
-  cudaCheckErrors(cudaMemcpy, "memory failed")
 
     rhs_eval(commondata, params, y_n_gfs, k_odd_gfs);
     rk_substep1(params,
@@ -55,8 +40,6 @@ void MoL_step_forward_in_time(commondata_struct *restrict commondata, griddata_s
             k_even_gfs,
             auxevol_gfs,dt);
     apply_bcs(commondata, params, k_odd_gfs);
-    // TEST(RK1)    
-    // abort();
   }
   // -={ END k1 substep }=-
 
@@ -79,13 +62,6 @@ void MoL_step_forward_in_time(commondata_struct *restrict commondata, griddata_s
     for (int ww = 0; ww < 3; ww++) {
       xx[ww] = griddata[grid].xx[ww];
     }
-          int Nxx_plus_2NGHOSTS0, Nxx_plus_2NGHOSTS1, Nxx_plus_2NGHOSTS2;
-  cudaMemcpy(&Nxx_plus_2NGHOSTS0, &params->Nxx_plus_2NGHOSTS0, sizeof(int), cudaMemcpyDeviceToHost);
-  cudaCheckErrors(cudaMemcpy, "memory failed")
-  cudaMemcpy(&Nxx_plus_2NGHOSTS1, &params->Nxx_plus_2NGHOSTS1, sizeof(int), cudaMemcpyDeviceToHost);
-  cudaCheckErrors(cudaMemcpy, "memory failed")
-  cudaMemcpy(&Nxx_plus_2NGHOSTS2, &params->Nxx_plus_2NGHOSTS2, sizeof(int), cudaMemcpyDeviceToHost);
-  cudaCheckErrors(cudaMemcpy, "memory failed")
 
     rhs_eval(commondata, params, k_odd_gfs, k_even_gfs);
     rk_substep2(params,
@@ -95,8 +71,6 @@ void MoL_step_forward_in_time(commondata_struct *restrict commondata, griddata_s
               k_even_gfs,
               auxevol_gfs,dt);
     apply_bcs(commondata, params, k_even_gfs);
-    // TEST(RK2)
-    // abort();
   }
   // -={ END k2 substep }=-
 
@@ -119,14 +93,6 @@ void MoL_step_forward_in_time(commondata_struct *restrict commondata, griddata_s
     for (int ww = 0; ww < 3; ww++) {
       xx[ww] = griddata[grid].xx[ww];
     }
-          int Nxx_plus_2NGHOSTS0, Nxx_plus_2NGHOSTS1, Nxx_plus_2NGHOSTS2;
-  cudaMemcpy(&Nxx_plus_2NGHOSTS0, &params->Nxx_plus_2NGHOSTS0, sizeof(int), cudaMemcpyDeviceToHost);
-  cudaCheckErrors(cudaMemcpy, "memory failed")
-  cudaMemcpy(&Nxx_plus_2NGHOSTS1, &params->Nxx_plus_2NGHOSTS1, sizeof(int), cudaMemcpyDeviceToHost);
-  cudaCheckErrors(cudaMemcpy, "memory failed")
-  cudaMemcpy(&Nxx_plus_2NGHOSTS2, &params->Nxx_plus_2NGHOSTS2, sizeof(int), cudaMemcpyDeviceToHost);
-  cudaCheckErrors(cudaMemcpy, "memory failed")
-
     rhs_eval(commondata, params, k_even_gfs, k_odd_gfs);
     rk_substep3(params,
             y_n_gfs,
@@ -136,7 +102,6 @@ void MoL_step_forward_in_time(commondata_struct *restrict commondata, griddata_s
             auxevol_gfs,dt);
     
     apply_bcs(commondata, params, k_odd_gfs);
-    // TEST(RK3)    
   }
   // -={ END k3 substep }=-
 
@@ -158,14 +123,6 @@ void MoL_step_forward_in_time(commondata_struct *restrict commondata, griddata_s
     for (int ww = 0; ww < 3; ww++) {
       xx[ww] = griddata[grid].xx[ww];
     }
-        int Nxx_plus_2NGHOSTS0, Nxx_plus_2NGHOSTS1, Nxx_plus_2NGHOSTS2;
-  cudaMemcpy(&Nxx_plus_2NGHOSTS0, &params->Nxx_plus_2NGHOSTS0, sizeof(int), cudaMemcpyDeviceToHost);
-  cudaCheckErrors(cudaMemcpy, "memory failed")
-  cudaMemcpy(&Nxx_plus_2NGHOSTS1, &params->Nxx_plus_2NGHOSTS1, sizeof(int), cudaMemcpyDeviceToHost);
-  cudaCheckErrors(cudaMemcpy, "memory failed")
-  cudaMemcpy(&Nxx_plus_2NGHOSTS2, &params->Nxx_plus_2NGHOSTS2, sizeof(int), cudaMemcpyDeviceToHost);
-  cudaCheckErrors(cudaMemcpy, "memory failed")
-  
     rhs_eval(commondata, params, k_odd_gfs, k_even_gfs);
     rk_substep4(params,
             y_n_gfs,
@@ -174,9 +131,7 @@ void MoL_step_forward_in_time(commondata_struct *restrict commondata, griddata_s
             k_even_gfs,
             auxevol_gfs,dt);
     
-    apply_bcs(commondata, params, y_n_gfs);
-    // TEST(RK4)
-    
+    apply_bcs(commondata, params, y_n_gfs);    
   }
   // -={ END k4 substep }=-
 
