@@ -1,0 +1,35 @@
+time ./wavetoy_simd_nopre                                                                                                                                                                                                                  
+It: 102 t=7.969 / 8.0 = 99.61% dt=1/12.8 | t/h=5604.21 ETA 0h00m00s
+
+real    0m5.220s
+user    2m41.548s
+sys     0m0.659s
+
+time ./wavetoy_simd_pre 
+It: 102 t=7.969 / 8.0 = 99.61% dt=1/12.8 | t/h=5166.21 ETA 0h00m00s
+
+real    0m5.616s
+user    2m52.393s
+sys     0m0.711s
+
+time ./wavetoy_nosimd_nopre 
+It: 102 t=7.969 / 8.0 = 99.61% dt=1/12.8 | t/h=6956.16 ETA 0h00m00s
+
+real    0m4.184s
+user    2m10.965s
+sys     0m0.568s
+
+time ./wavetoy_nosimd_pre                                                                                                                                                                                                                  
+It: 102 t=7.969 / 8.0 = 99.61% dt=1/12.8 | t/h=5522.16 ETA 0h00m00s
+
+real    0m5.271s
+user    2m41.384s
+sys     0m0.618s
+
+time ./wavetoy_gpu                                                                                                                                                                                                                               
+It: 102 t=7.969 / 8.0 = 99.61% dt=1/12.8 | t/h=30229.37 ETA 0h00m00s
+
+real    0m1.073s
+user    0m0.981s
+sys     0m0.089s
+
