@@ -83,7 +83,7 @@ void apply_bcs(const commondata_struct *restrict commondata, const params_struct
       (int) (Nxx_plus_2NGHOSTS1 - NGHOSTS),
       (int) (Nxx_plus_2NGHOSTS2 - NGHOSTS)
     };
-    for (int which_gz = 0; which_gz < NGHOSTS-1; which_gz++) {
+    for (int which_gz = 0; which_gz < NGHOSTS; which_gz++) {
       // After updating each face, adjust imin[] and imax[]
       //   to reflect the newly-updated face extents.
       update_face<<<grid, block>>>(which_gf, params, gfs, imin[0] - 1, imin[0], imin[1], imax[1], imin[2], imax[2], MINFACE, NUL, NUL);
