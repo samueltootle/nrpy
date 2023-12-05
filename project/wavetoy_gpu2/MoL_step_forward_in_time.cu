@@ -32,7 +32,7 @@ void MoL_step_forward_in_time(commondata_struct *restrict commondata, griddata_s
       xx[ww] = griddata[grid].xx[ww];
     }
 
-    rhs_eval(commondata, params, y_n_gfs, k_odd_gfs);
+    rhs_eval(commondata, params, y_n_gfs, k_odd_gfs, auxevol_gfs);
     rk_substep1(params,
             y_n_gfs,
             y_nplus1_running_total_gfs,
@@ -63,7 +63,7 @@ void MoL_step_forward_in_time(commondata_struct *restrict commondata, griddata_s
       xx[ww] = griddata[grid].xx[ww];
     }
 
-    rhs_eval(commondata, params, k_odd_gfs, k_even_gfs);
+    rhs_eval(commondata, params, k_odd_gfs, k_even_gfs, auxevol_gfs);
     rk_substep2(params,
               y_n_gfs,
               y_nplus1_running_total_gfs,
@@ -93,7 +93,7 @@ void MoL_step_forward_in_time(commondata_struct *restrict commondata, griddata_s
     for (int ww = 0; ww < 3; ww++) {
       xx[ww] = griddata[grid].xx[ww];
     }
-    rhs_eval(commondata, params, k_even_gfs, k_odd_gfs);
+    rhs_eval(commondata, params, k_even_gfs, k_odd_gfs, auxevol_gfs);
     rk_substep3(params,
             y_n_gfs,
             y_nplus1_running_total_gfs,
@@ -123,7 +123,7 @@ void MoL_step_forward_in_time(commondata_struct *restrict commondata, griddata_s
     for (int ww = 0; ww < 3; ww++) {
       xx[ww] = griddata[grid].xx[ww];
     }
-    rhs_eval(commondata, params, k_odd_gfs, k_even_gfs);
+    rhs_eval(commondata, params, k_odd_gfs, k_even_gfs, auxevol_gfs);
     rk_substep4(params,
             y_n_gfs,
             y_nplus1_running_total_gfs,

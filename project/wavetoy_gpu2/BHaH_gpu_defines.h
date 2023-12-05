@@ -15,6 +15,7 @@ extern __constant__ params_struct d_params;
 #define GPU_NBLOCK1 4
 #define GPU_NBLOCK2 2
 #define SHARED_SIZE_LIMIT 1024U
+#define PENCIL_SIZEY 4
 
 // error checking macro
 #define cudaCheckErrors(v, msg) \

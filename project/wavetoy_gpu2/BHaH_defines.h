@@ -120,7 +120,9 @@ static const REAL gridfunctions_wavespeed[NUM_EVOL_GFS] = {1.0, 1.0};
 #define NUM_AUX_GFS 0
 
 // AUXEVOL VARIABLES:
-#define NUM_AUXEVOL_GFS 0
+// 3 = stores derivatives
+enum UD {UD00=0, UD11=1, UD22=2};
+#define NUM_AUXEVOL_GFS 3
 
 // Declare the IDX4(gf,i,j,k) macro, which enables us to store 4-dimensions of
 //   data in a 1D array. In this case, consecutive values of "i"

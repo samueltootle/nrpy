@@ -12,4 +12,4 @@ int main(int argc, const char *argv[]);
 void numerical_grids_and_timestep(commondata_struct *restrict commondata, griddata_struct *restrict griddata, bool calling_for_first_time);
 void params_struct_set_to_default(commondata_struct *restrict commondata, griddata_struct *restrict griddata);
 void progress_indicator(commondata_struct *restrict commondata, const griddata_struct *restrict griddata);
-void rhs_eval(const commondata_struct *restrict commondata, const params_struct *restrict params, const REAL *restrict in_gfs, REAL *restrict rhs_gfs);
+void rhs_eval(const commondata_struct *restrict commondata, const params_struct *restrict params, const REAL *restrict in_gfs, REAL *restrict rhs_gfs, REAL *restrict aux_gfs);

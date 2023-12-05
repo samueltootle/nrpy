@@ -1,6 +1,7 @@
 #include "BHaH_defines.h"
 #include "BHaH_gpu_defines.h"
 #include "BHaH_gpu_function_prototypes.h"
+#include <stdexcept>
 /*
  * Set RHSs for wave equation.
  */
@@ -86,12 +87,223 @@ void rhs_eval_gpu(const commondata_struct *restrict commondata,
   }     // END LOOP: for (int i2 = NGHOSTS; i2 < NGHOSTS+Nxx2; i2++)
 }
 
+__global__ void compute_uu_dDDxx_gpu(const params_struct *restrict params, 
+                                 const REAL *restrict in_gfs,
+                                 REAL *restrict aux_gfs)
+{ 
+
+  extern __shared__ float s_f[]; // 2-wide halo for 4th order FD
+
+  const REAL & invdxx0 = d_params.invdxx0;
+
+  const int & Nxx0 = d_params.Nxx0;
+
+  const int & Nxx_plus_2NGHOSTS0 = d_params.Nxx_plus_2NGHOSTS0;
+  const int & Nxx_plus_2NGHOSTS1 = d_params.Nxx_plus_2NGHOSTS1;
+  const int & Nxx_plus_2NGHOSTS2 = d_params.Nxx_plus_2NGHOSTS2;
+
+  // Local tile indices - not global thread indicies
+  int tid0  = threadIdx.x;
+  int tid1  = blockIdx.x*blockDim.y + threadIdx.y;
+  int tid2  = blockIdx.y;
+  int si = tid0 + NGHOSTS; // local i for shared memory access + halo offset
+  int sj = threadIdx.y; // local j for shared memory access
+  
+  // s_f stores pencils in linear memory so we need a
+  // shared memory index
+  int sm_idx = sj * Nxx0 + si;
+
+  // Global memory index - need to shift by ghost zones
+  int i = tid0 + NGHOSTS;
+  int j = tid1 + NGHOSTS;
+  int k = tid2 + NGHOSTS;
+  int globalIdx = IDX4(UUGF, i, j, k);
+
+  s_f[sm_idx] = in_gfs[globalIdx];
+
+  __syncthreads();
+
+  // fill in SM ghost zones
+  if (tid0 < NGHOSTS) {
+    int temp_idx = IDX4(UUGF, i-NGHOSTS, j, k);
+    s_f[sm_idx - NGHOSTS] = in_gfs[temp_idx];
+    
+    temp_idx = IDX4(UUGF, i + Nxx0 + NGHOSTS, j, k);
+    s_f[sm_idx+Nxx0] = in_gfs[temp_idx];
+  }
+
+  __syncthreads();
+  const REAL uu_i0m2 = s_f[sm_idx - 2];
+  const REAL uu_i0m1 = s_f[sm_idx - 1];
+  const REAL uu      = s_f[sm_idx    ];
+  const REAL uu_i0p1 = s_f[sm_idx + 1];
+  const REAL uu_i0p2 = s_f[sm_idx + 2];
+
+  const REAL FDPart1tmp0 = -FDPart1_Rational_5_2 * uu;
+
+  int globalIdx_out = IDX4(UD00, i, j, k);
+  aux_gfs[globalIdx_out] = ((invdxx0) * (invdxx0)) * (
+      FDPart1_Rational_1_12 * (-uu_i0m2 - uu_i0p2) 
+    + FDPart1_Rational_4_3 * (uu_i0m1 + uu_i0p1) 
+    + FDPart1tmp0
+  );
+}
+
+__global__ void compute_uu_dDDyy_gpu(const params_struct *restrict params, 
+                                 const REAL *restrict in_gfs,
+                                 REAL *restrict aux_gfs)
+{ 
+
+  extern __shared__ float s_f[]; // 2-wide halo for 4th order FD
+
+  const REAL & invdxx1 = d_params.invdxx1;
+
+  // const int & Nxx0 = d_params.Nxx0;
+  const int & Nxx1 = d_params.Nxx1;
+
+  const int & Nxx_plus_2NGHOSTS0 = d_params.Nxx_plus_2NGHOSTS0;
+  const int & Nxx_plus_2NGHOSTS1 = d_params.Nxx_plus_2NGHOSTS1;
+  const int & Nxx_plus_2NGHOSTS2 = d_params.Nxx_plus_2NGHOSTS2;
+
+  // Local tile indices - not global thread indicies
+  int tid0  = blockIdx.x*blockDim.x + threadIdx.x;
+  int tid1  = threadIdx.y;
+  int tid2  = blockIdx.y;
+  int si = threadIdx.x; // local i for shared memory access
+
+  // Global array indicies
+  int i = tid0 + NGHOSTS;
+  int k = tid2 + NGHOSTS;  
+
+  for (int j = tid1 + NGHOSTS; j < Nxx1 + NGHOSTS; j += blockDim.y) {
+    int sj = j;
+    
+    // s_f stores pencils in linear memory so we need a
+    // shared memory index
+    int sm_idx = si * Nxx1 + sj;
+
+    int globalIdx = IDX4(UUGF, i, j, k);
+
+    s_f[sm_idx] = aux_gfs[globalIdx];
+  }
+
+  // int sj = tid1 + NGHOSTS;
+  // int sm_idx = si * Nxx1 + sj;
+  // int j = sj;
+  // __syncthreads();
+  
+  // // fill in SM ghost zones
+  // if (tid1 < NGHOSTS) {
+  //   int temp_idx = IDX4(UUGF, i, j - NGHOSTS, k);
+  //    s_f[sm_idx-4]  = in_gfs[temp_idx];
+  //    temp_idx = IDX4(UUGF, i, j + Nxx1 + NGHOSTS, k);
+  //    s_f[sm_idx+Nxx1] = in_gfs[temp_idx];
+  // }
+
+  // __syncthreads();
+
+  // for (int j = tid1 + NGHOSTS; j < Nxx1 + NGHOSTS; j += blockDim.y) {
+  //   int sj = j;
+  //   int sm_idx = si * Nxx1 + sj;
+
+  //   const REAL uu_j0m2 = s_f[sm_idx - 2];
+  //   const REAL uu_j0m1 = s_f[sm_idx - 1];
+  //   const REAL uu      = s_f[sm_idx    ];
+  //   const REAL uu_j0p1 = s_f[sm_idx + 1];
+  //   const REAL uu_j0p2 = s_f[sm_idx + 2];
+
+  //   const REAL FDPart1tmp0 = -FDPart1_Rational_5_2 * uu;
+
+  //   int globalIdx_out = IDX4(UD00, i, j, k);
+  //   aux_gfs[globalIdx_out] = ((invdxx1) * (invdxx1)) * (
+  //       FDPart1_Rational_1_12 * (-uu_j0m2 - uu_j0p2) 
+  //     + FDPart1_Rational_4_3 * (uu_j0m1 + uu_j0p1) 
+  //     + FDPart1tmp0
+  //   );
+  // }
+}
+
+__host__ 
+void compute_uu_dDDxx(const params_struct *restrict params, 
+                          const REAL *restrict in_gfs,
+                          REAL *restrict aux_gfs,
+                          const int Nxx0,
+                          const int Nxx1,
+                          const int Nxx2,
+                          const int Nxx_plus_2NGHOSTS0) {
+  // for dx, we allocated pencils of threads that are 
+  // Nxx0 x PENCIL_SIZEY dimensions per block
+  dim3 block_threads(Nxx0, PENCIL_SIZEY, 1);
+  
+  // We have Nxx2 x (Nxx1 / PENCIL_SIZEY) blocks
+  dim3 grid_blocks(Nxx1 / PENCIL_SIZEY, Nxx2, 1);
+  
+  // cudaMemset(aux_gfs, 0, NUM_AUXEVOL_GFS * sizeof(REAL));
+  // cudaCheckErrors(cudaMemset, "memory failed")
+
+  // Determine dynamic shared memory size in bytes
+  const size_t SM_size = PENCIL_SIZEY * Nxx_plus_2NGHOSTS0 * sizeof(REAL);
+  
+  // Fetch maximum shared memory size per block
+  const int device = 0; //assumes single GPU
+  cudaDeviceProp deviceProp;
+  cudaGetDeviceProperties(&deviceProp, device);
+  const size_t maxMemPerBlock = deviceProp.sharedMemPerBlock;
+
+  // printf("SM_size : %lu , max: %lu\n\n\n", SM_size, maxMemPerBlock);
+  
+  if(SM_size > maxMemPerBlock) {
+    throw std::runtime_error("Grid is too large for current GPU shared memory restrictions");
+  }
+
+  compute_uu_dDDxx_gpu<<<grid_blocks, block_threads, SM_size>>>(params, in_gfs, aux_gfs);
+  cudaCheckErrors(compute_uu_dDDxx_gpu, "kernel failed")
+}
+
+__host__ 
+void compute_uu_dDDyy(const params_struct *restrict params, 
+                          const REAL *restrict in_gfs,
+                          REAL *restrict aux_gfs,
+                          const int Nxx0,
+                          const int Nxx1,
+                          const int Nxx2,
+                          const int Nxx_plus_2NGHOSTS1) {
+  // for dx, we allocated pencils of threads that are 
+  // Nxx0 x PENCIL_SIZEY dimensions per block
+  dim3 block_threads(GPU_NBLOCK0, GPU_NBLOCK1, 1);
+  
+  // We have Nxx2 x (Nxx1 / PENCIL_SIZEY) blocks
+  dim3 grid_blocks(Nxx1 / GPU_NBLOCK0, Nxx2, 1);
+  
+  // cudaMemset(aux_gfs, 0, NUM_AUXEVOL_GFS * sizeof(REAL));
+  // cudaCheckErrors(cudaMemset, "memory failed")
+
+  // Determine dynamic shared memory size in bytes
+  const size_t SM_size = GPU_NBLOCK0 * GPU_NBLOCK1 * Nxx_plus_2NGHOSTS1 * sizeof(REAL);
+  
+  // Fetch maximum shared memory size per block
+  const int device = 0; //assumes single GPU
+  cudaDeviceProp deviceProp;
+  cudaGetDeviceProperties(&deviceProp, device);
+  const size_t maxMemPerBlock = deviceProp.sharedMemPerBlock;
+
+  printf("SM_size : %lu , max: %lu\n\n\n", SM_size, maxMemPerBlock);
+  
+  if(SM_size > maxMemPerBlock) {
+    throw std::runtime_error("Grid is too large for current GPU shared memory restrictions");
+  }
+
+  compute_uu_dDDyy_gpu<<<grid_blocks, block_threads, SM_size>>>(params, in_gfs, aux_gfs);
+  cudaCheckErrors(compute_uu_dDDyy_gpu, "kernel failed")
+}
+
 __host__
 void rhs_eval(const commondata_struct *restrict commondata, 
               const params_struct *restrict params, 
               const REAL *restrict in_gfs,
-              REAL *restrict rhs_gfs) {
-  
+              REAL *restrict rhs_gfs,
+              REAL *restrict aux_gfs) {
+#ifdef ORIG_RHS
   int Nxx_plus_2NGHOSTS0, Nxx_plus_2NGHOSTS1, Nxx_plus_2NGHOSTS2;
   cudaMemcpy(&Nxx_plus_2NGHOSTS0, &params->Nxx_plus_2NGHOSTS0, sizeof(int), cudaMemcpyDeviceToHost);
   cudaCheckErrors(cudaMemcpy, "memory failed")
@@ -99,7 +311,6 @@ void rhs_eval(const commondata_struct *restrict commondata,
   cudaCheckErrors(cudaMemcpy, "memory failed")
   cudaMemcpy(&Nxx_plus_2NGHOSTS2, &params->Nxx_plus_2NGHOSTS2, sizeof(int), cudaMemcpyDeviceToHost);
   cudaCheckErrors(cudaMemcpy, "memory failed")
-
   dim3 block(GPU_NBLOCK0,GPU_NBLOCK1,GPU_NBLOCK2);
   dim3 grid(
     (Nxx_plus_2NGHOSTS0 + GPU_NBLOCK0 - 1) / GPU_NBLOCK0,
@@ -108,5 +319,35 @@ void rhs_eval(const commondata_struct *restrict commondata,
   );
   rhs_eval_gpu<<<grid,block>>>(commondata, params, in_gfs, rhs_gfs);
   cudaCheckErrors(rhs_eval_gpu, "kernel failed")
-  // testcpy(in_gfs);
+  testcpy(in_gfs);
+#endif
+  // Nxx per coordinate direction
+  int Nxx0, Nxx1, Nxx2;
+  cudaMemcpy(&Nxx0, &params->Nxx0, sizeof(int), cudaMemcpyDeviceToHost);
+  cudaCheckErrors(cudaMemcpy, "memory failed")
+  cudaMemcpy(&Nxx1, &params->Nxx1, sizeof(int), cudaMemcpyDeviceToHost);
+  cudaCheckErrors(cudaMemcpy, "memory failed")
+  cudaMemcpy(&Nxx2, &params->Nxx2, sizeof(int), cudaMemcpyDeviceToHost);
+  cudaCheckErrors(cudaMemcpy, "memory failed")
+  
+  // Nxx + ghost zones per coordinate direction
+  int Nxx_plus_2NGHOSTS0, Nxx_plus_2NGHOSTS1, Nxx_plus_2NGHOSTS2;
+  cudaMemcpy(&Nxx_plus_2NGHOSTS0, &params->Nxx_plus_2NGHOSTS0, sizeof(int), cudaMemcpyDeviceToHost);
+  cudaCheckErrors(cudaMemcpy, "memory failed")
+  cudaMemcpy(&Nxx_plus_2NGHOSTS1, &params->Nxx_plus_2NGHOSTS1, sizeof(int), cudaMemcpyDeviceToHost);
+  cudaCheckErrors(cudaMemcpy, "memory failed")
+  cudaMemcpy(&Nxx_plus_2NGHOSTS2, &params->Nxx_plus_2NGHOSTS2, sizeof(int), cudaMemcpyDeviceToHost);
+  cudaCheckErrors(cudaMemcpy, "memory failed")
+  
+  compute_uu_dDDxx(params, in_gfs, aux_gfs, Nxx0, Nxx1, Nxx2,Nxx_plus_2NGHOSTS0);
+  compute_uu_dDDyy(params, in_gfs, aux_gfs, Nxx0, Nxx1, Nxx2,Nxx_plus_2NGHOSTS0);
+
+  // dim3 block(GPU_NBLOCK0,GPU_NBLOCK1,GPU_NBLOCK2);
+  // dim3 grid(
+  //   (Nxx_plus_2NGHOSTS0 + GPU_NBLOCK0 - 1) / GPU_NBLOCK0,
+  //   (Nxx_plus_2NGHOSTS1 + GPU_NBLOCK1 - 1) / GPU_NBLOCK1,
+  //   (Nxx_plus_2NGHOSTS2 + GPU_NBLOCK2 - 1) / GPU_NBLOCK2
+  // );
+  // rhs_eval_gpu<<<grid,block>>>(commondata, params, in_gfs, rhs_gfs);
+  // cudaCheckErrors(rhs_eval_gpu, "kernel failed")
 }
