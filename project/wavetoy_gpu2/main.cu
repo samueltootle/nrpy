@@ -23,6 +23,7 @@
 int main(int argc, const char *argv[]) {
   commondata_struct commondata;       // commondata contains parameters common to all grids.
   griddata_struct * griddata; // griddata contains data specific to an individual grid.
+  cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeEightByte);
 
   // Step 1.a: Set each commondata CodeParameter to default.
   commondata_struct_set_to_default(&commondata);
