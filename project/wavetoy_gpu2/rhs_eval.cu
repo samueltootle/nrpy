@@ -268,31 +268,52 @@ void compute_uu_dDDyy(const params_struct *restrict params,
                           const int Nxx1,
                           const int Nxx2,
                           const int Nxx_plus_2NGHOSTS1) {
-  // for dx, we allocated pencils of threads that are 
-  // Nxx0 x PENCIL_SIZEY dimensions per block
-  dim3 block_threads(GPU_NBLOCK0, GPU_NBLOCK1, 1);
-  
-  // We have Nxx2 x (Nxx1 / PENCIL_SIZEY) blocks
-  dim3 grid_blocks(Nxx1 / GPU_NBLOCK0, Nxx2, 1);
-  
-  // cudaMemset(aux_gfs, 0, NUM_AUXEVOL_GFS * sizeof(REAL));
-  // cudaCheckErrors(cudaMemset, "memory failed")
+  // To ensure coalescence, we want retain reads in the x-direction
+  // i.e. the contiguous memory space, based on the standard
+  // instruction limits.  Each warp will attempt memory reads up
+  // to 128 bytes in a single instruction, in powers of 2,
+  // (e.g. 8,16,32,64,128), but this is dependent on the 
+  // compute capability of the GPU.  Here we dedicate
+  // one thread per data element we read in the x-direction.
+  size_t threads_in_x_dir = 128 / sizeof(REAL);
 
-  // Determine dynamic shared memory size in bytes
-  const size_t SM_size = GPU_NBLOCK0 * GPU_NBLOCK1 * Nxx_plus_2NGHOSTS1 * sizeof(REAL);
+  // Max threads in the y-direction.  Even if we can read
+  // the entire tile into shared memory, that doesn't mean
+  // we have enough threads per SM to process the entire tile.
+  // Therefore we can only have a maximum number of threads in the
+  // y direction and each thread will have to compute multiple points.
+  size_t threads_in_y_dir = 1024 / threads_in_x_dir;
+
+  // The tile size should attempt to avoid halo data,
+  // i.e. zones of data that are read by two or more blocks
+  // into shared memory.
+  // For the simple case of cartesian coordinates, the
+  // derivatives are 1D, so this shouldn't be a problem
+  // so long as the 1D Grid size * threads_in_x_dir
+  // will fit into shared memory.
+  // Determine dynamic shared memory size in bytes:
+  const size_t SM_size = threads_in_x_dir * Nxx_plus_2NGHOSTS1 * sizeof(REAL);
   
-  // Fetch maximum shared memory size per block
+  // For now we just throw an exception based on maximum shared memory size per block
+  // but it should be possible to decide a better course of action - e.g. using halos
+  // instead
   const int device = 0; //assumes single GPU
   cudaDeviceProp deviceProp;
   cudaGetDeviceProperties(&deviceProp, device);
   const size_t maxMemPerBlock = deviceProp.sharedMemPerBlock;
-
-  printf("SM_size : %lu , max: %lu\n\n\n", SM_size, maxMemPerBlock);
-  
   if(SM_size > maxMemPerBlock) {
     throw std::runtime_error("Grid is too large for current GPU shared memory restrictions");
   }
 
+  // Setup our thread layout
+  dim3 block_threads(threads_in_x_dir, threads_in_y_dir, 1);
+  
+  // Setup our grid layout such that our tiles will iterate through the entire
+  // numerical space
+  dim3 grid_blocks(Nxx0 / threads_in_x_dir, Nxx2, 1);
+
+  // printf("SM_size : %lu , max: %lu\n\n\n", SM_size, maxMemPerBlock);
+  
   compute_uu_dDDyy_gpu<<<grid_blocks, block_threads, SM_size>>>(params, in_gfs, aux_gfs);
   cudaCheckErrors(compute_uu_dDDyy_gpu, "kernel failed")
 }
