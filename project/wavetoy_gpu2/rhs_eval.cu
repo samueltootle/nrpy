@@ -81,6 +81,9 @@ void rhs_eval_gpu(const commondata_struct *restrict commondata,
         const REAL FDPart3tmp0 = ((wavespeed) * (wavespeed));
         rhs_gfs[IDX4(UUGF, i0, i1, i2)] = vv;
         rhs_gfs[IDX4(VVGF, i0, i1, i2)] = FDPart3tmp0 * uu_dDD00 + FDPart3tmp0 * uu_dDD11 + FDPart3tmp0 * uu_dDD22;
+        if(IDX4(VVGF, i0, i1, i2) == 2388441) {
+          printf("%u - %f - %f - %f - %f\n", IDX4(UUGF, i0, i1, i2), rhs_gfs[IDX4(UUGF, i0, i1, i2)], uu_dDD00, uu_dDD11, uu_dDD22);
+        }
 
       } // END LOOP: for (int i0 = NGHOSTS; i0 < NGHOSTS+Nxx0; i0++)
     }   // END LOOP: for (int i1 = NGHOSTS; i1 < NGHOSTS+Nxx1; i1++)
@@ -147,6 +150,9 @@ __global__ void compute_uu_dDDxx_gpu(const params_struct *restrict params,
     + FDPart1_Rational_4_3 * (uu_i0m1 + uu_i0p1) 
     + FDPart1tmp0
   );
+  if(globalIdx == 88473) {
+    printf("uD00: %u - %f\n", globalIdx, aux_gfs[globalIdx_out]);
+  }
 }
 
 __global__ void compute_uu_dDDyy_gpu(const params_struct *restrict params, 
@@ -173,7 +179,9 @@ __global__ void compute_uu_dDDyy_gpu(const params_struct *restrict params,
 
   // Global array indicies
   int i = tid0 + NGHOSTS;
-  int k = tid2 + NGHOSTS;  
+  int k = tid2 + NGHOSTS;
+
+  size_t diag_idx = -1;  
 
   for (int j = tid1 + NGHOSTS; j < Nxx1 + NGHOSTS; j += blockDim.y) {
     int sj = j;
@@ -184,6 +192,9 @@ __global__ void compute_uu_dDDyy_gpu(const params_struct *restrict params,
     int sm_idx = si * Nxx1 + sj;
 
     int globalIdx = IDX4(UUGF, i, j, k);
+    if(globalIdx == 88473) {
+      diag_idx = sm_idx;
+    }
 
     s_f[sm_idx] = aux_gfs[globalIdx];
   }
@@ -222,6 +233,10 @@ __global__ void compute_uu_dDDyy_gpu(const params_struct *restrict params,
       + FDPart1_Rational_4_3 * (uu_j0m1 + uu_j0p1) 
       + FDPart1tmp0
     );
+    int globalIdx = IDX4(UUGF, i, j, k);
+    if(globalIdx == 88473) {
+      printf("uD11: %u - %f\n", IDX4(UUGF, i,j,k), aux_gfs[globalIdx_out]);
+    }
   }
 }
 
@@ -251,6 +266,8 @@ __global__ void compute_uu_dDDzz_gpu(const params_struct *restrict params,
   int i = tid0 + NGHOSTS;
   int j = tid2 + NGHOSTS;  
 
+  size_t diag_idx = -1;  
+
   for (int k = tid1 + NGHOSTS; k < Nxx2 + NGHOSTS; k += blockDim.y) {
     int sk = k;
     
@@ -260,6 +277,9 @@ __global__ void compute_uu_dDDzz_gpu(const params_struct *restrict params,
     int sm_idx = si * Nxx2 + sk;
 
     int globalIdx = IDX4(UUGF, i, j, k);
+    if(globalIdx == 88473) {
+      diag_idx = sm_idx;
+    }
 
     s_f[sm_idx] = aux_gfs[globalIdx];
   }
@@ -297,6 +317,10 @@ __global__ void compute_uu_dDDzz_gpu(const params_struct *restrict params,
       + FDPart1_Rational_4_3 * (uu_j0m1 + uu_j0p1) 
       + FDPart1tmp0
     );
+        int globalIdx = IDX4(UUGF, i, j, k);
+    if(globalIdx == 88473) {
+      printf("uD22: %u - %f\n", IDX4(UUGF, i,j,k), aux_gfs[globalIdx_out]);
+    }
   }
 }
 
@@ -455,12 +479,87 @@ void compute_uu_dDDzz(const params_struct *restrict params,
   cudaCheckErrors(compute_uu_dDDzz_gpu, "kernel failed")
 }
 
+__global__ void compute_rhs_gpu(const params_struct *restrict params, 
+                                 const REAL *restrict in_gfs,
+                                 const REAL *restrict in_gfs_derivatives,
+                                 REAL *restrict out_gfs)
+{ 
+
+  const int & Nxx_plus_2NGHOSTS0 = d_params.Nxx_plus_2NGHOSTS0;
+  const int & Nxx_plus_2NGHOSTS1 = d_params.Nxx_plus_2NGHOSTS1;
+  const int & Nxx_plus_2NGHOSTS2 = d_params.Nxx_plus_2NGHOSTS2;
+
+  // Local tile indices - not global thread indicies
+  int tid0  = threadIdx.x;
+  int tid1  = blockIdx.x*blockDim.y + threadIdx.y;
+  int tid2  = blockIdx.y;
+
+  // Global memory index - need to shift by ghost zones
+  int i = tid0 + NGHOSTS;
+  int j = tid1 + NGHOSTS;
+  int k = tid2 + NGHOSTS;
+  int globalIdx = IDX4(UUGF, i, j, k);
+
+  __syncthreads();
+  const REAL vv = in_gfs[IDX4(VVGF, i, j, k)];
+  const REAL uu = in_gfs[globalIdx];
+  const REAL uu_dDD00 = in_gfs_derivatives[IDX4(UD00, i, j, k)];
+  const REAL uu_dDD11 = in_gfs_derivatives[IDX4(UD11, i, j, k)];
+  const REAL uu_dDD22 = in_gfs_derivatives[IDX4(UD22, i, j, k)];
+
+  const REAL FDPart1tmp0 = -FDPart1_Rational_5_2 * uu;
+
+  const REAL FDPart3tmp0 = ((wavespeed) * (wavespeed));
+  out_gfs[IDX4(UUGF, i, j, k)] = vv;
+  out_gfs[IDX4(VVGF, i, j, k)] = FDPart3tmp0 * uu_dDD00 + FDPart3tmp0 * uu_dDD11 + FDPart3tmp0 * uu_dDD22;
+}
+
+__host__ 
+void compute_rhs(const params_struct *restrict params, 
+                          const REAL *restrict in_gfs,
+                          const REAL *restrict aux_gfs,
+                          REAL *restrict out_gfs,
+                          const int Nxx0,
+                          const int Nxx1,
+                          const int Nxx2) {
+  // To ensure coalescence, we want retain reads in the x-direction
+  // i.e. the contiguous memory space, based on the standard
+  // instruction limits.  Each warp will attempt memory reads up
+  // to 128 bytes in a single instruction, in powers of 2,
+  // (e.g. 8,16,32,64,128), but this is dependent on the 
+  // compute capability of the GPU.  Here we dedicate
+  // one thread per data element we read in the x-direction.
+  size_t threads_in_x_dir = MIN(1024, Nxx0);
+
+  // Max threads in the y-direction.  Even if we can read
+  // the entire tile into shared memory, that doesn't mean
+  // we have enough threads per SM to process the entire tile.
+  // Therefore we can only have a maximum number of threads in the
+  // y direction and each thread will have to compute multiple points.
+  size_t threads_in_y_dir = 1024 / threads_in_x_dir;
+
+  size_t threads_in_z_dir = 1;
+
+  // Setup our thread layout
+  dim3 block_threads(threads_in_x_dir, threads_in_y_dir, threads_in_z_dir);
+  
+  // Setup our grid layout such that our tiles will iterate through the entire
+  // numerical space
+  dim3 grid_blocks(Nxx1 / threads_in_y_dir, Nxx2, 1);
+
+  // printf("SM_size : %lu , max: %lu\n\n\n", SM_size, maxMemPerBlock);
+  
+  compute_rhs_gpu<<<grid_blocks, block_threads>>>(params, in_gfs, aux_gfs, out_gfs);
+  cudaCheckErrors(compute_rhs_gpu, "kernel failed")
+}
+
 __host__
 void rhs_eval(const commondata_struct *restrict commondata, 
               const params_struct *restrict params, 
               const REAL *restrict in_gfs,
               REAL *restrict rhs_gfs,
               REAL *restrict aux_gfs) {
+// #define ORIG_RHS
 #ifdef ORIG_RHS
   int Nxx_plus_2NGHOSTS0, Nxx_plus_2NGHOSTS1, Nxx_plus_2NGHOSTS2;
   cudaMemcpy(&Nxx_plus_2NGHOSTS0, &params->Nxx_plus_2NGHOSTS0, sizeof(int), cudaMemcpyDeviceToHost);
@@ -477,8 +576,8 @@ void rhs_eval(const commondata_struct *restrict commondata,
   );
   rhs_eval_gpu<<<grid,block>>>(commondata, params, in_gfs, rhs_gfs);
   cudaCheckErrors(rhs_eval_gpu, "kernel failed")
-  testcpy(in_gfs);
-#endif
+  // testcpy(in_gfs);
+#else
   // Nxx per coordinate direction
   int Nxx0, Nxx1, Nxx2;
   cudaMemcpy(&Nxx0, &params->Nxx0, sizeof(int), cudaMemcpyDeviceToHost);
@@ -501,6 +600,8 @@ void rhs_eval(const commondata_struct *restrict commondata,
   compute_uu_dDDyy(params, in_gfs, aux_gfs, Nxx0, Nxx1, Nxx2,Nxx_plus_2NGHOSTS1);
   compute_uu_dDDzz(params, in_gfs, aux_gfs, Nxx0, Nxx1, Nxx2,Nxx_plus_2NGHOSTS2);
 
+  compute_rhs(params, in_gfs, aux_gfs, rhs_gfs, Nxx0, Nxx1, Nxx2);
+#endif
   // compute_rhs(params, in_gfs, aux_gfs, Nxx0, Nxx1, Nxx2,Nxx_plus_2NGHOSTS2);
 
   // dim3 block(GPU_NBLOCK0,GPU_NBLOCK1,GPU_NBLOCK2);
