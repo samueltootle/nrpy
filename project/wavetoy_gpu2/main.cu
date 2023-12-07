@@ -3,6 +3,7 @@
 #include "BHaH_gpu_defines.h"
 #include "BHaH_gpu_function_prototypes.h"
 #include "init_gpu_globals.h"
+#define DEBUG_RHS
 /*
  * -={ main() function }=-
  * Step 1.a: Set each commondata CodeParameter to default.
@@ -78,7 +79,7 @@ int main(int argc, const char *argv[]) {
   } // End main loop to progress forward in time.
   #else
   int n = 0;
-  while (n < 2) {
+  while (n < 5) {
     MoL_step_forward_in_time(&commondata, griddata);
     printf("\n\n");
     n++;
