@@ -461,7 +461,7 @@ void compute_uu_dDDzz(const params_struct *restrict params,
   // we have enough threads per SM to process the entire tile.
   // Therefore we can only have a maximum number of threads in the
   // y direction and each thread will have to compute multiple points.
-  size_t threads_in_z_dir = deviceProp.maxThreadsPerBlock / threads_in_x_dir;
+  size_t threads_in_z_dir = 4; //deviceProp.maxThreadsPerBlock / threads_in_x_dir;
 
   // The tile size should attempt to avoid halo data,
   // i.e. zones of data that are read by two or more blocks
@@ -576,7 +576,7 @@ void rhs_eval(const commondata_struct *restrict commondata,
               const REAL *restrict in_gfs,
               REAL *restrict rhs_gfs,
               REAL *restrict aux_gfs) {
-#define ORIG_RHS
+// #define ORIG_RHS
 #ifdef ORIG_RHS
   int Nxx_plus_2NGHOSTS0, Nxx_plus_2NGHOSTS1, Nxx_plus_2NGHOSTS2;
   cudaMemcpy(&Nxx_plus_2NGHOSTS0, &params->Nxx_plus_2NGHOSTS0, sizeof(int), cudaMemcpyDeviceToHost);
