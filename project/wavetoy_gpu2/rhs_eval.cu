@@ -81,8 +81,12 @@ void rhs_eval_gpu(const commondata_struct *restrict commondata,
         const REAL FDPart3tmp0 = ((wavespeed) * (wavespeed));
         rhs_gfs[IDX4(UUGF, i0, i1, i2)] = vv;
         rhs_gfs[IDX4(VVGF, i0, i1, i2)] = FDPart3tmp0 * uu_dDD00 + FDPart3tmp0 * uu_dDD11 + FDPart3tmp0 * uu_dDD22;
-        if(IDX4(VVGF, i0, i1, i2) == 2388441) {
-          printf("%u - %f - %f - %f - %f\n", IDX4(UUGF, i0, i1, i2), rhs_gfs[IDX4(UUGF, i0, i1, i2)], uu_dDD00, uu_dDD11, uu_dDD22);
+        if(IDX4(UUGF, i0, i1, i2) == 35114) {
+          printf("%1.15f - \n %1.15f - %1.15f - %1.15f - %1.15f - %1.15f - %1.15f\n %1.15f - %1.15f - %1.15f - %1.15f - %1.15f - %1.15f\n %1.15f - %1.15f - %1.15f - %1.15f - %1.15f - %1.15f\n", invdxx0, 
+            uu_dDD00, uu_i0m2, uu_i0m1, uu, uu_i0p1, uu_i0p2, 
+            uu_dDD11, uu_i1m2, uu_i1m1, uu, uu_i1p1, uu_i1p2,
+            uu_dDD22, uu_i2m2, uu_i2m1, uu, uu_i2p1, uu_i2p2);
+          // printf("%u - %f - %f: %f - %f - %f\n", IDX4(UUGF, i0, i1, i2), rhs_gfs[IDX4(UUGF, i0, i1, i2)], uu, uu_dDD00, uu_dDD11, uu_dDD22);
         }
 
       } // END LOOP: for (int i0 = NGHOSTS; i0 < NGHOSTS+Nxx0; i0++)
@@ -131,7 +135,7 @@ __global__ void compute_uu_dDDxx_gpu(const params_struct *restrict params,
     int temp_idx = IDX4(UUGF, i-NGHOSTS, j, k);
     s_f[sm_idx - NGHOSTS] = in_gfs[temp_idx];
     
-    temp_idx = IDX4(UUGF, i + Nxx0 + NGHOSTS, j, k);
+    temp_idx = IDX4(UUGF, i + Nxx0, j, k);
     s_f[sm_idx+Nxx0] = in_gfs[temp_idx];
   }
 
@@ -150,8 +154,9 @@ __global__ void compute_uu_dDDxx_gpu(const params_struct *restrict params,
     + FDPart1_Rational_4_3 * (uu_i0m1 + uu_i0p1) 
     + FDPart1tmp0
   );
-  if(globalIdx == 88473) {
-    printf("uD00: %u - %f\n", globalIdx, aux_gfs[globalIdx_out]);
+  if(globalIdx == 35114) {
+    printf("uD00: %1.15f - \n %1.15f - %1.15f - %1.15f - %1.15f - %1.15f - %1.15f\n", invdxx0,
+      aux_gfs[globalIdx_out], uu_i0m2, uu_i0m1, uu, uu_i0p1, uu_i0p2);
   }
 }
 
@@ -181,8 +186,6 @@ __global__ void compute_uu_dDDyy_gpu(const params_struct *restrict params,
   int i = tid0 + NGHOSTS;
   int k = tid2 + NGHOSTS;
 
-  size_t diag_idx = -1;  
-
   for (int j = tid1 + NGHOSTS; j < Nxx1 + NGHOSTS; j += blockDim.y) {
     int sj = j;
     
@@ -192,9 +195,6 @@ __global__ void compute_uu_dDDyy_gpu(const params_struct *restrict params,
     int sm_idx = si * Nxx1 + sj;
 
     int globalIdx = IDX4(UUGF, i, j, k);
-    if(globalIdx == 88473) {
-      diag_idx = sm_idx;
-    }
 
     s_f[sm_idx] = aux_gfs[globalIdx];
   }
@@ -234,8 +234,9 @@ __global__ void compute_uu_dDDyy_gpu(const params_struct *restrict params,
       + FDPart1tmp0
     );
     int globalIdx = IDX4(UUGF, i, j, k);
-    if(globalIdx == 88473) {
-      printf("uD11: %u - %f\n", IDX4(UUGF, i,j,k), aux_gfs[globalIdx_out]);
+    if(globalIdx == 35114) {
+    printf("uD11: %1.15f - \n %1.15f - %1.15f - %1.15f - %1.15f - %1.15f - %1.15f\n", invdxx1,
+      aux_gfs[globalIdx_out], uu_j0m2, uu_j0m1, uu, uu_j0p1, uu_j0p2);
     }
   }
 }
@@ -264,9 +265,7 @@ __global__ void compute_uu_dDDzz_gpu(const params_struct *restrict params,
 
   // Global array indicies
   int i = tid0 + NGHOSTS;
-  int j = tid2 + NGHOSTS;  
-
-  size_t diag_idx = -1;  
+  int j = tid2 + NGHOSTS;
 
   for (int k = tid1 + NGHOSTS; k < Nxx2 + NGHOSTS; k += blockDim.y) {
     int sk = k;
@@ -277,9 +276,6 @@ __global__ void compute_uu_dDDzz_gpu(const params_struct *restrict params,
     int sm_idx = si * Nxx2 + sk;
 
     int globalIdx = IDX4(UUGF, i, j, k);
-    if(globalIdx == 88473) {
-      diag_idx = sm_idx;
-    }
 
     s_f[sm_idx] = aux_gfs[globalIdx];
   }
@@ -318,8 +314,9 @@ __global__ void compute_uu_dDDzz_gpu(const params_struct *restrict params,
       + FDPart1tmp0
     );
         int globalIdx = IDX4(UUGF, i, j, k);
-    if(globalIdx == 88473) {
-      printf("uD22: %u - %f\n", IDX4(UUGF, i,j,k), aux_gfs[globalIdx_out]);
+    if(globalIdx == 35114) {
+      printf("uD22: %1.15f - \n %1.15f - %1.15f - %1.15f - %1.15f - %1.15f - %1.15f\n", invdxx2,
+      aux_gfs[globalIdx_out], uu_j0m2, uu_j0m1, uu, uu_j0p1, uu_j0p2);
     }
   }
 }
@@ -332,12 +329,21 @@ void compute_uu_dDDxx(const params_struct *restrict params,
                           const int Nxx1,
                           const int Nxx2,
                           const int Nxx_plus_2NGHOSTS0) {
+  size_t threads_in_x_dir = MIN(1024, Nxx0);
+  size_t threads_in_y_dir = 1024 / threads_in_x_dir;
+  size_t threads_in_z_dir = 1;
+
+  // Setup our thread layout
+  dim3 block_threads(threads_in_x_dir, threads_in_y_dir, threads_in_z_dir);
+  dim3 grid_blocks(Nxx1 / threads_in_y_dir, Nxx2, 1);
+  printf("(%u, %u, %u) - (%u, %u, %u)\n", block_threads.x, block_threads.y, block_threads.z, grid_blocks.x, grid_blocks.y, grid_blocks.z);
+  
   // for dx, we allocated pencils of threads that are 
   // Nxx0 x PENCIL_SIZEY dimensions per block
-  dim3 block_threads(Nxx0, PENCIL_SIZEY, 1);
+  // dim3 block_threads(Nxx0, PENCIL_SIZEY, 1);
   
   // We have Nxx2 x (Nxx1 / PENCIL_SIZEY) blocks
-  dim3 grid_blocks(Nxx1 / PENCIL_SIZEY, Nxx2, 1);
+  // dim3 grid_blocks(Nxx1 / PENCIL_SIZEY, Nxx2, 1);
   
   // cudaMemset(aux_gfs, 0, NUM_AUXEVOL_GFS * sizeof(REAL));
   // cudaCheckErrors(cudaMemset, "memory failed")
@@ -498,16 +504,12 @@ __global__ void compute_rhs_gpu(const params_struct *restrict params,
   int i = tid0 + NGHOSTS;
   int j = tid1 + NGHOSTS;
   int k = tid2 + NGHOSTS;
-  int globalIdx = IDX4(UUGF, i, j, k);
 
   __syncthreads();
   const REAL vv = in_gfs[IDX4(VVGF, i, j, k)];
-  const REAL uu = in_gfs[globalIdx];
   const REAL uu_dDD00 = in_gfs_derivatives[IDX4(UD00, i, j, k)];
   const REAL uu_dDD11 = in_gfs_derivatives[IDX4(UD11, i, j, k)];
   const REAL uu_dDD22 = in_gfs_derivatives[IDX4(UD22, i, j, k)];
-
-  const REAL FDPart1tmp0 = -FDPart1_Rational_5_2 * uu;
 
   const REAL FDPart3tmp0 = ((wavespeed) * (wavespeed));
   out_gfs[IDX4(UUGF, i, j, k)] = vv;
