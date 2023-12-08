@@ -230,7 +230,7 @@ __global__ void compute_uu_dDDyy_gpu(const params_struct *restrict params,
 
   for (int j = tid1 + NGHOSTS; j < Nxx1 + NGHOSTS; j += blockDim.y) {
     int sj = j;
-    int sm_idx = si * Nxx1 + sj;
+    int sm_idx = si * Nxx_plus_2NGHOSTS1 + sj;
 
     const REAL uu_j0m2 = s_f[sm_idx - 2];
     const REAL uu_j0m1 = s_f[sm_idx - 1];
@@ -313,7 +313,7 @@ __global__ void compute_uu_dDDzz_gpu(const params_struct *restrict params,
 
   for (int k = tid1 + NGHOSTS; k < Nxx2 + NGHOSTS; k += blockDim.y) {
     int sk = k;
-    int sm_idx = si * Nxx2 + sk;
+    int sm_idx = si * Nxx_plus_2NGHOSTS2 + sk;
 
     const REAL uu_k0m2 = s_f[sm_idx - 2];
     const REAL uu_k0m1 = s_f[sm_idx - 1];
@@ -348,7 +348,7 @@ void compute_uu_dDDxx(const params_struct *restrict params,
                           const int Nxx2,
                           const int Nxx_plus_2NGHOSTS0) {
   size_t threads_in_x_dir = Nxx0;
-  size_t threads_in_y_dir = 4; //1024 / threads_in_x_dir;
+  size_t threads_in_y_dir = 1024 / threads_in_x_dir;
   size_t threads_in_z_dir = 1;
 
   // Setup our thread layout
@@ -461,7 +461,7 @@ void compute_uu_dDDzz(const params_struct *restrict params,
   // we have enough threads per SM to process the entire tile.
   // Therefore we can only have a maximum number of threads in the
   // y direction and each thread will have to compute multiple points.
-  size_t threads_in_z_dir = 4; //deviceProp.maxThreadsPerBlock / threads_in_x_dir;
+  size_t threads_in_z_dir = deviceProp.maxThreadsPerBlock / threads_in_x_dir;
 
   // The tile size should attempt to avoid halo data,
   // i.e. zones of data that are read by two or more blocks
