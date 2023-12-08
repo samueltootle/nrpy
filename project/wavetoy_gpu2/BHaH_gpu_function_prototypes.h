@@ -1,3 +1,5 @@
+#define RHS_IMP 3
+
 template<class T>
 __global__
 void find_min_cu(T * data, unsigned long long int * min, uint const data_length);
@@ -92,12 +94,16 @@ void set_param_constants(params_struct *restrict params);
 __host__
 void set_commondata_constants(commondata_struct *restrict commondata);
 
+#if RHS_IMP == 1
+// Original RHS
 __global__
 void rhs_eval_gpu(const commondata_struct *restrict commondata, 
               const params_struct *restrict params, 
               const REAL *restrict in_gfs,
               REAL *restrict rhs_gfs);
 
+#elif RHS_IMP == 2
+// Shared Memory setup
 __global__ void compute_uu_dDDxx_gpu(const params_struct *restrict params, 
                                  const REAL *restrict in_gfs,
                                  REAL *restrict aux_gfs);
@@ -151,3 +157,6 @@ void compute_rhs(const params_struct *restrict params,
                           const int Nxx0,
                           const int Nxx1,
                           const int Nxx2);
+#else
+
+#endif

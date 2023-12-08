@@ -9,7 +9,6 @@ void rhs_eval(const commondata_struct *restrict commondata,
               const REAL *restrict in_gfs,
               REAL *restrict rhs_gfs,
               REAL *restrict aux_gfs) {
-#define RHS_IMP 1
   int Nxx_plus_2NGHOSTS0, Nxx_plus_2NGHOSTS1, Nxx_plus_2NGHOSTS2;
   cudaMemcpy(&Nxx_plus_2NGHOSTS0, &params->Nxx_plus_2NGHOSTS0, sizeof(int), cudaMemcpyDeviceToHost);
   cudaCheckErrors(cudaMemcpy, "memory failed")
