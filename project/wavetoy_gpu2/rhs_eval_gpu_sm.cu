@@ -3,7 +3,7 @@
 #include "BHaH_gpu_function_prototypes.h"
 #include <stdexcept>
 #define DEBUG_INDEX 35114
-
+#if RHS_IMP == 2
 __global__ void compute_uu_dDDxx_gpu(const params_struct *restrict params, 
                                  const REAL *restrict in_gfs,
                                  REAL *restrict aux_gfs)
@@ -472,3 +472,4 @@ void compute_rhs(const params_struct *restrict params,
   compute_rhs_gpu<<<grid_blocks, block_threads>>>(params, in_gfs, aux_gfs, out_gfs);
   cudaCheckErrors(compute_rhs_gpu, "kernel failed")
 }
+#endif

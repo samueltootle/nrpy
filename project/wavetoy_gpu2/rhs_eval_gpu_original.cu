@@ -3,6 +3,7 @@
 #include "BHaH_gpu_function_prototypes.h"
 #include <stdexcept>
 #define DEBUG_INDEX 35114
+#if RHS_IMP == 1
 /*
  * Set RHSs for wave equation.
  */
@@ -100,3 +101,4 @@ void rhs_eval_gpu(const commondata_struct *restrict commondata,
     }   // END LOOP: for (int i1 = NGHOSTS; i1 < NGHOSTS+Nxx1; i1++)
   }     // END LOOP: for (int i2 = NGHOSTS; i2 < NGHOSTS+Nxx2; i2++)
 }
+#endif
