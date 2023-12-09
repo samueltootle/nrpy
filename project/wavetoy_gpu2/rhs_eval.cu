@@ -41,6 +41,21 @@ void rhs_eval(const commondata_struct *restrict commondata,
   compute_uu_dDDzz(params, in_gfs, aux_gfs, Nxx0, Nxx1, Nxx2,Nxx_plus_2NGHOSTS2);
 
   compute_rhs(params, in_gfs, aux_gfs, rhs_gfs, Nxx0, Nxx1, Nxx2);
+#elif RHS_IMP == 3
+// Nxx per coordinate direction
+  int Nxx0, Nxx1, Nxx2;
+  cudaMemcpy(&Nxx0, &params->Nxx0, sizeof(int), cudaMemcpyDeviceToHost);
+  cudaCheckErrors(cudaMemcpy, "memory failed")
+  cudaMemcpy(&Nxx1, &params->Nxx1, sizeof(int), cudaMemcpyDeviceToHost);
+  cudaCheckErrors(cudaMemcpy, "memory failed")
+  cudaMemcpy(&Nxx2, &params->Nxx2, sizeof(int), cudaMemcpyDeviceToHost);
+  cudaCheckErrors(cudaMemcpy, "memory failed")
+
+  compute_uu_dDDxx(params, in_gfs, aux_gfs, Nxx0, Nxx1, Nxx2,Nxx_plus_2NGHOSTS0);
+  compute_uu_dDDyy(params, in_gfs, aux_gfs, Nxx0, Nxx1, Nxx2,Nxx_plus_2NGHOSTS1);
+  compute_uu_dDDzz(params, in_gfs, aux_gfs, Nxx0, Nxx1, Nxx2,Nxx_plus_2NGHOSTS2);
+
+  compute_rhs(params, in_gfs, aux_gfs, rhs_gfs, Nxx0, Nxx1, Nxx2);
 #else
   printf("HERE\n");
 #endif
