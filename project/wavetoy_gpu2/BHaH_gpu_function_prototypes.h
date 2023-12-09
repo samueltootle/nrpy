@@ -158,5 +158,58 @@ void compute_rhs(const params_struct *restrict params,
                           const int Nxx1,
                           const int Nxx2);
 #else
+// Shared Memory setup
+__global__ void compute_uu_dDDxx_gpu(const params_struct *restrict params, 
+                                 const REAL *restrict in_gfs,
+                                 REAL *restrict aux_gfs);
 
+__host__ 
+void compute_uu_dDDxx(const params_struct *restrict params, 
+                          const REAL *restrict in_gfs,
+                          REAL *restrict aux_gfs,
+                          const int Nxx0,
+                          const int Nxx1,
+                          const int Nxx2,
+                          const int Nxx_plus_2NGHOSTS0);
+                          
+__global__ void compute_uu_dDDyy_gpu(const params_struct *restrict params, 
+                                 const REAL *restrict in_gfs,
+                                 REAL *restrict aux_gfs);
+
+__host__ 
+void compute_uu_dDDyy(const params_struct *restrict params, 
+                          const REAL *restrict in_gfs,
+                          REAL *restrict aux_gfs,
+                          const int Nxx0,
+                          const int Nxx1,
+                          const int Nxx2,
+                          const int Nxx_plus_2NGHOSTS1);
+
+__global__ void compute_uu_dDDzz_gpu(const params_struct *restrict params, 
+                                 const REAL *restrict in_gfs,
+                                 REAL *restrict aux_gfs);
+
+__host__ 
+void compute_uu_dDDzz(const params_struct *restrict params, 
+                          const REAL *restrict in_gfs,
+                          REAL *restrict aux_gfs,
+                          const int Nxx0,
+                          const int Nxx1,
+                          const int Nxx2,
+                          const int Nxx_plus_2NGHOSTS2);
+
+__global__ 
+void compute_rhs_gpu(const params_struct *restrict params, 
+                                 const REAL *restrict in_gfs,
+                                 const REAL *restrict in_gfs_derivatives,
+                                 REAL *restrict out_gfs);
+
+__host__ 
+void compute_rhs(const params_struct *restrict params, 
+                          const REAL *restrict in_gfs,
+                          const REAL *restrict aux_gfs,
+                          REAL *restrict out_gfs,
+                          const int Nxx0,
+                          const int Nxx1,
+                          const int Nxx2);
 #endif
