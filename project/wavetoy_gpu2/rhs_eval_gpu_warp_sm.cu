@@ -28,27 +28,31 @@ __global__ void compute_uu_dDDxx_gpu(const params_struct *restrict params,
   uint lanex = tid % warpSize;
   
   // Global memory index - need to shift by ghost zones
-  int i = tid0 - warpx * NGHOSTS;
+  int i = tid0 - warpx * 2 * NGHOSTS;
   int j = tid1 + NGHOSTS;
   int k = tid2 + NGHOSTS;
   int globalIdx = IDX4(UUGF, i, j, k);
   
-  uint mask = __activemask();
+  uint mask = 0xFFFFFFFFU;
   uu = in_gfs[globalIdx];
   uu_i0m2 = __shfl_up_sync(mask, uu, 2);
   uu_i0m1 = __shfl_up_sync(mask, uu, 1);
   uu_i0p1 = __shfl_down_sync(mask, uu, 1);
   uu_i0p2 = __shfl_down_sync(mask, uu, 2);
 
-    if(warpx == 1 && blockIdx.y == 1)
-  // if(blockIdx.y == 0 && blockIdx.x == 0 && k == 0)
-    printf("(%d, %d, %d) \t- %d \t- %d \t- %d \t- %d \t- %d\n", 
-      i, j, k, warpx, threadIdx.x, threadIdx.y, blockIdx.x, blockIdx.y);
-
   // Warp threads living in the ghost zones will be inactive
   // Not sure how bad this is yet...
   // we do this to avoid shared memory
-  bool active = (tid0 >= NGHOSTS && i < Nxx0 + NGHOSTS);
+  bool active = (tid0 >= NGHOSTS && i < Nxx0 + NGHOSTS && lanex > 1 && lanex < 30);
+
+  // #ifdef DEBUG_IDX
+  // // if(!active && i < d_params.Nxx_plus_2NGHOSTS0)
+  //   if(warpx == 4 && blockIdx.y == 2)
+  // // if(blockIdx.y == 0 && blockIdx.x == 0 && k == 0)
+  //   printf("(%d, %d, %d)  - %d \t- %d \t- %d \t- %d \t- %d - %d\n", 
+  //     i, j, k, warpx, threadIdx.x, threadIdx.y, blockIdx.x, blockIdx.y, active);
+  // #endif
+
   if(active) {
     const REAL FDPart1tmp0 = -FDPart1_Rational_5_2 * uu;
 
@@ -88,16 +92,17 @@ __global__ void compute_uu_dDDyy_gpu(const params_struct *restrict params,
   int tid2  = blockIdx.y;
   int tid = threadIdx.x + threadIdx.y * blockDim.x;
   uint warpx = tid / warpSize;
+  uint lanex = tid %warpSize;
   
   REAL uu_j0m2, uu_j0m1, uu, uu_j0p1, uu_j0p2;
 
   // Global array indicies
   int i = tid1 + NGHOSTS;
-  int j = tid0 - warpx * NGHOSTS;;
+  int j = tid0 - warpx * 2 * NGHOSTS;;
   int k = tid2 + NGHOSTS;
   int globalIdx = IDX4(UUGF, i, j, k);
 
-  uint mask = __activemask();
+  uint mask = 0xFFFFFFFFU;
   uu = in_gfs[globalIdx];
   uu_j0m2 = __shfl_up_sync(mask, uu, 2);
   uu_j0m1 = __shfl_up_sync(mask, uu, 1);
@@ -107,7 +112,16 @@ __global__ void compute_uu_dDDyy_gpu(const params_struct *restrict params,
   // Warp threads living in the ghost zones will be inactive
   // Not sure how bad this is yet...
   // we do this to avoid shared memory
-  bool active = (tid0 >= NGHOSTS && j < Nxx1 + NGHOSTS);
+  bool active = (tid0 >= NGHOSTS && j < Nxx1 + NGHOSTS && lanex > 1 && lanex < 30);
+  #ifdef DEBUG_IDX
+  // if(!active && i < d_params.Nxx_plus_2NGHOSTS0)
+    if((lanex == 0 || lanex == 30) && (warpx == 3 || warpx == 4) && blockIdx.y == 2)
+    printf("(%d, %d, %d) \t- (%u, %u) \t- (%u, %u), (%u, %u) \t- %1.15e - %1.15e - %1.15e - %1.15e - %1.15e\n", 
+      i, j, k, warpx, lanex, threadIdx.x, threadIdx.y, blockIdx.x, blockIdx.y, uu_j0m2, uu_j0m1, uu, uu_j0p2, uu_j0p2);
+  // if(blockIdx.y == 0 && blockIdx.x == 0 && k == 0)
+    // printf("(%d, %d, %d)  - %d \t- %d \t- %d \t- %d \t- %d - %d\n", 
+      // i, j, k, warpx, threadIdx.x, threadIdx.y, blockIdx.x, blockIdx.y, lane);
+  #endif
   if(active) {
     const REAL FDPart1tmp0 = -FDPart1_Rational_5_2 * uu;
 
@@ -151,12 +165,12 @@ __global__ void compute_uu_dDDzz_gpu(const params_struct *restrict params,
   uint lanex = tid0 % warpSize;
   
   REAL uu_k0m2, uu_k0m1, uu, uu_k0p1, uu_k0p2;
-  uint mask = __activemask();
+  uint mask = 0xFFFFFFFFU;
 
   // Global array indicies
   int i = tid1 + NGHOSTS;
   int j = tid2 + NGHOSTS;
-  int k = tid0 - warpx * NGHOSTS;
+  int k = tid0 - warpx * 2 * NGHOSTS;
   // int tid = threadIdx.x + threadIdx.y * blockDim.x;;
   
   int globalIdx = IDX4(UUGF, i, j, k);
@@ -177,7 +191,14 @@ __global__ void compute_uu_dDDzz_gpu(const params_struct *restrict params,
   // Warp threads living in the ghost zones will be inactive
   // Not sure how bad this is yet...
   // we do this to avoid shared memory
-  bool active = (tid0 >= NGHOSTS && k < Nxx2 + NGHOSTS);
+  bool active = (tid0 >= NGHOSTS && k < Nxx2 + NGHOSTS && lanex > 1 && lanex < 30);
+  //   #ifdef DEBUG_IDX
+  // // if(!active && i < d_params.Nxx_plus_2NGHOSTS0)
+  //   if(warpx == 1 && blockIdx.y == 2 && tid1 == 0)
+  // // if(blockIdx.y == 0 && blockIdx.x == 0 && k == 0)
+  //   printf("(%d, %d, %d)  - %d \t- %d \t- %d \t- %d \t- %d - %d\n", 
+  //     i, j, k, warpx, threadIdx.x, threadIdx.y, blockIdx.x, blockIdx.y, active);
+  // #endif
   if(active) {
     const REAL FDPart1tmp0 = -FDPart1_Rational_5_2 * uu;    
     
@@ -213,7 +234,7 @@ void compute_uu_dDDxx(const params_struct *restrict params,
   size_t remaining_cells = Nxx_plus_2NGHOSTS0 - halo_threads;
   
   // Over estimate of number of threads needed to process data in the interior
-  size_t interior_threads = (size_t) std::ceil((REAL)remaining_cells / (32.0 - 2.0 * NGHOSTS)) * 32u;
+  size_t interior_threads = (size_t) std::ceil((REAL)remaining_cells / (32.0 - 4.0 * NGHOSTS)) * 32u;
   
   size_t threads_in_x_dir = halo_threads + interior_threads;
   size_t threads_in_y_dir = 1; //1024 / threads_in_x_dir;
@@ -244,7 +265,7 @@ void compute_uu_dDDyy(const params_struct *restrict params,
   size_t remaining_cells = Nxx_plus_2NGHOSTS1 - halo_threads;
   
   // Over estimate of number of threads needed to process data in the interior
-  size_t interior_warps   = (size_t) std::ceil((REAL)remaining_cells / (32.0 - 2.0 * NGHOSTS));
+  size_t interior_warps   = (size_t) std::ceil((REAL)remaining_cells / (32.0 - 4.0 * NGHOSTS));
   size_t interior_threads = interior_warps * 32u;
   
   // threads in logical thread direction (not coordinate direction)
@@ -279,7 +300,7 @@ void compute_uu_dDDzz(const params_struct *restrict params,
   size_t remaining_cells = Nxx_plus_2NGHOSTS2 - halo_threads;
   
   // Over estimate of number of threads needed to process data in the interior
-  size_t interior_warps   = (size_t) std::ceil((REAL)remaining_cells / (32.0 - 2.0 * NGHOSTS));
+  size_t interior_warps   = (size_t) std::ceil((REAL)remaining_cells / (32.0 - 4.0 * NGHOSTS));
   size_t interior_threads = interior_warps * 32u;
   
   // threads in logical thread direction (not coordinate direction)
