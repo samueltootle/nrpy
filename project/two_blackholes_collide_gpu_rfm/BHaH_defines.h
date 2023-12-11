@@ -12,6 +12,7 @@
 #include <string.h>
 #include <time.h>
 #define REAL double
+#define restrict __restrict__
 
 #define MIN(A, B) (((A) < (B)) ? (A) : (B))
 #define MAX(A, B) (((A) > (B)) ? (A) : (B))
@@ -169,13 +170,13 @@ static const int8_t evol_gf_parity[24] = {4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 0, 4, 5,
 //********************************************
 // Basic definitions for module nrpy.infrastructures.BHaH.MoLtimestepping.MoL:
 typedef struct __MoL_gridfunctions_struct__ {
-  REAL *restrict y_n_gfs;
-  REAL *restrict y_nplus1_running_total_gfs;
-  REAL *restrict k_odd_gfs;
-  REAL *restrict k_even_gfs;
-  REAL *restrict auxevol_gfs;
-  REAL *restrict diagnostic_output_gfs;
-  REAL *restrict diagnostic_output_gfs2;
+  REAL *y_n_gfs;
+  REAL *y_nplus1_running_total_gfs;
+  REAL *k_odd_gfs;
+  REAL *k_even_gfs;
+  REAL *auxevol_gfs;
+  REAL *diagnostic_output_gfs;
+  REAL *diagnostic_output_gfs2;
 } MoL_gridfunctions_struct;
 
 #define LOOP_ALL_GFS_GPS(ii)                                                                                                                         \
@@ -267,7 +268,7 @@ static const REAL gridfunctions_wavespeed[NUM_EVOL_GFS] = {
 typedef struct __griddata__ {
   // griddata_struct stores data needed on each grid
   // xx[3] stores the uniform grid coordinates.
-  REAL *restrict xx[3];
+  REAL * xx[3];
   // NRPy+ MODULE: nrpy.infrastructures.BHaH.CurviBoundaryConditions.CurviBoundaryConditions
   bc_struct bcstruct; // <- all data needed to perform boundary conditions in curvilinear coordinates
   // NRPy+ MODULE: nrpy.infrastructures.BHaH.MoLtimestepping.MoL
