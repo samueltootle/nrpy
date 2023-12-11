@@ -18,7 +18,7 @@ COMPILER_SUPPORTS_OPENMP := $(shell echo | $(CC) $(OPENMP_FLAG) -E - >/dev/null 
 
 #OBJ_FILES = MoL_free_memory_non_y_n_gfs.o MoL_free_memory_y_n_gfs.o MoL_malloc_non_y_n_gfs.o MoL_malloc_y_n_gfs.o MoL_step_forward_in_time.o apply_bcs.o cmdline_input_and_parfile_parser.o commondata_struct_set_to_default.o diagnostics.o exact_solution_single_Cartesian_point.o initial_data.o params_struct_set_to_default.o progress_indicator.o rhs_eval.o
 OBJ_FILES= cmdline_input_and_parfile_parser.o commondata_struct_set_to_default.o progress_indicator.o
-CU_OBJ_FILES = rhs_eval_gpu_shuffle.o rhs_eval_gpu_warp_sm.o rhs_eval_gpu_sm.o rhs_eval_gpu_original.o apply_bcs.o MoL_RK_substeps_in_time.o rhs_eval.o MoL_step_forward_in_time.o diagnostics.o exact_solution_single_Cartesian_point.o initial_data.o MoL_free_memory_non_y_n_gfs.o MoL_free_memory_y_n_gfs.o MoL_malloc_non_y_n_gfs.o MoL_malloc_y_n_gfs.o numerical_grids_and_timestep.o params_struct_set_to_default.o set_fd_constants.o main.o
+CU_OBJ_FILES = rhs_eval_gpu_shuffle.o rhs_eval_gpu_warp_shfl_4kernels.o rhs_eval_gpu_sm.o rhs_eval_gpu_original.o apply_bcs.o MoL_RK_substeps_in_time.o rhs_eval.o MoL_step_forward_in_time.o diagnostics.o exact_solution_single_Cartesian_point.o initial_data.o MoL_free_memory_non_y_n_gfs.o MoL_free_memory_y_n_gfs.o MoL_malloc_non_y_n_gfs.o MoL_malloc_y_n_gfs.o numerical_grids_and_timestep.o params_struct_set_to_default.o set_fd_constants.o main.o
 
 all: wavetoy_gpu
 
