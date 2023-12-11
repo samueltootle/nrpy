@@ -3,7 +3,6 @@
 #include "BHaH_gpu_defines.h"
 #include "BHaH_gpu_function_prototypes.h"
 #include "init_gpu_globals.h"
-#define DEBUG_RHS
 /*
  * -={ main() function }=-
  * Step 1.a: Set each commondata CodeParameter to default.
@@ -62,7 +61,14 @@ int main(int argc, const char *argv[]) {
   }
 
   // Step 5: MAIN SIMULATION LOOP
-  #ifndef DEBUG_RHS
+  #if defined DEBUG_RHS || defined DEBUG_IDX
+  int n = 0;
+  while (n < 4) {
+    MoL_step_forward_in_time(&commondata, griddata);
+    printf("\n\n");
+    n++;
+  } // End main loop to progress forward in time.
+  #else
   while (commondata.time < commondata.t_final) { // Main loop to progress forward in time.
     // Step 5.a: Main loop, part 1: Output diagnostics
     diagnostics(&commondata, griddata);
@@ -76,13 +82,6 @@ int main(int argc, const char *argv[]) {
 
     // Step 5.d: Main loop, part 4 (post_MoL_step_forward_in_time): Finish up step in time
     // (nothing here; specify by setting post_MoL_step_forward_in_time string in register_CFunction_main_c().)
-  } // End main loop to progress forward in time.
-  #else
-  int n = 0;
-  while (n < 2) {
-    MoL_step_forward_in_time(&commondata, griddata);
-    printf("\n\n");
-    n++;
   } // End main loop to progress forward in time.
   #endif
 
