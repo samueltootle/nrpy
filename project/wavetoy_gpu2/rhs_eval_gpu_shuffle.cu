@@ -2,17 +2,15 @@
 #include "BHaH_gpu_defines.h"
 #include "BHaH_gpu_function_prototypes.h"
 #include <stdexcept>
-#define DEBUG_INDEX 35114
-/*
- * Set RHSs for wave equation.
- */
-__global__
-void rhs_eval_gpu(const commondata_struct *restrict commondata, 
-              const params_struct *restrict params, 
-              const REAL *restrict in_gfs,
-              REAL *restrict rhs_gfs) {
+#include <algorithm>
+#define DEBUG_INDEX 1158762
+#if RHS_IMP == 4
+__global__ void compute_uu_dDD_gpu(const params_struct *restrict params, 
+                                 const REAL *restrict in_gfs,
+                                 REAL *restrict aux_gfs) { 
 
-// #include "set_CodeParameters.h"
+  // extern __shared__ REAL s_f[]; // 2-wide halo for 4th order FD
+
   const REAL & invdxx0 = d_params.invdxx0;
   const REAL & invdxx1 = d_params.invdxx1;
   const REAL & invdxx2 = d_params.invdxx2;
@@ -25,78 +23,235 @@ void rhs_eval_gpu(const commondata_struct *restrict commondata,
   const int & Nxx_plus_2NGHOSTS1 = d_params.Nxx_plus_2NGHOSTS1;
   const int & Nxx_plus_2NGHOSTS2 = d_params.Nxx_plus_2NGHOSTS2;
 
-  const int tid0  = blockIdx.x * blockDim.x + threadIdx.x;
-  const int tid1  = blockIdx.y * blockDim.y + threadIdx.y;
-  const int tid2  = blockIdx.z * blockDim.z + threadIdx.z;
+  // Local tile indices - not global thread indicies
+  int tid0  = threadIdx.x;
+  int tid1  = blockIdx.x * blockDim.y + threadIdx.y;
+  int tid2  = blockIdx.y;
   
-  const int stride0 = blockDim.x * gridDim.x;
-  const int stride1 = blockDim.y * gridDim.y;
-  const int stride2 = blockDim.z * gridDim.z;
-  // if(tid0 == 0 && tid1 == 0 && tid2 == 0) {
-  //   printf("%f %f %f %u %u %u %u %u %u", 
-  //     invdxx0,invdxx1,invdxx2,
-  //     Nxx0,Nxx2,Nxx2,
-  //     Nxx_plus_2NGHOSTS0,Nxx_plus_2NGHOSTS0,Nxx_plus_2NGHOSTS0);
-  // }
-  for (int i2 = tid2+NGHOSTS; i2 < NGHOSTS + Nxx2; i2+=stride2) {
-    for (int i1 = tid1+NGHOSTS; i1 < NGHOSTS + Nxx1; i1+=stride1) {
-      for (int i0 = tid0+NGHOSTS; i0 < NGHOSTS + Nxx0; i0+=stride0) {
-        /*
-         * NRPy+-Generated GF Access/FD Code, Step 1 of 2:
-         * Read gridfunction(s) from main memory and compute FD stencils as needed.
-         */
-        const REAL uu_i2m2 = in_gfs[IDX4(UUGF, i0, i1, i2 - 2)];
-        const REAL uu_i2m1 = in_gfs[IDX4(UUGF, i0, i1, i2 - 1)];
-        const REAL uu_i1m2 = in_gfs[IDX4(UUGF, i0, i1 - 2, i2)];
-        const REAL uu_i1m1 = in_gfs[IDX4(UUGF, i0, i1 - 1, i2)];
-        const REAL uu_i0m2 = in_gfs[IDX4(UUGF, i0 - 2, i1, i2)];
-        const REAL uu_i0m1 = in_gfs[IDX4(UUGF, i0 - 1, i1, i2)];
-        const REAL uu = in_gfs[IDX4(UUGF, i0, i1, i2)];
-        const REAL uu_i0p1 = in_gfs[IDX4(UUGF, i0 + 1, i1, i2)];
-        const REAL uu_i0p2 = in_gfs[IDX4(UUGF, i0 + 2, i1, i2)];
-        const REAL uu_i1p1 = in_gfs[IDX4(UUGF, i0, i1 + 1, i2)];
-        const REAL uu_i1p2 = in_gfs[IDX4(UUGF, i0, i1 + 2, i2)];
-        const REAL uu_i2p1 = in_gfs[IDX4(UUGF, i0, i1, i2 + 1)];
-        const REAL uu_i2p2 = in_gfs[IDX4(UUGF, i0, i1, i2 + 2)];
-        const REAL vv = in_gfs[IDX4(VVGF, i0, i1, i2)];
-        
-        // moved to __constant__ space
-        // const REAL FDPart1_Rational_5_2 = 5.0 / 2.0;
-        // const REAL FDPart1_Rational_1_12 = 1.0 / 12.0;
-        // const REAL FDPart1_Rational_4_3 = 4.0 / 3.0;
-        // printf("%f - %f - %f \n", FDPart1_Rational_5_2, FDPart1_Rational_1_12, FDPart1_Rational_4_3); 
-        // printf("%f \n", wavespeed);
-        
-        const REAL FDPart1tmp0 = -FDPart1_Rational_5_2 * uu;
-        const REAL uu_dDD00 =
-            ((invdxx0) * (invdxx0)) * (FDPart1_Rational_1_12 * (-uu_i0m2 - uu_i0p2) + FDPart1_Rational_4_3 * (uu_i0m1 + uu_i0p1) + FDPart1tmp0);
-        const REAL uu_dDD11 =
-            ((invdxx1) * (invdxx1)) * (FDPart1_Rational_1_12 * (-uu_i1m2 - uu_i1p2) + FDPart1_Rational_4_3 * (uu_i1m1 + uu_i1p1) + FDPart1tmp0);
-        const REAL uu_dDD22 =
-            ((invdxx2) * (invdxx2)) * (FDPart1_Rational_1_12 * (-uu_i2m2 - uu_i2p2) + FDPart1_Rational_4_3 * (uu_i2m1 + uu_i2p1) + FDPart1tmp0);
+  int tid = threadIdx.x + threadIdx.y * blockDim.x;
+  uint warpx = tid / warpSize;
+  uint lanex = tid % warpSize;
+  uint mask = 0xFFFFFFFFU;
+  
+  // Global memory index - need to shift by ghost zones
+  REAL uu_i0m2, uu_i0m1, uu_i0, uu_i0p1, uu_i0p2;
+  int i0 = tid0 - warpx * 2 * NGHOSTS;
+  int j0 = tid1 + NGHOSTS;
+  int k0 = tid2 + NGHOSTS;
+  int globalIdx0 = IDX4(UUGF, i0, j0, k0);
 
-        /*
-         * NRPy+-Generated GF Access/FD Code, Step 2 of 2:
-         * Evaluate SymPy expressions and write to main memory.
-         */
-        const REAL FDPart3tmp0 = ((wavespeed) * (wavespeed));
-        rhs_gfs[IDX4(UUGF, i0, i1, i2)] = vv;
-        rhs_gfs[IDX4(VVGF, i0, i1, i2)] = FDPart3tmp0 * uu_dDD00 + FDPart3tmp0 * uu_dDD11 + FDPart3tmp0 * uu_dDD22;
-        #ifdef DEBUG_RHS
-        if(IDX4(UUGF, i0, i1, i2) == DEBUG_INDEX) {
-          printf("uD00: %1.15f - %1.15f - %1.15f - %1.15f - %1.15f - %1.15f\n"
-                 "uD11: %1.15f - %1.15f - %1.15f - %1.15f - %1.15f - %1.15f\n"
-                 "uD22: %1.15f - %1.15f - %1.15f - %1.15f - %1.15f - %1.15f\n"
-                 "rhs:  %1.15f - %1.15f\n\n",
-            uu_dDD00, uu_i0m2, uu_i0m1, uu, uu_i0p1, uu_i0p2, 
-            uu_dDD11, uu_i1m2, uu_i1m1, uu, uu_i1p1, uu_i1p2,
-            uu_dDD22, uu_i2m2, uu_i2m1, uu, uu_i2p1, uu_i2p2,
-            rhs_gfs[IDX4(UUGF, i0, i1, i2)], rhs_gfs[IDX4(VVGF, i0, i1, i2)]);
-          // printf("%u - %f - %f: %f - %f - %f\n", IDX4(UUGF, i0, i1, i2), rhs_gfs[IDX4(UUGF, i0, i1, i2)], uu, uu_dDD00, uu_dDD11, uu_dDD22);
-        }
-        #endif
+  uu_i0 = in_gfs[globalIdx0];
+  uu_i0m2 = __shfl_up_sync(mask, uu_i0, 2);
+  uu_i0m1 = __shfl_up_sync(mask, uu_i0, 1);
+  uu_i0p1 = __shfl_down_sync(mask, uu_i0, 1);
+  uu_i0p2 = __shfl_down_sync(mask, uu_i0, 2);
 
-      } // END LOOP: for (int i0 = NGHOSTS; i0 < NGHOSTS+Nxx0; i0++)
-    }   // END LOOP: for (int i1 = NGHOSTS; i1 < NGHOSTS+Nxx1; i1++)
-  }     // END LOOP: for (int i2 = NGHOSTS; i2 < NGHOSTS+Nxx2; i2++)
+  // Warp threads living in the ghost zones will be inactive
+  // Not sure how bad this is yet...
+  // we do this to avoid shared memory
+  bool active = (tid0 >= NGHOSTS && i0 < Nxx0 + NGHOSTS && lanex > 1 && lanex < 30);
+  if(active) {
+    const REAL FDPart1tmp0 = -FDPart1_Rational_5_2 * uu_i0;
+
+    int globalIdx_out = IDX4(UD00, i0, j0, k0);
+    aux_gfs[globalIdx_out] = ((invdxx0) * (invdxx0)) * (
+        FDPart1_Rational_1_12 * (-uu_i0m2 - uu_i0p2) 
+      + FDPart1_Rational_4_3  * ( uu_i0m1 + uu_i0p1) 
+      + FDPart1tmp0
+    );
+  
+  
+  #ifdef DEBUG_RHS
+  if(globalIdx == DEBUG_INDEX) {
+    printf("uD00: %1.15f - %1.15f - %1.15f - %1.15f - %1.15f - %1.15f\n", 
+      aux_gfs[globalIdx_out], uu_i0m2, uu_i0m1, uu, uu_i0p1, uu_i0p2);
+  }
+  #endif
+  }
+
+  REAL uu_j0m2, uu_j0m1, uu_j0, uu_j0p1, uu_j0p2;
+  int i1 = tid1 + NGHOSTS;
+  int j1 = tid0 - warpx * 2 * NGHOSTS;  
+  int k1 = tid2 + NGHOSTS;
+  int globalIdx1 = IDX4(UUGF, i1, j1, k1);
+
+  uu_j0 = in_gfs[globalIdx1];
+  uu_j0m2 = __shfl_up_sync(mask, uu_j0, 2);
+  uu_j0m1 = __shfl_up_sync(mask, uu_j0, 1);
+  uu_j0p1 = __shfl_down_sync(mask, uu_j0, 1);
+  uu_j0p2 = __shfl_down_sync(mask, uu_j0, 2);
+
+  active = (tid0 >= NGHOSTS && i1 < Nxx1 + NGHOSTS && lanex > 1 && lanex < 30);
+  if(active) {
+    const REAL FDPart1tmp0 = -FDPart1_Rational_5_2 * uu_j0;
+
+    int globalIdx_out = IDX4(UD11, i1, j1, k1);
+    aux_gfs[globalIdx_out] = ((invdxx1) * (invdxx1)) * (
+        FDPart1_Rational_1_12 * (-uu_j0m2 - uu_j0p2) 
+      + FDPart1_Rational_4_3  * ( uu_j0m1 + uu_j0p1) 
+      + FDPart1tmp0
+    );
+  
+  
+  #ifdef DEBUG_RHS
+  if(globalIdx == DEBUG_INDEX) {
+    printf("uD00: %1.15f - %1.15f - %1.15f - %1.15f - %1.15f - %1.15f\n", 
+      aux_gfs[globalIdx_out], uu_i0m2, uu_i0m1, uu, uu_i0p1, uu_i0p2);
+  }
+  #endif
+  }
+
+  REAL uu_k0m2, uu_k0m1, uu_k0, uu_k0p1, uu_k0p2;
+  int i2 = tid1 + NGHOSTS;
+  int j2 = tid2 + NGHOSTS; 
+  int k2 = tid0 - warpx * 2 * NGHOSTS;
+  int globalIdx2 = IDX4(UUGF, i2, j2, k2);
+
+  uu_k0 = in_gfs[globalIdx2];
+  uu_k0m2 = __shfl_up_sync(mask, uu_k0, 2);
+  uu_k0m1 = __shfl_up_sync(mask, uu_k0, 1);
+  uu_k0p1 = __shfl_down_sync(mask, uu_k0, 1);
+  uu_k0p2 = __shfl_down_sync(mask, uu_k0, 2);
+
+  active = (tid0 >= NGHOSTS && i2 < Nxx2 + NGHOSTS && lanex > 1 && lanex < 30);
+  if(active) {
+    const REAL FDPart1tmp0 = -FDPart1_Rational_5_2 * uu_k0;
+
+    int globalIdx_out = IDX4(UD22, i2, j2, k2);
+    aux_gfs[globalIdx_out] = ((invdxx2) * (invdxx2)) * (
+        FDPart1_Rational_1_12 * (-uu_k0m2 - uu_k0p2) 
+      + FDPart1_Rational_4_3  * ( uu_k0m1 + uu_k0p1) 
+      + FDPart1tmp0
+    );
+  
+  
+  #ifdef DEBUG_RHS
+  if(globalIdx == DEBUG_INDEX) {
+    printf("uD00: %1.15f - %1.15f - %1.15f - %1.15f - %1.15f - %1.15f\n", 
+      aux_gfs[globalIdx_out], uu_i0m2, uu_i0m1, uu, uu_i0p1, uu_i0p2);
+  }
+  #endif
+  }
+
+  // #ifdef DEBUG_IDX
+  // // if(!active && i < d_params.Nxx_plus_2NGHOSTS0)
+  //   if(warpx == 4 && blockIdx.y == 2)
+  // // if(blockIdx.y == 0 && blockIdx.x == 0 && k == 0)
+  //   printf("(%d, %d, %d)  - %d \t- %d \t- %d \t- %d \t- %d - %d\n", 
+  //     i, j, k, warpx, threadIdx.x, threadIdx.y, blockIdx.x, blockIdx.y, active);
+  // #endif
 }
+
+__host__ 
+void compute_uu_dDD(const params_struct *restrict params, 
+                          const REAL *restrict in_gfs,
+                          REAL *restrict aux_gfs,
+                          const int Nxx0,
+                          const int Nxx1,
+                          const int Nxx2,
+                          const int Nxx_plus_2NGHOSTS0,
+                          const int Nxx_plus_2NGHOSTS1,
+                          const int Nxx_plus_2NGHOSTS2) {
+  // Number of threads in the +/- halos. 32/warp, so 2 warps since it's 1D
+  size_t halo_threads = 64;
+  
+  // The between halo warps, each warp will need to overlap by NGHOST since
+  // we avoid using shared memory
+  size_t remaining_cells = Nxx_plus_2NGHOSTS0 - halo_threads;
+  size_t tmp = Nxx_plus_2NGHOSTS1 - halo_threads;
+  remaining_cells = MAX(remaining_cells, tmp);
+  
+  tmp = Nxx_plus_2NGHOSTS2 - halo_threads;
+  remaining_cells = MAX(remaining_cells, tmp);
+  
+  // Over estimate of number of threads needed to process data in the interior
+  size_t interior_threads = (size_t) std::ceil((REAL)remaining_cells / (32.0 - 4.0 * NGHOSTS)) * 32u;
+  
+  size_t threads_in_x_dir = halo_threads + interior_threads;
+  size_t threads_in_y_dir = 1; //1024 / threads_in_x_dir;
+  size_t threads_in_z_dir = 1;
+
+  // Setup our thread layout
+  dim3 block_threads(threads_in_x_dir, threads_in_y_dir, threads_in_z_dir);
+  dim3 grid_blocks(Nxx1 / threads_in_y_dir, Nxx2, 1);
+
+  compute_uu_dDD_gpu<<<grid_blocks, block_threads>>>(params, in_gfs, aux_gfs);
+  cudaCheckErrors(compute_uu_dDDxx_gpu, "kernel failed")
+}
+
+__global__ 
+void compute_rhs_gpu(const params_struct *restrict params, 
+                                 const REAL *restrict in_gfs,
+                                 const REAL *restrict in_gfs_derivatives,
+                                 REAL *restrict out_gfs) { 
+
+  const int & Nxx_plus_2NGHOSTS0 = d_params.Nxx_plus_2NGHOSTS0;
+  const int & Nxx_plus_2NGHOSTS1 = d_params.Nxx_plus_2NGHOSTS1;
+  const int & Nxx_plus_2NGHOSTS2 = d_params.Nxx_plus_2NGHOSTS2;
+
+  // Local tile indices - not global thread indicies
+  int tid0  = threadIdx.x;
+  int tid1  = blockIdx.x*blockDim.y + threadIdx.y;
+  int tid2  = blockIdx.y;
+
+  // Global memory index - need to shift by ghost zones
+  int i = tid0 + NGHOSTS;
+  int j = tid1 + NGHOSTS;
+  int k = tid2 + NGHOSTS;
+
+  const REAL vv = in_gfs[IDX4(VVGF, i, j, k)];
+  const REAL uu_dDD00 = in_gfs_derivatives[IDX4(UD00, i, j, k)];
+  const REAL uu_dDD11 = in_gfs_derivatives[IDX4(UD11, i, j, k)];
+  const REAL uu_dDD22 = in_gfs_derivatives[IDX4(UD22, i, j, k)];
+
+  const REAL FDPart3tmp0 = ((wavespeed) * (wavespeed));
+  out_gfs[IDX4(UUGF, i, j, k)] = vv;
+  out_gfs[IDX4(VVGF, i, j, k)] = FDPart3tmp0 * uu_dDD00 + FDPart3tmp0 * uu_dDD11 + FDPart3tmp0 * uu_dDD22;
+  #ifdef DEBUG_RHS
+  if(IDX4(UUGF, i, j, k) == DEBUG_INDEX) {
+    printf("rhs:  %1.15f - %1.15f\n\n",
+    out_gfs[IDX4(UUGF, i, j, k)], out_gfs[IDX4(VVGF, i, j, k)]);
+  }
+  // printf("\ntid1 : %u\n", tid1);
+  #endif
+}
+
+__host__ 
+void compute_rhs(const params_struct *restrict params, 
+                          const REAL *restrict in_gfs,
+                          const REAL *restrict aux_gfs,
+                          REAL *restrict out_gfs,
+                          const int Nxx0,
+                          const int Nxx1,
+                          const int Nxx2) {
+  // To ensure coalescence, we want retain reads in the x-direction
+  // i.e. the contiguous memory space, based on the standard
+  // instruction limits.  Each warp will attempt memory reads up
+  // to 128 bytes in a single instruction, in powers of 2,
+  // (e.g. 8,16,32,64,128), but this is dependent on the 
+  // compute capability of the GPU.  Here we dedicate
+  // one thread per data element we read in the x-direction.
+  size_t threads_in_x_dir = MIN(1024, Nxx0);
+
+  // Max threads in the y-direction.  Even if we can read
+  // the entire tile into shared memory, that doesn't mean
+  // we have enough threads per SM to process the entire tile.
+  // Therefore we can only have a maximum number of threads in the
+  // y direction and each thread will have to compute multiple points.
+  size_t threads_in_y_dir = 1024 / threads_in_x_dir;
+
+  size_t threads_in_z_dir = 1;
+
+  // Setup our thread layout
+  dim3 block_threads(threads_in_x_dir, threads_in_y_dir, threads_in_z_dir);
+  
+  // Setup our grid layout such that our tiles will iterate through the entire
+  // numerical space
+  dim3 grid_blocks(Nxx1 / threads_in_y_dir, Nxx2, 1);
+
+  // printf("SM_size : %lu , max: %lu\n\n\n", SM_size, maxMemPerBlock);
+  
+  compute_rhs_gpu<<<grid_blocks, block_threads>>>(params, in_gfs, aux_gfs, out_gfs);
+  cudaCheckErrors(compute_rhs_gpu, "kernel failed")
+}
+#endif
