@@ -3,7 +3,7 @@
 #include "BHaH_gpu_defines.h"
 #include "BHaH_gpu_function_prototypes.h"
 #include "init_gpu_globals.h"
-// #define DEBUG_RHS
+#define DEBUG_RHS
 /*
  * -={ main() function }=-
  * Step 1.a: Set each commondata CodeParameter to default.

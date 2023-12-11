@@ -2,7 +2,7 @@
 #include "BHaH_gpu_defines.h"
 #include "BHaH_gpu_function_prototypes.h"
 #include <stdexcept>
-#define DEBUG_INDEX 35114
+#define DEBUG_INDEX 1158762
 #if RHS_IMP == 1
 /*
  * Set RHSs for wave equation.

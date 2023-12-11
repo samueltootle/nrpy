@@ -2,7 +2,7 @@
 #include "BHaH_gpu_defines.h"
 #include "BHaH_gpu_function_prototypes.h"
 #include <stdexcept>
-#define DEBUG_INDEX 35114
+#define DEBUG_INDEX 1158762
 #if RHS_IMP == 3
 __global__ void compute_uu_dDDxx_gpu(const params_struct *restrict params, 
                                  const REAL *restrict in_gfs,
@@ -40,10 +40,10 @@ __global__ void compute_uu_dDDxx_gpu(const params_struct *restrict params,
   uu_i0p1 = __shfl_down_sync(mask, uu, 1);
   uu_i0p2 = __shfl_down_sync(mask, uu, 2);
 
-  //   if((lanex == 0 || lanex == 31) && blockIdx.y == 0 && j == 2)
-  // // if(blockIdx.y == 0 && blockIdx.x == 0 && k == 0)
-  //   printf("(%d, %d, %d) \t- %d \t- %d \t- %d \t- %d \t- %d\n", 
-  //     i, j, k, warpx, threadIdx.x, threadIdx.y, blockIdx.x, blockIdx.y);
+    if(warpx == 1 && blockIdx.y == 1)
+  // if(blockIdx.y == 0 && blockIdx.x == 0 && k == 0)
+    printf("(%d, %d, %d) \t- %d \t- %d \t- %d \t- %d \t- %d\n", 
+      i, j, k, warpx, threadIdx.x, threadIdx.y, blockIdx.x, blockIdx.y);
 
   // Warp threads living in the ghost zones will be inactive
   // Not sure how bad this is yet...
@@ -55,7 +55,7 @@ __global__ void compute_uu_dDDxx_gpu(const params_struct *restrict params,
     int globalIdx_out = IDX4(UD00, i, j, k);
     aux_gfs[globalIdx_out] = ((invdxx0) * (invdxx0)) * (
         FDPart1_Rational_1_12 * (-uu_i0m2 - uu_i0p2) 
-      + FDPart1_Rational_4_3 * (uu_i0m1 + uu_i0p1) 
+      + FDPart1_Rational_4_3  * ( uu_i0m1 + uu_i0p1) 
       + FDPart1tmp0
     );
   
