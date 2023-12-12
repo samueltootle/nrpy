@@ -118,10 +118,10 @@ typedef struct __params_struct__ {
 //********************************************
 // Basic definitions for module reference_metric:
 typedef struct __rfmstruct__ {
-  REAL *restrict f0_of_xx0;
-  REAL *restrict f1_of_xx1;
-  REAL *restrict f1_of_xx1__D1;
-  REAL *restrict f1_of_xx1__DD11;
+  REAL * f0_of_xx0;
+  REAL * f1_of_xx1;
+  REAL * f1_of_xx1__D1;
+  REAL * f1_of_xx1__DD11;
 } rfm_struct;
 
 //********************************************
