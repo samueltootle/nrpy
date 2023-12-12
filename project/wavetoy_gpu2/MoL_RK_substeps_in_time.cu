@@ -12,10 +12,10 @@ void print_var(T * data, size_t index) {
 
 __global__
 void rk_substep1_gpu(params_struct *restrict params,
-                REAL *restrict y_n_gfs,
+                const REAL *restrict y_n_gfs,
                 REAL *restrict y_nplus1_running_total_gfs,
                 REAL *restrict k_odd_gfs,
-                REAL *restrict k_even_gfs,
+                const REAL *restrict k_even_gfs,
                 REAL *restrict auxevol_gfs,
                 REAL const dt,
                 size_t const N) {
@@ -54,7 +54,7 @@ void rk_substep1(params_struct *restrict params,
                 * Nxx_plus_2NGHOSTS1 \
                 * Nxx_plus_2NGHOSTS2 \
                 * NUM_EVOL_GFS;
-    int block_threads = 1024;
+    int block_threads = MIN(1024, N);
     int grid_blocks = (N + block_threads - 1) / block_threads;
 
     rk_substep1_gpu<<<grid_blocks, block_threads>>>(params, 
@@ -70,9 +70,9 @@ void rk_substep1(params_struct *restrict params,
 
 __global__
 void rk_substep2_gpu(params_struct *restrict params,
-                REAL *restrict y_n_gfs,
+                const REAL *restrict y_n_gfs,
                 REAL *restrict y_nplus1_running_total_gfs,
-                REAL *restrict k_odd_gfs,
+                const REAL *restrict k_odd_gfs,
                 REAL *restrict k_even_gfs,
                 REAL *restrict auxevol_gfs,
                 REAL const dt,
@@ -113,7 +113,7 @@ void rk_substep2(params_struct *restrict params,
                 * Nxx_plus_2NGHOSTS1 \
                 * Nxx_plus_2NGHOSTS2 \
                 * NUM_EVOL_GFS;
-    int block_threads = 1024;
+    int block_threads = MIN(1024, N);
     int grid_blocks = (N + block_threads - 1) / block_threads;
 
     rk_substep2_gpu<<<grid_blocks, block_threads>>>(params, 
@@ -128,10 +128,10 @@ void rk_substep2(params_struct *restrict params,
 
 __global__
 void rk_substep3_gpu(params_struct *restrict params,
-                REAL *restrict y_n_gfs,
+                const REAL *restrict y_n_gfs,
                 REAL *restrict y_nplus1_running_total_gfs,
                 REAL *restrict k_odd_gfs,
-                REAL *restrict k_even_gfs,
+                const REAL *restrict k_even_gfs,
                 REAL *restrict auxevol_gfs,
                 REAL const dt,
                 size_t const N) {
@@ -173,7 +173,7 @@ void rk_substep3(params_struct *restrict params,
                 * Nxx_plus_2NGHOSTS1 \
                 * Nxx_plus_2NGHOSTS2 \
                 * NUM_EVOL_GFS;
-    int block_threads = 1024;
+    int block_threads = MIN(1024, N);
     int grid_blocks = (N + block_threads - 1) / block_threads;
 
     rk_substep3_gpu<<<grid_blocks, block_threads>>>(params, 
@@ -189,9 +189,9 @@ void rk_substep3(params_struct *restrict params,
 __global__
 void rk_substep4_gpu(params_struct *restrict params,
                 REAL *restrict y_n_gfs,
-                REAL *restrict y_nplus1_running_total_gfs,
+                const REAL *restrict y_nplus1_running_total_gfs,
                 REAL *restrict k_odd_gfs,
-                REAL *restrict k_even_gfs,
+                const REAL *restrict k_even_gfs,
                 REAL *restrict auxevol_gfs,
                 REAL const dt,
                 size_t const N) {
@@ -229,7 +229,7 @@ void rk_substep4(params_struct *restrict params,
                 * Nxx_plus_2NGHOSTS1 \
                 * Nxx_plus_2NGHOSTS2 \
                 * NUM_EVOL_GFS;
-    int block_threads = 1024;
+    int block_threads = MIN(1024, N);
     int grid_blocks = (N + block_threads - 1) / block_threads;
 
     rk_substep4_gpu<<<grid_blocks, block_threads>>>(params, 

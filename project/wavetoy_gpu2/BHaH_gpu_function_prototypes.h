@@ -18,12 +18,11 @@ void exact_solution_single_Cartesian_point_gpu(const commondata_struct *restrict
 );
 
 __global__
-void rk_substep1_gpu(commondata_struct *restrict commondata, 
-                params_struct *restrict params,
-                REAL *restrict y_n_gfs,
+void rk_substep1_gpu(params_struct *restrict params,
+                const REAL *restrict y_n_gfs,
                 REAL *restrict y_nplus1_running_total_gfs,
                 REAL *restrict k_odd_gfs,
-                REAL *restrict k_even_gfs,
+                const REAL *restrict k_even_gfs,
                 REAL *restrict auxevol_gfs,
                 REAL const dt,
                 size_t const N);
@@ -36,11 +35,10 @@ void rk_substep1(params_struct *restrict params,
                 REAL *restrict auxevol_gfs, REAL const dt) ;
 
 __global__
-void rk_substep2_gpu(commondata_struct *restrict commondata, 
-                params_struct *restrict params,
-                REAL *restrict y_n_gfs,
+void rk_substep2_gpu(params_struct *restrict params,
+                const REAL *restrict y_n_gfs,
                 REAL *restrict y_nplus1_running_total_gfs,
-                REAL *restrict k_odd_gfs,
+                const REAL *restrict k_odd_gfs,
                 REAL *restrict k_even_gfs,
                 REAL *restrict auxevol_gfs,
                 REAL const dt,
@@ -54,12 +52,11 @@ void rk_substep2(params_struct *restrict params,
                 REAL *restrict auxevol_gfs, REAL const dt) ;
 
 __global__
-void rk_substep3_gpu(commondata_struct *restrict commondata, 
-                params_struct *restrict params,
-                REAL *restrict y_n_gfs,
+void rk_substep3_gpu(params_struct *restrict params,
+                const REAL *restrict y_n_gfs,
                 REAL *restrict y_nplus1_running_total_gfs,
                 REAL *restrict k_odd_gfs,
-                REAL *restrict k_even_gfs,
+                const REAL *restrict k_even_gfs,
                 REAL *restrict auxevol_gfs,
                 REAL const dt,
                 size_t const N);
@@ -82,12 +79,14 @@ void rk_substep4_gpu(commondata_struct *restrict commondata,
                 REAL const dt,
                 size_t const N);
 __host__
-void rk_substep4(params_struct *restrict params,
+void rk_substep4_gpu(params_struct *restrict params,
                 REAL *restrict y_n_gfs,
-                REAL *restrict y_nplus1_running_total_gfs,
+                const REAL *restrict y_nplus1_running_total_gfs,
                 REAL *restrict k_odd_gfs,
-                REAL *restrict k_even_gfs,
-                REAL *restrict auxevol_gfs, REAL const dt) ;
+                const REAL *restrict k_even_gfs,
+                REAL *restrict auxevol_gfs,
+                REAL const dt,
+                size_t const N) ;
 
 __host__
 void set_fd_constants();
