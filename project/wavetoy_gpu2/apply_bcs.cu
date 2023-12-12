@@ -59,14 +59,6 @@ void update_face(int which_gf, const params_struct *restrict params, REAL *restr
  * ghost zone first, and moving outward.
  */
 void apply_bcs(const commondata_struct *restrict commondata, const params_struct *restrict params, REAL *restrict gfs) {
-  
-  dim3 grid(GPU_NGRID0,GPU_NGRID1,GPU_NGRID2);
-  // dim3 block(GPU_NBLOCK0,GPU_NBLOCK1,GPU_NBLOCK2);
-  // Using multi-dimensional thread indexing doesn't
-  // work for some reason...
-  dim3 block(1024,1,1);
-  // int grid = 1;
-  // int block = 1;
 
   int Nxx_plus_2NGHOSTS0, Nxx_plus_2NGHOSTS1, Nxx_plus_2NGHOSTS2;
   cudaMemcpy(&Nxx_plus_2NGHOSTS0, &params->Nxx_plus_2NGHOSTS0, sizeof(int), cudaMemcpyDeviceToHost);
@@ -75,6 +67,9 @@ void apply_bcs(const commondata_struct *restrict commondata, const params_struct
   cudaCheckErrors(cudaMemcpy, "memory failed")
   cudaMemcpy(&Nxx_plus_2NGHOSTS2, &params->Nxx_plus_2NGHOSTS2, sizeof(int), cudaMemcpyDeviceToHost);
   cudaCheckErrors(cudaMemcpy, "memory failed")
+
+  dim3 grid;
+  dim3 block;
 
   for (int which_gf = 0; which_gf < NUM_EVOL_GFS; which_gf++) {
     int imin[3] = {NGHOSTS, NGHOSTS, NGHOSTS};
@@ -86,6 +81,13 @@ void apply_bcs(const commondata_struct *restrict commondata, const params_struct
     for (int which_gz = 0; which_gz < NGHOSTS; which_gz++) {
       // After updating each face, adjust imin[] and imax[]
       //   to reflect the newly-updated face extents.
+      size_t tx = 1;
+      uint Ny = (imax[1] - imin[1]);
+      uint Nz = (imax[2] - imin[2]);
+      size_t ty = MIN(1024, Ny);
+      size_t tz = 1024 / ty;
+      block = dim3(tx, ty, tz);
+      grid = dim3(1, (Ny + ty - 1)/ty, (Nz + tz - 1)/tz);
       update_face<<<grid, block>>>(which_gf, params, gfs, imin[0] - 1, imin[0], imin[1], imax[1], imin[2], imax[2], MINFACE, NUL, NUL);
       cudaCheckErrors(update_face, "kernel failed")
       imin[0]--;
@@ -93,6 +95,12 @@ void apply_bcs(const commondata_struct *restrict commondata, const params_struct
       cudaCheckErrors(update_face, "kernel failed")
       imax[0]++;
 
+      uint Nx = (imax[0] - imin[0]);
+      tx = MIN(1024, Nx);
+      ty = 1;
+      tz = 1024 / tx;
+      block = dim3(tx, ty, tz);
+      grid = dim3((Nx + tx - 1)/tx, 1, (Nz + tz - 1)/tz);
       update_face<<<grid, block>>>(which_gf, params, gfs, imin[0], imax[0], imin[1] - 1, imin[1], imin[2], imax[2], NUL, MINFACE, NUL);
       cudaCheckErrors(update_face, "kernel failed")
       imin[1]--;
@@ -100,6 +108,9 @@ void apply_bcs(const commondata_struct *restrict commondata, const params_struct
       cudaCheckErrors(update_face, "kernel failed")
       imax[1]++;
 
+      ty = tz;
+      tz = 1;
+      grid = dim3((Nx + tx - 1)/tx, (Ny + ty - 1)/ty, 1);
       update_face<<<grid, block>>>(which_gf, params, gfs, imin[0], imax[0], imin[1], imax[1], imin[2] - 1, imin[2], NUL, NUL, MINFACE);
       cudaCheckErrors(update_face, "kernel failed")
       imin[2]--;

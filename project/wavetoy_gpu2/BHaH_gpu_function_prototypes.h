@@ -159,7 +159,7 @@ void compute_rhs(const params_struct *restrict params,
                           const int Nxx0,
                           const int Nxx1,
                           const int Nxx2);
-#elif RHS_IMP == 2
+#elif RHS_IMP == 3
 // Shared Memory setup
 __global__ void compute_uu_dDDxx_gpu(const params_struct *restrict params, 
                                  const REAL *restrict in_gfs,
