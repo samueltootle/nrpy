@@ -54,7 +54,7 @@ void rhs_eval(const commondata_struct *restrict commondata,
   compute_uu_dDDxx(params, in_gfs, aux_gfs, Nxx0, Nxx1, Nxx2,Nxx_plus_2NGHOSTS0);
   compute_uu_dDDyy(params, in_gfs, aux_gfs, Nxx0, Nxx1, Nxx2,Nxx_plus_2NGHOSTS1);
   compute_uu_dDDzz(params, in_gfs, aux_gfs, Nxx0, Nxx1, Nxx2,Nxx_plus_2NGHOSTS2);
-
+  cudaDeviceSynchronize();
   compute_rhs(params, in_gfs, aux_gfs, rhs_gfs, Nxx0, Nxx1, Nxx2);
 #elif RHS_IMP == 4
 // Nxx per coordinate direction
