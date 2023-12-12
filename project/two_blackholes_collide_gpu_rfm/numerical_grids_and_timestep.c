@@ -19,17 +19,17 @@ void numerical_grids_and_timestep(commondata_struct *restrict commondata, gridda
     rfm_precompute_defines(commondata, &griddata[grid].params, &griddata[grid].rfmstruct, griddata[grid].xx);
   }
 
-  // Step 1.d: Set up curvilinear boundary condition struct (bcstruct)
+  // // Step 1.d: Set up curvilinear boundary condition struct (bcstruct)
 
-  for (int grid = 0; grid < commondata->NUMGRIDS; grid++) {
-    bcstruct_set_up(commondata, &griddata[grid].params, griddata[grid].xx, &griddata[grid].bcstruct);
-  }
+  // for (int grid = 0; grid < commondata->NUMGRIDS; grid++) {
+  //   bcstruct_set_up(commondata, &griddata[grid].params, griddata[grid].xx, &griddata[grid].bcstruct);
+  // }
 
-  // Step 1.e: Set timestep based on minimum spacing between neighboring gridpoints.
-  commondata->dt = 1e30;
-  for (int grid = 0; grid < commondata->NUMGRIDS; grid++) {
-    cfl_limited_timestep(commondata, &griddata[grid].params, griddata[grid].xx, &griddata[grid].bcstruct);
-  }
+  // // Step 1.e: Set timestep based on minimum spacing between neighboring gridpoints.
+  // commondata->dt = 1e30;
+  // for (int grid = 0; grid < commondata->NUMGRIDS; grid++) {
+  //   cfl_limited_timestep(commondata, &griddata[grid].params, griddata[grid].xx, &griddata[grid].bcstruct);
+  // }
 
   // Step 1.f: Initialize timestepping parameters to zero if this is the first time this function is called.
   if (calling_for_first_time) {
