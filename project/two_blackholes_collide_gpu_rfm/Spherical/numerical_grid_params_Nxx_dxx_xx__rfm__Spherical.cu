@@ -1,13 +1,14 @@
 #include "../BHaH_defines.h"
 #include "../BHaH_function_prototypes.h"
 #include "../BHaH_gpu_defines.h"
+#include "../BHaH_gpu_function_prototypes.h"
 // #include "../BHaH_gpu_function_prototypes.h"
 /*
  * Set up a cell-centered Spherical grid of size grid_physical_size. Set params: Nxx, Nxx_plus_2NGHOSTS, dxx, invdxx, and xx.
  */
 
-__global__
-void set_params_gpu(REAL convergence_factor, params_struct * params) {
+__host__
+void set_params(REAL convergence_factor, params_struct * params) {
   params->Nxx0 = 72;
   params->Nxx1 = 12;
   params->Nxx2 = 2;
@@ -49,24 +50,23 @@ void set_params_gpu(REAL convergence_factor, params_struct * params) {
 }
 
 __global__
-void initialize_grid_gpu(params_struct * params, 
-                         REAL *restrict xx0,
+void initialize_grid_gpu(REAL *restrict xx0,
                          REAL *restrict xx1,
                          REAL *restrict xx2) {
   const int index  = blockIdx.x * blockDim.x + threadIdx.x;
   const int stride = blockDim.x * gridDim.x;
 
-  const REAL xxmin0 = params->xxmin0;
-  const REAL xxmin1 = params->xxmin1;
-  const REAL xxmin2 = params->xxmin2;
+  REAL const& xxmin0 = d_params.xxmin0;
+  REAL const& xxmin1 = d_params.xxmin1;
+  REAL const& xxmin2 = d_params.xxmin2;
 
-  const REAL dxx0 = params->dxx0;
-  const REAL dxx1 = params->dxx1;
-  const REAL dxx2 = params->dxx2;
+  REAL const& dxx0 = d_params.dxx0;
+  REAL const& dxx1 = d_params.dxx1;
+  REAL const& dxx2 = d_params.dxx2;
 
-  const REAL Nxx_plus_2NGHOSTS0 = params->Nxx_plus_2NGHOSTS0;
-  const REAL Nxx_plus_2NGHOSTS1 = params->Nxx_plus_2NGHOSTS1;
-  const REAL Nxx_plus_2NGHOSTS2 = params->Nxx_plus_2NGHOSTS2;
+  REAL const& Nxx_plus_2NGHOSTS0 = d_params.Nxx_plus_2NGHOSTS0;
+  REAL const& Nxx_plus_2NGHOSTS1 = d_params.Nxx_plus_2NGHOSTS1;
+  REAL const& Nxx_plus_2NGHOSTS2 = d_params.Nxx_plus_2NGHOSTS2;
 
   constexpr REAL onehalf = 1./2.;
 
@@ -82,16 +82,12 @@ void initialize_grid_gpu(params_struct * params,
 void numerical_grid_params_Nxx_dxx_xx__rfm__Spherical(commondata_struct *restrict commondata, 
                                                       params_struct *restrict params, 
                                                       REAL * xx[3]) {
-  set_params_gpu<<<1,1>>>(commondata->convergence_factor, params);
-  cudaCheckErrors(set_params_gpu, "kernel failed")
+  set_params(commondata->convergence_factor, params);
+  set_param_constants(params);
   
-  int Nxx_plus_2NGHOSTS0, Nxx_plus_2NGHOSTS1, Nxx_plus_2NGHOSTS2;
-  cudaMemcpy(&Nxx_plus_2NGHOSTS0, &params->Nxx_plus_2NGHOSTS0, sizeof(int), cudaMemcpyDeviceToHost);
-  cudaCheckErrors(cudaMemcpy, "memory failed")
-  cudaMemcpy(&Nxx_plus_2NGHOSTS1, &params->Nxx_plus_2NGHOSTS1, sizeof(int), cudaMemcpyDeviceToHost);
-  cudaCheckErrors(cudaMemcpy, "memory failed")
-  cudaMemcpy(&Nxx_plus_2NGHOSTS2, &params->Nxx_plus_2NGHOSTS2, sizeof(int), cudaMemcpyDeviceToHost);
-  cudaCheckErrors(cudaMemcpy, "memory failed")
+  int const& Nxx_plus_2NGHOSTS0 = params->Nxx_plus_2NGHOSTS0;
+  int const& Nxx_plus_2NGHOSTS1 = params->Nxx_plus_2NGHOSTS1;
+  int const& Nxx_plus_2NGHOSTS2 = params->Nxx_plus_2NGHOSTS2;
 
   // Set up cell-centered Cartesian coordinate grid, centered at the origin.
   cudaMalloc(&xx[0], sizeof(REAL) * Nxx_plus_2NGHOSTS0);
