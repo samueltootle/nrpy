@@ -23,6 +23,10 @@
  * Step 6: Free all allocated memory.
  */
 int main(int argc, const char *argv[]) {
+  cudaStreamCreate(&stream1);
+  cudaStreamCreate(&stream2);
+  cudaStreamCreate(&stream3);
+
   commondata_struct commondata;       // commondata contains parameters common to all grids.
   griddata_struct *restrict griddata; // griddata contains data specific to an individual grid.
 
@@ -42,7 +46,7 @@ int main(int argc, const char *argv[]) {
   {
     // if calling_for_first_time, then initialize commondata time=nn=t_0=nn_0 = 0
     const bool calling_for_first_time = true;
-    // numerical_grids_and_timestep(&commondata, griddata, calling_for_first_time);
+    numerical_grids_and_timestep(&commondata, griddata, calling_for_first_time);
   }
 
   // for (int grid = 0; grid < commondata.NUMGRIDS; grid++) {
@@ -73,7 +77,10 @@ int main(int argc, const char *argv[]) {
   //   // (nothing here; specify by setting post_MoL_step_forward_in_time string in register_CFunction_main_c().)
 
   // } // End main loop to progress forward in time.
-
+  cudaDeviceSynchronize();
+  cudaStreamDestroy(stream1);
+  cudaStreamDestroy(stream2);
+  cudaStreamDestroy(stream3);
   // // Step 5: Free all allocated memory
   // for (int grid = 0; grid < commondata.NUMGRIDS; grid++) {
   //   MoL_free_memory_y_n_gfs(&griddata[grid].gridfuncs);

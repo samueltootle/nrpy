@@ -4,6 +4,7 @@
 // extern __constant__ REAL FDPart1_Rational_1_12;
 // extern __constant__ REAL FDPart1_Rational_4_3;
 extern __constant__ params_struct d_params;
+extern cudaStream_t stream1, stream2, stream3;
 
 
 
