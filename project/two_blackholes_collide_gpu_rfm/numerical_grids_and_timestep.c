@@ -16,10 +16,11 @@ void numerical_grids_and_timestep(commondata_struct *restrict commondata, gridda
 
   for (int grid = 0; grid < commondata->NUMGRIDS; grid++) {
     rfm_precompute_malloc(commondata, &griddata[grid].params, &griddata[grid].rfmstruct);
+    set_param_constants(&griddata[grid].params);
     rfm_precompute_defines(commondata, &griddata[grid].params, &griddata[grid].rfmstruct, griddata[grid].xx);
   }
 
-  // // Step 1.d: Set up curvilinear boundary condition struct (bcstruct)
+  // Step 1.d: Set up curvilinear boundary condition struct (bcstruct)
 
   // for (int grid = 0; grid < commondata->NUMGRIDS; grid++) {
   //   bcstruct_set_up(commondata, &griddata[grid].params, griddata[grid].xx, &griddata[grid].bcstruct);
