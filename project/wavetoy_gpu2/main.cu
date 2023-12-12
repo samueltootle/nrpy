@@ -21,6 +21,13 @@
  * Step 6: Free all allocated memory.
  */
 int main(int argc, const char *argv[]) {
+  cudaStreamCreate(&stream1);
+  cudaStreamCreate(&stream2);
+  cudaStreamCreate(&stream3);
+  cudaStreamCreate(&stream4);
+  cudaStreamCreate(&stream5);
+  cudaStreamCreate(&stream6);
+  
   commondata_struct commondata;       // commondata contains parameters common to all grids.
   griddata_struct * griddata; // griddata contains data specific to an individual grid.
   cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeEightByte);
@@ -84,6 +91,13 @@ int main(int argc, const char *argv[]) {
     // (nothing here; specify by setting post_MoL_step_forward_in_time string in register_CFunction_main_c().)
   } // End main loop to progress forward in time.
   #endif
+  cudaDeviceSynchronize();
+  cudaStreamDestroy(stream1);
+  cudaStreamDestroy(stream2);
+  cudaStreamDestroy(stream3);
+  cudaStreamDestroy(stream4);
+  cudaStreamDestroy(stream5);
+  cudaStreamDestroy(stream6);
 
   // Step 5: Free all allocated memory
   for (int grid = 0; grid < commondata.NUMGRIDS; grid++) {

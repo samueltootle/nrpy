@@ -6,7 +6,7 @@ extern __constant__ REAL FDPart1_Rational_1_12;
 extern __constant__ REAL FDPart1_Rational_4_3;
 extern __constant__ params_struct d_params;
 
-
+extern cudaStream_t stream1, stream2, stream3, stream4, stream5, stream6;
 
 #define GPU_NGRID0 8
 #define GPU_NGRID1 8
