@@ -50,30 +50,52 @@ void set_params(REAL convergence_factor, params_struct * params) {
 }
 
 __global__
-void initialize_grid_gpu(REAL *restrict xx0,
-                         REAL *restrict xx1,
-                         REAL *restrict xx2) {
+void initialize_grid_xx0_gpu(REAL *restrict xx0) {
   const int index  = blockIdx.x * blockDim.x + threadIdx.x;
   const int stride = blockDim.x * gridDim.x;
 
   REAL const& xxmin0 = d_params.xxmin0;
-  REAL const& xxmin1 = d_params.xxmin1;
-  REAL const& xxmin2 = d_params.xxmin2;
 
   REAL const& dxx0 = d_params.dxx0;
-  REAL const& dxx1 = d_params.dxx1;
-  REAL const& dxx2 = d_params.dxx2;
 
   REAL const& Nxx_plus_2NGHOSTS0 = d_params.Nxx_plus_2NGHOSTS0;
-  REAL const& Nxx_plus_2NGHOSTS1 = d_params.Nxx_plus_2NGHOSTS1;
-  REAL const& Nxx_plus_2NGHOSTS2 = d_params.Nxx_plus_2NGHOSTS2;
 
   constexpr REAL onehalf = 1./2.;
 
   for (int j = index; j < Nxx_plus_2NGHOSTS0; j+=stride)
     xx0[j] = xxmin0 + ((REAL)(j - NGHOSTS) + onehalf) * dxx0;
+
+}
+__global__
+void initialize_grid_xx1_gpu(REAL *restrict xx1) {
+  const int index  = blockIdx.x * blockDim.x + threadIdx.x;
+  const int stride = blockDim.x * gridDim.x;
+
+  REAL const& xxmin1 = d_params.xxmin1;
+
+  REAL const& dxx1 = d_params.dxx1;
+
+  REAL const& Nxx_plus_2NGHOSTS1 = d_params.Nxx_plus_2NGHOSTS1;
+
+  constexpr REAL onehalf = 1./2.;
+
   for (int j = index; j < Nxx_plus_2NGHOSTS1; j+=stride)
     xx1[j] = xxmin1 + ((REAL)(j - NGHOSTS) + onehalf) * dxx1;
+
+}
+__global__
+void initialize_grid_xx2_gpu(REAL *restrict xx2) {
+  const int index  = blockIdx.x * blockDim.x + threadIdx.x;
+  const int stride = blockDim.x * gridDim.x;
+
+  REAL const& xxmin2 = d_params.xxmin2;
+
+  REAL const& dxx2 = d_params.dxx2;
+
+  REAL const& Nxx_plus_2NGHOSTS2 = d_params.Nxx_plus_2NGHOSTS2;
+
+  constexpr REAL onehalf = 1./2.;
+
   for (int j = index; j < Nxx_plus_2NGHOSTS2; j+=stride)
     xx2[j] = xxmin2 + ((REAL)(j - NGHOSTS) + onehalf) * dxx2;
 
@@ -83,6 +105,8 @@ void numerical_grid_params_Nxx_dxx_xx__rfm__Spherical(commondata_struct *restric
                                                       params_struct *restrict params, 
                                                       REAL * xx[3]) {
   set_params(commondata->convergence_factor, params);
+  
+  // Copy params to __constant__
   set_param_constants(params);
   
   int const& Nxx_plus_2NGHOSTS0 = params->Nxx_plus_2NGHOSTS0;
@@ -97,10 +121,22 @@ void numerical_grid_params_Nxx_dxx_xx__rfm__Spherical(commondata_struct *restric
   cudaMalloc(&xx[2], sizeof(REAL) * Nxx_plus_2NGHOSTS2);
   cudaCheckErrors(malloc, "Malloc failed")
 
-  int const N = Nxx_plus_2NGHOSTS0 * Nxx_plus_2NGHOSTS1 * Nxx_plus_2NGHOSTS2;
-  uint threads = (N > 1024) ? 1024 : N;
-  dim3 block_threads(threads,1,1);
-  dim3 grid_blocks((N + 1024 - 1)/1024);
-  initialize_grid_gpu<<<grid_blocks, block_threads>>>(params, xx[0], xx[1], xx[2]);
-  cudaCheckErrors(initialize_grid_gpu, "kernel failed");
+  dim3 block_threads, grid_blocks;
+  auto set_grid_block = [&block_threads, &grid_blocks](auto Nx) {
+    size_t tx = MIN(Nx, 1024);
+    block_threads = dim3(tx, 1, 1);
+    grid_blocks = dim3((Nx + tx - 1)/tx, 1, 1);
+  };
+  
+  set_grid_block(Nxx_plus_2NGHOSTS0);
+  initialize_grid_xx0_gpu<<<grid_blocks, block_threads, 0, stream1>>>(xx[0]);
+  cudaCheckErrors(initialize_grid_xx0_gpu, "kernel failed");
+
+  set_grid_block(Nxx_plus_2NGHOSTS1);
+  initialize_grid_xx1_gpu<<<grid_blocks, block_threads, 0, stream2>>>(xx[1]);
+  cudaCheckErrors(initialize_grid_xx1_gpu, "kernel failed");
+
+  set_grid_block(Nxx_plus_2NGHOSTS2);
+  initialize_grid_xx2_gpu<<<grid_blocks, block_threads, 0, stream3>>>(xx[2]);
+  cudaCheckErrors(initialize_grid_xx2_gpu, "kernel failed");
 }
