@@ -2,6 +2,7 @@
 #include "BHaH_gpu_defines.h"
 #include "BHaH_gpu_function_prototypes.h"
 #include <stdexcept>
+#include <cuda_runtime.h>
 #define DEBUG_INDEX 1158762
 #if RHS_IMP == 3
 __global__ void compute_uu_dDDxx_gpu(const params_struct *restrict params, 
@@ -218,7 +219,7 @@ void compute_uu_dDDxx(const params_struct *restrict params,
   dim3 block_threads(threads_in_x_dir, threads_in_y_dir, threads_in_z_dir);
   dim3 grid_blocks(Nxx1 / threads_in_y_dir, Nxx2, 1);
 
-  compute_uu_dDDxx_gpu<<<grid_blocks, block_threads>>>(params, in_gfs, aux_gfs);
+  compute_uu_dDDxx_gpu<<<grid_blocks, block_threads, 0, stream1>>>(params, in_gfs, aux_gfs);
   cudaCheckErrors(compute_uu_dDDxx_gpu, "kernel failed")
 }
 
@@ -253,7 +254,7 @@ void compute_uu_dDDyy(const params_struct *restrict params,
   // printf("Block: %u - %u\n", block_threads.x, block_threads.y);
   // printf("Grid: %u - %u\n", grid_blocks.x, grid_blocks.y);
 
-  compute_uu_dDDyy_gpu<<<grid_blocks, block_threads>>>(params, in_gfs, aux_gfs);
+  compute_uu_dDDyy_gpu<<<grid_blocks, block_threads, 0, stream2>>>(params, in_gfs, aux_gfs);
   cudaCheckErrors(compute_uu_dDDyy_gpu, "kernel failed")
 }
 
@@ -286,7 +287,7 @@ void compute_uu_dDDzz(const params_struct *restrict params,
   dim3 block_threads(threads_in_x_dir, threads_in_y_dir, threads_in_z_dir);
   dim3 grid_blocks(Nxx0 / threads_in_y_dir, Nxx2, 1);
 
-  compute_uu_dDDzz_gpu<<<grid_blocks, block_threads>>>(params, in_gfs, aux_gfs);
+  compute_uu_dDDzz_gpu<<<grid_blocks, block_threads, 0, stream3>>>(params, in_gfs, aux_gfs);
   cudaCheckErrors(compute_uu_dDDzz_gpu, "kernel failed")
   // printf("\n");
 }

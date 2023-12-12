@@ -271,7 +271,7 @@ void compute_uu_dDDxx(const params_struct *restrict params,
     throw std::runtime_error("Grid is too large for current GPU shared memory restrictions");
   }
 
-  compute_uu_dDDxx_gpu<<<grid_blocks, block_threads, SM_size>>>(params, in_gfs, aux_gfs);
+  compute_uu_dDDxx_gpu<<<grid_blocks, block_threads, SM_size, stream1>>>(params, in_gfs, aux_gfs);
   cudaCheckErrors(compute_uu_dDDxx_gpu, "kernel failed")
 }
 
@@ -332,7 +332,7 @@ void compute_uu_dDDyy(const params_struct *restrict params,
   //   block_threads.x, block_threads.y, block_threads.z, 
   //   grid_blocks.x, grid_blocks.y, grid_blocks.z);
   
-  compute_uu_dDDyy_gpu<<<grid_blocks, block_threads, SM_size>>>(params, in_gfs, aux_gfs);
+  compute_uu_dDDyy_gpu<<<grid_blocks, block_threads, SM_size, stream2>>>(params, in_gfs, aux_gfs);
   cudaCheckErrors(compute_uu_dDDyy_gpu, "kernel failed")
   // cudaDeviceSynchronize();
   // printf("SM lengh: %u\n",threads_in_x_dir * Nxx_plus_2NGHOSTS1);
@@ -393,7 +393,7 @@ void compute_uu_dDDzz(const params_struct *restrict params,
 
   // printf("SM_size : %lu , max: %lu\n\n\n", SM_size, maxMemPerBlock);
   
-  compute_uu_dDDzz_gpu<<<grid_blocks, block_threads, SM_size>>>(params, in_gfs, aux_gfs);
+  compute_uu_dDDzz_gpu<<<grid_blocks, block_threads, SM_size, stream3>>>(params, in_gfs, aux_gfs);
   cudaCheckErrors(compute_uu_dDDzz_gpu, "kernel failed")
 }
 

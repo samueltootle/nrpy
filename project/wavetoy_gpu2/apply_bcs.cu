@@ -81,6 +81,7 @@ void apply_bcs(const commondata_struct *restrict commondata, const params_struct
     for (int which_gz = 0; which_gz < NGHOSTS; which_gz++) {
       // After updating each face, adjust imin[] and imax[]
       //   to reflect the newly-updated face extents.
+      cudaDeviceSynchronize();
       size_t tx = 1;
       uint Ny = (imax[1] - imin[1]);
       uint Nz = (imax[2] - imin[2]);
@@ -88,10 +89,10 @@ void apply_bcs(const commondata_struct *restrict commondata, const params_struct
       size_t tz = 1024 / ty;
       block = dim3(tx, ty, tz);
       grid = dim3(1, (Ny + ty - 1)/ty, (Nz + tz - 1)/tz);
-      update_face<<<grid, block>>>(which_gf, params, gfs, imin[0] - 1, imin[0], imin[1], imax[1], imin[2], imax[2], MINFACE, NUL, NUL);
+      update_face<<<grid, block, 0, stream1>>>(which_gf, params, gfs, imin[0] - 1, imin[0], imin[1], imax[1], imin[2], imax[2], MINFACE, NUL, NUL);
       cudaCheckErrors(update_face, "kernel failed")
       imin[0]--;
-      update_face<<<grid, block>>>(which_gf, params, gfs, imax[0], imax[0] + 1, imin[1], imax[1], imin[2], imax[2], MAXFACE, NUL, NUL);
+      update_face<<<grid, block, 0, stream2>>>(which_gf, params, gfs, imax[0], imax[0] + 1, imin[1], imax[1], imin[2], imax[2], MAXFACE, NUL, NUL);
       cudaCheckErrors(update_face, "kernel failed")
       imax[0]++;
 
@@ -101,20 +102,20 @@ void apply_bcs(const commondata_struct *restrict commondata, const params_struct
       tz = 1024 / tx;
       block = dim3(tx, ty, tz);
       grid = dim3((Nx + tx - 1)/tx, 1, (Nz + tz - 1)/tz);
-      update_face<<<grid, block>>>(which_gf, params, gfs, imin[0], imax[0], imin[1] - 1, imin[1], imin[2], imax[2], NUL, MINFACE, NUL);
+      update_face<<<grid, block, 0, stream3>>>(which_gf, params, gfs, imin[0], imax[0], imin[1] - 1, imin[1], imin[2], imax[2], NUL, MINFACE, NUL);
       cudaCheckErrors(update_face, "kernel failed")
       imin[1]--;
-      update_face<<<grid, block>>>(which_gf, params, gfs, imin[0], imax[0], imax[1], imax[1] + 1, imin[2], imax[2], NUL, MAXFACE, NUL);
+      update_face<<<grid, block, 0, stream4>>>(which_gf, params, gfs, imin[0], imax[0], imax[1], imax[1] + 1, imin[2], imax[2], NUL, MAXFACE, NUL);
       cudaCheckErrors(update_face, "kernel failed")
       imax[1]++;
 
       ty = tz;
       tz = 1;
       grid = dim3((Nx + tx - 1)/tx, (Ny + ty - 1)/ty, 1);
-      update_face<<<grid, block>>>(which_gf, params, gfs, imin[0], imax[0], imin[1], imax[1], imin[2] - 1, imin[2], NUL, NUL, MINFACE);
+      update_face<<<grid, block, 0, stream5>>>(which_gf, params, gfs, imin[0], imax[0], imin[1], imax[1], imin[2] - 1, imin[2], NUL, NUL, MINFACE);
       cudaCheckErrors(update_face, "kernel failed")
       imin[2]--;
-      update_face<<<grid, block>>>(which_gf, params, gfs, imin[0], imax[0], imin[1], imax[1], imax[2], imax[2] + 1, NUL, NUL, MAXFACE);
+      update_face<<<grid, block, 0, stream6>>>(which_gf, params, gfs, imin[0], imax[0], imin[1], imax[1], imax[2], imax[2] + 1, NUL, NUL, MAXFACE);
       cudaCheckErrors(update_face, "kernel failed")
       imax[2]++;
     }
