@@ -1,5 +1,6 @@
 #include "BHaH_defines.h"
 #include "BHaH_gpu_defines.h"
+#include "BHaH_gpu_function_prototypes.h"
 __host__
 void set_fd_constants() {
     // const REAL h_FDPart1_Rational_5_2  = 5.0 / 2.0;
