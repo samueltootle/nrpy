@@ -24,12 +24,12 @@ void numerical_grids_and_timestep(commondata_struct *restrict commondata, gridda
 
   // Step 1.d: Set up curvilinear boundary condition struct (bcstruct)
 
-  // for (int grid = 0; grid < commondata->NUMGRIDS; grid++) {
-  //   bcstruct_set_up(commondata, &griddata[grid].params, griddata[grid].xx, &griddata[grid].bcstruct);
-  // }
+  for (int grid = 0; grid < commondata->NUMGRIDS; grid++) {
+    bcstruct_set_up(commondata, &griddata[grid].params, griddata[grid].xx, &griddata[grid].bcstruct);
+  }
 
-  // // Step 1.e: Set timestep based on minimum spacing between neighboring gridpoints.
-  // commondata->dt = 1e30;
+  // Step 1.e: Set timestep based on minimum spacing between neighboring gridpoints.
+  commondata->dt = 1e30;
   // for (int grid = 0; grid < commondata->NUMGRIDS; grid++) {
   //   cfl_limited_timestep(commondata, &griddata[grid].params, griddata[grid].xx, &griddata[grid].bcstruct);
   // }
