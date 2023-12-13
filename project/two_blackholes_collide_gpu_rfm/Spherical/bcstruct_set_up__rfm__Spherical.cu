@@ -1,5 +1,7 @@
 #include "../BHaH_defines.h"
 #include "../BHaH_function_prototypes.h"
+#include "../BHaH_gpu_defines.h"
+#include "../BHaH_gpu_function_prototypes.h"
 /*
  * EigenCoord_set_x0x1x2_inbounds__i0i1i2_inbounds_single_pt():
  * A coordinate system's "eigencoordinate" is the simplest member
@@ -512,8 +514,120 @@ void bcstruct_set_up__rfm__Spherical(const commondata_struct *restrict commondat
     }
 }
 
-void bcstruct_set_up__rfm__Spherical(const commondata_struct *restrict commondata, const params_struct * params, REAL * xx[3], bc_struct *restrict bcstruct) {
+__global__
+void count_ib_points(uint * n_ib) {
+    
+    // shared data between all warps
+    // Assumes one block = 32 warps = 32 * 32 threads
+    // As of today, the standard maximum threads per
+    // block is 1024 = 32 * 32
+    __shared__ uint shared_data[2][32];
+
+    int const & Nxx_plus_2NGHOSTS0 = d_params.Nxx_plus_2NGHOSTS0;
+    int const & Nxx_plus_2NGHOSTS1 = d_params.Nxx_plus_2NGHOSTS1;
+    int const & Nxx_plus_2NGHOSTS2 = d_params.Nxx_plus_2NGHOSTS2;
+
+    int const & Nxx0 = d_params.Nxx0;
+    int const & Nxx1 = d_params.Nxx1;
+    int const & Nxx2 = d_params.Nxx2;
+
+    // Global data index - expecting a 1D dataset
+    // Thread indices
+    const int tid0 = threadIdx.x + blockIdx.x*blockDim.x;
+    const int tid1 = threadIdx.y + blockIdx.y*blockDim.y;
+    const int tid2 = threadIdx.z + blockIdx.z*blockDim.z;
+    // Thread strides
+    const int stride0 = blockDim.x * gridDim.x;
+    const int stride1 = blockDim.y * gridDim.y;
+    const int stride2 = blockDim.z * gridDim.z;
+
+    // thread index
+    uint tid = threadIdx.x + threadIdx.y * blockDim.x + threadIdx.z * blockDim.x * blockDim.y;
+    
+    // reduce excessive looping by computing both at the same time
+    uint local_ib_points = 0;
+
+    // // warp mask - says all threads are involved in shuffle
+    // // 0xFFFFFFFFU in binary is 32 1's.
+    unsigned mask = 0xFFFFFFFFU;
+
+    // lane = which thread am I in the warp
+    uint lane = tid % warpSize;
+    // warpID = which warp am I in the block
+    uint warpID = tid / warpSize;
+    int i0i1i2[3];
+    for(size_t i20 = tid2, i21 = tid2+NGHOSTS+Nxx2; i20 < NGHOSTS, i21 < Nxx_plus_2NGHOSTS2; i20 += stride2, i21 += stride2) {
+      for(size_t i10 = tid1, i11 = tid1+NGHOSTS+Nxx1; i10 < NGHOSTS, i11 < Nxx_plus_2NGHOSTS1; i10 += stride1, i11 += stride1) {
+        for(size_t i00 = tid0, i01 = tid0+NGHOSTS+Nxx0; i00 < NGHOSTS, i01 < Nxx_plus_2NGHOSTS0; i00 += stride0, i01 += stride0) {
+          REAL x0x1x2_inbounds[3] = {0,0,0};
+          int i0i1i2_inbounds[3] = {0,0,0};
+          i0i1i2[0]=i00; i0i1i2[1]=i10; i0i1i2[2]=i20;
+
+          // EigenCoord_set_x0x1x2_inbounds__i0i1i2_inbounds_single_pt(commondata, params, xx, i0, i1, i2, x0x1x2_inbounds, i0i1i2_inbounds);
+          bool pure_boundary_point = i00 == i0i1i2_inbounds[0] && i10 == i0i1i2_inbounds[1] && i20 == i0i1i2_inbounds[2];
+          if(!pure_boundary_point) {
+            local_ib_points++;
+          }          
+        }
+      }
+    }
+
+    // Shuffle down kernel
+    for(int offset = warpSize / 2; offset > 0; offset >>= 1) {
+        uint shfl_ib = __shfl_down_sync(mask, local_ib_points, offset);
+        local_ib_points += shfl_ib;
+    }
+    // Shuffle results in lane 0 have the shuffle result
+    if(lane == 0) {
+        shared_data[0][warpID] = local_ib_points;
+    }
+    
+    // Make sure all warps in the block are syncronized
+    __syncthreads();
+    // Since there is only 32 partial reductions, we only
+    // have one warp worth of work
+    if(warpID == 0) {
+        // Check to make sure we had 32 blocks of data
+        if(tid < blockDim.x / warpSize) {
+            local_ib_points = shared_data[0][lane];
+        } else {
+            local_ib_points = 0;
+        }        
+        
+        // Shuffle down kernel
+        for(int offset = warpSize / 2; offset > 0; offset >>= 1) {
+            uint shfl_ib = __shfl_down_sync(mask, local_ib_points, offset);
+            local_ib_points += shfl_ib;
+        }
+        if(tid == 0) {
+            atomicAdd(n_ib, local_ib_points);
+        }
+    }
+#undef COUNT_INNER_OR_OUTER
+}
+
+__global__
+void bcstruct_set_up__rfm__Spherical_gpu(REAL *restrict _xx0, REAL *restrict _xx1, REAL *restrict _xx2, 
+                                     bc_struct *restrict bcstruct)
+{
+
+}
+
+__host__
+[[nodiscard]] uint compute_num_inner(const commondata_struct *restrict commondata, const params_struct * params, REAL * xx[3]) {
   [[maybe_unused]] int const & Nxx_plus_2NGHOSTS0 = params->Nxx_plus_2NGHOSTS0;
   [[maybe_unused]] int const & Nxx_plus_2NGHOSTS1 = params->Nxx_plus_2NGHOSTS1;
   [[maybe_unused]] int const & Nxx_plus_2NGHOSTS2 = params->Nxx_plus_2NGHOSTS2;
+  
+  uint num_inner = 0;
+  uint* num_inner_gpu;
+  cudaMalloc(&num_inner_gpu, sizeof(uint));
+
+  return num_inner;
+}
+
+void bcstruct_set_up__rfm__Spherical(const commondata_struct *restrict commondata, const params_struct * params, REAL * xx[3], bc_struct *restrict bcstruct) {
+
+
+  uint num_inner = 0;
 }
