@@ -4,7 +4,7 @@
  * rfm_precompute_defines: reference metric precomputed lookup arrays: defines
  */
 void rfm_precompute_defines(const commondata_struct *restrict commondata, const params_struct *restrict params, rfm_struct *restrict rfmstruct,
-                            REAL *restrict xx[3]) {
+                            REAL * xx[3]) {
   switch (params->CoordSystem_hash) {
   case SPHERICAL:
     rfm_precompute_defines__rfm__Spherical(commondata, params, rfmstruct, xx);

@@ -3,7 +3,7 @@
 /*
  * Set up a cell-centered Spherical grid of size grid_physical_size. Set params: Nxx, Nxx_plus_2NGHOSTS, dxx, invdxx, and xx.
  */
-void numerical_grid_params_Nxx_dxx_xx(commondata_struct *restrict commondata, params_struct *restrict params, REAL *restrict xx[3]) {
+void numerical_grid_params_Nxx_dxx_xx(commondata_struct *restrict commondata, params_struct *restrict params, REAL * xx[3]) {
   switch (params->CoordSystem_hash) {
   case SPHERICAL:
     numerical_grid_params_Nxx_dxx_xx__rfm__Spherical(commondata, params, xx);

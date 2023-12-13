@@ -36,7 +36,7 @@ void rfm_precompute_defines__rfm__Spherical_xx1__DD11_gpu(rfm_struct *restrict r
 }
 
 void rfm_precompute_defines__rfm__Spherical(const commondata_struct *restrict commondata, const params_struct *restrict params,
-                                            rfm_struct *restrict rfmstruct, REAL *restrict xx[3]) {
+                                            rfm_struct *restrict rfmstruct, REAL * xx[3]) {
 
   int const& Nxx_plus_2NGHOSTS0 = params->Nxx_plus_2NGHOSTS0;
   int const& Nxx_plus_2NGHOSTS1 = params->Nxx_plus_2NGHOSTS1;
