@@ -5,9 +5,9 @@
  */
 void rfm_precompute_malloc__rfm__Spherical(const commondata_struct *restrict commondata, const params_struct *restrict params,
                                            rfm_struct *restrict rfmstruct) {
-  int const & Nxx_plus_2NGHOSTS0 = params->Nxx_plus_2NGHOSTS0;
-  int const & Nxx_plus_2NGHOSTS1 = params->Nxx_plus_2NGHOSTS1;
-  int const & Nxx_plus_2NGHOSTS2 = params->Nxx_plus_2NGHOSTS2;
+  [[maybe_unused]] int const & Nxx_plus_2NGHOSTS0 = params->Nxx_plus_2NGHOSTS0;
+  [[maybe_unused]] int const & Nxx_plus_2NGHOSTS1 = params->Nxx_plus_2NGHOSTS1;
+  [[maybe_unused]] int const & Nxx_plus_2NGHOSTS2 = params->Nxx_plus_2NGHOSTS2;
 
   cudaMalloc(&rfmstruct->f0_of_xx0, sizeof(sizeof(REAL) * Nxx_plus_2NGHOSTS0));
   cudaCheckErrors(malloc, "Malloc failed")
