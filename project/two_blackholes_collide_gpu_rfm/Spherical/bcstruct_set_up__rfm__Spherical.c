@@ -511,3 +511,9 @@ void bcstruct_set_up__rfm__Spherical(const commondata_struct *restrict commondat
       bcstruct->bc_info.num_pure_outer_boundary_points[which_gz][dirn] = idx2d;
     }
 }
+
+void bcstruct_set_up__rfm__Spherical(const commondata_struct *restrict commondata, const params_struct * params, REAL * xx[3], bc_struct *restrict bcstruct) {
+  [[maybe_unused]] int const & Nxx_plus_2NGHOSTS0 = params->Nxx_plus_2NGHOSTS0;
+  [[maybe_unused]] int const & Nxx_plus_2NGHOSTS1 = params->Nxx_plus_2NGHOSTS1;
+  [[maybe_unused]] int const & Nxx_plus_2NGHOSTS2 = params->Nxx_plus_2NGHOSTS2;
+}
