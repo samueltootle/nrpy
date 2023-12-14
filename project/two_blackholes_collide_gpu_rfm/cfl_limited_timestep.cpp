@@ -3,11 +3,11 @@
 /*
  * Output minimum gridspacing ds_min on a Spherical numerical grid.
  */
-void cfl_limited_timestep(commondata_struct *restrict commondata, params_struct *restrict params, REAL *restrict xx[3],
+void cfl_limited_timestep(commondata_struct *restrict commondata, params_struct *restrict params, REAL * xx[3],
                           bc_struct *restrict bcstruct) {
   switch (params->CoordSystem_hash) {
   case SPHERICAL:
-    cfl_limited_timestep__rfm__Spherical(commondata, params, xx, bcstruct);
+    // cfl_limited_timestep__rfm__Spherical(commondata, params, xx, bcstruct);
     break;
   default:
     fprintf(stderr, "ERROR in cfl_limited_timestep(): CoordSystem hash = %d not #define'd!\n", params->CoordSystem_hash);

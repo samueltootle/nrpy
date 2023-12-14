@@ -31,9 +31,10 @@ void numerical_grids_and_timestep(commondata_struct *restrict commondata, gridda
 
   // Step 1.e: Set timestep based on minimum spacing between neighboring gridpoints.
   commondata->dt = 1e30;
-  // for (int grid = 0; grid < commondata->NUMGRIDS; grid++) {
-  //   cfl_limited_timestep(commondata, &griddata[grid].params, griddata[grid].xx, &griddata[grid].bcstruct);
-  // }
+  for (int grid = 0; grid < commondata->NUMGRIDS; grid++) {
+    set_param_constants(&griddata[grid].params);
+    cfl_limited_timestep(commondata, &griddata[grid].params, griddata[grid].xx, &griddata[grid].bcstruct);
+  }
 
   // Step 1.f: Initialize timestepping parameters to zero if this is the first time this function is called.
   if (calling_for_first_time) {
