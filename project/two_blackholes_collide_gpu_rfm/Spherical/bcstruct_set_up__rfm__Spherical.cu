@@ -569,9 +569,6 @@ void count_ib_points(uint * n_ib, REAL *restrict _xx0, REAL *restrict _xx1, REAL
     
     // Loop over bounds on both sides of x/y/z, at the same time
     int i0i1i2[3];
-    // for(size_t i20 = tid2, i21 = tid2+NGHOSTS+Nxx2; i20 < NGHOSTS, i21 < Nxx_plus_2NGHOSTS2; i20 += stride2, i21 += stride2) {
-    //   for(size_t i10 = tid1, i11 = tid1+NGHOSTS+Nxx1; i10 < NGHOSTS, i11 < Nxx_plus_2NGHOSTS1; i10 += stride1, i11 += stride1) {
-    //     for(size_t i00 = tid0, i01 = tid0+NGHOSTS+Nxx0; i00 < NGHOSTS, i01 < Nxx_plus_2NGHOSTS0; i00 += stride0, i01 += stride0) {
     for(size_t i2 = tid2; i2 < Nxx_plus_2NGHOSTS2; i2 += stride2) {
       for(size_t i1 = tid1; i1 < Nxx_plus_2NGHOSTS1; i1 += stride1) {
         for(size_t i0 = tid0; i0 < Nxx_plus_2NGHOSTS0; i0 += stride0) {
@@ -582,32 +579,16 @@ void count_ib_points(uint * n_ib, REAL *restrict _xx0, REAL *restrict _xx1, REAL
           i0i1i2[0]=i0; i0i1i2[1]=i1; i0i1i2[2]=i2;
           bool is_in_interior = IS_IN_GRID_INTERIOR(i0i1i2, Nxx_plus_2NGHOSTS0, Nxx_plus_2NGHOSTS1, Nxx_plus_2NGHOSTS2, NGHOSTS);
           if(!is_in_interior) {
-          EigenCoord_set_x0x1x2_inbounds__i0i1i2_inbounds_single_pt(
-            _xx0, _xx1, _xx2, i0, i1, i2, x0x1x2_inbounds, i0i1i2_inbounds);
-          bool pure_boundary_point = \
-            (i0 == i0i1i2_inbounds[0]) && \
-            (i1 == i0i1i2_inbounds[1]) && \
-            (i2 == i0i1i2_inbounds[2]);
-          if(!pure_boundary_point) {
-            local_ib_points++;
-          }}
-
-          // // Reset
-          // for(size_t j = 0; j < 3; ++j) {
-          //   x0x1x2_inbounds[j]=0;
-          //   i0i1i2_inbounds[j]=0;
-          // }
-          // // Assign upper ghost zone boundary points
-          // i0i1i2[0]=i01; i0i1i2[1]=i11; i0i1i2[2]=i21;
-          // EigenCoord_set_x0x1x2_inbounds__i0i1i2_inbounds_single_pt(
-          //   _xx0, _xx1, _xx2, i01, i11, i21, x0x1x2_inbounds, i0i1i2_inbounds);
-          // pure_boundary_point = \
-          //   (i01 == i0i1i2_inbounds[0]) && \
-          //   (i11 == i0i1i2_inbounds[1]) && \
-          //   (i21 == i0i1i2_inbounds[2]);
-          // if(!pure_boundary_point) {
-          //   local_ib_points++;
-          // }
+            EigenCoord_set_x0x1x2_inbounds__i0i1i2_inbounds_single_pt(
+              _xx0, _xx1, _xx2, i0, i1, i2, x0x1x2_inbounds, i0i1i2_inbounds);
+            bool pure_boundary_point = \
+              (i0 == i0i1i2_inbounds[0]) && \
+              (i1 == i0i1i2_inbounds[1]) && \
+              (i2 == i0i1i2_inbounds[2]);
+            if(!pure_boundary_point) {
+              local_ib_points++;
+            }
+          }
         }
       }
     }
@@ -643,7 +624,6 @@ void count_ib_points(uint * n_ib, REAL *restrict _xx0, REAL *restrict _xx1, REAL
             atomicAdd(n_ib, local_ib_points);
         }
     }
-#undef COUNT_INNER_OR_OUTER
 }
 
 __global__
