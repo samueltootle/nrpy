@@ -63,7 +63,7 @@ void bcstruct_set_up(const commondata_struct *restrict commondata, const params_
                      bc_struct *restrict bcstruct) {
   switch (params->CoordSystem_hash) {
   case SPHERICAL:
-    // bcstruct_set_up__rfm__Spherical(commondata, params, xx, bcstruct);
+    bcstruct_set_up__rfm__Spherical(commondata, params, xx, bcstruct);
     break;
   default:
     fprintf(stderr, "ERROR in bcstruct_set_up(): CoordSystem hash = %d not #define'd!\n", params->CoordSystem_hash);
