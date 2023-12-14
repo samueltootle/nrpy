@@ -1,4 +1,5 @@
 #include "../BHaH_defines.h"
+#include "../BHaH_function_prototypes.h"
 /*
  * rfm_precompute_free: reference metric precomputed lookup arrays: free
  */

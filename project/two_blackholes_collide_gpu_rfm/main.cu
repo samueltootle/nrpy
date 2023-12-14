@@ -81,18 +81,18 @@ int main(int argc, const char *argv[]) {
   cudaStreamDestroy(stream1);
   cudaStreamDestroy(stream2);
   cudaStreamDestroy(stream3);
-  // // Step 5: Free all allocated memory
-  // for (int grid = 0; grid < commondata.NUMGRIDS; grid++) {
+  // Step 5: Free all allocated memory
+  for (int grid = 0; grid < commondata.NUMGRIDS; grid++) {
   //   MoL_free_memory_y_n_gfs(&griddata[grid].gridfuncs);
   //   MoL_free_memory_non_y_n_gfs(&griddata[grid].gridfuncs);
-  //   rfm_precompute_free(&commondata, &griddata[grid].params, &griddata[grid].rfmstruct);
-  //   free(griddata[grid].bcstruct.inner_bc_array);
-  //   for (int ng = 0; ng < NGHOSTS * 3; ng++)
-  //     free(griddata[grid].bcstruct.pure_outer_bc_array[ng]);
+    rfm_precompute_free(&commondata, &griddata[grid].params, &griddata[grid].rfmstruct);
+    cudaFree(griddata[grid].bcstruct.inner_bc_array);
+    for (int ng = 0; ng < NGHOSTS * 3; ng++)
+      cudaFree(griddata[grid].bcstruct.pure_outer_bc_array[ng]);
 
-  //   for (int i = 0; i < 3; i++)
-  //     free(griddata[grid].xx[i]);
-  // }
-  // free(griddata);
+    for (int i = 0; i < 3; i++)
+      cudaFree(griddata[grid].xx[i]);
+  }
+  free(griddata);
   return 0;
 }
