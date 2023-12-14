@@ -199,10 +199,9 @@ void EigenCoord_set_x0x1x2_inbounds__i0i1i2_inbounds_single_pt(
  * above for more details), here we compute the parity conditions
  * for all 10 tensor types supported by NRPy+.
  */
-static void set_parity_for_inner_boundary_single_pt(const commondata_struct *restrict commondata, const params_struct *restrict params,
-                                                    const REAL xx0, const REAL xx1, const REAL xx2, const REAL x0x1x2_inbounds[3], const int idx,
+__device__
+void set_parity_for_inner_boundary_single_pt(const REAL xx0, const REAL xx1, const REAL xx2, const REAL x0x1x2_inbounds[3], const int idx,
                                                     innerpt_bc_struct *restrict innerpt_bc_arr) {
-#include "../set_CodeParameters.h"
 
   const REAL xx0_inbounds = x0x1x2_inbounds[0];
   const REAL xx1_inbounds = x0x1x2_inbounds[1];
@@ -264,9 +263,8 @@ static void set_parity_for_inner_boundary_single_pt(const commondata_struct *res
   // Next perform sanity check on parity array output: should be +1 or -1 to within 8 significant digits:
   for (int whichparity = 0; whichparity < 10; whichparity++) {
     if (fabs(REAL_parity_array[whichparity]) < 1 - 1e-8 || fabs(REAL_parity_array[whichparity]) > 1 + 1e-8) {
-      fprintf(stderr, "Error at point (%e %e %e), which maps to (%e %e %e).\n", xx0, xx1, xx2, xx0_inbounds, xx1_inbounds, xx2_inbounds);
-      fprintf(stderr, "Parity evaluated to %e , which is not within 8 significant digits of +1 or -1.\n", REAL_parity_array[whichparity]);
-      exit(1);
+      printf("Error at point (%e %e %e), which maps to (%e %e %e).\n", xx0, xx1, xx2, xx0_inbounds, xx1_inbounds, xx2_inbounds);
+      printf("Parity evaluated to %e , which is not within 8 significant digits of +1 or -1.\n", REAL_parity_array[whichparity]);
     }
     for (int parity = 0; parity < 10; parity++) {
       innerpt_bc_arr[idx].parity[parity] = 1;
@@ -626,13 +624,6 @@ void count_ib_points(uint * n_ib, REAL *restrict _xx0, REAL *restrict _xx1, REAL
     }
 }
 
-__global__
-void bcstruct_set_up__rfm__Spherical_gpu(REAL *restrict _xx0, REAL *restrict _xx1, REAL *restrict _xx2, 
-                                     bc_struct *restrict bcstruct)
-{
-
-}
-
 __host__
 [[nodiscard]] uint compute_num_inner(REAL * xx[3], const params_struct * params) {
   
@@ -652,7 +643,7 @@ __host__
 
   size_t block_threads = MIN(MAX(N,32), 1024)/2;
   size_t grids = (N + block_threads - 1)/block_threads;
-  printf("%u - %u\n", grids, block_threads);
+  
   count_ib_points<<<grids, block_threads>>>(num_inner_gpu, xx[0], xx[1], xx[2]);
   cudaCheckErrors(count_ib_points, "kernel failure")
   cudaMemcpy(&num_inner, num_inner_gpu, sizeof(uint), cudaMemcpyDeviceToHost);
@@ -660,9 +651,83 @@ __host__
   return num_inner;
 }
 
+__global__
+void set_inner_bc_array(innerpt_bc_struct *restrict inner_bc_array, REAL *restrict _xx0, REAL *restrict _xx1, REAL *restrict _xx2){
+    // shared data between all warps
+    // Assumes one block = 32 warps = 32 * 32 threads
+    // As of today, the standard maximum threads per
+    // block is 1024 = 32 * 32
+    __shared__ uint shared_data[2][32];
+
+    int const & Nxx_plus_2NGHOSTS0 = d_params.Nxx_plus_2NGHOSTS0;
+    int const & Nxx_plus_2NGHOSTS1 = d_params.Nxx_plus_2NGHOSTS1;
+    int const & Nxx_plus_2NGHOSTS2 = d_params.Nxx_plus_2NGHOSTS2;
+
+    int const & Nxx0 = d_params.Nxx0;
+    int const & Nxx1 = d_params.Nxx1;
+    int const & Nxx2 = d_params.Nxx2;
+
+    // Global data index - expecting a 1D dataset
+    // Thread indices
+    const int tid0 = threadIdx.x + blockIdx.x*blockDim.x;
+    const int tid1 = threadIdx.y + blockIdx.y*blockDim.y;
+    const int tid2 = threadIdx.z + blockIdx.z*blockDim.z;
+    // Thread strides
+    const int stride0 = blockDim.x * gridDim.x;
+    const int stride1 = blockDim.y * gridDim.y;
+    const int stride2 = blockDim.z * gridDim.z;
+    
+    uint which_inner = 0;
+    int i0i1i2[3];
+    for(size_t i2 = tid2; i2 < Nxx_plus_2NGHOSTS2; i2 += stride2) {
+      for(size_t i1 = tid1; i1 < Nxx_plus_2NGHOSTS1; i1 += stride1) {
+        for(size_t i0 = tid0; i0 < Nxx_plus_2NGHOSTS0; i0 += stride0) {
+          // Assign lower ghost zone boundary points
+          i0i1i2[0]=i0; i0i1i2[1]=i1; i0i1i2[2]=i2;
+          bool is_in_interior = IS_IN_GRID_INTERIOR(i0i1i2, Nxx_plus_2NGHOSTS0, Nxx_plus_2NGHOSTS1, Nxx_plus_2NGHOSTS2, NGHOSTS);
+          if(!is_in_interior) {
+            // Initialize
+            REAL x0x1x2_inbounds[3] = {0,0,0};
+            int i0i1i2_inbounds[3] = {0,0,0};
+            EigenCoord_set_x0x1x2_inbounds__i0i1i2_inbounds_single_pt(
+              _xx0, _xx1, _xx2, i0, i1, i2, x0x1x2_inbounds, i0i1i2_inbounds);
+            bool pure_boundary_point = \
+              (i0 == i0i1i2_inbounds[0]) && \
+              (i1 == i0i1i2_inbounds[1]) && \
+              (i2 == i0i1i2_inbounds[2]);
+            if(!pure_boundary_point) {
+              inner_bc_array[which_inner].dstpt = IDX3(i0, i1, i2);
+              inner_bc_array[which_inner].srcpt = IDX3(i0i1i2_inbounds[0], i0i1i2_inbounds[1], i0i1i2_inbounds[2]);
+              set_parity_for_inner_boundary_single_pt(_xx0[i0], _xx1[i1], _xx2[i2], x0x1x2_inbounds, which_inner, inner_bc_array);
+              which_inner++;
+            }
+          }
+        }
+      }
+    }
+}
+
 void bcstruct_set_up__rfm__Spherical(const commondata_struct *restrict commondata, const params_struct * params, REAL * xx[3], bc_struct *restrict bcstruct) {
 
   cudaDeviceSynchronize();
-  uint num_inner = compute_num_inner(xx, params);
-  printf("N inner: %u\n", num_inner);
+  
+  ////////////////////////////////////////
+  // STEP 1: SET UP INNER BOUNDARY STRUCTS
+  {
+    // Get number of inner boundary points
+    uint num_inner = compute_num_inner(xx, params);
+    // Allocate storage for mapping
+    bcstruct->bc_info.num_inner_boundary_points = num_inner;
+    cudaMalloc(&bcstruct->inner_bc_array, sizeof(innerpt_bc_struct) * num_inner);
+    cudaCheckErrors(cudaMalloc, "memory failure")
+    // Fill inner_bc_array mapping
+    set_inner_bc_array<<<1,1>>>(bcstruct->inner_bc_array,xx[0], xx[1], xx[2]);
+    cudaCheckErrors(set_inner_bc_array, "kernel failure")
+  }
+  ////////////////////////////////////////
+  // STEP 2: SET UP OUTER BOUNDARY STRUCTS
+  // First set up loop bounds for outer boundary condition updates,
+  //   store to bc_info->bc_loop_bounds[which_gz][face][]. Also
+  //   allocate memory for outer_bc_array[which_gz][face][]:
+  
 }
