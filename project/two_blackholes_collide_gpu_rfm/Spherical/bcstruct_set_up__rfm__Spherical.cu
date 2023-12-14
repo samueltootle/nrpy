@@ -27,10 +27,19 @@
  * storing tensors/vectors.
  *
  */
-static void EigenCoord_set_x0x1x2_inbounds__i0i1i2_inbounds_single_pt(const commondata_struct *restrict commondata,
-                                                                      const params_struct *restrict params, REAL *restrict xx[3], const int i0,
-                                                                      const int i1, const int i2, REAL x0x1x2_inbounds[3], int i0i1i2_inbounds[3]) {
-#include "../set_CodeParameters.h"
+__device__
+void EigenCoord_set_x0x1x2_inbounds__i0i1i2_inbounds_single_pt(
+  REAL *restrict _xx0, REAL *restrict _xx1, REAL *restrict _xx2,
+    const int i0, const int i1, const int i2, 
+      REAL x0x1x2_inbounds[3], int i0i1i2_inbounds[3]) {
+
+  REAL const & dxx0 = d_params.dxx0;
+  REAL const & dxx1 = d_params.dxx1;
+  REAL const & dxx2 = d_params.dxx2;
+
+  int const & Nxx_plus_2NGHOSTS0 = d_params.Nxx_plus_2NGHOSTS0;
+  int const & Nxx_plus_2NGHOSTS2 = d_params.Nxx_plus_2NGHOSTS1;
+  int const & Nxx_plus_2NGHOSTS1 = d_params.Nxx_plus_2NGHOSTS2;
 
   // This is a 3-step algorithm:
   // Step 1: (x0,x1,x2) -> (Cartx,Carty,Cartz)
@@ -57,9 +66,9 @@ static void EigenCoord_set_x0x1x2_inbounds__i0i1i2_inbounds_single_pt(const comm
   REAL xCart[3]; // where (x,y,z) is output
   {
     // xx_to_Cart for EigenCoordinate Spherical (orig coord = Spherical):
-    REAL xx0 = xx[0][i0];
-    REAL xx1 = xx[1][i1];
-    REAL xx2 = xx[2][i2];
+    REAL xx0 = _xx0[i0];
+    REAL xx1 = _xx1[i1];
+    REAL xx2 = _xx2[i2];
     /*
      *  Original SymPy expressions:
      *  "[xCart[0] = xx0*sin(xx1)*cos(xx2)]"
@@ -102,8 +111,9 @@ static void EigenCoord_set_x0x1x2_inbounds__i0i1i2_inbounds_single_pt(const comm
   // Next compute xxmin[i]. By definition,
   //    xx[i][j] = xxmin[i] + ((REAL)(j-NGHOSTS) + (1.0/2.0))*dxxi;
   // -> xxmin[i] = xx[i][0] - ((REAL)(0-NGHOSTS) + (1.0/2.0))*dxxi
-  const REAL xxmin[3] = {xx[0][0] - ((REAL)(0 - NGHOSTS) + (1.0 / 2.0)) * dxx0, xx[1][0] - ((REAL)(0 - NGHOSTS) + (1.0 / 2.0)) * dxx1,
-                         xx[2][0] - ((REAL)(0 - NGHOSTS) + (1.0 / 2.0)) * dxx2};
+  const REAL xxmin[3] = {_xx0[0] - ((REAL)(0 - NGHOSTS) + (1.0 / 2.0)) * dxx0, 
+                         _xx1[0] - ((REAL)(0 - NGHOSTS) + (1.0 / 2.0)) * dxx1,
+                         _xx2[0] - ((REAL)(0 - NGHOSTS) + (1.0 / 2.0)) * dxx2};
 
   // Finally compute i{0,1,2}_inbounds (add 0.5 to account for rounding down)
   const int i0_inbounds = (int)((Cart_to_xx0_inbounds - xxmin[0] - (1.0 / 2.0) * dxx0 + ((REAL)NGHOSTS) * dxx0) / dxx0 + 0.5);
@@ -120,9 +130,9 @@ static void EigenCoord_set_x0x1x2_inbounds__i0i1i2_inbounds_single_pt(const comm
   REAL xCart_from_xx, yCart_from_xx, zCart_from_xx;
   {
     // xx_to_Cart for Coordinate Spherical):
-    REAL xx0 = xx[0][i0];
-    REAL xx1 = xx[1][i1];
-    REAL xx2 = xx[2][i2];
+    REAL xx0 = _xx0[i0];
+    REAL xx1 = _xx1[i1];
+    REAL xx2 = _xx2[i2];
     /*
      *  Original SymPy expressions:
      *  "[xCart_from_xx = xx0*sin(xx1)*cos(xx2)]"
@@ -140,9 +150,10 @@ static void EigenCoord_set_x0x1x2_inbounds__i0i1i2_inbounds_single_pt(const comm
   REAL xCart_from_xx_inbounds, yCart_from_xx_inbounds, zCart_from_xx_inbounds;
   {
     // xx_to_Cart_inbounds for Coordinate Spherical):
-    REAL xx0 = xx[0][i0_inbounds];
-    REAL xx1 = xx[1][i1_inbounds];
-    REAL xx2 = xx[2][i2_inbounds];
+    REAL xx0 = _xx0[i0_inbounds];
+    REAL xx1 = _xx1[i1_inbounds];
+    REAL xx2 = _xx2[i2_inbounds];
+
     /*
      *  Original SymPy expressions:
      *  "[xCart_from_xx_inbounds = xx0*sin(xx1)*cos(xx2)]"
@@ -159,22 +170,22 @@ static void EigenCoord_set_x0x1x2_inbounds__i0i1i2_inbounds_single_pt(const comm
   //           they should be identical!!!
 #define EPS_REL 1e-8
   const REAL norm_factor = sqrt(xCart_from_xx * xCart_from_xx + yCart_from_xx * yCart_from_xx + zCart_from_xx * zCart_from_xx) + 1e-15;
-  if (fabs((double)(xCart_from_xx - xCart_from_xx_inbounds)) > EPS_REL * norm_factor ||
-      fabs((double)(yCart_from_xx - yCart_from_xx_inbounds)) > EPS_REL * norm_factor ||
-      fabs((double)(zCart_from_xx - zCart_from_xx_inbounds)) > EPS_REL * norm_factor) {
-    fprintf(stderr,
-            "Error in Spherical coordinate system: Inner boundary point does not map to grid interior point: ( %.15e %.15e %.15e ) != ( %.15e %.15e "
-            "%.15e ) | xx: %e %e %e -> %e %e %e | %d %d %d\n",
-            (double)xCart_from_xx, (double)yCart_from_xx, (double)zCart_from_xx, (double)xCart_from_xx_inbounds, (double)yCart_from_xx_inbounds,
-            (double)zCart_from_xx_inbounds, xx[0][i0], xx[1][i1], xx[2][i2], xx[0][i0_inbounds], xx[1][i1_inbounds], xx[2][i2_inbounds],
-            Nxx_plus_2NGHOSTS0, Nxx_plus_2NGHOSTS1, Nxx_plus_2NGHOSTS2);
-    exit(1);
-  }
+  // if (fabs((double)(xCart_from_xx - xCart_from_xx_inbounds)) > EPS_REL * norm_factor ||
+  //     fabs((double)(yCart_from_xx - yCart_from_xx_inbounds)) > EPS_REL * norm_factor ||
+  //     fabs((double)(zCart_from_xx - zCart_from_xx_inbounds)) > EPS_REL * norm_factor) {
+  //   fprintf(stderr,
+  //           "Error in Spherical coordinate system: Inner boundary point does not map to grid interior point: ( %.15e %.15e %.15e ) != ( %.15e %.15e "
+  //           "%.15e ) | xx: %e %e %e -> %e %e %e | %d %d %d\n",
+  //           (double)xCart_from_xx, (double)yCart_from_xx, (double)zCart_from_xx, (double)xCart_from_xx_inbounds, (double)yCart_from_xx_inbounds,
+  //           (double)zCart_from_xx_inbounds, _xx0[i0], _xx1[i1], _xx2[i2], _xx0[i0_inbounds], _xx1[i1_inbounds], _xx2[i2_inbounds],
+  //           Nxx_plus_2NGHOSTS0, Nxx_plus_2NGHOSTS1, Nxx_plus_2NGHOSTS2);
+  //   exit(1);
+  // }
 
   // Step 4: Set output arrays.
-  x0x1x2_inbounds[0] = xx[0][i0_inbounds];
-  x0x1x2_inbounds[1] = xx[1][i1_inbounds];
-  x0x1x2_inbounds[2] = xx[2][i2_inbounds];
+  x0x1x2_inbounds[0] = _xx0[i0_inbounds];
+  x0x1x2_inbounds[1] = _xx1[i1_inbounds];
+  x0x1x2_inbounds[2] = _xx2[i2_inbounds];
   i0i1i2_inbounds[0] = i0_inbounds;
   i0i1i2_inbounds[1] = i1_inbounds;
   i0i1i2_inbounds[2] = i2_inbounds;
@@ -323,8 +334,8 @@ static void set_parity_for_inner_boundary_single_pt(const commondata_struct *res
  * regardless of whether the point is an outer or inner point. However
  * the struct is set only at outer boundary points. This is slightly
  * wasteful, but only in memory, not in CPU.
- */
-void bcstruct_set_up__rfm__Spherical(const commondata_struct *restrict commondata, const params_struct *restrict params, REAL *restrict xx[3],
+
+void bcstruct_set_up__rfm__Spherical_old(const commondata_struct *restrict commondata, const params_struct *restrict params, REAL *restrict xx[3],
                                      bc_struct *restrict bcstruct) {
 #include "../set_CodeParameters.h"
 
@@ -513,9 +524,9 @@ void bcstruct_set_up__rfm__Spherical(const commondata_struct *restrict commondat
       bcstruct->bc_info.num_pure_outer_boundary_points[which_gz][dirn] = idx2d;
     }
 }
-
+ */
 __global__
-void count_ib_points(uint * n_ib) {
+void count_ib_points(uint * n_ib, REAL *restrict _xx0, REAL *restrict _xx1, REAL *restrict _xx2) {
     
     // shared data between all warps
     // Assumes one block = 32 warps = 32 * 32 threads
@@ -555,19 +566,48 @@ void count_ib_points(uint * n_ib) {
     uint lane = tid % warpSize;
     // warpID = which warp am I in the block
     uint warpID = tid / warpSize;
+    
+    // Loop over bounds on both sides of x/y/z, at the same time
     int i0i1i2[3];
-    for(size_t i20 = tid2, i21 = tid2+NGHOSTS+Nxx2; i20 < NGHOSTS, i21 < Nxx_plus_2NGHOSTS2; i20 += stride2, i21 += stride2) {
-      for(size_t i10 = tid1, i11 = tid1+NGHOSTS+Nxx1; i10 < NGHOSTS, i11 < Nxx_plus_2NGHOSTS1; i10 += stride1, i11 += stride1) {
-        for(size_t i00 = tid0, i01 = tid0+NGHOSTS+Nxx0; i00 < NGHOSTS, i01 < Nxx_plus_2NGHOSTS0; i00 += stride0, i01 += stride0) {
+    // for(size_t i20 = tid2, i21 = tid2+NGHOSTS+Nxx2; i20 < NGHOSTS, i21 < Nxx_plus_2NGHOSTS2; i20 += stride2, i21 += stride2) {
+    //   for(size_t i10 = tid1, i11 = tid1+NGHOSTS+Nxx1; i10 < NGHOSTS, i11 < Nxx_plus_2NGHOSTS1; i10 += stride1, i11 += stride1) {
+    //     for(size_t i00 = tid0, i01 = tid0+NGHOSTS+Nxx0; i00 < NGHOSTS, i01 < Nxx_plus_2NGHOSTS0; i00 += stride0, i01 += stride0) {
+    for(size_t i2 = tid2; i2 < Nxx_plus_2NGHOSTS2; i2 += stride2) {
+      for(size_t i1 = tid1; i1 < Nxx_plus_2NGHOSTS1; i1 += stride1) {
+        for(size_t i0 = tid0; i0 < Nxx_plus_2NGHOSTS0; i0 += stride0) {
+          // Initialize
           REAL x0x1x2_inbounds[3] = {0,0,0};
           int i0i1i2_inbounds[3] = {0,0,0};
-          i0i1i2[0]=i00; i0i1i2[1]=i10; i0i1i2[2]=i20;
-
-          // EigenCoord_set_x0x1x2_inbounds__i0i1i2_inbounds_single_pt(commondata, params, xx, i0, i1, i2, x0x1x2_inbounds, i0i1i2_inbounds);
-          bool pure_boundary_point = i00 == i0i1i2_inbounds[0] && i10 == i0i1i2_inbounds[1] && i20 == i0i1i2_inbounds[2];
+          // Assign lower ghost zone boundary points
+          i0i1i2[0]=i0; i0i1i2[1]=i1; i0i1i2[2]=i2;
+          bool is_in_interior = IS_IN_GRID_INTERIOR(i0i1i2, Nxx_plus_2NGHOSTS0, Nxx_plus_2NGHOSTS1, Nxx_plus_2NGHOSTS2, NGHOSTS);
+          if(!is_in_interior) {
+          EigenCoord_set_x0x1x2_inbounds__i0i1i2_inbounds_single_pt(
+            _xx0, _xx1, _xx2, i0, i1, i2, x0x1x2_inbounds, i0i1i2_inbounds);
+          bool pure_boundary_point = \
+            (i0 == i0i1i2_inbounds[0]) && \
+            (i1 == i0i1i2_inbounds[1]) && \
+            (i2 == i0i1i2_inbounds[2]);
           if(!pure_boundary_point) {
             local_ib_points++;
-          }          
+          }}
+
+          // // Reset
+          // for(size_t j = 0; j < 3; ++j) {
+          //   x0x1x2_inbounds[j]=0;
+          //   i0i1i2_inbounds[j]=0;
+          // }
+          // // Assign upper ghost zone boundary points
+          // i0i1i2[0]=i01; i0i1i2[1]=i11; i0i1i2[2]=i21;
+          // EigenCoord_set_x0x1x2_inbounds__i0i1i2_inbounds_single_pt(
+          //   _xx0, _xx1, _xx2, i01, i11, i21, x0x1x2_inbounds, i0i1i2_inbounds);
+          // pure_boundary_point = \
+          //   (i01 == i0i1i2_inbounds[0]) && \
+          //   (i11 == i0i1i2_inbounds[1]) && \
+          //   (i21 == i0i1i2_inbounds[2]);
+          // if(!pure_boundary_point) {
+          //   local_ib_points++;
+          // }
         }
       }
     }
@@ -614,20 +654,35 @@ void bcstruct_set_up__rfm__Spherical_gpu(REAL *restrict _xx0, REAL *restrict _xx
 }
 
 __host__
-[[nodiscard]] uint compute_num_inner(const commondata_struct *restrict commondata, const params_struct * params, REAL * xx[3]) {
-  [[maybe_unused]] int const & Nxx_plus_2NGHOSTS0 = params->Nxx_plus_2NGHOSTS0;
-  [[maybe_unused]] int const & Nxx_plus_2NGHOSTS1 = params->Nxx_plus_2NGHOSTS1;
-  [[maybe_unused]] int const & Nxx_plus_2NGHOSTS2 = params->Nxx_plus_2NGHOSTS2;
+[[nodiscard]] uint compute_num_inner(REAL * xx[3], const params_struct * params) {
   
-  uint num_inner = 0;
+  uint num_inner=0;
   uint* num_inner_gpu;
   cudaMalloc(&num_inner_gpu, sizeof(uint));
+  cudaCheckErrors(countMalloc, "memory failure")
+  cudaMemcpy(num_inner_gpu, &num_inner, sizeof(uint), cudaMemcpyHostToDevice);
+  cudaCheckErrors(cpy, "memory failure")
 
+  // We're only interested in the ghost zones
+  // size_t total_ghosts = (2. * NGHOSTS);
+  int const & Nxx_plus_2NGHOSTS0 = params->Nxx_plus_2NGHOSTS0;
+  int const & Nxx_plus_2NGHOSTS1 = params->Nxx_plus_2NGHOSTS1;
+  int const & Nxx_plus_2NGHOSTS2 = params->Nxx_plus_2NGHOSTS2;
+  size_t N = Nxx_plus_2NGHOSTS0 * Nxx_plus_2NGHOSTS1 * Nxx_plus_2NGHOSTS2;
+
+  size_t block_threads = MIN(MAX(N,32), 1024)/2;
+  size_t grids = (N + block_threads - 1)/block_threads;
+  printf("%u - %u\n", grids, block_threads);
+  count_ib_points<<<grids, block_threads>>>(num_inner_gpu, xx[0], xx[1], xx[2]);
+  cudaCheckErrors(count_ib_points, "kernel failure")
+  cudaMemcpy(&num_inner, num_inner_gpu, sizeof(uint), cudaMemcpyDeviceToHost);
+  cudaCheckErrors(cudaMemcpy, "copy failure")
   return num_inner;
 }
 
 void bcstruct_set_up__rfm__Spherical(const commondata_struct *restrict commondata, const params_struct * params, REAL * xx[3], bc_struct *restrict bcstruct) {
 
-
-  uint num_inner = 0;
+  cudaDeviceSynchronize();
+  uint num_inner = compute_num_inner(xx, params);
+  printf("N inner: %u\n", num_inner);
 }
