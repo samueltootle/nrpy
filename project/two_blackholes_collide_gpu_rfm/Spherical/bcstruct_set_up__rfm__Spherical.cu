@@ -652,6 +652,107 @@ __host__
 }
 
 __global__
+void set_pure_outer_bc_array_gpu(int const which_gz, uint * idx2d, 
+  outerpt_bc_struct **  pure_outer_bc_array,
+    REAL *restrict _xx0, REAL *restrict _xx1, REAL *restrict _xx2,
+      int i0min, int i0max, int i1min, int i1max, int i2min, int i2max,
+          const int face, const int dirn) {
+    
+    // shared data between all warps
+    // Assumes one block = 32 warps = 32 * 32 threads
+    // As of today, the standard maximum threads per
+    // block is 1024 = 32 * 32
+    __shared__ uint shared_data[32];
+
+    const int FACEX0 = (face == 0) - (face == 1); // +1 if face==0 ; -1 if face==1. Otherwise 0.
+    const int FACEX1 = (face == 2) - (face == 3); // +1 if face==2 ; -1 if face==3. Otherwise 0.
+    const int FACEX2 = (face == 4) - (face == 5); // +1 if face==4 ; -1 if face==5. Otherwise 0.
+
+    int const & Nxx_plus_2NGHOSTS0 = d_params.Nxx_plus_2NGHOSTS0;
+    int const & Nxx_plus_2NGHOSTS1 = d_params.Nxx_plus_2NGHOSTS1;
+    int const & Nxx_plus_2NGHOSTS2 = d_params.Nxx_plus_2NGHOSTS2;
+
+    int const & Nxx0 = d_params.Nxx0;
+    int const & Nxx1 = d_params.Nxx1;
+    int const & Nxx2 = d_params.Nxx2;
+
+    // Global data index - expecting a 1D dataset
+    // Thread indices
+    const int tid0 = threadIdx.x + blockIdx.x*blockDim.x;
+    const int tid1 = 0; //threadIdx.y + blockIdx.y*blockDim.y;
+    const int tid2 = 0; //threadIdx.z + blockIdx.z*blockDim.z;
+    // Thread strides
+    const int stride0 = blockDim.x * gridDim.x;
+    const int stride1 = 1; //blockDim.y * gridDim.y;
+    const int stride2 = 1; //blockDim.z * gridDim.z;
+
+    // thread index
+    uint tid = threadIdx.x + threadIdx.y * blockDim.x + threadIdx.z * blockDim.x * blockDim.y;
+
+    // // warp mask - says all threads are involved in shuffle
+    // // 0xFFFFFFFFU in binary is 32 1's.
+    unsigned mask = 0xFFFFFFFFU;
+
+    // lane = which thread am I in the warp
+    uint lane = tid % warpSize;
+    // warpID = which warp am I in the block
+    uint warpID = tid / warpSize;
+#define IDX2D_BCS(i0, i0min, i0max, i1, i1min, i1max, i2, i2min, i2max)                                                                              \
+  (((i0) - (i0min)) + ((i0max) - (i0min)) * (((i1) - (i1min)) + ((i1max) - (i1min)) * ((i2) - (i2min))))
+    for(size_t i2 = tid2+i2min; i2 < i2max; i2 += stride2) {
+      for(size_t i1 = tid1+i1min; i1 < i1max; i1 += stride1) {
+        for(size_t i0 = tid0+i0min; i0 < i0max; i0 += stride0) {
+          // Initialize
+          REAL x0x1x2_inbounds[3] = {0,0,0};
+          int i0i1i2_inbounds[3] = {0,0,0};
+                          
+          EigenCoord_set_x0x1x2_inbounds__i0i1i2_inbounds_single_pt(
+            _xx0, _xx1, _xx2, i0, i1, i2, x0x1x2_inbounds, i0i1i2_inbounds);
+          bool pure_boundary_point = \
+            (i0 == i0i1i2_inbounds[0]) && \
+            (i1 == i0i1i2_inbounds[1]) && \
+            (i2 == i0i1i2_inbounds[2]);
+          if(pure_boundary_point) {
+            int const idx = *idx2d;
+            pure_outer_bc_array[dirn + (3 * which_gz)][idx].i0 = i0;
+            pure_outer_bc_array[dirn + (3 * which_gz)][idx].i1 = i1;
+            pure_outer_bc_array[dirn + (3 * which_gz)][idx].i2 = i2;
+            pure_outer_bc_array[dirn + (3 * which_gz)][idx].FACEX0 = FACEX0;
+            pure_outer_bc_array[dirn + (3 * which_gz)][idx].FACEX1 = FACEX1;
+            pure_outer_bc_array[dirn + (3 * which_gz)][idx].FACEX2 = FACEX2;
+            *idx2d += 1;
+          }
+        }
+      }
+    }
+}
+
+__host__
+[[nodiscard]] uint set_pure_outer_bc_array(REAL * xx[3], const params_struct * params, uint current_idx2d = 0) {
+  uint* idx2d_gpu;
+  cudaMalloc(&idx2d_gpu, sizeof(uint));
+  cudaCheckErrors(countMalloc, "memory failure")
+  cudaMemcpy(idx2d_gpu, &current_idx2d, sizeof(uint), cudaMemcpyHostToDevice);
+  cudaCheckErrors(cpy, "memory failure")
+
+  // We're only interested in the ghost zones
+  // size_t total_ghosts = (2. * NGHOSTS);
+  int const & Nxx_plus_2NGHOSTS0 = params->Nxx_plus_2NGHOSTS0;
+  int const & Nxx_plus_2NGHOSTS1 = params->Nxx_plus_2NGHOSTS1;
+  int const & Nxx_plus_2NGHOSTS2 = params->Nxx_plus_2NGHOSTS2;
+  size_t N = Nxx_plus_2NGHOSTS0 * Nxx_plus_2NGHOSTS1 * Nxx_plus_2NGHOSTS2;
+
+  size_t block_threads = 32;
+  size_t grids = 1;
+  
+  // count_ib_points<<<grids, block_threads>>>(idx2d_gpu, xx[0], xx[1], xx[2]);
+  // cudaCheckErrors(count_ib_points, "kernel failure")
+  // cudaMemcpy(&idx2d, idx2d_gpu, sizeof(uint), cudaMemcpyDeviceToHost);
+  // cudaCheckErrors(cudaMemcpy, "copy failure")
+  return current_idx2d;
+}
+
+__global__
 void set_inner_bc_array(innerpt_bc_struct *restrict inner_bc_array, REAL *restrict _xx0, REAL *restrict _xx1, REAL *restrict _xx2){
     // shared data between all warps
     // Assumes one block = 32 warps = 32 * 32 threads
@@ -815,5 +916,59 @@ for (int which_gz = 0; which_gz < NGHOSTS; which_gz++) {
     }
     face++;
     ////////////////////////
+  }
+  for (int which_gz = 0; which_gz < NGHOSTS; which_gz++) {
+    for (int dirn = 0; dirn < 3; dirn++) {
+      int idx2d = 0;
+      // LOWER FACE: dirn=0 -> x0min; dirn=1 -> x1min; dirn=2 -> x2min
+      {
+        const int face = dirn * 2;
+#define IDX2D_BCS(i0, i0min, i0max, i1, i1min, i1max, i2, i2min, i2max)                                                                              \
+  (((i0) - (i0min)) + ((i0max) - (i0min)) * (((i1) - (i1min)) + ((i1max) - (i1min)) * ((i2) - (i2min))))
+        const int FACEX0 = (face == 0) - (face == 1); // +1 if face==0 (x0min) ; -1 if face==1 (x0max). Otherwise 0.
+        const int FACEX1 = (face == 2) - (face == 3); // +1 if face==2 (x1min) ; -1 if face==3 (x1max). Otherwise 0.
+        const int FACEX2 = (face == 4) - (face == 5); // +1 if face==4 (x2min) ; -1 if face==5 (x2max). Otherwise 0.
+        LOOP_NOOMP(i0, bcstruct->bc_info.bc_loop_bounds[which_gz][face][0], bcstruct->bc_info.bc_loop_bounds[which_gz][face][1], i1,
+                   bcstruct->bc_info.bc_loop_bounds[which_gz][face][2], bcstruct->bc_info.bc_loop_bounds[which_gz][face][3], i2,
+                   bcstruct->bc_info.bc_loop_bounds[which_gz][face][4], bcstruct->bc_info.bc_loop_bounds[which_gz][face][5]) {
+          REAL x0x1x2_inbounds[3];
+          int i0i1i2_inbounds[3];
+          // EigenCoord_set_x0x1x2_inbounds__i0i1i2_inbounds_single_pt(commondata, params, xx, i0, i1, i2, x0x1x2_inbounds, i0i1i2_inbounds);
+          // if (i0 == i0i1i2_inbounds[0] && i1 == i0i1i2_inbounds[1] && i2 == i0i1i2_inbounds[2]) {
+            // bcstruct->pure_outer_bc_array[dirn + (3 * which_gz)][idx2d].i0 = i0;
+          //   bcstruct->pure_outer_bc_array[dirn + (3 * which_gz)][idx2d].i1 = i1;
+          //   bcstruct->pure_outer_bc_array[dirn + (3 * which_gz)][idx2d].i2 = i2;
+          //   bcstruct->pure_outer_bc_array[dirn + (3 * which_gz)][idx2d].FACEX0 = FACEX0;
+          //   bcstruct->pure_outer_bc_array[dirn + (3 * which_gz)][idx2d].FACEX1 = FACEX1;
+          //   bcstruct->pure_outer_bc_array[dirn + (3 * which_gz)][idx2d].FACEX2 = FACEX2;
+          //   idx2d++;
+          // }
+        }
+      }
+      // // UPPER FACE: dirn=0 -> x0max; dirn=1 -> x1max; dirn=2 -> x2max
+      // {
+      //   const int face = dirn * 2 + 1;
+      //   const int FACEX0 = (face == 0) - (face == 1); // +1 if face==0 ; -1 if face==1. Otherwise 0.
+      //   const int FACEX1 = (face == 2) - (face == 3); // +1 if face==2 ; -1 if face==3. Otherwise 0.
+      //   const int FACEX2 = (face == 4) - (face == 5); // +1 if face==4 ; -1 if face==5. Otherwise 0.
+      //   LOOP_NOOMP(i0, bcstruct->bc_info.bc_loop_bounds[which_gz][face][0], bcstruct->bc_info.bc_loop_bounds[which_gz][face][1], i1,
+      //              bcstruct->bc_info.bc_loop_bounds[which_gz][face][2], bcstruct->bc_info.bc_loop_bounds[which_gz][face][3], i2,
+      //              bcstruct->bc_info.bc_loop_bounds[which_gz][face][4], bcstruct->bc_info.bc_loop_bounds[which_gz][face][5]) {
+      //     REAL x0x1x2_inbounds[3];
+      //     int i0i1i2_inbounds[3];
+      //     EigenCoord_set_x0x1x2_inbounds__i0i1i2_inbounds_single_pt(commondata, params, xx, i0, i1, i2, x0x1x2_inbounds, i0i1i2_inbounds);
+      //     if (i0 == i0i1i2_inbounds[0] && i1 == i0i1i2_inbounds[1] && i2 == i0i1i2_inbounds[2]) {
+      //       bcstruct->pure_outer_bc_array[dirn + (3 * which_gz)][idx2d].i0 = i0;
+      //       bcstruct->pure_outer_bc_array[dirn + (3 * which_gz)][idx2d].i1 = i1;
+      //       bcstruct->pure_outer_bc_array[dirn + (3 * which_gz)][idx2d].i2 = i2;
+      //       bcstruct->pure_outer_bc_array[dirn + (3 * which_gz)][idx2d].FACEX0 = FACEX0;
+      //       bcstruct->pure_outer_bc_array[dirn + (3 * which_gz)][idx2d].FACEX1 = FACEX1;
+      //       bcstruct->pure_outer_bc_array[dirn + (3 * which_gz)][idx2d].FACEX2 = FACEX2;
+      //       idx2d++;
+      //     }
+      //   }
+      // }
+      bcstruct->bc_info.num_pure_outer_boundary_points[which_gz][dirn] = idx2d;
+    }
   }
 }
