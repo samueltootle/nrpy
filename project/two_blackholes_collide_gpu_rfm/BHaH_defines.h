@@ -242,6 +242,8 @@ static const REAL gridfunctions_wavespeed[NUM_EVOL_GFS] = {
 //   "k" are separated by Nxx_plus_2NGHOSTS0*Nxx_plus_2NGHOSTS1 in memory, etc.
 #define IDX4(g, i, j, k) ((i) + Nxx_plus_2NGHOSTS0 * ((j) + Nxx_plus_2NGHOSTS1 * ((k) + Nxx_plus_2NGHOSTS2 * (g))))
 #define IDX4pt(g, idx) ((idx) + (Nxx_plus_2NGHOSTS0 * Nxx_plus_2NGHOSTS1 * Nxx_plus_2NGHOSTS2) * (g))
+#define IDX3INTERIOR(i,j,k) \
+  ( (i) + Nxx0 * ( (j) + Nxx1 * (k) ) )
 #define IDX3(i, j, k) ((i) + Nxx_plus_2NGHOSTS0 * ((j) + Nxx_plus_2NGHOSTS1 * ((k))))
 #define LOOP_REGION(i0min, i0max, i1min, i1max, i2min, i2max)                                                                                        \
   for (int i2 = i2min; i2 < i2max; i2++)                                                                                                             \
