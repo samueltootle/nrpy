@@ -729,5 +729,91 @@ void bcstruct_set_up__rfm__Spherical(const commondata_struct *restrict commondat
   // First set up loop bounds for outer boundary condition updates,
   //   store to bc_info->bc_loop_bounds[which_gz][face][]. Also
   //   allocate memory for outer_bc_array[which_gz][face][]:
+  int const& Nxx_plus_2NGHOSTS0 = params->Nxx_plus_2NGHOSTS0;
+  int const& Nxx_plus_2NGHOSTS1 = params->Nxx_plus_2NGHOSTS1;
+  int const& Nxx_plus_2NGHOSTS2 = params->Nxx_plus_2NGHOSTS2;
   
+  int imin[3] = {NGHOSTS, NGHOSTS, NGHOSTS};
+  int imax[3] = {Nxx_plus_2NGHOSTS0 - NGHOSTS, Nxx_plus_2NGHOSTS1 - NGHOSTS, Nxx_plus_2NGHOSTS2 - NGHOSTS};
+for (int which_gz = 0; which_gz < NGHOSTS; which_gz++) {
+    const int x0min_face_range[6] = {imin[0] - 1, imin[0], imin[1], imax[1], imin[2], imax[2]};
+    imin[0]--;
+    const int x0max_face_range[6] = {imax[0], imax[0] + 1, imin[1], imax[1], imin[2], imax[2]};
+    imax[0]++;
+    const int x1min_face_range[6] = {imin[0], imax[0], imin[1] - 1, imin[1], imin[2], imax[2]};
+    imin[1]--;
+    const int x1max_face_range[6] = {imin[0], imax[0], imax[1], imax[1] + 1, imin[2], imax[2]};
+    imax[1]++;
+    const int x2min_face_range[6] = {imin[0], imax[0], imin[1], imax[1], imin[2] - 1, imin[2]};
+    imin[2]--;
+    const int x2max_face_range[6] = {imin[0], imax[0], imin[1], imax[1], imax[2], imax[2] + 1};
+    imax[2]++;
+
+    int face = 0;
+    ////////////////////////
+    // x0min and x0max faces: Allocate memory for outer_bc_array and set bc_loop_bounds:
+    //                        Note that x0min and x0max faces have exactly the same size.
+    //                   Also, note that face/2 --v   offsets this factor of 2 ------------------------------------------v
+    cudaMalloc(&bcstruct->pure_outer_bc_array[3 * which_gz + face / 2], 
+               sizeof(outerpt_bc_struct) * 2 * (
+                (x0min_face_range[1] - x0min_face_range[0]) * 
+                (x0min_face_range[3] - x0min_face_range[2]) * 
+                (x0min_face_range[5] - x0min_face_range[4])
+    ));
+    // x0min face: Can't set bc_info->bc_loop_bounds[which_gz][face] = { i0min,i0max, ... } since it's not const :(
+    for (int i = 0; i < 6; i++) {
+      bcstruct->bc_info.bc_loop_bounds[which_gz][face][i] = x0min_face_range[i];
+    }
+    face++;
+    // x0max face: Set loop bounds & allocate memory for outer_bc_array:
+    for (int i = 0; i < 6; i++) {
+      bcstruct->bc_info.bc_loop_bounds[which_gz][face][i] = x0max_face_range[i];
+    }
+    face++;
+    ////////////////////////
+
+    ////////////////////////
+    // x1min and x1max faces: Allocate memory for outer_bc_array and set bc_loop_bounds:
+    //                        Note that x1min and x1max faces have exactly the same size.
+    //                   Also, note that face/2 --v   offsets this factor of 2 ------------------------------------------v
+    cudaMalloc(&bcstruct->pure_outer_bc_array[3 * which_gz + face / 2],
+               sizeof(outerpt_bc_struct) * 2 * (
+                (x1min_face_range[1] - x1min_face_range[0]) * 
+                (x1min_face_range[3] - x1min_face_range[2]) * 
+                (x1min_face_range[5] - x1min_face_range[4])
+    ));
+    // x1min face: Can't set bc_info->bc_loop_bounds[which_gz][face] = { i0min,i0max, ... } since it's not const :(
+    for (int i = 0; i < 6; i++) {
+      bcstruct->bc_info.bc_loop_bounds[which_gz][face][i] = x1min_face_range[i];
+    }
+    face++;
+    // x1max face: Set loop bounds & allocate memory for outer_bc_array:
+    for (int i = 0; i < 6; i++) {
+      bcstruct->bc_info.bc_loop_bounds[which_gz][face][i] = x1max_face_range[i];
+    }
+    face++;
+    ////////////////////////
+
+    ////////////////////////
+    // x2min and x2max faces: Allocate memory for outer_bc_array and set bc_loop_bounds:
+    //                        Note that x2min and x2max faces have exactly the same size.
+    //                   Also, note that face/2 --v   offsets this factor of 2 ------------------------------------------v
+    cudaMalloc(&bcstruct->pure_outer_bc_array[3 * which_gz + face / 2],
+               sizeof(outerpt_bc_struct) * 2 * (
+                (x2min_face_range[1] - x2min_face_range[0]) * 
+                (x2min_face_range[3] - x2min_face_range[2]) * 
+                (x2min_face_range[5] - x2min_face_range[4])
+    ));
+    // x2min face: Can't set bc_info->bc_loop_bounds[which_gz][face] = { i0min,i0max, ... } since it's not const :(
+    for (int i = 0; i < 6; i++) {
+      bcstruct->bc_info.bc_loop_bounds[which_gz][face][i] = x2min_face_range[i];
+    }
+    face++;
+    // x2max face: Set loop bounds & allocate memory for outer_bc_array:
+    for (int i = 0; i < 6; i++) {
+      bcstruct->bc_info.bc_loop_bounds[which_gz][face][i] = x2max_face_range[i];
+    }
+    face++;
+    ////////////////////////
+  }
 }
