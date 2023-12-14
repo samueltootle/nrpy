@@ -449,70 +449,70 @@ static void initial_data_lambdaU_grid_interior(const commondata_struct *restrict
  * Read ADM data in the Cartesian basis, and output rescaled BSSN data in the Spherical basis
  */
 void initial_data_reader__convert_ADM_Cartesian_to_BSSN__rfm__Spherical(
-    const commondata_struct *restrict commondata, const params_struct *restrict params, REAL *restrict xx[3], bc_struct *restrict bcstruct,
+    const commondata_struct *restrict commondata, const params_struct *restrict params, REAL * xx[3], bc_struct *restrict bcstruct,
     MoL_gridfunctions_struct *restrict gridfuncs, ID_persist_struct *restrict ID_persist,
     void ID_function(const commondata_struct *restrict commondata, const params_struct *restrict params, const REAL xCart[3],
                      const ID_persist_struct *restrict ID_persist, initial_data_struct *restrict initial_data)) {
 
-  const int Nxx_plus_2NGHOSTS0 = params->Nxx_plus_2NGHOSTS0;
-  const int Nxx_plus_2NGHOSTS1 = params->Nxx_plus_2NGHOSTS1;
-  const int Nxx_plus_2NGHOSTS2 = params->Nxx_plus_2NGHOSTS2;
+  // const int Nxx_plus_2NGHOSTS0 = params->Nxx_plus_2NGHOSTS0;
+  // const int Nxx_plus_2NGHOSTS1 = params->Nxx_plus_2NGHOSTS1;
+  // const int Nxx_plus_2NGHOSTS2 = params->Nxx_plus_2NGHOSTS2;
 
-  LOOP_OMP("omp parallel for", i0, 0, Nxx_plus_2NGHOSTS0, i1, 0, Nxx_plus_2NGHOSTS1, i2, 0, Nxx_plus_2NGHOSTS2) {
-    // xCart is the global Cartesian coordinate, which accounts for any grid offsets from the origin.
-    REAL xCart[3];
-    xx_to_Cart(commondata, params, xx, i0, i1, i2, xCart);
+  // LOOP_OMP("omp parallel for", i0, 0, Nxx_plus_2NGHOSTS0, i1, 0, Nxx_plus_2NGHOSTS1, i2, 0, Nxx_plus_2NGHOSTS2) {
+  //   // xCart is the global Cartesian coordinate, which accounts for any grid offsets from the origin.
+  //   REAL xCart[3];
+  //   xx_to_Cart(commondata, params, xx, i0, i1, i2, xCart);
 
-    // Read or compute initial data at destination point xCart
-    initial_data_struct initial_data;
-    ID_function(commondata, params, xCart, ID_persist, &initial_data);
+  //   // Read or compute initial data at destination point xCart
+  //   initial_data_struct initial_data;
+  //   ID_function(commondata, params, xCart, ID_persist, &initial_data);
 
-    ADM_Cart_basis_struct ADM_Cart_basis;
-    ADM_SphorCart_to_Cart(commondata, params, xCart, &initial_data, &ADM_Cart_basis);
+  //   ADM_Cart_basis_struct ADM_Cart_basis;
+  //   ADM_SphorCart_to_Cart(commondata, params, xCart, &initial_data, &ADM_Cart_basis);
 
-    BSSN_Cart_basis_struct BSSN_Cart_basis;
-    ADM_Cart_to_BSSN_Cart(commondata, params, xCart, &ADM_Cart_basis, &BSSN_Cart_basis);
+  //   BSSN_Cart_basis_struct BSSN_Cart_basis;
+  //   ADM_Cart_to_BSSN_Cart(commondata, params, xCart, &ADM_Cart_basis, &BSSN_Cart_basis);
 
-    rescaled_BSSN_rfm_basis_struct rescaled_BSSN_rfm_basis;
-    BSSN_Cart_to_rescaled_BSSN_rfm(commondata, params, xCart, &BSSN_Cart_basis, &rescaled_BSSN_rfm_basis);
+  //   rescaled_BSSN_rfm_basis_struct rescaled_BSSN_rfm_basis;
+  //   BSSN_Cart_to_rescaled_BSSN_rfm(commondata, params, xCart, &BSSN_Cart_basis, &rescaled_BSSN_rfm_basis);
 
-    const int idx3 = IDX3(i0, i1, i2);
-    gridfuncs->y_n_gfs[IDX4pt(ADD00GF, idx3)] = rescaled_BSSN_rfm_basis.aDD00;
-    gridfuncs->y_n_gfs[IDX4pt(ADD01GF, idx3)] = rescaled_BSSN_rfm_basis.aDD01;
-    gridfuncs->y_n_gfs[IDX4pt(ADD02GF, idx3)] = rescaled_BSSN_rfm_basis.aDD02;
-    gridfuncs->y_n_gfs[IDX4pt(ADD11GF, idx3)] = rescaled_BSSN_rfm_basis.aDD11;
-    gridfuncs->y_n_gfs[IDX4pt(ADD12GF, idx3)] = rescaled_BSSN_rfm_basis.aDD12;
-    gridfuncs->y_n_gfs[IDX4pt(ADD22GF, idx3)] = rescaled_BSSN_rfm_basis.aDD22;
-    gridfuncs->y_n_gfs[IDX4pt(ALPHAGF, idx3)] = rescaled_BSSN_rfm_basis.alpha;
-    gridfuncs->y_n_gfs[IDX4pt(BETU0GF, idx3)] = rescaled_BSSN_rfm_basis.betU0;
-    gridfuncs->y_n_gfs[IDX4pt(BETU1GF, idx3)] = rescaled_BSSN_rfm_basis.betU1;
-    gridfuncs->y_n_gfs[IDX4pt(BETU2GF, idx3)] = rescaled_BSSN_rfm_basis.betU2;
-    gridfuncs->y_n_gfs[IDX4pt(CFGF, idx3)] = rescaled_BSSN_rfm_basis.cf;
-    gridfuncs->y_n_gfs[IDX4pt(HDD00GF, idx3)] = rescaled_BSSN_rfm_basis.hDD00;
-    gridfuncs->y_n_gfs[IDX4pt(HDD01GF, idx3)] = rescaled_BSSN_rfm_basis.hDD01;
-    gridfuncs->y_n_gfs[IDX4pt(HDD02GF, idx3)] = rescaled_BSSN_rfm_basis.hDD02;
-    gridfuncs->y_n_gfs[IDX4pt(HDD11GF, idx3)] = rescaled_BSSN_rfm_basis.hDD11;
-    gridfuncs->y_n_gfs[IDX4pt(HDD12GF, idx3)] = rescaled_BSSN_rfm_basis.hDD12;
-    gridfuncs->y_n_gfs[IDX4pt(HDD22GF, idx3)] = rescaled_BSSN_rfm_basis.hDD22;
-    gridfuncs->y_n_gfs[IDX4pt(TRKGF, idx3)] = rescaled_BSSN_rfm_basis.trK;
-    gridfuncs->y_n_gfs[IDX4pt(VETU0GF, idx3)] = rescaled_BSSN_rfm_basis.vetU0;
-    gridfuncs->y_n_gfs[IDX4pt(VETU1GF, idx3)] = rescaled_BSSN_rfm_basis.vetU1;
-    gridfuncs->y_n_gfs[IDX4pt(VETU2GF, idx3)] = rescaled_BSSN_rfm_basis.vetU2;
+  //   const int idx3 = IDX3(i0, i1, i2);
+  //   gridfuncs->y_n_gfs[IDX4pt(ADD00GF, idx3)] = rescaled_BSSN_rfm_basis.aDD00;
+  //   gridfuncs->y_n_gfs[IDX4pt(ADD01GF, idx3)] = rescaled_BSSN_rfm_basis.aDD01;
+  //   gridfuncs->y_n_gfs[IDX4pt(ADD02GF, idx3)] = rescaled_BSSN_rfm_basis.aDD02;
+  //   gridfuncs->y_n_gfs[IDX4pt(ADD11GF, idx3)] = rescaled_BSSN_rfm_basis.aDD11;
+  //   gridfuncs->y_n_gfs[IDX4pt(ADD12GF, idx3)] = rescaled_BSSN_rfm_basis.aDD12;
+  //   gridfuncs->y_n_gfs[IDX4pt(ADD22GF, idx3)] = rescaled_BSSN_rfm_basis.aDD22;
+  //   gridfuncs->y_n_gfs[IDX4pt(ALPHAGF, idx3)] = rescaled_BSSN_rfm_basis.alpha;
+  //   gridfuncs->y_n_gfs[IDX4pt(BETU0GF, idx3)] = rescaled_BSSN_rfm_basis.betU0;
+  //   gridfuncs->y_n_gfs[IDX4pt(BETU1GF, idx3)] = rescaled_BSSN_rfm_basis.betU1;
+  //   gridfuncs->y_n_gfs[IDX4pt(BETU2GF, idx3)] = rescaled_BSSN_rfm_basis.betU2;
+  //   gridfuncs->y_n_gfs[IDX4pt(CFGF, idx3)] = rescaled_BSSN_rfm_basis.cf;
+  //   gridfuncs->y_n_gfs[IDX4pt(HDD00GF, idx3)] = rescaled_BSSN_rfm_basis.hDD00;
+  //   gridfuncs->y_n_gfs[IDX4pt(HDD01GF, idx3)] = rescaled_BSSN_rfm_basis.hDD01;
+  //   gridfuncs->y_n_gfs[IDX4pt(HDD02GF, idx3)] = rescaled_BSSN_rfm_basis.hDD02;
+  //   gridfuncs->y_n_gfs[IDX4pt(HDD11GF, idx3)] = rescaled_BSSN_rfm_basis.hDD11;
+  //   gridfuncs->y_n_gfs[IDX4pt(HDD12GF, idx3)] = rescaled_BSSN_rfm_basis.hDD12;
+  //   gridfuncs->y_n_gfs[IDX4pt(HDD22GF, idx3)] = rescaled_BSSN_rfm_basis.hDD22;
+  //   gridfuncs->y_n_gfs[IDX4pt(TRKGF, idx3)] = rescaled_BSSN_rfm_basis.trK;
+  //   gridfuncs->y_n_gfs[IDX4pt(VETU0GF, idx3)] = rescaled_BSSN_rfm_basis.vetU0;
+  //   gridfuncs->y_n_gfs[IDX4pt(VETU1GF, idx3)] = rescaled_BSSN_rfm_basis.vetU1;
+  //   gridfuncs->y_n_gfs[IDX4pt(VETU2GF, idx3)] = rescaled_BSSN_rfm_basis.vetU2;
 
-    // Initialize lambdaU to zero
-    gridfuncs->y_n_gfs[IDX4pt(LAMBDAU0GF, idx3)] = 0.0;
-    gridfuncs->y_n_gfs[IDX4pt(LAMBDAU1GF, idx3)] = 0.0;
-    gridfuncs->y_n_gfs[IDX4pt(LAMBDAU2GF, idx3)] = 0.0;
-  } // END LOOP over all gridpoints on given grid
+  //   // Initialize lambdaU to zero
+  //   gridfuncs->y_n_gfs[IDX4pt(LAMBDAU0GF, idx3)] = 0.0;
+  //   gridfuncs->y_n_gfs[IDX4pt(LAMBDAU1GF, idx3)] = 0.0;
+  //   gridfuncs->y_n_gfs[IDX4pt(LAMBDAU2GF, idx3)] = 0.0;
+  // } // END LOOP over all gridpoints on given grid
 
-  // Now we've set all but lambda^i, which will be computed via a finite-difference of hDD.
-  //    However, hDD is not correctly set in inner boundary points so we apply inner bcs first.
+  // // Now we've set all but lambda^i, which will be computed via a finite-difference of hDD.
+  // //    However, hDD is not correctly set in inner boundary points so we apply inner bcs first.
 
-  // Apply inner bcs to get correct values of all tensor quantities across symmetry boundaries;
-  //    BSSN_Cart_to_rescaled_BSSN_rfm() converts each xCart->xx, which guarantees a mapping
-  //    to the grid interior. It therefore does not account for parity conditions across
-  //    symmetry boundaries being correct.
-  apply_bcs_inner_only(commondata, params, bcstruct, gridfuncs->y_n_gfs);
+  // // Apply inner bcs to get correct values of all tensor quantities across symmetry boundaries;
+  // //    BSSN_Cart_to_rescaled_BSSN_rfm() converts each xCart->xx, which guarantees a mapping
+  // //    to the grid interior. It therefore does not account for parity conditions across
+  // //    symmetry boundaries being correct.
+  // apply_bcs_inner_only(commondata, params, bcstruct, gridfuncs->y_n_gfs);
 
-  initial_data_lambdaU_grid_interior(commondata, params, xx, gridfuncs->y_n_gfs);
+  // initial_data_lambdaU_grid_interior(commondata, params, xx, gridfuncs->y_n_gfs);
 }

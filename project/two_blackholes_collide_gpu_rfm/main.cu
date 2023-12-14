@@ -54,8 +54,8 @@ int main(int argc, const char *argv[]) {
     MoL_malloc_y_n_gfs(&commondata, &griddata[grid].params, &griddata[grid].gridfuncs);
   }
 
-  // // Step 3: Finalize initialization: set up initial data, etc.
-  // initial_data(&commondata, griddata);
+  // Step 3: Finalize initialization: set up initial data, etc.
+  initial_data(&commondata, griddata);
 
   // // Step 4: Allocate storage for non-y_n gridfunctions, needed for the Runge-Kutta-like timestepping
   // for (int grid = 0; grid < commondata.NUMGRIDS; grid++)
