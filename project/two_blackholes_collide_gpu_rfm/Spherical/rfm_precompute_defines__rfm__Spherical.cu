@@ -46,9 +46,9 @@ void rfm_precompute_defines__rfm__Spherical_xx1__DD11_gpu(REAL *restrict f1_of_x
 void rfm_precompute_defines__rfm__Spherical(const commondata_struct *restrict commondata, const params_struct *restrict params,
                                             rfm_struct *restrict rfmstruct, REAL * xx[3]) {
 
-  int const& Nxx_plus_2NGHOSTS0 = params->Nxx_plus_2NGHOSTS0;
-  int const& Nxx_plus_2NGHOSTS1 = params->Nxx_plus_2NGHOSTS1;
-  int const& Nxx_plus_2NGHOSTS2 = params->Nxx_plus_2NGHOSTS2;
+  __attribute__((unused)) int const& Nxx_plus_2NGHOSTS0 = params->Nxx_plus_2NGHOSTS0;
+  __attribute__((unused)) int const& Nxx_plus_2NGHOSTS1 = params->Nxx_plus_2NGHOSTS1;
+  __attribute__((unused)) int const& Nxx_plus_2NGHOSTS2 = params->Nxx_plus_2NGHOSTS2;
   
   dim3 block_threads, grid_blocks;
   auto set_grid_block = [&block_threads, &grid_blocks](auto Nx) {
