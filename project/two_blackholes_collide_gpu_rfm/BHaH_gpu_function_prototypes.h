@@ -34,3 +34,12 @@ void set_param_constants(params_struct *restrict params);
 
 __global__
 void print_params();
+
+__device__
+void BrillLindquist(const commondata_struct * commondata, const REAL xCart[3], const ID_persist_struct *restrict ID_persist, initial_data_struct *restrict initial_data);
+
+__device__
+void xx_to_Cart(REAL *xx[3],const int i0,const int i1,const int i2, REAL xCart[3]);
+
+__device__
+void xx_to_Cart__rfm__Spherical(REAL *xx[3],const int i0,const int i1,const int i2, REAL xCart[3]);

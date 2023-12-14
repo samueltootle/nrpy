@@ -451,7 +451,7 @@ static void initial_data_lambdaU_grid_interior(const commondata_struct *restrict
 void initial_data_reader__convert_ADM_Cartesian_to_BSSN__rfm__Spherical(
     const commondata_struct *restrict commondata, const params_struct *restrict params, REAL * xx[3], bc_struct *restrict bcstruct,
     MoL_gridfunctions_struct *restrict gridfuncs, ID_persist_struct *restrict ID_persist,
-    void ID_function(const commondata_struct *restrict commondata, const params_struct *restrict params, const REAL xCart[3],
+    void ID_function(const commondata_struct *restrict commondata, const REAL xCart[3],
                      const ID_persist_struct *restrict ID_persist, initial_data_struct *restrict initial_data)) {
 
   // const int Nxx_plus_2NGHOSTS0 = params->Nxx_plus_2NGHOSTS0;

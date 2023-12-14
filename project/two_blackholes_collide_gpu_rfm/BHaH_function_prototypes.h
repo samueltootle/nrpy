@@ -1,5 +1,3 @@
-void BrillLindquist(const commondata_struct *restrict commondata, const params_struct *restrict params,
-    const REAL xCart[3], const ID_persist_struct *restrict ID_persist, initial_data_struct *restrict initial_data);
 void Cart_to_xx_and_nearest_i0i1i2(const commondata_struct *restrict commondata, const params_struct *restrict params, const REAL xCart[3], REAL xx[3], int Cart_to_i0i1i2[3]);
 void Cart_to_xx_and_nearest_i0i1i2__rfm__Spherical(const commondata_struct *restrict commondata, const params_struct *restrict params, const REAL xCart[3], REAL xx[3], int Cart_to_i0i1i2[3]);
 void CoordSystem_hash_setup(commondata_struct *restrict commondata, griddata_struct *restrict griddata);
@@ -47,13 +45,13 @@ void initial_data(commondata_struct *restrict commondata, griddata_struct *restr
 void initial_data_reader__convert_ADM_Cartesian_to_BSSN(const commondata_struct *restrict commondata, const params_struct *restrict params,
     REAL *xx[3], bc_struct *restrict bcstruct, MoL_gridfunctions_struct *restrict gridfuncs,
     ID_persist_struct *restrict ID_persist,
-    void ID_function(const commondata_struct *restrict commondata, const params_struct *restrict params, const REAL xCart[3],
+    void ID_function(const commondata_struct *restrict commondata, const REAL xCart[3],
                      const ID_persist_struct *restrict ID_persist,
                      initial_data_struct *restrict initial_data));
 void initial_data_reader__convert_ADM_Cartesian_to_BSSN__rfm__Spherical(const commondata_struct *restrict commondata, const params_struct *restrict params,
     REAL *xx[3], bc_struct *restrict bcstruct, MoL_gridfunctions_struct *restrict gridfuncs,
     ID_persist_struct *restrict ID_persist,
-    void ID_function(const commondata_struct *restrict commondata, const params_struct *restrict params, const REAL xCart[3],
+    void ID_function(const commondata_struct *restrict commondata, const REAL xCart[3],
                      const ID_persist_struct *restrict ID_persist,
                      initial_data_struct *restrict initial_data));
 int main(int argc, const char *argv[]);
@@ -70,5 +68,3 @@ void rfm_precompute_malloc(const commondata_struct *restrict commondata, const p
 void rfm_precompute_malloc__rfm__Spherical(const commondata_struct *restrict commondata, const params_struct *restrict params, rfm_struct *restrict rfmstruct);
 void rhs_eval(const commondata_struct *restrict commondata, const params_struct *restrict params, const rfm_struct *restrict rfmstruct, const REAL *restrict auxevol_gfs, const REAL *restrict in_gfs, REAL *restrict rhs_gfs);
 void rhs_eval__rfm__Spherical(const commondata_struct *restrict commondata, const params_struct *restrict params, const rfm_struct *restrict rfmstruct, const REAL *restrict auxevol_gfs, const REAL *restrict in_gfs, REAL *restrict rhs_gfs);
-void xx_to_Cart(const commondata_struct *restrict commondata, const params_struct *restrict params, REAL *xx[3],const int i0,const int i1,const int i2, REAL xCart[3]);
-void xx_to_Cart__rfm__Spherical(const commondata_struct *restrict commondata, const params_struct *restrict params, REAL *xx[3],const int i0,const int i1,const int i2, REAL xCart[3]);

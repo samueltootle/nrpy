@@ -1,11 +1,21 @@
 #include "BHaH_defines.h"
 #include "BHaH_function_prototypes.h"
+#include "BHaH_gpu_defines.h"
+#include "BHaH_gpu_function_prototypes.h"
 /*
  * BrillLindquist initial data
  */
-void BrillLindquist(const commondata_struct *restrict commondata, const params_struct *restrict params, const REAL xCart[3],
+void BrillLindquist(const commondata_struct *restrict commondata, const REAL xCart[3],
                     const ID_persist_struct *restrict ID_persist, initial_data_struct *restrict initial_data) {
-#include "set_CodeParameters.h"
+// #include "set_CodeParameters.h"
+  [[maybe_unused]] const REAL BH1_mass = commondata->BH1_mass;                     // nrpy.equations.general_relativity.InitialData_Cartesian::BH1_mass
+  [[maybe_unused]] const REAL BH1_posn_x = commondata->BH1_posn_x;                 // nrpy.equations.general_relativity.InitialData_Cartesian::BH1_posn_x
+  [[maybe_unused]] const REAL BH1_posn_y = commondata->BH1_posn_y;                 // nrpy.equations.general_relativity.InitialData_Cartesian::BH1_posn_y
+  [[maybe_unused]] const REAL BH1_posn_z = commondata->BH1_posn_z;                 // nrpy.equations.general_relativity.InitialData_Cartesian::BH1_posn_z
+  [[maybe_unused]] const REAL BH2_mass = commondata->BH2_mass;                     // nrpy.equations.general_relativity.InitialData_Cartesian::BH2_mass
+  [[maybe_unused]] const REAL BH2_posn_x = commondata->BH2_posn_x;                 // nrpy.equations.general_relativity.InitialData_Cartesian::BH2_posn_x
+  [[maybe_unused]] const REAL BH2_posn_y = commondata->BH2_posn_y;                 // nrpy.equations.general_relativity.InitialData_Cartesian::BH2_posn_y
+  [[maybe_unused]] const REAL BH2_posn_z = commondata->BH2_posn_z;                 // nrpy.equations.general_relativity.InitialData_Cartesian::BH2_posn_z
   const REAL x = xCart[0], y = xCart[1], z = xCart[2];
   const REAL tmp1 = -y;
   const REAL tmp3 =
