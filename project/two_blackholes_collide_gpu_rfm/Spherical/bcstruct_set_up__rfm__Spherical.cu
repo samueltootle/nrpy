@@ -37,10 +37,6 @@ void EigenCoord_set_x0x1x2_inbounds__i0i1i2_inbounds_single_pt(
   REAL const & dxx1 = d_params.dxx1;
   REAL const & dxx2 = d_params.dxx2;
 
-  int const & Nxx_plus_2NGHOSTS0 = d_params.Nxx_plus_2NGHOSTS0;
-  int const & Nxx_plus_2NGHOSTS2 = d_params.Nxx_plus_2NGHOSTS1;
-  int const & Nxx_plus_2NGHOSTS1 = d_params.Nxx_plus_2NGHOSTS2;
-
   // This is a 3-step algorithm:
   // Step 1: (x0,x1,x2) -> (Cartx,Carty,Cartz)
   //         Find the Cartesian coordinate that (x0,x1,x2)
@@ -147,7 +143,7 @@ void EigenCoord_set_x0x1x2_inbounds__i0i1i2_inbounds_single_pt(
 
   // Step 3.b: Compute {x,y,z}Cart_from_xx_inbounds, as a
   //           function of i0_inbounds,i1_inbounds,i2_inbounds
-  REAL xCart_from_xx_inbounds, yCart_from_xx_inbounds, zCart_from_xx_inbounds;
+  [[maybe_unused]] REAL xCart_from_xx_inbounds, yCart_from_xx_inbounds, zCart_from_xx_inbounds;
   {
     // xx_to_Cart_inbounds for Coordinate Spherical):
     REAL xx0 = _xx0[i0_inbounds];
@@ -287,10 +283,6 @@ void count_ib_points(uint * n_ib, REAL *restrict _xx0, REAL *restrict _xx1, REAL
     int const & Nxx_plus_2NGHOSTS1 = d_params.Nxx_plus_2NGHOSTS1;
     int const & Nxx_plus_2NGHOSTS2 = d_params.Nxx_plus_2NGHOSTS2;
 
-    int const & Nxx0 = d_params.Nxx0;
-    int const & Nxx1 = d_params.Nxx1;
-    int const & Nxx2 = d_params.Nxx2;
-
     // Global data index - expecting a 1D dataset
     // Thread indices
     const int tid0 = threadIdx.x + blockIdx.x*blockDim.x;
@@ -409,24 +401,10 @@ void set_pure_outer_bc_array_gpu(int const which_gz, uint * idx2d,
     REAL *restrict _xx0, REAL *restrict _xx1, REAL *restrict _xx2,
       int i0min, int i0max, int i1min, int i1max, int i2min, int i2max,
           const int face) {
-    
-    // shared data between all warps
-    // Assumes one block = 32 warps = 32 * 32 threads
-    // As of today, the standard maximum threads per
-    // block is 1024 = 32 * 32
-    __shared__ uint shared_data[32];
 
     const int FACEX0 = (face == 0) - (face == 1); // +1 if face==0 ; -1 if face==1. Otherwise 0.
     const int FACEX1 = (face == 2) - (face == 3); // +1 if face==2 ; -1 if face==3. Otherwise 0.
     const int FACEX2 = (face == 4) - (face == 5); // +1 if face==4 ; -1 if face==5. Otherwise 0.
-
-    int const & Nxx_plus_2NGHOSTS0 = d_params.Nxx_plus_2NGHOSTS0;
-    int const & Nxx_plus_2NGHOSTS1 = d_params.Nxx_plus_2NGHOSTS1;
-    int const & Nxx_plus_2NGHOSTS2 = d_params.Nxx_plus_2NGHOSTS2;
-
-    int const & Nxx0 = d_params.Nxx0;
-    int const & Nxx1 = d_params.Nxx1;
-    int const & Nxx2 = d_params.Nxx2;
 
     // Global data index - expecting a 1D dataset
     // Thread indices
@@ -438,19 +416,6 @@ void set_pure_outer_bc_array_gpu(int const which_gz, uint * idx2d,
     const int stride1 = 1; //blockDim.y * gridDim.y;
     const int stride2 = 1; //blockDim.z * gridDim.z;
 
-    // thread index
-    uint tid = threadIdx.x + threadIdx.y * blockDim.x + threadIdx.z * blockDim.x * blockDim.y;
-
-    // // warp mask - says all threads are involved in shuffle
-    // // 0xFFFFFFFFU in binary is 32 1's.
-    unsigned mask = 0xFFFFFFFFU;
-
-    // lane = which thread am I in the warp
-    uint lane = tid % warpSize;
-    // warpID = which warp am I in the block
-    uint warpID = tid / warpSize;
-#define IDX2D_BCS(i0, i0min, i0max, i1, i1min, i1max, i2, i2min, i2max)                                                                              \
-  (((i0) - (i0min)) + ((i0max) - (i0min)) * (((i1) - (i1min)) + ((i1max) - (i1min)) * ((i2) - (i2min))))
     for(size_t i2 = tid2+i2min; i2 < i2max; i2 += stride2) {
       for(size_t i1 = tid1+i1min; i1 < i1max; i1 += stride1) {
         for(size_t i0 = tid0+i0min; i0 < i0max; i0 += stride0) {
@@ -521,19 +486,10 @@ void set_pure_outer_bc_array(REAL * xx[3], bc_struct *restrict bcstruct) {
 
 __global__
 void set_inner_bc_array(innerpt_bc_struct *restrict inner_bc_array, REAL *restrict _xx0, REAL *restrict _xx1, REAL *restrict _xx2){
-    // shared data between all warps
-    // Assumes one block = 32 warps = 32 * 32 threads
-    // As of today, the standard maximum threads per
-    // block is 1024 = 32 * 32
-    __shared__ uint shared_data[2][32];
 
     int const & Nxx_plus_2NGHOSTS0 = d_params.Nxx_plus_2NGHOSTS0;
     int const & Nxx_plus_2NGHOSTS1 = d_params.Nxx_plus_2NGHOSTS1;
     int const & Nxx_plus_2NGHOSTS2 = d_params.Nxx_plus_2NGHOSTS2;
-
-    int const & Nxx0 = d_params.Nxx0;
-    int const & Nxx1 = d_params.Nxx1;
-    int const & Nxx2 = d_params.Nxx2;
 
     // Global data index - expecting a 1D dataset
     // Thread indices
@@ -744,5 +700,4 @@ for (int which_gz = 0; which_gz < NGHOSTS; which_gz++) {
     ////////////////////////
   }
   set_pure_outer_bc_array(xx, bcstruct);
-
 }
