@@ -7,7 +7,7 @@ void cfl_limited_timestep(commondata_struct *restrict commondata, params_struct 
                           bc_struct *restrict bcstruct) {
   switch (params->CoordSystem_hash) {
   case SPHERICAL:
-    // cfl_limited_timestep__rfm__Spherical(commondata, params, xx, bcstruct);
+    cfl_limited_timestep__rfm__Spherical(commondata, params, xx, bcstruct);
     break;
   default:
     fprintf(stderr, "ERROR in cfl_limited_timestep(): CoordSystem hash = %d not #define'd!\n", params->CoordSystem_hash);
