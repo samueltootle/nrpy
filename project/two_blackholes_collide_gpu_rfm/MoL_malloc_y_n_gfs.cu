@@ -9,7 +9,7 @@ void MoL_malloc_y_n_gfs(const commondata_struct *restrict commondata, const para
                         MoL_gridfunctions_struct *restrict gridfuncs) {
 #include "set_CodeParameters.h"
   const int Nxx_plus_2NGHOSTS_tot = Nxx_plus_2NGHOSTS0 * Nxx_plus_2NGHOSTS1 * Nxx_plus_2NGHOSTS2;
-  gridfuncs->y_n_gfs = (REAL *restrict)malloc(sizeof(REAL) * NUM_EVOL_GFS * Nxx_plus_2NGHOSTS_tot);
+  cudaMalloc(&gridfuncs->y_n_gfs, sizeof(REAL) * NUM_EVOL_GFS * Nxx_plus_2NGHOSTS_tot);
 
   gridfuncs->diagnostic_output_gfs = gridfuncs->y_nplus1_running_total_gfs;
   gridfuncs->diagnostic_output_gfs2 = gridfuncs->k_odd_gfs;

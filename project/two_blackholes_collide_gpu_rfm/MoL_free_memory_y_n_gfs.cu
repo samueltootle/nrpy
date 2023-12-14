@@ -6,4 +6,4 @@
  * - non_y_n_gfs are needed for intermediate (e.g., k_i) storage in chosen MoL method
  *
  */
-void MoL_free_memory_y_n_gfs(MoL_gridfunctions_struct *restrict gridfuncs) { free(gridfuncs->y_n_gfs); }
+void MoL_free_memory_y_n_gfs(MoL_gridfunctions_struct *restrict gridfuncs) { cudaFree(gridfuncs->y_n_gfs); }
