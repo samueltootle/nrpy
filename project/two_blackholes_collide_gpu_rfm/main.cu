@@ -37,7 +37,7 @@ int main(int argc, const char *argv[]) {
   cmdline_input_and_parfile_parser(&commondata, argc, argv);
 
   // Step 1.c: Allocate NUMGRIDS griddata arrays, each containing data specific to an individual grid.
-  griddata = (griddata_struct *restrict)malloc(sizeof(griddata_struct) * commondata.NUMGRIDS);
+  griddata = (griddata_struct *)malloc(sizeof(griddata_struct) * commondata.NUMGRIDS);
 
   // Step 1.d: Set each CodeParameter in griddata.params to default.
   params_struct_set_to_default(&commondata, griddata);
