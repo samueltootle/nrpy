@@ -1,5 +1,3 @@
-void Cart_to_xx_and_nearest_i0i1i2(const commondata_struct *restrict commondata, const params_struct *restrict params, const REAL xCart[3], REAL xx[3], int Cart_to_i0i1i2[3]);
-void Cart_to_xx_and_nearest_i0i1i2__rfm__Spherical(const commondata_struct *restrict commondata, const params_struct *restrict params, const REAL xCart[3], REAL xx[3], int Cart_to_i0i1i2[3]);
 void CoordSystem_hash_setup(commondata_struct *restrict commondata, griddata_struct *restrict griddata);
 void MoL_free_memory_non_y_n_gfs(MoL_gridfunctions_struct *restrict gridfuncs);
 void MoL_free_memory_y_n_gfs(MoL_gridfunctions_struct *restrict gridfuncs);

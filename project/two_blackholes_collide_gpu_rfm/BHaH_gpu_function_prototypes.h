@@ -43,3 +43,8 @@ void xx_to_Cart(REAL *xx[3],const int i0,const int i1,const int i2, REAL xCart[3
 
 __device__
 void xx_to_Cart__rfm__Spherical(REAL *xx[3],const int i0,const int i1,const int i2, REAL xCart[3]);
+
+__device__
+void Cart_to_xx_and_nearest_i0i1i2(const commondata_struct *restrict commondata, const REAL xCart[3], REAL xx[3], int Cart_to_i0i1i2[3]);
+__device__
+void Cart_to_xx_and_nearest_i0i1i2__rfm__Spherical(const commondata_struct *restrict commondata, const REAL xCart[3], REAL xx[3], int Cart_to_i0i1i2[3]);
