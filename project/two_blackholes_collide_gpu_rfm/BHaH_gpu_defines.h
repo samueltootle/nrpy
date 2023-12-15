@@ -6,6 +6,8 @@
 extern __constant__ params_struct d_params;
 extern cudaStream_t stream1, stream2, stream3;
 
+typedef void (*ID_pfunc)(const commondata_struct *restrict commondata, const REAL xCart[3],
+  const ID_persist_struct *restrict ID_persist, initial_data_struct *restrict initial_data);
 
 
 #define GPU_NGRID0 8

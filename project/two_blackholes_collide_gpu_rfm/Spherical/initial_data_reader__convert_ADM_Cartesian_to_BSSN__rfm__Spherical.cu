@@ -3,6 +3,8 @@
 #include "../BHaH_gpu_defines.h"
 #include "../BHaH_gpu_function_prototypes.h"
 
+__device__ ID_pfunc id_ptr = BrillLindquist;
+
 // ADM variables in the Cartesian basis:
 typedef struct __ADM_Cart_basis_struct__ {
   REAL alpha, betaU0, betaU1, betaU2, BU0, BU1, BU2;
@@ -449,9 +451,8 @@ static void initial_data_lambdaU_grid_interior(const commondata_struct *restrict
 
 __global__
 void initial_data_reader__convert_ADM_Cartesian_to_BSSN__rfm__Spherical_gpu(const commondata_struct *restrict commondata,
-REAL *restrict _xx0, REAL *restrict _xx1, REAL *restrict _xx2, REAL *restrict y_n_gfs, const ID_persist_struct *restrict ID_persist,
-  void ID_function(const commondata_struct *restrict commondata, const REAL xCart[3],
-    const ID_persist_struct *restrict ID_persist, initial_data_struct *restrict initial_data)) {
+  REAL *restrict _xx0, REAL *restrict _xx1, REAL *restrict _xx2, REAL *restrict y_n_gfs, 
+  const ID_persist_struct *restrict ID_persist, ID_pfunc ID_function) {
     int const & Nxx_plus_2NGHOSTS0 = d_params.Nxx_plus_2NGHOSTS0;
     int const & Nxx_plus_2NGHOSTS1 = d_params.Nxx_plus_2NGHOSTS1;
     int const & Nxx_plus_2NGHOSTS2 = d_params.Nxx_plus_2NGHOSTS2;
@@ -486,7 +487,7 @@ REAL *restrict _xx0, REAL *restrict _xx1, REAL *restrict _xx2, REAL *restrict y_
  */
 void initial_data_reader__convert_ADM_Cartesian_to_BSSN__rfm__Spherical(
     const commondata_struct *restrict commondata, const params_struct *restrict params, REAL * xx[3], bc_struct *restrict bcstruct,
-    MoL_gridfunctions_struct *restrict gridfuncs, ID_persist_struct *restrict ID_persist,
+    MoL_gridfunctions_struct *restrict gridfuncs, ID_persist_struct *restrict ID_persist, 
     void ID_function(const commondata_struct *restrict commondata, const REAL xCart[3],
                      const ID_persist_struct *restrict ID_persist, initial_data_struct *restrict initial_data)) {
 
@@ -502,6 +503,9 @@ void initial_data_reader__convert_ADM_Cartesian_to_BSSN__rfm__Spherical(
   cudaMemcpy(ID_persist_gpu, ID_persist, sizeof(ID_persist_struct), cudaMemcpyHostToDevice);
   cudaCheckErrors(cudaMemcpy, "Memory failure");
 
+  ID_pfunc host_function_ptr;
+  cudaMemcpyFromSymbol(&host_function_ptr, id_ptr, sizeof(ID_pfunc));
+
   size_t threads_in_x_dir = MIN(1024, params->Nxx0);
   size_t threads_in_y_dir = MIN(1024 / threads_in_x_dir, params->Nxx1);
   size_t threads_in_z_dir = 1;
@@ -514,7 +518,7 @@ void initial_data_reader__convert_ADM_Cartesian_to_BSSN__rfm__Spherical(
   dim3 grid_blocks(params->Nxx1 / threads_in_y_dir, params->Nxx2, 1);
 
   initial_data_reader__convert_ADM_Cartesian_to_BSSN__rfm__Spherical_gpu<<<1,1>>>(
-    commondata_gpu, xx[0], xx[1], xx[2], gridfuncs->y_n_gfs, ID_persist_gpu, ID_function
+    commondata_gpu, xx[0], xx[1], xx[2], gridfuncs->y_n_gfs, ID_persist_gpu, host_function_ptr
   );
 
   //   // Read or compute initial data at destination point xCart

@@ -35,7 +35,7 @@ void set_param_constants(params_struct *restrict params);
 __global__
 void print_params();
 
-__device__
+__host__ __device__
 void BrillLindquist(const commondata_struct * commondata, const REAL xCart[3], const ID_persist_struct *restrict ID_persist, initial_data_struct *restrict initial_data);
 
 __device__
