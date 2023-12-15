@@ -1,5 +1,7 @@
 #include "../BHaH_defines.h"
 #include "../BHaH_function_prototypes.h"
+#include "../BHaH_gpu_defines.h"
+#include "../BHaH_gpu_function_prototypes.h"
 
 // ADM variables in the Cartesian basis:
 typedef struct __ADM_Cart_basis_struct__ {
@@ -445,6 +447,40 @@ static void initial_data_lambdaU_grid_interior(const commondata_struct *restrict
   }     // END LOOP: for (int i2 = NGHOSTS; i2 < NGHOSTS+Nxx2; i2++)
 }
 
+__global__
+void initial_data_reader__convert_ADM_Cartesian_to_BSSN__rfm__Spherical_gpu(const commondata_struct *restrict commondata,
+REAL *restrict _xx0, REAL *restrict _xx1, REAL *restrict _xx2, REAL *restrict y_n_gfs, const ID_persist_struct *restrict ID_persist,
+  void ID_function(const commondata_struct *restrict commondata, const REAL xCart[3],
+    const ID_persist_struct *restrict ID_persist, initial_data_struct *restrict initial_data)) {
+    int const & Nxx_plus_2NGHOSTS0 = d_params.Nxx_plus_2NGHOSTS0;
+    int const & Nxx_plus_2NGHOSTS1 = d_params.Nxx_plus_2NGHOSTS1;
+    int const & Nxx_plus_2NGHOSTS2 = d_params.Nxx_plus_2NGHOSTS2;
+
+    // Global data index - expecting a 1D dataset
+    // Thread indices
+    const int tid0 = threadIdx.x + blockIdx.x*blockDim.x;
+    const int tid1 = threadIdx.y + blockIdx.y*blockDim.y;
+    const int tid2 = threadIdx.z + blockIdx.z*blockDim.z;
+    // Thread strides
+    const int stride0 = blockDim.x * gridDim.x;
+    const int stride1 = blockDim.y * gridDim.y;
+    const int stride2 = blockDim.z * gridDim.z;
+
+    REAL * xx[3] = {_xx0, _xx1, _xx2};
+
+    for(size_t i2 = tid2; i2 < Nxx_plus_2NGHOSTS2; i2 += stride2) {
+      for(size_t i1 = tid1; i1 < Nxx_plus_2NGHOSTS1; i1 += stride1) {
+        for(size_t i0 = tid0; i0 < Nxx_plus_2NGHOSTS0; i0 += stride0) {
+          // xCart is the global Cartesian coordinate, which accounts for any grid offsets from the origin.
+          REAL xCart[3];
+          xx_to_Cart(xx, i0, i1, i2, xCart);
+          initial_data_struct initial_data;
+          ID_function(commondata, xCart, ID_persist, &initial_data);
+        }
+      }
+    }
+}
+
 /*
  * Read ADM data in the Cartesian basis, and output rescaled BSSN data in the Spherical basis
  */
@@ -454,14 +490,32 @@ void initial_data_reader__convert_ADM_Cartesian_to_BSSN__rfm__Spherical(
     void ID_function(const commondata_struct *restrict commondata, const REAL xCart[3],
                      const ID_persist_struct *restrict ID_persist, initial_data_struct *restrict initial_data)) {
 
-  // const int Nxx_plus_2NGHOSTS0 = params->Nxx_plus_2NGHOSTS0;
-  // const int Nxx_plus_2NGHOSTS1 = params->Nxx_plus_2NGHOSTS1;
-  // const int Nxx_plus_2NGHOSTS2 = params->Nxx_plus_2NGHOSTS2;
+  commondata_struct* commondata_gpu;
+  cudaMalloc(&commondata_gpu, sizeof(commondata_struct));
+  cudaCheckErrors(cudaMalloc, "Memory failure");
+  cudaMemcpy(commondata_gpu, commondata, sizeof(commondata_struct), cudaMemcpyHostToDevice);
+  cudaCheckErrors(cudaMemcpy, "Memory failure");
 
-  // LOOP_OMP("omp parallel for", i0, 0, Nxx_plus_2NGHOSTS0, i1, 0, Nxx_plus_2NGHOSTS1, i2, 0, Nxx_plus_2NGHOSTS2) {
-  //   // xCart is the global Cartesian coordinate, which accounts for any grid offsets from the origin.
-  //   REAL xCart[3];
-  //   xx_to_Cart(commondata, params, xx, i0, i1, i2, xCart);
+  ID_persist_struct* ID_persist_gpu;
+  cudaMalloc(&ID_persist_gpu, sizeof(ID_persist_struct));
+  cudaCheckErrors(cudaMalloc, "Memory failure");
+  cudaMemcpy(ID_persist_gpu, ID_persist, sizeof(ID_persist_struct), cudaMemcpyHostToDevice);
+  cudaCheckErrors(cudaMemcpy, "Memory failure");
+
+  size_t threads_in_x_dir = MIN(1024, params->Nxx0);
+  size_t threads_in_y_dir = MIN(1024 / threads_in_x_dir, params->Nxx1);
+  size_t threads_in_z_dir = 1;
+
+  // Setup our thread layout
+  dim3 block_threads(threads_in_x_dir, threads_in_y_dir, threads_in_z_dir);
+
+  // Setup our grid layout such that our tiles will iterate through the entire
+  // numerical space
+  dim3 grid_blocks(params->Nxx1 / threads_in_y_dir, params->Nxx2, 1);
+
+  initial_data_reader__convert_ADM_Cartesian_to_BSSN__rfm__Spherical_gpu<<<1,1>>>(
+    commondata_gpu, xx[0], xx[1], xx[2], gridfuncs->y_n_gfs, ID_persist_gpu, ID_function
+  );
 
   //   // Read or compute initial data at destination point xCart
   //   initial_data_struct initial_data;
@@ -515,4 +569,6 @@ void initial_data_reader__convert_ADM_Cartesian_to_BSSN__rfm__Spherical(
   // apply_bcs_inner_only(commondata, params, bcstruct, gridfuncs->y_n_gfs);
 
   // initial_data_lambdaU_grid_interior(commondata, params, xx, gridfuncs->y_n_gfs);
+  cudaFree(commondata_gpu); 
+  cudaFree(ID_persist_gpu);
 }
