@@ -30,9 +30,10 @@ typedef struct __rescaled_BSSN_rfm_basis_struct__ {
 /*
  * Convert ADM variables from the spherical or Cartesian basis to the Cartesian basis
  */
-static void ADM_SphorCart_to_Cart(const commondata_struct *restrict commondata, const params_struct *restrict params, const REAL xCart[3],
+__device__
+void ADM_SphorCart_to_Cart(const commondata_struct *restrict commondata, const REAL xCart[3],
                                   const initial_data_struct *restrict initial_data, ADM_Cart_basis_struct *restrict ADM_Cart_basis) {
-#include "../set_CodeParameters.h"
+
   // Unpack initial_data for ADM vectors/tensors
   const REAL betaSphorCartU0 = initial_data->betaSphorCartU0;
   const REAL betaSphorCartU1 = initial_data->betaSphorCartU1;
@@ -79,7 +80,7 @@ static void ADM_SphorCart_to_Cart(const commondata_struct *restrict commondata, 
 /*
  * Convert ADM variables in the Cartesian basis to BSSN variables in the Cartesian basis
  */
-static void ADM_Cart_to_BSSN_Cart(const commondata_struct *restrict commondata, const params_struct *restrict params, const REAL xCart[3],
+__device__ void ADM_Cart_to_BSSN_Cart(const commondata_struct *restrict commondata, const REAL xCart[3],
                                   const ADM_Cart_basis_struct *restrict ADM_Cart_basis, BSSN_Cart_basis_struct *restrict BSSN_Cart_basis) {
 
   // *In the Cartesian basis*, convert ADM quantities gammaDD & KDD
@@ -134,16 +135,17 @@ static void ADM_Cart_to_BSSN_Cart(const commondata_struct *restrict commondata, 
  * Cartesian -> Spherical basis transformation of BSSN vectors/tensors *except* lambda^i.
  * After the basis transform, all BSSN quantities are rescaled.
  */
-static void BSSN_Cart_to_rescaled_BSSN_rfm(const commondata_struct *restrict commondata, const params_struct *restrict params, const REAL xCart[3],
+__device__ 
+void BSSN_Cart_to_rescaled_BSSN_rfm(const commondata_struct *restrict commondata, const REAL xCart[3],
                                            const BSSN_Cart_basis_struct *restrict BSSN_Cart_basis,
                                            rescaled_BSSN_rfm_basis_struct *restrict rescaled_BSSN_rfm_basis) {
-#include "../set_CodeParameters.h"
+// #include "../set_CodeParameters.h"
 
   REAL xx0, xx1, xx2 __attribute__((unused)); // xx2 might be unused in the case of axisymmetric initial data.
   {
     int unused_Cart_to_i0i1i2[3];
     REAL xx[3];
-    Cart_to_xx_and_nearest_i0i1i2(commondata, params, xCart, xx, unused_Cart_to_i0i1i2);
+    Cart_to_xx_and_nearest_i0i1i2(commondata, xCart, xx, unused_Cart_to_i0i1i2);
     xx0 = xx[0];
     xx1 = xx[1];
     xx2 = xx[2];
@@ -477,6 +479,15 @@ void initial_data_reader__convert_ADM_Cartesian_to_BSSN__rfm__Spherical_gpu(cons
           xx_to_Cart(xx, i0, i1, i2, xCart);
           initial_data_struct initial_data;
           ID_function(commondata, xCart, ID_persist, &initial_data);
+
+          ADM_Cart_basis_struct ADM_Cart_basis;
+          ADM_SphorCart_to_Cart(commondata, xCart, &initial_data, &ADM_Cart_basis);
+
+          BSSN_Cart_basis_struct BSSN_Cart_basis;
+          ADM_Cart_to_BSSN_Cart(commondata, xCart, &ADM_Cart_basis, &BSSN_Cart_basis);
+
+          rescaled_BSSN_rfm_basis_struct rescaled_BSSN_rfm_basis;
+          BSSN_Cart_to_rescaled_BSSN_rfm(commondata, xCart, &BSSN_Cart_basis, &rescaled_BSSN_rfm_basis);
         }
       }
     }
@@ -521,18 +532,11 @@ void initial_data_reader__convert_ADM_Cartesian_to_BSSN__rfm__Spherical(
     commondata_gpu, xx[0], xx[1], xx[2], gridfuncs->y_n_gfs, ID_persist_gpu, host_function_ptr
   );
 
-  //   // Read or compute initial data at destination point xCart
-  //   initial_data_struct initial_data;
-  //   ID_function(commondata, params, xCart, ID_persist, &initial_data);
+ 
 
-  //   ADM_Cart_basis_struct ADM_Cart_basis;
-  //   ADM_SphorCart_to_Cart(commondata, params, xCart, &initial_data, &ADM_Cart_basis);
 
-  //   BSSN_Cart_basis_struct BSSN_Cart_basis;
-  //   ADM_Cart_to_BSSN_Cart(commondata, params, xCart, &ADM_Cart_basis, &BSSN_Cart_basis);
 
-  //   rescaled_BSSN_rfm_basis_struct rescaled_BSSN_rfm_basis;
-  //   BSSN_Cart_to_rescaled_BSSN_rfm(commondata, params, xCart, &BSSN_Cart_basis, &rescaled_BSSN_rfm_basis);
+
 
   //   const int idx3 = IDX3(i0, i1, i2);
   //   gridfuncs->y_n_gfs[IDX4pt(ADD00GF, idx3)] = rescaled_BSSN_rfm_basis.aDD00;
