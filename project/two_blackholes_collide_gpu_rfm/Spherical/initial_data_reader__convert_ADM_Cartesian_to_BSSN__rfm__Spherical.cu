@@ -488,6 +488,34 @@ void initial_data_reader__convert_ADM_Cartesian_to_BSSN__rfm__Spherical_gpu(cons
 
           rescaled_BSSN_rfm_basis_struct rescaled_BSSN_rfm_basis;
           BSSN_Cart_to_rescaled_BSSN_rfm(commondata, xCart, &BSSN_Cart_basis, &rescaled_BSSN_rfm_basis);
+          
+          const int idx3 = IDX3(i0, i1, i2);
+          y_n_gfs[IDX4pt(ADD00GF, idx3)] = rescaled_BSSN_rfm_basis.aDD00;
+          y_n_gfs[IDX4pt(ADD01GF, idx3)] = rescaled_BSSN_rfm_basis.aDD01;
+          y_n_gfs[IDX4pt(ADD02GF, idx3)] = rescaled_BSSN_rfm_basis.aDD02;
+          y_n_gfs[IDX4pt(ADD11GF, idx3)] = rescaled_BSSN_rfm_basis.aDD11;
+          y_n_gfs[IDX4pt(ADD12GF, idx3)] = rescaled_BSSN_rfm_basis.aDD12;
+          y_n_gfs[IDX4pt(ADD22GF, idx3)] = rescaled_BSSN_rfm_basis.aDD22;
+          y_n_gfs[IDX4pt(ALPHAGF, idx3)] = rescaled_BSSN_rfm_basis.alpha;
+          y_n_gfs[IDX4pt(BETU0GF, idx3)] = rescaled_BSSN_rfm_basis.betU0;
+          y_n_gfs[IDX4pt(BETU1GF, idx3)] = rescaled_BSSN_rfm_basis.betU1;
+          y_n_gfs[IDX4pt(BETU2GF, idx3)] = rescaled_BSSN_rfm_basis.betU2;
+          y_n_gfs[IDX4pt(CFGF, idx3)] = rescaled_BSSN_rfm_basis.cf;
+          y_n_gfs[IDX4pt(HDD00GF, idx3)] = rescaled_BSSN_rfm_basis.hDD00;
+          y_n_gfs[IDX4pt(HDD01GF, idx3)] = rescaled_BSSN_rfm_basis.hDD01;
+          y_n_gfs[IDX4pt(HDD02GF, idx3)] = rescaled_BSSN_rfm_basis.hDD02;
+          y_n_gfs[IDX4pt(HDD11GF, idx3)] = rescaled_BSSN_rfm_basis.hDD11;
+          y_n_gfs[IDX4pt(HDD12GF, idx3)] = rescaled_BSSN_rfm_basis.hDD12;
+          y_n_gfs[IDX4pt(HDD22GF, idx3)] = rescaled_BSSN_rfm_basis.hDD22;
+          y_n_gfs[IDX4pt(TRKGF, idx3)] = rescaled_BSSN_rfm_basis.trK;
+          y_n_gfs[IDX4pt(VETU0GF, idx3)] = rescaled_BSSN_rfm_basis.vetU0;
+          y_n_gfs[IDX4pt(VETU1GF, idx3)] = rescaled_BSSN_rfm_basis.vetU1;
+          y_n_gfs[IDX4pt(VETU2GF, idx3)] = rescaled_BSSN_rfm_basis.vetU2;
+
+          // Initialize lambdaU to zero
+          y_n_gfs[IDX4pt(LAMBDAU0GF, idx3)] = 0.0;
+          y_n_gfs[IDX4pt(LAMBDAU1GF, idx3)] = 0.0;
+          y_n_gfs[IDX4pt(LAMBDAU2GF, idx3)] = 0.0;
         }
       }
     }
@@ -517,7 +545,7 @@ void initial_data_reader__convert_ADM_Cartesian_to_BSSN__rfm__Spherical(
   ID_pfunc host_function_ptr;
   cudaMemcpyFromSymbol(&host_function_ptr, id_ptr, sizeof(ID_pfunc));
 
-  size_t threads_in_x_dir = MIN(1024, params->Nxx0);
+  size_t threads_in_x_dir = MIN(1024, params->Nxx0 / 32);
   size_t threads_in_y_dir = MIN(1024 / threads_in_x_dir, params->Nxx1);
   size_t threads_in_z_dir = 1;
 
@@ -532,49 +560,14 @@ void initial_data_reader__convert_ADM_Cartesian_to_BSSN__rfm__Spherical(
     commondata_gpu, xx[0], xx[1], xx[2], gridfuncs->y_n_gfs, ID_persist_gpu, host_function_ptr
   );
 
- 
+  // Now we've set all but lambda^i, which will be computed via a finite-difference of hDD.
+  //    However, hDD is not correctly set in inner boundary points so we apply inner bcs first.
 
-
-
-
-
-  //   const int idx3 = IDX3(i0, i1, i2);
-  //   gridfuncs->y_n_gfs[IDX4pt(ADD00GF, idx3)] = rescaled_BSSN_rfm_basis.aDD00;
-  //   gridfuncs->y_n_gfs[IDX4pt(ADD01GF, idx3)] = rescaled_BSSN_rfm_basis.aDD01;
-  //   gridfuncs->y_n_gfs[IDX4pt(ADD02GF, idx3)] = rescaled_BSSN_rfm_basis.aDD02;
-  //   gridfuncs->y_n_gfs[IDX4pt(ADD11GF, idx3)] = rescaled_BSSN_rfm_basis.aDD11;
-  //   gridfuncs->y_n_gfs[IDX4pt(ADD12GF, idx3)] = rescaled_BSSN_rfm_basis.aDD12;
-  //   gridfuncs->y_n_gfs[IDX4pt(ADD22GF, idx3)] = rescaled_BSSN_rfm_basis.aDD22;
-  //   gridfuncs->y_n_gfs[IDX4pt(ALPHAGF, idx3)] = rescaled_BSSN_rfm_basis.alpha;
-  //   gridfuncs->y_n_gfs[IDX4pt(BETU0GF, idx3)] = rescaled_BSSN_rfm_basis.betU0;
-  //   gridfuncs->y_n_gfs[IDX4pt(BETU1GF, idx3)] = rescaled_BSSN_rfm_basis.betU1;
-  //   gridfuncs->y_n_gfs[IDX4pt(BETU2GF, idx3)] = rescaled_BSSN_rfm_basis.betU2;
-  //   gridfuncs->y_n_gfs[IDX4pt(CFGF, idx3)] = rescaled_BSSN_rfm_basis.cf;
-  //   gridfuncs->y_n_gfs[IDX4pt(HDD00GF, idx3)] = rescaled_BSSN_rfm_basis.hDD00;
-  //   gridfuncs->y_n_gfs[IDX4pt(HDD01GF, idx3)] = rescaled_BSSN_rfm_basis.hDD01;
-  //   gridfuncs->y_n_gfs[IDX4pt(HDD02GF, idx3)] = rescaled_BSSN_rfm_basis.hDD02;
-  //   gridfuncs->y_n_gfs[IDX4pt(HDD11GF, idx3)] = rescaled_BSSN_rfm_basis.hDD11;
-  //   gridfuncs->y_n_gfs[IDX4pt(HDD12GF, idx3)] = rescaled_BSSN_rfm_basis.hDD12;
-  //   gridfuncs->y_n_gfs[IDX4pt(HDD22GF, idx3)] = rescaled_BSSN_rfm_basis.hDD22;
-  //   gridfuncs->y_n_gfs[IDX4pt(TRKGF, idx3)] = rescaled_BSSN_rfm_basis.trK;
-  //   gridfuncs->y_n_gfs[IDX4pt(VETU0GF, idx3)] = rescaled_BSSN_rfm_basis.vetU0;
-  //   gridfuncs->y_n_gfs[IDX4pt(VETU1GF, idx3)] = rescaled_BSSN_rfm_basis.vetU1;
-  //   gridfuncs->y_n_gfs[IDX4pt(VETU2GF, idx3)] = rescaled_BSSN_rfm_basis.vetU2;
-
-  //   // Initialize lambdaU to zero
-  //   gridfuncs->y_n_gfs[IDX4pt(LAMBDAU0GF, idx3)] = 0.0;
-  //   gridfuncs->y_n_gfs[IDX4pt(LAMBDAU1GF, idx3)] = 0.0;
-  //   gridfuncs->y_n_gfs[IDX4pt(LAMBDAU2GF, idx3)] = 0.0;
-  // } // END LOOP over all gridpoints on given grid
-
-  // // Now we've set all but lambda^i, which will be computed via a finite-difference of hDD.
-  // //    However, hDD is not correctly set in inner boundary points so we apply inner bcs first.
-
-  // // Apply inner bcs to get correct values of all tensor quantities across symmetry boundaries;
-  // //    BSSN_Cart_to_rescaled_BSSN_rfm() converts each xCart->xx, which guarantees a mapping
-  // //    to the grid interior. It therefore does not account for parity conditions across
-  // //    symmetry boundaries being correct.
-  // apply_bcs_inner_only(commondata, params, bcstruct, gridfuncs->y_n_gfs);
+  // Apply inner bcs to get correct values of all tensor quantities across symmetry boundaries;
+  //    BSSN_Cart_to_rescaled_BSSN_rfm() converts each xCart->xx, which guarantees a mapping
+  //    to the grid interior. It therefore does not account for parity conditions across
+  //    symmetry boundaries being correct.
+  apply_bcs_inner_only(commondata, params, bcstruct, gridfuncs->y_n_gfs);
 
   // initial_data_lambdaU_grid_interior(commondata, params, xx, gridfuncs->y_n_gfs);
   cudaFree(commondata_gpu); 
