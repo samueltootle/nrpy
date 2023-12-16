@@ -26,6 +26,7 @@ int main(int argc, const char *argv[]) {
   cudaStreamCreate(&stream1);
   cudaStreamCreate(&stream2);
   cudaStreamCreate(&stream3);
+  cudaMemcpyToSymbol(d_evol_gf_parity, evol_gf_parity, 24 * sizeof(int8_t));
 
   commondata_struct commondata;       // commondata contains parameters common to all grids.
   griddata_struct *restrict griddata; // griddata contains data specific to an individual grid.

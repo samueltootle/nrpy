@@ -4,7 +4,9 @@
 // extern __constant__ REAL FDPart1_Rational_1_12;
 // extern __constant__ REAL FDPart1_Rational_4_3;
 extern __constant__ params_struct d_params;
+extern __constant__ int8_t d_evol_gf_parity[24];
 extern cudaStream_t stream1, stream2, stream3;
+
 
 typedef void (*ID_pfunc)(const commondata_struct *restrict commondata, const REAL xCart[3],
   const ID_persist_struct *restrict ID_persist, initial_data_struct *restrict initial_data);

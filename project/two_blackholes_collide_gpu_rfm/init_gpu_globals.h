@@ -4,5 +4,6 @@
 // __constant__ REAL FDPart1_Rational_1_12;
 // __constant__ REAL FDPart1_Rational_4_3;
 __constant__ params_struct d_params;
+__constant__ int8_t d_evol_gf_parity[24];
 
 cudaStream_t stream1, stream2, stream3;
