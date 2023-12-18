@@ -591,7 +591,7 @@ void initial_data_reader__convert_ADM_Cartesian_to_BSSN__rfm__Spherical(
   // numerical space
   dim3 grid_blocks(params->Nxx1 / threads_in_y_dir, params->Nxx2, 1);
 
-  initial_data_reader__convert_ADM_Cartesian_to_BSSN__rfm__Spherical_gpu<<<1,1>>>(
+  initial_data_reader__convert_ADM_Cartesian_to_BSSN__rfm__Spherical_gpu<<<grid_blocks,block_threads>>>(
     commondata_gpu, xx[0], xx[1], xx[2], gridfuncs->y_n_gfs, ID_persist_gpu, host_function_ptr
   );
 
