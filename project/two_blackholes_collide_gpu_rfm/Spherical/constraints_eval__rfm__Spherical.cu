@@ -1,11 +1,12 @@
 #include "../BHaH_defines.h"
+#include "../BHaH_gpu_defines.h"
+#include "../BHaH_gpu_function_prototypes.h"
 /*
  * Finite difference function for operator dD0, with FD accuracy order 4.
  */
-static REAL fd_function_dD0_fdorder4(const REAL FDPROTO_i0m1, const REAL FDPROTO_i0m2, const REAL FDPROTO_i0p1, const REAL FDPROTO_i0p2,
+__device__ REAL fd_function_dD0_fdorder4(const REAL FDPROTO_i0m1, const REAL FDPROTO_i0m2, const REAL FDPROTO_i0p1, const REAL FDPROTO_i0p2,
                                      const REAL invdxx0) {
-  const REAL FDPart1_Rational_2_3 = 2.0 / 3.0;
-  const REAL FDPart1_Rational_1_12 = 1.0 / 12.0;
+
   const REAL FD_result = invdxx0 * (FDPart1_Rational_1_12 * (FDPROTO_i0m2 - FDPROTO_i0p2) + FDPart1_Rational_2_3 * (-FDPROTO_i0m1 + FDPROTO_i0p1));
 
   return FD_result;
@@ -13,10 +14,9 @@ static REAL fd_function_dD0_fdorder4(const REAL FDPROTO_i0m1, const REAL FDPROTO
 /*
  * Finite difference function for operator dD1, with FD accuracy order 4.
  */
-static REAL fd_function_dD1_fdorder4(const REAL FDPROTO_i1m1, const REAL FDPROTO_i1m2, const REAL FDPROTO_i1p1, const REAL FDPROTO_i1p2,
+__device__ REAL fd_function_dD1_fdorder4(const REAL FDPROTO_i1m1, const REAL FDPROTO_i1m2, const REAL FDPROTO_i1p1, const REAL FDPROTO_i1p2,
                                      const REAL invdxx1) {
-  const REAL FDPart1_Rational_2_3 = 2.0 / 3.0;
-  const REAL FDPart1_Rational_1_12 = 1.0 / 12.0;
+
   const REAL FD_result = invdxx1 * (FDPart1_Rational_1_12 * (FDPROTO_i1m2 - FDPROTO_i1p2) + FDPart1_Rational_2_3 * (-FDPROTO_i1m1 + FDPROTO_i1p1));
 
   return FD_result;
@@ -24,10 +24,9 @@ static REAL fd_function_dD1_fdorder4(const REAL FDPROTO_i1m1, const REAL FDPROTO
 /*
  * Finite difference function for operator dD2, with FD accuracy order 4.
  */
-static REAL fd_function_dD2_fdorder4(const REAL FDPROTO_i2m1, const REAL FDPROTO_i2m2, const REAL FDPROTO_i2p1, const REAL FDPROTO_i2p2,
+__device__ REAL fd_function_dD2_fdorder4(const REAL FDPROTO_i2m1, const REAL FDPROTO_i2m2, const REAL FDPROTO_i2p1, const REAL FDPROTO_i2p2,
                                      const REAL invdxx2) {
-  const REAL FDPart1_Rational_2_3 = 2.0 / 3.0;
-  const REAL FDPart1_Rational_1_12 = 1.0 / 12.0;
+
   const REAL FD_result = invdxx2 * (FDPart1_Rational_1_12 * (FDPROTO_i2m2 - FDPROTO_i2p2) + FDPart1_Rational_2_3 * (-FDPROTO_i2m1 + FDPROTO_i2p1));
 
   return FD_result;
@@ -35,11 +34,9 @@ static REAL fd_function_dD2_fdorder4(const REAL FDPROTO_i2m1, const REAL FDPROTO
 /*
  * Finite difference function for operator dDD00, with FD accuracy order 4.
  */
-static REAL fd_function_dDD00_fdorder4(const REAL FDPROTO, const REAL FDPROTO_i0m1, const REAL FDPROTO_i0m2, const REAL FDPROTO_i0p1,
+__device__ REAL fd_function_dDD00_fdorder4(const REAL FDPROTO, const REAL FDPROTO_i0m1, const REAL FDPROTO_i0m2, const REAL FDPROTO_i0p1,
                                        const REAL FDPROTO_i0p2, const REAL invdxx0) {
-  const REAL FDPart1_Rational_5_2 = 5.0 / 2.0;
-  const REAL FDPart1_Rational_1_12 = 1.0 / 12.0;
-  const REAL FDPart1_Rational_4_3 = 4.0 / 3.0;
+
   const REAL FD_result = ((invdxx0) * (invdxx0)) * (-FDPROTO * FDPart1_Rational_5_2 + FDPart1_Rational_1_12 * (-FDPROTO_i0m2 - FDPROTO_i0p2) +
                                                     FDPart1_Rational_4_3 * (FDPROTO_i0m1 + FDPROTO_i0p1));
 
@@ -48,15 +45,13 @@ static REAL fd_function_dDD00_fdorder4(const REAL FDPROTO, const REAL FDPROTO_i0
 /*
  * Finite difference function for operator dDD01, with FD accuracy order 4.
  */
-static REAL fd_function_dDD01_fdorder4(const REAL FDPROTO_i0m1_i1m1, const REAL FDPROTO_i0m1_i1m2, const REAL FDPROTO_i0m1_i1p1,
+__device__ REAL fd_function_dDD01_fdorder4(const REAL FDPROTO_i0m1_i1m1, const REAL FDPROTO_i0m1_i1m2, const REAL FDPROTO_i0m1_i1p1,
                                        const REAL FDPROTO_i0m1_i1p2, const REAL FDPROTO_i0m2_i1m1, const REAL FDPROTO_i0m2_i1m2,
                                        const REAL FDPROTO_i0m2_i1p1, const REAL FDPROTO_i0m2_i1p2, const REAL FDPROTO_i0p1_i1m1,
                                        const REAL FDPROTO_i0p1_i1m2, const REAL FDPROTO_i0p1_i1p1, const REAL FDPROTO_i0p1_i1p2,
                                        const REAL FDPROTO_i0p2_i1m1, const REAL FDPROTO_i0p2_i1m2, const REAL FDPROTO_i0p2_i1p1,
                                        const REAL FDPROTO_i0p2_i1p2, const REAL invdxx0, const REAL invdxx1) {
-  const REAL FDPart1_Rational_4_9 = 4.0 / 9.0;
-  const REAL FDPart1_Rational_1_18 = 1.0 / 18.0;
-  const REAL FDPart1_Rational_1_144 = 1.0 / 144.0;
+
   const REAL FD_result = invdxx0 * invdxx1 *
                          (FDPart1_Rational_1_144 * (FDPROTO_i0m2_i1m2 - FDPROTO_i0m2_i1p2 - FDPROTO_i0p2_i1m2 + FDPROTO_i0p2_i1p2) +
                           FDPart1_Rational_1_18 * (-FDPROTO_i0m1_i1m2 + FDPROTO_i0m1_i1p2 - FDPROTO_i0m2_i1m1 + FDPROTO_i0m2_i1p1 +
@@ -68,15 +63,13 @@ static REAL fd_function_dDD01_fdorder4(const REAL FDPROTO_i0m1_i1m1, const REAL 
 /*
  * Finite difference function for operator dDD02, with FD accuracy order 4.
  */
-static REAL fd_function_dDD02_fdorder4(const REAL FDPROTO_i0m1_i2m1, const REAL FDPROTO_i0m1_i2m2, const REAL FDPROTO_i0m1_i2p1,
+__device__ REAL fd_function_dDD02_fdorder4(const REAL FDPROTO_i0m1_i2m1, const REAL FDPROTO_i0m1_i2m2, const REAL FDPROTO_i0m1_i2p1,
                                        const REAL FDPROTO_i0m1_i2p2, const REAL FDPROTO_i0m2_i2m1, const REAL FDPROTO_i0m2_i2m2,
                                        const REAL FDPROTO_i0m2_i2p1, const REAL FDPROTO_i0m2_i2p2, const REAL FDPROTO_i0p1_i2m1,
                                        const REAL FDPROTO_i0p1_i2m2, const REAL FDPROTO_i0p1_i2p1, const REAL FDPROTO_i0p1_i2p2,
                                        const REAL FDPROTO_i0p2_i2m1, const REAL FDPROTO_i0p2_i2m2, const REAL FDPROTO_i0p2_i2p1,
                                        const REAL FDPROTO_i0p2_i2p2, const REAL invdxx0, const REAL invdxx2) {
-  const REAL FDPart1_Rational_4_9 = 4.0 / 9.0;
-  const REAL FDPart1_Rational_1_18 = 1.0 / 18.0;
-  const REAL FDPart1_Rational_1_144 = 1.0 / 144.0;
+
   const REAL FD_result = invdxx0 * invdxx2 *
                          (FDPart1_Rational_1_144 * (FDPROTO_i0m2_i2m2 - FDPROTO_i0m2_i2p2 - FDPROTO_i0p2_i2m2 + FDPROTO_i0p2_i2p2) +
                           FDPart1_Rational_1_18 * (-FDPROTO_i0m1_i2m2 + FDPROTO_i0m1_i2p2 - FDPROTO_i0m2_i2m1 + FDPROTO_i0m2_i2p1 +
@@ -88,11 +81,9 @@ static REAL fd_function_dDD02_fdorder4(const REAL FDPROTO_i0m1_i2m1, const REAL 
 /*
  * Finite difference function for operator dDD11, with FD accuracy order 4.
  */
-static REAL fd_function_dDD11_fdorder4(const REAL FDPROTO, const REAL FDPROTO_i1m1, const REAL FDPROTO_i1m2, const REAL FDPROTO_i1p1,
+__device__ REAL fd_function_dDD11_fdorder4(const REAL FDPROTO, const REAL FDPROTO_i1m1, const REAL FDPROTO_i1m2, const REAL FDPROTO_i1p1,
                                        const REAL FDPROTO_i1p2, const REAL invdxx1) {
-  const REAL FDPart1_Rational_5_2 = 5.0 / 2.0;
-  const REAL FDPart1_Rational_1_12 = 1.0 / 12.0;
-  const REAL FDPart1_Rational_4_3 = 4.0 / 3.0;
+
   const REAL FD_result = ((invdxx1) * (invdxx1)) * (-FDPROTO * FDPart1_Rational_5_2 + FDPart1_Rational_1_12 * (-FDPROTO_i1m2 - FDPROTO_i1p2) +
                                                     FDPart1_Rational_4_3 * (FDPROTO_i1m1 + FDPROTO_i1p1));
 
@@ -101,15 +92,13 @@ static REAL fd_function_dDD11_fdorder4(const REAL FDPROTO, const REAL FDPROTO_i1
 /*
  * Finite difference function for operator dDD12, with FD accuracy order 4.
  */
-static REAL fd_function_dDD12_fdorder4(const REAL FDPROTO_i1m1_i2m1, const REAL FDPROTO_i1m1_i2m2, const REAL FDPROTO_i1m1_i2p1,
+__device__ REAL fd_function_dDD12_fdorder4(const REAL FDPROTO_i1m1_i2m1, const REAL FDPROTO_i1m1_i2m2, const REAL FDPROTO_i1m1_i2p1,
                                        const REAL FDPROTO_i1m1_i2p2, const REAL FDPROTO_i1m2_i2m1, const REAL FDPROTO_i1m2_i2m2,
                                        const REAL FDPROTO_i1m2_i2p1, const REAL FDPROTO_i1m2_i2p2, const REAL FDPROTO_i1p1_i2m1,
                                        const REAL FDPROTO_i1p1_i2m2, const REAL FDPROTO_i1p1_i2p1, const REAL FDPROTO_i1p1_i2p2,
                                        const REAL FDPROTO_i1p2_i2m1, const REAL FDPROTO_i1p2_i2m2, const REAL FDPROTO_i1p2_i2p1,
                                        const REAL FDPROTO_i1p2_i2p2, const REAL invdxx1, const REAL invdxx2) {
-  const REAL FDPart1_Rational_4_9 = 4.0 / 9.0;
-  const REAL FDPart1_Rational_1_18 = 1.0 / 18.0;
-  const REAL FDPart1_Rational_1_144 = 1.0 / 144.0;
+
   const REAL FD_result = invdxx1 * invdxx2 *
                          (FDPart1_Rational_1_144 * (FDPROTO_i1m2_i2m2 - FDPROTO_i1m2_i2p2 - FDPROTO_i1p2_i2m2 + FDPROTO_i1p2_i2p2) +
                           FDPart1_Rational_1_18 * (-FDPROTO_i1m1_i2m2 + FDPROTO_i1m1_i2p2 - FDPROTO_i1m2_i2m1 + FDPROTO_i1m2_i2p1 +
@@ -121,11 +110,9 @@ static REAL fd_function_dDD12_fdorder4(const REAL FDPROTO_i1m1_i2m1, const REAL 
 /*
  * Finite difference function for operator dDD22, with FD accuracy order 4.
  */
-static REAL fd_function_dDD22_fdorder4(const REAL FDPROTO, const REAL FDPROTO_i2m1, const REAL FDPROTO_i2m2, const REAL FDPROTO_i2p1,
+__device__ REAL fd_function_dDD22_fdorder4(const REAL FDPROTO, const REAL FDPROTO_i2m1, const REAL FDPROTO_i2m2, const REAL FDPROTO_i2p1,
                                        const REAL FDPROTO_i2p2, const REAL invdxx2) {
-  const REAL FDPart1_Rational_5_2 = 5.0 / 2.0;
-  const REAL FDPart1_Rational_1_12 = 1.0 / 12.0;
-  const REAL FDPart1_Rational_4_3 = 4.0 / 3.0;
+
   const REAL FD_result = ((invdxx2) * (invdxx2)) * (-FDPROTO * FDPart1_Rational_5_2 + FDPart1_Rational_1_12 * (-FDPROTO_i2m2 - FDPROTO_i2p2) +
                                                     FDPart1_Rational_4_3 * (FDPROTO_i2m1 + FDPROTO_i2p1));
 
@@ -135,19 +122,40 @@ static REAL fd_function_dDD22_fdorder4(const REAL FDPROTO, const REAL FDPROTO_i2
 /*
  * Evaluate BSSN constraints.
  */
-void constraints_eval__rfm__Spherical(const commondata_struct *restrict commondata, const params_struct *restrict params,
-                                      const rfm_struct *restrict rfmstruct, const REAL *restrict in_gfs, const REAL *restrict auxevol_gfs,
-                                      REAL *restrict diagnostic_output_gfs) {
-#include "../set_CodeParameters.h"
-#pragma omp parallel for
-  for (int i2 = NGHOSTS; i2 < NGHOSTS + Nxx2; i2++) {
-    for (int i1 = NGHOSTS; i1 < NGHOSTS + Nxx1; i1++) {
-      const REAL f1_of_xx1 = rfmstruct->f1_of_xx1[i1];
-      const REAL f1_of_xx1__D1 = rfmstruct->f1_of_xx1__D1[i1];
-      const REAL f1_of_xx1__DD11 = rfmstruct->f1_of_xx1__DD11[i1];
+__global__
+void constraints_eval__rfm__Spherical_gpu(const REAL *restrict _f0_of_xx0, const REAL *restrict _f1_of_xx1, 
+  const REAL *restrict _f1_of_xx1__D1, const REAL *restrict _f1_of_xx1__DD11, const REAL *restrict in_gfs, 
+    const REAL *restrict auxevol_gfs, REAL *restrict diagnostic_output_gfs) {
+  int const & Nxx0 = d_params.Nxx0;
+  int const & Nxx1 = d_params.Nxx1;
+  int const & Nxx2 = d_params.Nxx2;
 
-      for (int i0 = NGHOSTS; i0 < NGHOSTS + Nxx0; i0++) {
-        const REAL f0_of_xx0 = rfmstruct->f0_of_xx0[i0];
+  int const & Nxx_plus_2NGHOSTS0 = d_params.Nxx_plus_2NGHOSTS0;
+  int const & Nxx_plus_2NGHOSTS1 = d_params.Nxx_plus_2NGHOSTS1;
+  int const & Nxx_plus_2NGHOSTS2 = d_params.Nxx_plus_2NGHOSTS2;
+
+  REAL const & invdxx0 = d_params.invdxx0;
+  REAL const & invdxx1 = d_params.invdxx1;
+  REAL const & invdxx2 = d_params.invdxx2;
+
+  // Global data index - expecting a 1D dataset
+  // Thread indices
+  const int tid0 = threadIdx.x + blockIdx.x*blockDim.x;
+  const int tid1 = threadIdx.y + blockIdx.y*blockDim.y;
+  const int tid2 = threadIdx.z + blockIdx.z*blockDim.z;
+  // Thread strides
+  const int stride0 = blockDim.x * gridDim.x;
+  const int stride1 = blockDim.y * gridDim.y;
+  const int stride2 = blockDim.z * gridDim.z;
+  
+  for(size_t i2 = tid2+NGHOSTS; i2 < Nxx2+NGHOSTS; i2 += stride2) {
+    for(size_t i1 = tid1+NGHOSTS; i1 < Nxx1+NGHOSTS; i1 += stride1) {
+      const REAL f1_of_xx1 = _f1_of_xx1[i1];
+      const REAL f1_of_xx1__D1 = _f1_of_xx1__D1[i1];
+      __attribute_maybe_unused__ const REAL f1_of_xx1__DD11 = _f1_of_xx1__DD11[i1];
+
+      for(size_t i0 = tid0+NGHOSTS; i0 < Nxx0+NGHOSTS; i0 += stride0) {
+        const REAL f0_of_xx0 = _f0_of_xx0[i0];
         /*
          * NRPy+-Generated GF Access/FD Code, Step 1 of 2:
          * Read gridfunction(s) from main memory and compute FD stencils as needed.
@@ -471,7 +479,7 @@ void constraints_eval__rfm__Spherical(const commondata_struct *restrict commonda
         const REAL FDPart3tmp101 = (1.0 / ((cf) * (cf)));
         const REAL FDPart3tmp114 = FDPart3tmp28 * hDD_dD010 + 2 * hDD01 - hDD_dD001;
         const REAL FDPart3tmp117 = FDPart3tmp28 * f1_of_xx1;
-        const REAL FDPart3tmp126 = (1.0 / 2.0) * FDPart3tmp111 * cf_dD1;
+        const REAL FDPart3tmp126 = (0.5) * FDPart3tmp111 * cf_dD1;
         const REAL FDPart3tmp132 = FDPart3tmp0 * hDD_dD110 + FDPart3tmp28 * hDD11 + FDPart3tmp28;
         const REAL FDPart3tmp137 = f0_of_xx0 * f1_of_xx1__D1 * hDD02;
         const REAL FDPart3tmp148 = FDPart3tmp0 * hDD_dD111;
@@ -487,8 +495,8 @@ void constraints_eval__rfm__Spherical(const commondata_struct *restrict commonda
         const REAL FDPart3tmp62 = FDPart3tmp13 * aDD12;
         const REAL FDPart3tmp106 = 2 * FDPart3tmp101;
         const REAL FDPart3tmp118 = FDPart3tmp117 * hDD_dD020 + 2 * f1_of_xx1 * hDD02 - hDD_dD002;
-        const REAL FDPart3tmp122 = (1.0 / 2.0) * FDPart3tmp111 * cf_dD2;
-        const REAL FDPart3tmp129 = (1.0 / 2.0) * FDPart3tmp111 * cf_dD0;
+        const REAL FDPart3tmp122 = (0.5) * FDPart3tmp111 * cf_dD2;
+        const REAL FDPart3tmp129 = (0.5) * FDPart3tmp111 * cf_dD0;
         const REAL FDPart3tmp138 = FDPart3tmp137 + FDPart3tmp19 * hDD_dD021;
         const REAL FDPart3tmp149 = -FDPart3tmp132 + 2 * f0_of_xx0 * hDD_dD011;
         const REAL FDPart3tmp158 = FDPart3tmp157 * hDD22 + FDPart3tmp157 + FDPart3tmp7 * hDD_dD220;
@@ -525,8 +533,8 @@ void constraints_eval__rfm__Spherical(const commondata_struct *restrict commonda
         const REAL FDPart3tmp105 = FDPart3tmp100 * FDPart3tmp24;
         const REAL FDPart3tmp108 = FDPart3tmp100 * FDPart3tmp43;
         const REAL FDPart3tmp110 = FDPart3tmp100 * FDPart3tmp54;
-        const REAL FDPart3tmp112 = (1.0 / 2.0) * FDPart3tmp100;
-        const REAL FDPart3tmp131 = (1.0 / 2.0) * FDPart3tmp100 * hDD_dD001;
+        const REAL FDPart3tmp112 = (0.5) * FDPart3tmp100;
+        const REAL FDPart3tmp131 = (0.5) * FDPart3tmp100 * hDD_dD001;
         const REAL FDPart3tmp147 = 16 * FDPart3tmp100;
         const REAL FDPart3tmp172 = 2 * FDPart3tmp0 * f1_of_xx1 * hDD_dD122 - FDPart3tmp164;
         const REAL FDPart3tmp178 = (2.0 / 3.0) * FDPart3tmp100;
@@ -547,10 +555,10 @@ void constraints_eval__rfm__Spherical(const commondata_struct *restrict commonda
         const REAL FDPart3tmp83 = FDPart3tmp30 * FDPart3tmp54;
         const REAL FDPart3tmp113 = FDPart3tmp112 * FDPart3tmp20;
         const REAL FDPart3tmp115 = FDPart3tmp112 * FDPart3tmp15;
-        const REAL FDPart3tmp119 = (1.0 / 2.0) * FDPart3tmp105;
+        const REAL FDPart3tmp119 = (0.5) * FDPart3tmp105;
         const REAL FDPart3tmp123 = FDPart3tmp112 * FDPart3tmp40;
-        const REAL FDPart3tmp124 = (1.0 / 2.0) * FDPart3tmp108;
-        const REAL FDPart3tmp127 = (1.0 / 2.0) * FDPart3tmp110;
+        const REAL FDPart3tmp124 = (0.5) * FDPart3tmp108;
+        const REAL FDPart3tmp127 = (0.5) * FDPart3tmp110;
         const REAL FDPart3tmp79 = FDPart3tmp20 * FDPart3tmp26 * FDPart3tmp34;
         const REAL FDPart3tmp86 = FDPart3tmp20 * FDPart3tmp22 * FDPart3tmp54;
         const REAL FDPart3tmp88 = FDPart3tmp34 * FDPart3tmp54 * FDPart3tmp64;
@@ -562,7 +570,7 @@ void constraints_eval__rfm__Spherical(const commondata_struct *restrict commonda
         const REAL FDPart3tmp143 = -FDPart3tmp112 * FDPart3tmp132 * FDPart3tmp15 - FDPart3tmp119 * FDPart3tmp142 - FDPart3tmp131 * FDPart3tmp20;
         const REAL FDPart3tmp145 = -FDPart3tmp112 * FDPart3tmp142 * FDPart3tmp15 - FDPart3tmp124 * FDPart3tmp132 - FDPart3tmp131 * FDPart3tmp40;
         const REAL FDPart3tmp146 =
-            -1.0 / 2.0 * FDPart3tmp110 * hDD_dD001 - FDPart3tmp112 * FDPart3tmp132 * FDPart3tmp40 - FDPart3tmp112 * FDPart3tmp142 * FDPart3tmp20;
+            -0.5 * FDPart3tmp110 * hDD_dD001 - FDPart3tmp112 * FDPart3tmp132 * FDPart3tmp40 - FDPart3tmp112 * FDPart3tmp142 * FDPart3tmp20;
         const REAL FDPart3tmp153 = -FDPart3tmp113 * FDPart3tmp149 - FDPart3tmp115 * FDPart3tmp148 - FDPart3tmp119 * FDPart3tmp152;
         const REAL FDPart3tmp154 = -FDPart3tmp115 * FDPart3tmp152 - FDPart3tmp123 * FDPart3tmp149 - FDPart3tmp124 * FDPart3tmp148;
         const REAL FDPart3tmp155 = -FDPart3tmp113 * FDPart3tmp152 - FDPart3tmp123 * FDPart3tmp148 - FDPart3tmp127 * FDPart3tmp149;
@@ -682,23 +690,23 @@ void constraints_eval__rfm__Spherical(const commondata_struct *restrict commonda
                  FDPart3tmp102 * FDPart3tmp15 * cf_dD1 * cf_dD2 - FDPart3tmp102 * FDPart3tmp20 * cf_dD0 * cf_dD2 -
                  FDPart3tmp102 * FDPart3tmp40 * cf_dD0 * cf_dD1 - FDPart3tmp105 * FDPart3tmp106 * ((cf_dD2) * (cf_dD2)) -
                  8 * FDPart3tmp105 *
-                     ((1.0 / 2.0) * FDPart3tmp111 * (FDPart3tmp111 * ((cf_dD2) * (cf_dD2)) - cf_dDD22) - FDPart3tmp122 * FDPart3tmp174 -
+                     ((0.5) * FDPart3tmp111 * (FDPart3tmp111 * ((cf_dD2) * (cf_dD2)) - cf_dDD22) - FDPart3tmp122 * FDPart3tmp174 -
                       FDPart3tmp126 * FDPart3tmp175 - FDPart3tmp129 * FDPart3tmp176) -
                  FDPart3tmp106 * FDPart3tmp108 * ((cf_dD1) * (cf_dD1)) - FDPart3tmp106 * FDPart3tmp110 * ((cf_dD0) * (cf_dD0)) -
                  8 * FDPart3tmp108 *
-                     ((1.0 / 2.0) * FDPart3tmp111 * (FDPart3tmp111 * ((cf_dD1) * (cf_dD1)) - cf_dDD11) - FDPart3tmp122 * FDPart3tmp153 -
+                     ((0.5) * FDPart3tmp111 * (FDPart3tmp111 * ((cf_dD1) * (cf_dD1)) - cf_dDD11) - FDPart3tmp122 * FDPart3tmp153 -
                       FDPart3tmp126 * FDPart3tmp154 - FDPart3tmp129 * FDPart3tmp155) -
                  8 * FDPart3tmp110 *
-                     ((1.0 / 2.0) * FDPart3tmp111 * (FDPart3tmp111 * ((cf_dD0) * (cf_dD0)) - cf_dDD00) - FDPart3tmp120 * FDPart3tmp122 -
+                     ((0.5) * FDPart3tmp111 * (FDPart3tmp111 * ((cf_dD0) * (cf_dD0)) - cf_dDD00) - FDPart3tmp120 * FDPart3tmp122 -
                       FDPart3tmp125 * FDPart3tmp126 - FDPart3tmp128 * FDPart3tmp129) -
                  FDPart3tmp147 * FDPart3tmp15 *
-                     ((1.0 / 2.0) * FDPart3tmp111 * (FDPart3tmp111 * cf_dD1 * cf_dD2 - cf_dDD12) - FDPart3tmp122 * FDPart3tmp167 -
+                     ((0.5) * FDPart3tmp111 * (FDPart3tmp111 * cf_dD1 * cf_dD2 - cf_dDD12) - FDPart3tmp122 * FDPart3tmp167 -
                       FDPart3tmp126 * FDPart3tmp169 - FDPart3tmp129 * FDPart3tmp170) -
                  FDPart3tmp147 * FDPart3tmp20 *
-                     ((1.0 / 2.0) * FDPart3tmp111 * (FDPart3tmp111 * cf_dD0 * cf_dD2 - cf_dDD02) - FDPart3tmp122 * FDPart3tmp159 -
+                     ((0.5) * FDPart3tmp111 * (FDPart3tmp111 * cf_dD0 * cf_dD2 - cf_dDD02) - FDPart3tmp122 * FDPart3tmp159 -
                       FDPart3tmp126 * FDPart3tmp161 - FDPart3tmp129 * FDPart3tmp162) -
                  FDPart3tmp147 * FDPart3tmp40 *
-                     ((1.0 / 2.0) * FDPart3tmp111 * (FDPart3tmp111 * cf_dD0 * cf_dD1 - cf_dDD01) - FDPart3tmp122 * FDPart3tmp143 -
+                     ((0.5) * FDPart3tmp111 * (FDPart3tmp111 * cf_dD0 * cf_dD1 - cf_dDD01) - FDPart3tmp122 * FDPart3tmp143 -
                       FDPart3tmp126 * FDPart3tmp145 - FDPart3tmp129 * FDPart3tmp146)) +
             (2.0 / 3.0) * ((trK) * (trK));
         diagnostic_output_gfs[IDX4(MSQUAREDGF, i0, i1, i2)] = 2 * FDPart3tmp13 * FDPart3tmp177 * FDPart3tmp218 * FDPart3tmp222 * hDD12 +
@@ -711,4 +719,20 @@ void constraints_eval__rfm__Spherical(const commondata_struct *restrict commonda
       } // END LOOP: for (int i0 = NGHOSTS; i0 < NGHOSTS+Nxx0; i0++)
     }   // END LOOP: for (int i1 = NGHOSTS; i1 < NGHOSTS+Nxx1; i1++)
   }     // END LOOP: for (int i2 = NGHOSTS; i2 < NGHOSTS+Nxx2; i2++)
+}
+
+void constraints_eval__rfm__Spherical(const commondata_struct *restrict commondata, const params_struct *restrict params,
+                                      const rfm_struct *restrict rfmstruct, const REAL *restrict in_gfs, const REAL *restrict auxevol_gfs,
+                                      REAL *restrict diagnostic_output_gfs) {
+#include "../set_CodeParameters.h"
+  int threads_in_x_dir = MIN(1024, params->Nxx0 / 32);
+  int threads_in_y_dir = MIN(1024 / threads_in_x_dir, params->Nxx1);
+  int threads_in_z_dir = 1;
+  dim3 block_threads(threads_in_x_dir, threads_in_y_dir, threads_in_z_dir);
+
+  // Assumes the grids are small enough such that Nxx0 < 1024, therefore we only
+  // need tiles to cover y and z
+  dim3 grid_blocks(params->Nxx1 / threads_in_y_dir, params->Nxx2, 1);
+  constraints_eval__rfm__Spherical_gpu<<<grid_blocks, block_threads>>>(rfmstruct->f0_of_xx0, rfmstruct->f1_of_xx1, 
+    rfmstruct->f1_of_xx1__D1, rfmstruct->f1_of_xx1__DD11, in_gfs, auxevol_gfs, diagnostic_output_gfs);
 }
