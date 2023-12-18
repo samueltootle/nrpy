@@ -10,7 +10,7 @@
  * boundary points ("inner maps to outer").
  *
  */
-
+__global__
 void apply_bcs_inner_only_gpu(int const which_gf, int const num_inner_boundary_points, innerpt_bc_struct *restrict inner_bc_array, REAL *restrict gfs) {
   int const & Nxx_plus_2NGHOSTS0 = d_params.Nxx_plus_2NGHOSTS0;
   int const & Nxx_plus_2NGHOSTS1 = d_params.Nxx_plus_2NGHOSTS1;
@@ -18,21 +18,22 @@ void apply_bcs_inner_only_gpu(int const which_gf, int const num_inner_boundary_p
 
   const int tid = threadIdx.x + blockIdx.x*blockDim.x;
   const int stride = blockDim.x * gridDim.x;
-  for (int pt = 0; pt < num_inner_boundary_points; pt++) {
+  for (int pt = tid; pt < num_inner_boundary_points; pt+=stride) {
       const int dstpt = inner_bc_array[pt].dstpt;
       const int srcpt = inner_bc_array[pt].srcpt;
-      gfs[IDX4pt(which_gf, dstpt)] = inner_bc_array[pt].parity[evol_gf_parity[which_gf]] * gfs[IDX4pt(which_gf, srcpt)];
+      gfs[IDX4pt(which_gf, dstpt)] = inner_bc_array[pt].parity[d_evol_gf_parity[which_gf]] * gfs[IDX4pt(which_gf, srcpt)];
   } // END for(int pt=0;pt<num_inner_pts;pt++)
 }
 
 void apply_bcs_inner_only(const commondata_struct *restrict commondata, const params_struct *restrict params, const bc_struct *restrict bcstruct,
                           REAL *restrict gfs) {
-#include "set_CodeParameters.h"
 
   // Unpack bc_info from bcstruct
   const bc_info_struct *bc_info = &bcstruct->bc_info;
-
-  // collapse(2) results in a nice speedup here, esp in 2D. Two_BHs_collide goes from
-  //    5550 M/hr to 7264 M/hr on a Ryzen 9 5950X running on all 16 cores with core affinity.
-
+  const int num_inner_bp = bc_info->num_inner_boundary_points;
+  for (int which_gf = 0; which_gf < NUM_EVOL_GFS; which_gf++) {
+    int block_threads = MIN(1024, num_inner_bp);
+    int grid_blocks = (block_threads > 1024) ? (num_inner_bp + block_threads - 1) / block_threads : 1;
+    apply_bcs_inner_only_gpu<<<grid_blocks, block_threads>>>(which_gf, num_inner_bp, bcstruct->inner_bc_array, gfs);
+  }
 }
