@@ -58,7 +58,7 @@ enable_rfm_precompute = True
 MoL_method = "RK4"
 fd_order = 4
 radiation_BC_fd_order = 4
-enable_simd = True
+enable_simd = False
 separate_Ricci_and_BSSN_RHS = True
 parallel_codegen_enable = True
 enable_fd_functions = True
@@ -66,12 +66,12 @@ enable_KreissOliger_dissipation = False
 boundary_conditions_desc = "outgoing radiation"
 
 OMP_collapse = 1
-if "Spherical" in CoordSystem:
-    par.set_parval_from_str("symmetry_axes", "2")
-    OMP_collapse = 2  # about 2x faster
-if "Cylindrical" in CoordSystem:
-    par.set_parval_from_str("symmetry_axes", "1")
-    OMP_collapse = 2  # might be slightly faster
+# if "Spherical" in CoordSystem:
+#     par.set_parval_from_str("symmetry_axes", "2")
+#     OMP_collapse = 2  # about 2x faster
+# if "Cylindrical" in CoordSystem:
+#     par.set_parval_from_str("symmetry_axes", "1")
+#     OMP_collapse = 2  # might be slightly faster
 
 project_dir = os.path.join("project", project_name)
 

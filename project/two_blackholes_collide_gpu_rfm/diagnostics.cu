@@ -18,7 +18,7 @@ void diagnostics(commondata_struct *restrict commondata, griddata_struct *restri
       const REAL *restrict y_n_gfs = griddata[grid].gridfuncs.y_n_gfs;
       REAL *restrict auxevol_gfs = griddata[grid].gridfuncs.auxevol_gfs;
       REAL *restrict diagnostic_output_gfs = griddata[grid].gridfuncs.diagnostic_output_gfs;
-      REAL *restrict xx[3];
+      // REAL *restrict xx[3];
       // {
       //   for (int ww = 0; ww < 3; ww++)
       //     xx[ww] = griddata[grid].xx[ww];
@@ -34,7 +34,7 @@ void diagnostics(commondata_struct *restrict commondata, griddata_struct *restri
       }
 
       // 0D output
-      // diagnostics_nearest_grid_center(commondata, params, &griddata[grid].gridfuncs);
+      diagnostics_nearest_grid_center(commondata, params, &griddata[grid].gridfuncs);
 
       // // 1D output
       // diagnostics_nearest_1d_y_axis(commondata, params, xx, &griddata[grid].gridfuncs);
