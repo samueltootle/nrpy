@@ -147,6 +147,8 @@ void constraints_eval__rfm__Spherical_gpu(const REAL *restrict _f0_of_xx0, const
   const int stride0 = blockDim.x * gridDim.x;
   const int stride1 = blockDim.y * gridDim.y;
   const int stride2 = blockDim.z * gridDim.z;
+
+  constexpr REAL one_half = 1. / 2.;
   
   for(size_t i2 = tid2+NGHOSTS; i2 < Nxx2+NGHOSTS; i2 += stride2) {
     for(size_t i1 = tid1+NGHOSTS; i1 < Nxx1+NGHOSTS; i1 += stride1) {
@@ -479,7 +481,7 @@ void constraints_eval__rfm__Spherical_gpu(const REAL *restrict _f0_of_xx0, const
         const REAL FDPart3tmp101 = (1.0 / ((cf) * (cf)));
         const REAL FDPart3tmp114 = FDPart3tmp28 * hDD_dD010 + 2 * hDD01 - hDD_dD001;
         const REAL FDPart3tmp117 = FDPart3tmp28 * f1_of_xx1;
-        const REAL FDPart3tmp126 = (0.5) * FDPart3tmp111 * cf_dD1;
+        const REAL FDPart3tmp126 = (one_half) * FDPart3tmp111 * cf_dD1;
         const REAL FDPart3tmp132 = FDPart3tmp0 * hDD_dD110 + FDPart3tmp28 * hDD11 + FDPart3tmp28;
         const REAL FDPart3tmp137 = f0_of_xx0 * f1_of_xx1__D1 * hDD02;
         const REAL FDPart3tmp148 = FDPart3tmp0 * hDD_dD111;
@@ -495,8 +497,8 @@ void constraints_eval__rfm__Spherical_gpu(const REAL *restrict _f0_of_xx0, const
         const REAL FDPart3tmp62 = FDPart3tmp13 * aDD12;
         const REAL FDPart3tmp106 = 2 * FDPart3tmp101;
         const REAL FDPart3tmp118 = FDPart3tmp117 * hDD_dD020 + 2 * f1_of_xx1 * hDD02 - hDD_dD002;
-        const REAL FDPart3tmp122 = (0.5) * FDPart3tmp111 * cf_dD2;
-        const REAL FDPart3tmp129 = (0.5) * FDPart3tmp111 * cf_dD0;
+        const REAL FDPart3tmp122 = (one_half) * FDPart3tmp111 * cf_dD2;
+        const REAL FDPart3tmp129 = (one_half) * FDPart3tmp111 * cf_dD0;
         const REAL FDPart3tmp138 = FDPart3tmp137 + FDPart3tmp19 * hDD_dD021;
         const REAL FDPart3tmp149 = -FDPart3tmp132 + 2 * f0_of_xx0 * hDD_dD011;
         const REAL FDPart3tmp158 = FDPart3tmp157 * hDD22 + FDPart3tmp157 + FDPart3tmp7 * hDD_dD220;
@@ -533,8 +535,8 @@ void constraints_eval__rfm__Spherical_gpu(const REAL *restrict _f0_of_xx0, const
         const REAL FDPart3tmp105 = FDPart3tmp100 * FDPart3tmp24;
         const REAL FDPart3tmp108 = FDPart3tmp100 * FDPart3tmp43;
         const REAL FDPart3tmp110 = FDPart3tmp100 * FDPart3tmp54;
-        const REAL FDPart3tmp112 = (0.5) * FDPart3tmp100;
-        const REAL FDPart3tmp131 = (0.5) * FDPart3tmp100 * hDD_dD001;
+        const REAL FDPart3tmp112 = (one_half) * FDPart3tmp100;
+        const REAL FDPart3tmp131 = (one_half) * FDPart3tmp100 * hDD_dD001;
         const REAL FDPart3tmp147 = 16 * FDPart3tmp100;
         const REAL FDPart3tmp172 = 2 * FDPart3tmp0 * f1_of_xx1 * hDD_dD122 - FDPart3tmp164;
         const REAL FDPart3tmp178 = (2.0 / 3.0) * FDPart3tmp100;
@@ -555,10 +557,10 @@ void constraints_eval__rfm__Spherical_gpu(const REAL *restrict _f0_of_xx0, const
         const REAL FDPart3tmp83 = FDPart3tmp30 * FDPart3tmp54;
         const REAL FDPart3tmp113 = FDPart3tmp112 * FDPart3tmp20;
         const REAL FDPart3tmp115 = FDPart3tmp112 * FDPart3tmp15;
-        const REAL FDPart3tmp119 = (0.5) * FDPart3tmp105;
+        const REAL FDPart3tmp119 = (one_half) * FDPart3tmp105;
         const REAL FDPart3tmp123 = FDPart3tmp112 * FDPart3tmp40;
-        const REAL FDPart3tmp124 = (0.5) * FDPart3tmp108;
-        const REAL FDPart3tmp127 = (0.5) * FDPart3tmp110;
+        const REAL FDPart3tmp124 = (one_half) * FDPart3tmp108;
+        const REAL FDPart3tmp127 = (one_half) * FDPart3tmp110;
         const REAL FDPart3tmp79 = FDPart3tmp20 * FDPart3tmp26 * FDPart3tmp34;
         const REAL FDPart3tmp86 = FDPart3tmp20 * FDPart3tmp22 * FDPart3tmp54;
         const REAL FDPart3tmp88 = FDPart3tmp34 * FDPart3tmp54 * FDPart3tmp64;
@@ -570,7 +572,7 @@ void constraints_eval__rfm__Spherical_gpu(const REAL *restrict _f0_of_xx0, const
         const REAL FDPart3tmp143 = -FDPart3tmp112 * FDPart3tmp132 * FDPart3tmp15 - FDPart3tmp119 * FDPart3tmp142 - FDPart3tmp131 * FDPart3tmp20;
         const REAL FDPart3tmp145 = -FDPart3tmp112 * FDPart3tmp142 * FDPart3tmp15 - FDPart3tmp124 * FDPart3tmp132 - FDPart3tmp131 * FDPart3tmp40;
         const REAL FDPart3tmp146 =
-            -0.5 * FDPart3tmp110 * hDD_dD001 - FDPart3tmp112 * FDPart3tmp132 * FDPart3tmp40 - FDPart3tmp112 * FDPart3tmp142 * FDPart3tmp20;
+            -one_half * FDPart3tmp110 * hDD_dD001 - FDPart3tmp112 * FDPart3tmp132 * FDPart3tmp40 - FDPart3tmp112 * FDPart3tmp142 * FDPart3tmp20;
         const REAL FDPart3tmp153 = -FDPart3tmp113 * FDPart3tmp149 - FDPart3tmp115 * FDPart3tmp148 - FDPart3tmp119 * FDPart3tmp152;
         const REAL FDPart3tmp154 = -FDPart3tmp115 * FDPart3tmp152 - FDPart3tmp123 * FDPart3tmp149 - FDPart3tmp124 * FDPart3tmp148;
         const REAL FDPart3tmp155 = -FDPart3tmp113 * FDPart3tmp152 - FDPart3tmp123 * FDPart3tmp148 - FDPart3tmp127 * FDPart3tmp149;
@@ -690,23 +692,23 @@ void constraints_eval__rfm__Spherical_gpu(const REAL *restrict _f0_of_xx0, const
                  FDPart3tmp102 * FDPart3tmp15 * cf_dD1 * cf_dD2 - FDPart3tmp102 * FDPart3tmp20 * cf_dD0 * cf_dD2 -
                  FDPart3tmp102 * FDPart3tmp40 * cf_dD0 * cf_dD1 - FDPart3tmp105 * FDPart3tmp106 * ((cf_dD2) * (cf_dD2)) -
                  8 * FDPart3tmp105 *
-                     ((0.5) * FDPart3tmp111 * (FDPart3tmp111 * ((cf_dD2) * (cf_dD2)) - cf_dDD22) - FDPart3tmp122 * FDPart3tmp174 -
+                     ((one_half) * FDPart3tmp111 * (FDPart3tmp111 * ((cf_dD2) * (cf_dD2)) - cf_dDD22) - FDPart3tmp122 * FDPart3tmp174 -
                       FDPart3tmp126 * FDPart3tmp175 - FDPart3tmp129 * FDPart3tmp176) -
                  FDPart3tmp106 * FDPart3tmp108 * ((cf_dD1) * (cf_dD1)) - FDPart3tmp106 * FDPart3tmp110 * ((cf_dD0) * (cf_dD0)) -
                  8 * FDPart3tmp108 *
-                     ((0.5) * FDPart3tmp111 * (FDPart3tmp111 * ((cf_dD1) * (cf_dD1)) - cf_dDD11) - FDPart3tmp122 * FDPart3tmp153 -
+                     ((one_half) * FDPart3tmp111 * (FDPart3tmp111 * ((cf_dD1) * (cf_dD1)) - cf_dDD11) - FDPart3tmp122 * FDPart3tmp153 -
                       FDPart3tmp126 * FDPart3tmp154 - FDPart3tmp129 * FDPart3tmp155) -
                  8 * FDPart3tmp110 *
-                     ((0.5) * FDPart3tmp111 * (FDPart3tmp111 * ((cf_dD0) * (cf_dD0)) - cf_dDD00) - FDPart3tmp120 * FDPart3tmp122 -
+                     ((one_half) * FDPart3tmp111 * (FDPart3tmp111 * ((cf_dD0) * (cf_dD0)) - cf_dDD00) - FDPart3tmp120 * FDPart3tmp122 -
                       FDPart3tmp125 * FDPart3tmp126 - FDPart3tmp128 * FDPart3tmp129) -
                  FDPart3tmp147 * FDPart3tmp15 *
-                     ((0.5) * FDPart3tmp111 * (FDPart3tmp111 * cf_dD1 * cf_dD2 - cf_dDD12) - FDPart3tmp122 * FDPart3tmp167 -
+                     ((one_half) * FDPart3tmp111 * (FDPart3tmp111 * cf_dD1 * cf_dD2 - cf_dDD12) - FDPart3tmp122 * FDPart3tmp167 -
                       FDPart3tmp126 * FDPart3tmp169 - FDPart3tmp129 * FDPart3tmp170) -
                  FDPart3tmp147 * FDPart3tmp20 *
-                     ((0.5) * FDPart3tmp111 * (FDPart3tmp111 * cf_dD0 * cf_dD2 - cf_dDD02) - FDPart3tmp122 * FDPart3tmp159 -
+                     ((one_half) * FDPart3tmp111 * (FDPart3tmp111 * cf_dD0 * cf_dD2 - cf_dDD02) - FDPart3tmp122 * FDPart3tmp159 -
                       FDPart3tmp126 * FDPart3tmp161 - FDPart3tmp129 * FDPart3tmp162) -
                  FDPart3tmp147 * FDPart3tmp40 *
-                     ((0.5) * FDPart3tmp111 * (FDPart3tmp111 * cf_dD0 * cf_dD1 - cf_dDD01) - FDPart3tmp122 * FDPart3tmp143 -
+                     ((one_half) * FDPart3tmp111 * (FDPart3tmp111 * cf_dD0 * cf_dD1 - cf_dDD01) - FDPart3tmp122 * FDPart3tmp143 -
                       FDPart3tmp126 * FDPart3tmp145 - FDPart3tmp129 * FDPart3tmp146)) +
             (2.0 / 3.0) * ((trK) * (trK));
         diagnostic_output_gfs[IDX4(MSQUAREDGF, i0, i1, i2)] = 2 * FDPart3tmp13 * FDPart3tmp177 * FDPart3tmp218 * FDPart3tmp222 * hDD12 +
@@ -715,7 +717,11 @@ void constraints_eval__rfm__Spherical_gpu(const REAL *restrict _f0_of_xx0, const
                                                               FDPart3tmp177 * ((FDPart3tmp222) * (FDPart3tmp222)) * FDPart3tmp6 +
                                                               FDPart3tmp177 * FDPart3tmp222 * FDPart3tmp224 * FDPart3tmp28 * hDD01 +
                                                               FDPart3tmp177 * ((FDPart3tmp224) * (FDPart3tmp224)) * FDPart3tmp4;
-
+        // already a difference from CPU at 13th digit
+        // index = 6321 is ~mid point
+        // if(IDX3(i0,i1,i2) == 6321) {
+        //   printf("%1.15e - %1.15e - %1.15e - %1.15e\n", cf_dD0, cf_dD1, cf_dD2, cf_dDD00);
+        // }
       } // END LOOP: for (int i0 = NGHOSTS; i0 < NGHOSTS+Nxx0; i0++)
     }   // END LOOP: for (int i1 = NGHOSTS; i1 < NGHOSTS+Nxx1; i1++)
   }     // END LOOP: for (int i2 = NGHOSTS; i2 < NGHOSTS+Nxx2; i2++)
