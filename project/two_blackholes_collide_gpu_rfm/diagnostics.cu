@@ -30,7 +30,7 @@ void diagnostics(commondata_struct *restrict commondata, griddata_struct *restri
       // Constraint output
       {
         Ricci_eval(commondata, params, &griddata[grid].rfmstruct, y_n_gfs, auxevol_gfs);
-        // constraints_eval(commondata, params, &griddata[grid].rfmstruct, y_n_gfs, auxevol_gfs, diagnostic_output_gfs);
+        constraints_eval(commondata, params, &griddata[grid].rfmstruct, y_n_gfs, auxevol_gfs, diagnostic_output_gfs);
       }
 
       // 0D output
