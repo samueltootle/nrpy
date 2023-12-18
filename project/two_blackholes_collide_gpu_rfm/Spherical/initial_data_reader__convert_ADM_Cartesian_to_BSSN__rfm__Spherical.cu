@@ -249,16 +249,39 @@ void BSSN_Cart_to_rescaled_BSSN_rfm(const commondata_struct *restrict commondata
 /*
  * Compute lambdaU in Spherical coordinates
  */
-static void initial_data_lambdaU_grid_interior(const commondata_struct *restrict commondata, const params_struct *restrict params,
-                                               REAL *restrict xx[3], REAL *restrict in_gfs) {
-#include "../set_CodeParameters.h"
-#pragma omp parallel for
-  for (int i2 = NGHOSTS; i2 < NGHOSTS + Nxx2; i2++) {
-    const REAL xx2 = xx[2][i2];
-    for (int i1 = NGHOSTS; i1 < NGHOSTS + Nxx1; i1++) {
-      const REAL xx1 = xx[1][i1];
-      for (int i0 = NGHOSTS; i0 < NGHOSTS + Nxx0; i0++) {
-        const REAL xx0 = xx[0][i0]; /*
+__global__
+void initial_data_lambdaU_grid_interior_gpu(REAL *restrict _xx0, REAL *restrict _xx1, REAL *restrict _xx2, REAL *restrict in_gfs) {
+
+  int const & Nxx0 = d_params.Nxx0;
+  int const & Nxx1 = d_params.Nxx1;
+  int const & Nxx2 = d_params.Nxx2;
+
+  int const & Nxx_plus_2NGHOSTS0 = d_params.Nxx_plus_2NGHOSTS0;
+  int const & Nxx_plus_2NGHOSTS1 = d_params.Nxx_plus_2NGHOSTS1;
+  int const & Nxx_plus_2NGHOSTS2 = d_params.Nxx_plus_2NGHOSTS2;
+
+  REAL const & invdxx0 = d_params.invdxx0;
+  REAL const & invdxx1 = d_params.invdxx1;
+  REAL const & invdxx2 = d_params.invdxx2;
+
+  // Global data index - expecting a 1D dataset
+  // Thread indices
+  const int tid0 = threadIdx.x + blockIdx.x*blockDim.x;
+  const int tid1 = threadIdx.y + blockIdx.y*blockDim.y;
+  const int tid2 = threadIdx.z + blockIdx.z*blockDim.z;
+  // Thread strides
+  const int stride0 = blockDim.x * gridDim.x;
+  const int stride1 = blockDim.y * gridDim.y;
+  const int stride2 = blockDim.z * gridDim.z;
+
+  // REAL * xx[3] = {_xx0, _xx1, _xx2};
+
+  for(size_t i2 = tid2+NGHOSTS; i2 < Nxx2+NGHOSTS; i2 += stride2) {
+    for(size_t i1 = tid1+NGHOSTS; i1 < Nxx1+NGHOSTS; i1 += stride1) {
+      for(size_t i0 = tid0+NGHOSTS; i0 < Nxx0+NGHOSTS; i0 += stride0) {
+        __attribute_maybe_unused__ const REAL xx2 = _xx2[i2];
+        __attribute_maybe_unused__ const REAL xx1 = _xx1[i1];
+        __attribute_maybe_unused__ const REAL xx0 = _xx0[i0]; /*
                                      * NRPy+-Generated GF Access/FD Code, Step 1 of 2:
                                      * Read gridfunction(s) from main memory and compute FD stencils as needed.
                                      */
@@ -340,8 +363,6 @@ static void initial_data_lambdaU_grid_interior(const commondata_struct *restrict
         const REAL hDD22_i1p2 = in_gfs[IDX4(HDD22GF, i0, i1 + 2, i2)];
         const REAL hDD22_i2p1 = in_gfs[IDX4(HDD22GF, i0, i1, i2 + 1)];
         const REAL hDD22_i2p2 = in_gfs[IDX4(HDD22GF, i0, i1, i2 + 2)];
-        const REAL FDPart1_Rational_2_3 = 2.0 / 3.0;
-        const REAL FDPart1_Rational_1_12 = 1.0 / 12.0;
         const REAL hDD_dD000 = invdxx0 * (FDPart1_Rational_1_12 * (hDD00_i0m2 - hDD00_i0p2) + FDPart1_Rational_2_3 * (-hDD00_i0m1 + hDD00_i0p1));
         const REAL hDD_dD001 = invdxx1 * (FDPart1_Rational_1_12 * (hDD00_i1m2 - hDD00_i1p2) + FDPart1_Rational_2_3 * (-hDD00_i1m1 + hDD00_i1p1));
         const REAL hDD_dD002 = invdxx2 * (FDPart1_Rational_1_12 * (hDD00_i2m2 - hDD00_i2p2) + FDPart1_Rational_2_3 * (-hDD00_i2m1 + hDD00_i2p1));
@@ -373,7 +394,7 @@ static void initial_data_lambdaU_grid_interior(const commondata_struct *restrict
         const REAL FDPart3tmp12 = hDD00 + 1;
         const REAL FDPart3tmp27 = hDD_dD012 * xx0;
         const REAL FDPart3tmp28 = cos(xx1);
-        const REAL FDPart3tmp63 = -1 / xx0;
+        const REAL FDPart3tmp63 = -1 / xx0;  // This could go in precompute...
         const REAL FDPart3tmp7 = FDPart3tmp6 * hDD11 + FDPart3tmp6;
         const REAL FDPart3tmp11 = ((FDPart3tmp0) * (FDPart3tmp0));
         const REAL FDPart3tmp17 = FDPart3tmp6 * ((hDD01) * (hDD01));
@@ -407,21 +428,21 @@ static void initial_data_lambdaU_grid_interior(const commondata_struct *restrict
         const REAL FDPart3tmp43 = FDPart3tmp27 - FDPart3tmp29 - FDPart3tmp31 + FDPart3tmp36;
         const REAL FDPart3tmp54 = FDPart3tmp27 + FDPart3tmp29 + FDPart3tmp31 - FDPart3tmp33 * hDD_dD120 - FDPart3tmp35;
         const REAL FDPart3tmp58 = 2 * FDPart3tmp0 * FDPart3tmp6 * hDD_dD122 - FDPart3tmp53;
-        const REAL FDPart3tmp19 = (1.0 / 2.0) * FDPart3tmp18;
+        const REAL FDPart3tmp19 = (0.5) * FDPart3tmp18;
         const REAL FDPart3tmp21 = FDPart3tmp18 * (-FDPart3tmp13 + FDPart3tmp16 * FDPart3tmp7);
         const REAL FDPart3tmp38 = 2 * FDPart3tmp18;
         const REAL FDPart3tmp50 = FDPart3tmp18 * (FDPart3tmp12 * FDPart3tmp16 - FDPart3tmp15);
         const REAL FDPart3tmp59 = 2 * FDPart3tmp0 * hDD_dD022 * xx0 - FDPart3tmp42;
         const REAL FDPart3tmp60 = FDPart3tmp18 * (FDPart3tmp12 * FDPart3tmp7 - FDPart3tmp17);
         const REAL FDPart3tmp20 = FDPart3tmp19 * FDPart3tmp9;
-        const REAL FDPart3tmp22 = (1.0 / 2.0) * FDPart3tmp21;
+        const REAL FDPart3tmp22 = (0.5) * FDPart3tmp21;
         const REAL FDPart3tmp25 = FDPart3tmp19 * FDPart3tmp24;
         const REAL FDPart3tmp39 = FDPart3tmp24 * FDPart3tmp38;
         const REAL FDPart3tmp44 = FDPart3tmp38 * FDPart3tmp9;
         const REAL FDPart3tmp56 = FDPart3tmp38 * FDPart3tmp55;
         const REAL FDPart3tmp61 = FDPart3tmp19 * FDPart3tmp55;
-        const REAL FDPart3tmp62 = (1.0 / 2.0) * FDPart3tmp50;
-        const REAL FDPart3tmp64 = (1.0 / 2.0) * FDPart3tmp60;
+        const REAL FDPart3tmp62 = (0.5) * FDPart3tmp50;
+        const REAL FDPart3tmp64 = (0.5) * FDPart3tmp60;
         in_gfs[IDX4(LAMBDAU0GF, i0, i1, i2)] =
             FDPart3tmp21 * (FDPart3tmp20 * FDPart3tmp4 + FDPart3tmp22 * hDD_dD000 + FDPart3tmp23 * FDPart3tmp25) +
             FDPart3tmp39 * (FDPart3tmp20 * FDPart3tmp37 + FDPart3tmp22 * hDD_dD001 + FDPart3tmp25 * FDPart3tmp26) +
@@ -449,6 +470,20 @@ static void initial_data_lambdaU_grid_interior(const commondata_struct *restrict
       } // END LOOP: for (int i0 = NGHOSTS; i0 < NGHOSTS+Nxx0; i0++)
     }   // END LOOP: for (int i1 = NGHOSTS; i1 < NGHOSTS+Nxx1; i1++)
   }     // END LOOP: for (int i2 = NGHOSTS; i2 < NGHOSTS+Nxx2; i2++)
+}
+
+void initial_data_lambdaU_grid_interior(const commondata_struct *restrict commondata, const params_struct *restrict params,
+                                               REAL *restrict xx[3], REAL *restrict in_gfs) {
+  #include "../set_CodeParameters.h"
+  int threads_in_x_dir = MIN(1024, params->Nxx0 / 32);
+  int threads_in_y_dir = MIN(1024 / threads_in_x_dir, params->Nxx1);
+  int threads_in_z_dir = 1;
+  dim3 block_threads(threads_in_x_dir, threads_in_y_dir, threads_in_z_dir);
+
+  // Assumes the grids are small enough such that Nxx0 < 1024, therefore we only
+  // need tiles to cover y and z
+  dim3 grid_blocks(params->Nxx1 / threads_in_y_dir, params->Nxx2, 1);
+  initial_data_lambdaU_grid_interior_gpu<<<grid_blocks, block_threads>>>(xx[0], xx[1], xx[2], in_gfs);
 }
 
 __global__
@@ -545,9 +580,9 @@ void initial_data_reader__convert_ADM_Cartesian_to_BSSN__rfm__Spherical(
   ID_pfunc host_function_ptr;
   cudaMemcpyFromSymbol(&host_function_ptr, id_ptr, sizeof(ID_pfunc));
 
-  size_t threads_in_x_dir = MIN(1024, params->Nxx0 / 32);
-  size_t threads_in_y_dir = MIN(1024 / threads_in_x_dir, params->Nxx1);
-  size_t threads_in_z_dir = 1;
+  int threads_in_x_dir = MIN(1024, params->Nxx0 / 32);
+  int threads_in_y_dir = MIN(1024 / threads_in_x_dir, params->Nxx1);
+  int threads_in_z_dir = 1;
 
   // Setup our thread layout
   dim3 block_threads(threads_in_x_dir, threads_in_y_dir, threads_in_z_dir);
