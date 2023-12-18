@@ -25,8 +25,8 @@ void reduction_sum_gpu(T * data, T * sum, uint const data_length);
 // __host__
 // void testcpy(REAL const * const xx, size_t idx = 43);
 
-// __host__
-// void set_fd_constants();
+__host__
+void set_fd_constants();
 __host__
 void set_param_constants(params_struct *restrict params);
 // __host__

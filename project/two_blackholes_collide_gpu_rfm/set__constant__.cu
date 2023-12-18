@@ -3,13 +3,11 @@
 #include "BHaH_gpu_function_prototypes.h"
 __host__
 void set_fd_constants() {
-    // const REAL h_FDPart1_Rational_5_2  = 5.0 / 2.0;
-    // const REAL h_FDPart1_Rational_1_12 = 1.0 / 12.0;
-    // const REAL h_FDPart1_Rational_4_3  = 4.0 / 3.0;
+    const REAL h_FDPart1_Rational_2_3 = 2.0 / 3.0;
+    const REAL h_FDPart1_Rational_1_12 = 1. / 12.;
 
-    // cudaMemcpyToSymbol(FDPart1_Rational_5_2, &h_FDPart1_Rational_5_2, sizeof(REAL));
-    // cudaMemcpyToSymbol(FDPart1_Rational_1_12, &h_FDPart1_Rational_1_12, sizeof(REAL));
-    // cudaMemcpyToSymbol(FDPart1_Rational_4_3, &h_FDPart1_Rational_4_3, sizeof(REAL));
+    cudaMemcpyToSymbol(FDPart1_Rational_1_12, &h_FDPart1_Rational_1_12, sizeof(REAL));
+    cudaMemcpyToSymbol(FDPart1_Rational_2_3, &h_FDPart1_Rational_2_3, sizeof(REAL));
 }
 
 __host__
