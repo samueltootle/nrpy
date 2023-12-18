@@ -9,11 +9,12 @@ void MoL_malloc_non_y_n_gfs(const commondata_struct *restrict commondata, const 
                             MoL_gridfunctions_struct *restrict gridfuncs) {
 #include "set_CodeParameters.h"
   const int Nxx_plus_2NGHOSTS_tot = Nxx_plus_2NGHOSTS0 * Nxx_plus_2NGHOSTS1 * Nxx_plus_2NGHOSTS2;
-  gridfuncs->y_nplus1_running_total_gfs = (REAL *restrict)malloc(sizeof(REAL) * NUM_EVOL_GFS * Nxx_plus_2NGHOSTS_tot);
-  gridfuncs->k_odd_gfs = (REAL *restrict)malloc(sizeof(REAL) * NUM_EVOL_GFS * Nxx_plus_2NGHOSTS_tot);
-  gridfuncs->k_even_gfs = (REAL *restrict)malloc(sizeof(REAL) * NUM_EVOL_GFS * Nxx_plus_2NGHOSTS_tot);
-  if (NUM_AUXEVOL_GFS > 0)
-    gridfuncs->auxevol_gfs = (REAL *restrict)malloc(sizeof(REAL) * NUM_AUXEVOL_GFS * Nxx_plus_2NGHOSTS_tot);
+  cudaMalloc(&gridfuncs->y_nplus1_running_total_gfs, sizeof(REAL) * NUM_EVOL_GFS * Nxx_plus_2NGHOSTS_tot);
+  cudaMalloc(&gridfuncs->k_odd_gfs, sizeof(REAL) * NUM_EVOL_GFS * Nxx_plus_2NGHOSTS_tot);
+  cudaMalloc(&gridfuncs->k_even_gfs, sizeof(REAL) * NUM_EVOL_GFS * Nxx_plus_2NGHOSTS_tot);
+  if (NUM_AUXEVOL_GFS > 0) {
+    cudaMalloc(&gridfuncs->auxevol_gfs, sizeof(REAL) * NUM_AUXEVOL_GFS * Nxx_plus_2NGHOSTS_tot);
+  }
 
   gridfuncs->diagnostic_output_gfs = gridfuncs->y_nplus1_running_total_gfs;
   gridfuncs->diagnostic_output_gfs2 = gridfuncs->k_odd_gfs;

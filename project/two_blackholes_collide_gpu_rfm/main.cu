@@ -59,9 +59,10 @@ int main(int argc, const char *argv[]) {
   // Step 3: Finalize initialization: set up initial data, etc.
   initial_data(&commondata, griddata);
 
-  // // Step 4: Allocate storage for non-y_n gridfunctions, needed for the Runge-Kutta-like timestepping
-  // for (int grid = 0; grid < commondata.NUMGRIDS; grid++)
-  //   MoL_malloc_non_y_n_gfs(&commondata, &griddata[grid].params, &griddata[grid].gridfuncs);
+  // Step 4: Allocate storage for non-y_n gridfunctions, needed for the Runge-Kutta-like timestepping
+  for (int grid = 0; grid < commondata.NUMGRIDS; grid++) {
+    MoL_malloc_non_y_n_gfs(&commondata, &griddata[grid].params, &griddata[grid].gridfuncs);
+  }
 
   // // Step 5: MAIN SIMULATION LOOP
   // while (commondata.time < commondata.t_final) { // Main loop to progress forward in time.
@@ -86,7 +87,7 @@ int main(int argc, const char *argv[]) {
   // Step 5: Free all allocated memory
   for (int grid = 0; grid < commondata.NUMGRIDS; grid++) {
     MoL_free_memory_y_n_gfs(&griddata[grid].gridfuncs);
-  //   MoL_free_memory_non_y_n_gfs(&griddata[grid].gridfuncs);
+    MoL_free_memory_non_y_n_gfs(&griddata[grid].gridfuncs);
     rfm_precompute_free(&commondata, &griddata[grid].params, &griddata[grid].rfmstruct);
     cudaFree(griddata[grid].bcstruct.inner_bc_array);
     for (int ng = 0; ng < NGHOSTS * 3; ng++)
