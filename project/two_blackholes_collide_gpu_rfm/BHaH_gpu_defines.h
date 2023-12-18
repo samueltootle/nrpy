@@ -1,12 +1,13 @@
 // Note this can only be #include by a *.cu file
-
-// extern __constant__ REAL FDPart1_Rational_5_2; 
-// extern __constant__ REAL FDPart1_Rational_1_12;
-// extern __constant__ REAL FDPart1_Rational_4_3;
 extern __constant__ params_struct d_params;
 extern __constant__ int8_t d_evol_gf_parity[24];
 extern __constant__ REAL FDPart1_Rational_2_3;
 extern __constant__ REAL FDPart1_Rational_1_12;
+extern __constant__ REAL FDPart1_Rational_5_2;
+extern __constant__ REAL FDPart1_Rational_4_3;
+extern __constant__ REAL FDPart1_Rational_4_9;
+extern __constant__ REAL FDPart1_Rational_1_18;
+extern __constant__ REAL FDPart1_Rational_1_144;
 extern cudaStream_t stream1, stream2, stream3;
 
 

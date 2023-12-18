@@ -28,7 +28,7 @@ void reduction_sum_gpu(T * data, T * sum, uint const data_length);
 __host__
 void set_fd_constants();
 __host__
-void set_param_constants(params_struct *restrict params);
+void set_param_constants(const params_struct *restrict params);
 // __host__
 // void set_commondata_constants(commondata_struct *restrict commondata);
 
