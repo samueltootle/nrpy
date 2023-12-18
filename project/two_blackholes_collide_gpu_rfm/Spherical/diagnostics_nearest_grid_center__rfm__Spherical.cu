@@ -40,7 +40,7 @@ void diagnostics_nearest_grid_center__rfm__Spherical(commondata_struct *restrict
   if (i0_center != -1 && i1_center != -1 && i2_center != -1) {
     const int idx3 = IDX3(i0_center, i1_center, i2_center);
 
-    const REAL HL = get_diagnostics(IDX4pt(HGF, idx3), gridfuncs->y_nplus1_running_total_gfs);
+    const REAL HL = get_diagnostics(IDX4pt(HGF, idx3), diagnostic_output_gfs);
     const REAL log10HL = log10(fabs(HL + 1e-16));
     
     const REAL M2L = get_diagnostics(IDX4pt(MSQUAREDGF, idx3), diagnostic_output_gfs);
