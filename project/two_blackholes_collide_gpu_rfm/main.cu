@@ -42,6 +42,7 @@ int main(int argc, const char *argv[]) {
 
   // Step 1.d: Set each CodeParameter in griddata.params to default.
   params_struct_set_to_default(&commondata, griddata);
+  set_fd_constants();
 
   // Step 1.e: Set up numerical grids: xx[3], masks, Nxx, dxx, invdxx, bcstruct, rfm_precompute, timestep, etc.
   {
