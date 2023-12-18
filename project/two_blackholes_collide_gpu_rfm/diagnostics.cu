@@ -1,5 +1,7 @@
 #include "BHaH_defines.h"
 #include "BHaH_function_prototypes.h"
+#include "BHaH_gpu_defines.h"
+#include "BHaH_gpu_function_prototypes.h"
 /*
  * Diagnostics.
  */
@@ -17,32 +19,33 @@ void diagnostics(commondata_struct *restrict commondata, griddata_struct *restri
       REAL *restrict auxevol_gfs = griddata[grid].gridfuncs.auxevol_gfs;
       REAL *restrict diagnostic_output_gfs = griddata[grid].gridfuncs.diagnostic_output_gfs;
       REAL *restrict xx[3];
-      {
-        for (int ww = 0; ww < 3; ww++)
-          xx[ww] = griddata[grid].xx[ww];
-      }
+      // {
+      //   for (int ww = 0; ww < 3; ww++)
+      //     xx[ww] = griddata[grid].xx[ww];
+      // }
       const params_struct *restrict params = &griddata[grid].params;
+      set_param_constants(params);
 #include "set_CodeParameters.h"
 
       // Constraint output
       {
         Ricci_eval(commondata, params, &griddata[grid].rfmstruct, y_n_gfs, auxevol_gfs);
-        constraints_eval(commondata, params, &griddata[grid].rfmstruct, y_n_gfs, auxevol_gfs, diagnostic_output_gfs);
+        // constraints_eval(commondata, params, &griddata[grid].rfmstruct, y_n_gfs, auxevol_gfs, diagnostic_output_gfs);
       }
 
       // 0D output
-      diagnostics_nearest_grid_center(commondata, params, &griddata[grid].gridfuncs);
+      // diagnostics_nearest_grid_center(commondata, params, &griddata[grid].gridfuncs);
 
-      // 1D output
-      diagnostics_nearest_1d_y_axis(commondata, params, xx, &griddata[grid].gridfuncs);
-      diagnostics_nearest_1d_z_axis(commondata, params, xx, &griddata[grid].gridfuncs);
+      // // 1D output
+      // diagnostics_nearest_1d_y_axis(commondata, params, xx, &griddata[grid].gridfuncs);
+      // diagnostics_nearest_1d_z_axis(commondata, params, xx, &griddata[grid].gridfuncs);
 
-      // 2D output
-      diagnostics_nearest_2d_xy_plane(commondata, params, xx, &griddata[grid].gridfuncs);
-      diagnostics_nearest_2d_yz_plane(commondata, params, xx, &griddata[grid].gridfuncs);
+      // // 2D output
+      // diagnostics_nearest_2d_xy_plane(commondata, params, xx, &griddata[grid].gridfuncs);
+      // diagnostics_nearest_2d_yz_plane(commondata, params, xx, &griddata[grid].gridfuncs);
     }
   }
-  progress_indicator(commondata, griddata);
-  if (commondata->time + commondata->dt > commondata->t_final)
-    printf("\n");
+  // progress_indicator(commondata, griddata);
+  // if (commondata->time + commondata->dt > commondata->t_final)
+  //   printf("\n");
 }
