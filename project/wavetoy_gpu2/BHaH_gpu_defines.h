@@ -1,5 +1,5 @@
 // Note this can only be #include by a *.cu file
-
+#define RHS_IMP 1
 extern __constant__ REAL wavespeed;
 extern __constant__ REAL FDPart1_Rational_5_2; 
 extern __constant__ REAL FDPart1_Rational_1_12;
