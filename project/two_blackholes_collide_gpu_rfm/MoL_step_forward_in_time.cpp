@@ -30,9 +30,9 @@ void MoL_step_forward_in_time(commondata_struct *restrict commondata, griddata_s
 
     Ricci_eval(commondata, params, rfmstruct, y_n_gfs, auxevol_gfs);
     rhs_eval(commondata, params, rfmstruct, auxevol_gfs, y_n_gfs, k_odd_gfs);
-    // if (strncmp(commondata->outer_bc_type, "radiation", 50) == 0)
-    //   apply_bcs_outerradiation_and_inner(commondata, params, bcstruct, griddata[grid].xx, gridfunctions_wavespeed, gridfunctions_f_infinity, y_n_gfs,
-    //                                      k_odd_gfs);
+    if (strncmp(commondata->outer_bc_type, "radiation", 50) == 0)
+      apply_bcs_outerradiation_and_inner(commondata, params, bcstruct, griddata[grid].xx, gridfunctions_wavespeed, gridfunctions_f_infinity, y_n_gfs,
+                                         k_odd_gfs);
     // LOOP_ALL_GFS_GPS(i) {
     //   const REAL k_odd_gfsL = k_odd_gfs[i];
     //   const REAL y_n_gfsL = y_n_gfs[i];

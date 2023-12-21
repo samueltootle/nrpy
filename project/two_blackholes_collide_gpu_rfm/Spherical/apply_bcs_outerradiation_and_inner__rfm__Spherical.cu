@@ -1,5 +1,7 @@
 #include "../BHaH_defines.h"
 #include "../BHaH_function_prototypes.h"
+#include "../BHaH_gpu_defines.h"
+#include "../BHaH_gpu_function_prototypes.h"
 /*
  * Compute 1st derivative finite-difference derivative with arbitrary upwind
  */
@@ -131,6 +133,52 @@ static inline REAL radiation_bcs(const commondata_struct *restrict commondata, c
  * applies BCs to the inner boundary points, which may map either to the grid interior or to the outer boundary.
  *
  */
+__global__
+void apply_bcs_pure_only_gpu(const int num_pure_outer_boundary_points, const int which_gz, const int dirn,
+  outerpt_bc_struct *restrict const pure_outer_bc_array) {
+  int const & Nxx_plus_2NGHOSTS0 = d_params.Nxx_plus_2NGHOSTS0;
+  int const & Nxx_plus_2NGHOSTS1 = d_params.Nxx_plus_2NGHOSTS1;
+  int const & Nxx_plus_2NGHOSTS2 = d_params.Nxx_plus_2NGHOSTS2;
+  
+  // Thread indices
+  // Global data index - expecting a 1D dataset
+    const int tid0 = threadIdx.x + blockIdx.x*blockDim.x;
+    const int tid1 = 0; //threadIdx.y + blockIdx.y*blockDim.y;
+    const int tid2 = 0; //threadIdx.z + blockIdx.z*blockDim.z;
+    // Thread strides
+    const int stride0 = blockDim.x * gridDim.x;
+    const int stride1 = 1; //blockDim.y * gridDim.y;
+    const int stride2 = 1; //blockDim.z * gridDim.z;
+
+  for (int idx2d = 0; idx2d < num_pure_outer_boundary_points; idx2d++) {
+    const short i0 = pure_outer_bc_array[dirn + (3 * which_gz)][idx2d].i0;
+    const short i1 = pure_outer_bc_array[dirn + (3 * which_gz)][idx2d].i1;
+    const short i2 = pure_outer_bc_array[dirn + (3 * which_gz)][idx2d].i2;
+    const short FACEX0 = pure_outer_bc_array[dirn + (3 * which_gz)][idx2d].FACEX0;
+    const short FACEX1 = pure_outer_bc_array[dirn + (3 * which_gz)][idx2d].FACEX1;
+    const short FACEX2 = pure_outer_bc_array[dirn + (3 * which_gz)][idx2d].FACEX2;
+    const int idx3 = IDX3(i0, i1, i2);
+    for (int which_gf = 0; which_gf < NUM_EVOL_GFS; which_gf++) {
+      // *** Apply radiation BCs to all outer boundary points. ***
+      // rhs_gfs[IDX4pt(which_gf, idx3)] = radiation_bcs(commondata, params, bcstruct, xx, gfs, rhs_gfs, which_gf, custom_wavespeed[which_gf],
+      //                                                 custom_f_infinity[which_gf], i0, i1, i2, FACEX0, FACEX1, FACEX2);
+    }
+  }
+}
+
+void apply_bcs_pure_only(const bc_info_struct *restrict bc_info, const bc_struct *restrict bcstruct) {
+  for (int which_gz = 0; which_gz < NGHOSTS; which_gz++) {
+    for (int dirn = 0; dirn < 3; dirn++) {
+      if (bc_info->num_pure_outer_boundary_points[which_gz][dirn] > 0) {
+        int num_pure = bc_info->num_pure_outer_boundary_points[which_gz][dirn];
+        size_t block_threadsx = MIN(1024,num_pure);
+        size_t grid_blocks = (num_pure + block_threadsx -1) / block_threadsx;
+        apply_bcs_pure_only_gpu(num_pure, which_gz, dirn, bcstruct->pure_outer_bc_array)
+      }
+    }
+  }
+}
+
 void apply_bcs_outerradiation_and_inner__rfm__Spherical(const commondata_struct *restrict commondata, const params_struct *restrict params,
                                                         const bc_struct *restrict bcstruct, REAL *restrict xx[3],
                                                         const REAL custom_wavespeed[NUM_EVOL_GFS], const REAL custom_f_infinity[NUM_EVOL_GFS],
@@ -151,35 +199,31 @@ void apply_bcs_outerradiation_and_inner__rfm__Spherical(const commondata_struct 
   //              then +/- x1 faces, finally +/- x2 faces,
   //              filling in the edges as we go.
   // Spawn N OpenMP threads, either across all cores, or according to e.g., taskset.
-#pragma omp parallel
-  {
-    for (int which_gz = 0; which_gz < NGHOSTS; which_gz++)
-      for (int dirn = 0; dirn < 3; dirn++) {
-        // This option results in about 1.6% slower runtime for SW curvilinear at 64x24x24 on 8-core Ryzen 9 4900HS
-        //#pragma omp for collapse(2)
-        // for(int which_gf=0;which_gf<NUM_EVOL_GFS;which_gf++) for(int idx2d=0;idx2d<bc_info->num_pure_outer_boundary_points[which_gz][dirn];idx2d++)
-        // {
-        //  {
-        // Don't spawn a thread if there are no boundary points to fill; results in a nice little speedup.
-        if (bc_info->num_pure_outer_boundary_points[which_gz][dirn] > 0) {
-#pragma omp for // threads have been spawned; here we distribute across them
-          for (int idx2d = 0; idx2d < bc_info->num_pure_outer_boundary_points[which_gz][dirn]; idx2d++) {
-            const short i0 = bcstruct->pure_outer_bc_array[dirn + (3 * which_gz)][idx2d].i0;
-            const short i1 = bcstruct->pure_outer_bc_array[dirn + (3 * which_gz)][idx2d].i1;
-            const short i2 = bcstruct->pure_outer_bc_array[dirn + (3 * which_gz)][idx2d].i2;
-            const short FACEX0 = bcstruct->pure_outer_bc_array[dirn + (3 * which_gz)][idx2d].FACEX0;
-            const short FACEX1 = bcstruct->pure_outer_bc_array[dirn + (3 * which_gz)][idx2d].FACEX1;
-            const short FACEX2 = bcstruct->pure_outer_bc_array[dirn + (3 * which_gz)][idx2d].FACEX2;
-            const int idx3 = IDX3(i0, i1, i2);
-            for (int which_gf = 0; which_gf < NUM_EVOL_GFS; which_gf++) {
-              // *** Apply radiation BCs to all outer boundary points. ***
-              rhs_gfs[IDX4pt(which_gf, idx3)] = radiation_bcs(commondata, params, bcstruct, xx, gfs, rhs_gfs, which_gf, custom_wavespeed[which_gf],
-                                                              custom_f_infinity[which_gf], i0, i1, i2, FACEX0, FACEX1, FACEX2);
-            }
-          }
-        }
-      }
-  }
+  apply_bcs_pure_only(bc_info, bcstruct);
+// #pragma omp parallel
+//   {
+//     for (int which_gz = 0; which_gz < NGHOSTS; which_gz++)
+//       for (int dirn = 0; dirn < 3; dirn++) {
+//         // Don't spawn a thread if there are no boundary points to fill; results in a nice little speedup.
+//         if (bc_info->num_pure_outer_boundary_points[which_gz][dirn] > 0) {
+// #pragma omp for // threads have been spawned; here we distribute across them
+//           for (int idx2d = 0; idx2d < bc_info->num_pure_outer_boundary_points[which_gz][dirn]; idx2d++) {
+//             const short i0 = bcstruct->pure_outer_bc_array[dirn + (3 * which_gz)][idx2d].i0;
+//             const short i1 = bcstruct->pure_outer_bc_array[dirn + (3 * which_gz)][idx2d].i1;
+//             const short i2 = bcstruct->pure_outer_bc_array[dirn + (3 * which_gz)][idx2d].i2;
+//             const short FACEX0 = bcstruct->pure_outer_bc_array[dirn + (3 * which_gz)][idx2d].FACEX0;
+//             const short FACEX1 = bcstruct->pure_outer_bc_array[dirn + (3 * which_gz)][idx2d].FACEX1;
+//             const short FACEX2 = bcstruct->pure_outer_bc_array[dirn + (3 * which_gz)][idx2d].FACEX2;
+//             const int idx3 = IDX3(i0, i1, i2);
+//             for (int which_gf = 0; which_gf < NUM_EVOL_GFS; which_gf++) {
+//               // *** Apply radiation BCs to all outer boundary points. ***
+//               rhs_gfs[IDX4pt(which_gf, idx3)] = radiation_bcs(commondata, params, bcstruct, xx, gfs, rhs_gfs, which_gf, custom_wavespeed[which_gf],
+//                                                               custom_f_infinity[which_gf], i0, i1, i2, FACEX0, FACEX1, FACEX2);
+//             }
+//           }
+//         }
+//       }
+//   }
 
   ///////////////////////////////////////////////////////
   // STEP 2 of 2: Apply BCs to inner boundary points.
@@ -189,5 +233,5 @@ void apply_bcs_outerradiation_and_inner__rfm__Spherical(const commondata_struct 
   //              that map to outer require that outer be
   //              populated first; hence this being
   //              STEP 2 OF 2.
-  apply_bcs_inner_only(commondata, params, bcstruct, rhs_gfs); // <- apply inner BCs to RHS gfs only
+  // apply_bcs_inner_only(commondata, params, bcstruct, rhs_gfs); // <- apply inner BCs to RHS gfs only
 }
