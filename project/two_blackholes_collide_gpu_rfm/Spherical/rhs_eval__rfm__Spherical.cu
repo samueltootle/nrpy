@@ -1852,4 +1852,17 @@ void rhs_eval__rfm__Spherical(const commondata_struct *restrict commondata, cons
                               const rfm_struct *restrict rfmstruct, const REAL *restrict auxevol_gfs, const REAL *restrict in_gfs,
                               REAL *restrict rhs_gfs) {
 #include "../set_CodeParameters.h"
+  int threads_in_x_dir = MIN(1024, params->Nxx0 / 32);
+  int threads_in_y_dir = MIN(1024 / threads_in_x_dir, params->Nxx1);
+  int threads_in_z_dir = 1;
+
+    // Setup our thread layout
+  dim3 block_threads(threads_in_x_dir, threads_in_y_dir, threads_in_z_dir);
+
+  // Setup our grid layout such that our tiles will iterate through the entire
+  // numerical space
+  dim3 grid_blocks(params->Nxx1 / threads_in_y_dir, params->Nxx2, 1);
+
+    rhs_eval__rfm__Spherical_gpu<<<grid_blocks, block_threads>>>(eta, rfmstruct->f0_of_xx0, rfmstruct->f1_of_xx1, 
+    rfmstruct->f1_of_xx1__D1, rfmstruct->f1_of_xx1__DD11, auxevol_gfs, in_gfs, rhs_gfs);
 }
