@@ -12,7 +12,7 @@ void diagnostics(commondata_struct *restrict commondata, griddata_struct *restri
   // Step 1: round(currtime / outevery) rounds to the nearest integer multiple of currtime.
   // Step 2: Multiplying by outevery yields the exact time we should output again, t_out.
   // Step 3: If fabs(t_out - currtime) < 0.5 * currdt, then currtime is as close to t_out as possible!
-  // if (fabs(round(currtime / outevery) * outevery - currtime) < 0.5 * currdt) {
+  if (fabs(round(currtime / outevery) * outevery - currtime) < 0.5 * currdt) {
     for (int grid = 0; grid < commondata->NUMGRIDS; grid++) {
       // Unpack griddata struct:
       const REAL *restrict y_n_gfs = griddata[grid].gridfuncs.y_n_gfs;
@@ -44,7 +44,7 @@ void diagnostics(commondata_struct *restrict commondata, griddata_struct *restri
       // diagnostics_nearest_2d_xy_plane(commondata, params, xx, &griddata[grid].gridfuncs);
       // diagnostics_nearest_2d_yz_plane(commondata, params, xx, &griddata[grid].gridfuncs);
     }
-  // }
+  }
   // progress_indicator(commondata, griddata);
   // if (commondata->time + commondata->dt > commondata->t_final)
   //   printf("\n");
