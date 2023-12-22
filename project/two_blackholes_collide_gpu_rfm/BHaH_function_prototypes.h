@@ -10,13 +10,13 @@ void apply_bcs_inner_only(const commondata_struct *restrict commondata, const pa
 void apply_bcs_outerextrap_and_inner(const commondata_struct *restrict commondata, const params_struct *restrict params, const bc_struct *restrict bcstruct, REAL *restrict gfs);
 void apply_bcs_outerradiation_and_inner(const commondata_struct *restrict commondata, const params_struct *restrict params,
     const bc_struct *restrict bcstruct, REAL *xx[3],
-    const REAL custom_wavespeed[NUM_EVOL_GFS],
-    const REAL custom_f_infinity[NUM_EVOL_GFS],
+    const REAL *restrict custom_wavespeed, 
+    const REAL *restrict custom_f_infinity,
     REAL *restrict gfs, REAL *restrict rhs_gfs);
 void apply_bcs_outerradiation_and_inner__rfm__Spherical(const commondata_struct *restrict commondata, const params_struct *restrict params,
     const bc_struct *restrict bcstruct, REAL *xx[3],
-    const REAL custom_wavespeed[NUM_EVOL_GFS],
-    const REAL custom_f_infinity[NUM_EVOL_GFS],
+    const REAL *restrict custom_wavespeed, 
+    const REAL *restrict custom_f_infinity,
     REAL *restrict gfs, REAL *restrict rhs_gfs);
 void bcstruct_set_up(const commondata_struct *restrict commondata, const params_struct *restrict params, REAL *xx[3], bc_struct *restrict bcstruct);
 void bcstruct_set_up__rfm__Spherical(const commondata_struct *restrict commondata, const params_struct *restrict params, REAL *xx[3], bc_struct *restrict bcstruct);

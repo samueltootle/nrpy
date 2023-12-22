@@ -7,9 +7,9 @@
  */
 __device__ inline REAL FD1_arbitrary_upwind_x0_dirn(const REAL *restrict gf, const int i0, const int i1, const int i2, const int offset) {
   REAL const& invdxx0 = d_params.invdxx0;
-  int const& Nxx_plus_2NGHOSTS0 = d_params.Nxx_plus_2NGHOSTS0;
-  int const& Nxx_plus_2NGHOSTS1 = d_params.Nxx_plus_2NGHOSTS1;
-  int const& Nxx_plus_2NGHOSTS2 = d_params.Nxx_plus_2NGHOSTS2;
+  __attribute_maybe_unused__ int const& Nxx_plus_2NGHOSTS0 = d_params.Nxx_plus_2NGHOSTS0;
+  __attribute_maybe_unused__ int const& Nxx_plus_2NGHOSTS1 = d_params.Nxx_plus_2NGHOSTS1;
+  __attribute_maybe_unused__ int const& Nxx_plus_2NGHOSTS2 = d_params.Nxx_plus_2NGHOSTS2;
   switch (offset) {
   case 0:
     return (+ FDPart1_Rational_1_12 * gf[IDX3(i0 - 2, i1, i2)] - FDPart1_Rational_2_3  * gf[IDX3(i0 - 1, i1, i2)] 
@@ -142,7 +142,9 @@ __device__ inline REAL radiation_bcs(REAL *restrict xx[3], const REAL *restrict 
  */
 __global__
 void apply_bcs_pure_only_gpu(const int num_pure_outer_boundary_points, const int which_gz, const int dirn,
-  const outerpt_bc_struct *restrict pure_outer_bc_array) {
+  const outerpt_bc_struct *restrict pure_outer_bc_array, REAL *restrict gfs, REAL *restrict rhs_gfs,
+  REAL *restrict _xx0, REAL *restrict _xx1, REAL *restrict _xx2,
+  const REAL *restrict custom_wavespeed, const REAL *restrict custom_f_infinity) {
   int const & Nxx_plus_2NGHOSTS0 = d_params.Nxx_plus_2NGHOSTS0;
   int const & Nxx_plus_2NGHOSTS1 = d_params.Nxx_plus_2NGHOSTS1;
   int const & Nxx_plus_2NGHOSTS2 = d_params.Nxx_plus_2NGHOSTS2;
@@ -150,14 +152,10 @@ void apply_bcs_pure_only_gpu(const int num_pure_outer_boundary_points, const int
   // Thread indices
   // Global data index - expecting a 1D dataset
     const int tid0 = threadIdx.x + blockIdx.x*blockDim.x;
-    const int tid1 = 0; //threadIdx.y + blockIdx.y*blockDim.y;
-    const int tid2 = 0; //threadIdx.z + blockIdx.z*blockDim.z;
     // Thread strides
     const int stride0 = blockDim.x * gridDim.x;
-    const int stride1 = 1; //blockDim.y * gridDim.y;
-    const int stride2 = 1; //blockDim.z * gridDim.z;
 
-  for (int idx2d = 0; idx2d < num_pure_outer_boundary_points; idx2d++) {
+  for (int idx2d = tid0; idx2d < num_pure_outer_boundary_points; idx2d+=stride0) {
     const short i0 = pure_outer_bc_array[idx2d].i0;
     const short i1 = pure_outer_bc_array[idx2d].i1;
     const short i2 = pure_outer_bc_array[idx2d].i2;
@@ -165,15 +163,20 @@ void apply_bcs_pure_only_gpu(const int num_pure_outer_boundary_points, const int
     const short FACEX1 = pure_outer_bc_array[idx2d].FACEX1;
     const short FACEX2 = pure_outer_bc_array[idx2d].FACEX2;
     const int idx3 = IDX3(i0, i1, i2);
-    for (int which_gf = 0; which_gf < NUM_EVOL_GFS; which_gf++) {
-      // *** Apply radiation BCs to all outer boundary points. ***
-      rhs_gfs[IDX4pt(which_gf, idx3)] = radiation_bcs(xx, gfs, rhs_gfs, which_gf, d_custom_wavespeed[which_gf],
-                                                      custom_f_infinity[which_gf], i0, i1, i2, FACEX0, FACEX1, FACEX2);
-    }
+    REAL* xx[3] = {_xx0, _xx1, _xx2};
+    printf("%f\n", custom_f_infinity[0]);
+    // for (int which_gf = 0; which_gf < NUM_EVOL_GFS; which_gf++) {
+    //   // *** Apply radiation BCs to all outer boundary points. ***
+    //   rhs_gfs[IDX4pt(which_gf, idx3)] = radiation_bcs(xx, gfs, rhs_gfs, which_gf, custom_wavespeed[which_gf],
+    //                                                   custom_f_infinity[which_gf], i0, i1, i2, FACEX0, FACEX1, FACEX2);
+    // }
   }
 }
 
-void apply_bcs_pure_only(const bc_info_struct *restrict bc_info, const bc_struct *restrict bcstruct) {
+void apply_bcs_pure_only(const bc_struct *restrict bcstruct,
+  REAL *restrict xx[3], const REAL *restrict custom_wavespeed, const REAL *restrict custom_f_infinity,
+    REAL *restrict gfs, REAL *restrict rhs_gfs) {
+  const bc_info_struct *bc_info = &bcstruct->bc_info;
   for (int which_gz = 0; which_gz < NGHOSTS; which_gz++) {
     for (int dirn = 0; dirn < 3; dirn++) {
       if (bc_info->num_pure_outer_boundary_points[which_gz][dirn] > 0) {
@@ -181,20 +184,19 @@ void apply_bcs_pure_only(const bc_info_struct *restrict bc_info, const bc_struct
         size_t block_threadsx = MIN(1024,num_pure);
         size_t grid_blocks = (num_pure + block_threadsx -1) / block_threadsx;
         size_t gz_idx = dirn + (3 * which_gz);
-        apply_bcs_pure_only_gpu(num_pure, which_gz, dirn, bcstruct->pure_outer_bc_array[gz_idx]);
+        apply_bcs_pure_only_gpu<<<grid_blocks, block_threadsx>>>(
+          num_pure, which_gz, dirn, bcstruct->pure_outer_bc_array[gz_idx], gfs, rhs_gfs, 
+          xx[0], xx[1], xx[2], custom_wavespeed, custom_f_infinity
+        );
       }
     }
   }
 }
 
 void apply_bcs_outerradiation_and_inner__rfm__Spherical(const commondata_struct *restrict commondata, const params_struct *restrict params,
-                                                        const bc_struct *restrict bcstruct, REAL *restrict xx[3],
-                                                        const REAL custom_wavespeed[NUM_EVOL_GFS], const REAL custom_f_infinity[NUM_EVOL_GFS],
+                                                        const bc_struct *restrict bcstruct, REAL * xx[3],
+                                                        const REAL *restrict custom_wavespeed, const REAL *restrict custom_f_infinity,
                                                         REAL *restrict gfs, REAL *restrict rhs_gfs) {
-#include "../set_CodeParameters.h"
-
-  // Unpack bc_info from bcstruct
-  const bc_info_struct *bc_info = &bcstruct->bc_info;
 
   ////////////////////////////////////////////////////////
   // STEP 1 of 2: Apply BCs to pure outer boundary points.
@@ -207,7 +209,7 @@ void apply_bcs_outerradiation_and_inner__rfm__Spherical(const commondata_struct 
   //              then +/- x1 faces, finally +/- x2 faces,
   //              filling in the edges as we go.
   // Spawn N OpenMP threads, either across all cores, or according to e.g., taskset.
-  apply_bcs_pure_only(bc_info, bcstruct, xx, gfs, rhs_gfs, custom_wavespeed, custom_f_infinity);
+  apply_bcs_pure_only(bcstruct, xx, custom_wavespeed, custom_f_infinity, gfs, rhs_gfs);
 // #pragma omp parallel
 //   {
 //     for (int which_gz = 0; which_gz < NGHOSTS; which_gz++)

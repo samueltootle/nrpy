@@ -8,8 +8,8 @@
  *
  */
 void apply_bcs_outerradiation_and_inner(const commondata_struct *restrict commondata, const params_struct *restrict params,
-                                        const bc_struct *restrict bcstruct, REAL * xx[3], const REAL custom_wavespeed[NUM_EVOL_GFS],
-                                        const REAL custom_f_infinity[NUM_EVOL_GFS], REAL *restrict gfs, REAL *restrict rhs_gfs) {
+                                        const bc_struct *restrict bcstruct, REAL * xx[3], const REAL *restrict custom_wavespeed, 
+                                        const REAL *restrict custom_f_infinity, REAL *restrict gfs, REAL *restrict rhs_gfs) {
   switch (params->CoordSystem_hash) {
   case SPHERICAL:
     apply_bcs_outerradiation_and_inner__rfm__Spherical(commondata, params, bcstruct, xx, custom_wavespeed, custom_f_infinity, gfs, rhs_gfs);
