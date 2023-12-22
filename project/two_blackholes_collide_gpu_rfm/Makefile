@@ -34,7 +34,7 @@ CU_OBJ_FILES += Spherical/bcstruct_set_up__rfm__Spherical.o Spherical/rfm_precom
 CU_OBJ_FILES += Spherical/rfm_precompute_free__rfm__Spherical.o Spherical/rfm_precompute_malloc__rfm__Spherical.o 
 CU_OBJ_FILES += numerical_grids_and_timestep.o Spherical/numerical_grid_params_Nxx_dxx_xx__rfm__Spherical.o 
 CU_OBJ_FILES += set__constant__.o main.o MoL_step_forward_in_time.o 
-CU_OBJ_FILES += Spherical/apply_bcs_outerradiation_and_inner__rfm__Spherical.o
+CU_OBJ_FILES += Spherical/apply_bcs_outerradiation_and_inner__rfm__Spherical.o MoL_RK_substeps_in_time.o
 
 all: two_blackholes_collide_nosimd_rfm
 
