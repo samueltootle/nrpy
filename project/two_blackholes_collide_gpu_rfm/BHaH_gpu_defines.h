@@ -12,8 +12,8 @@ extern __constant__ REAL FDPart1_Rational_4_3;
 extern __constant__ REAL FDPart1_Rational_4_9;
 extern __constant__ REAL FDPart1_Rational_5_2;
 extern __constant__ REAL FDPart1_Rational_5_6;
-extern __constant__ REAL d_gridfunctions_wavespeed[NUM_EVOL_GFS];
-extern __constant__ REAL d_gridfunctions_f_infinity[NUM_EVOL_GFS];
+extern REAL* d_gridfunctions_wavespeed;
+extern REAL* d_gridfunctions_f_infinity;
 extern cudaStream_t stream1, stream2, stream3;
 
 
