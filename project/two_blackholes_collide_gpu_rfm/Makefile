@@ -22,7 +22,7 @@ OBJ_FILES += diagnostics_nearest_grid_center.o constraints_eval.o Ricci_eval.o
 OBJ_FILES += initial_data_reader__convert_ADM_Cartesian_to_BSSN.o cfl_limited_timestep.o 
 OBJ_FILES += bcstruct_set_up.o rfm_precompute_free.o rfm_precompute_malloc.o rfm_precompute_defines.o 
 OBJ_FILES += numerical_grid_params_Nxx_dxx_xx.o params_struct_set_to_default.o CoordSystem_hash_setup.o 
-OBJ_FILES += cmdline_input_and_parfile_parser.o commondata_struct_set_to_default.o
+OBJ_FILES += cmdline_input_and_parfile_parser.o commondata_struct_set_to_default.o enforce_detgammabar_equals_detgammahat.o
 CU_OBJ_FILES  = Spherical/rhs_eval__rfm__Spherical.o Spherical/diagnostics_nearest_grid_center__rfm__Spherical.o 
 CU_OBJ_FILES += Spherical/constraints_eval__rfm__Spherical.o Spherical/Ricci_eval__rfm__Spherical.o diagnostics.o 
 CU_OBJ_FILES += MoL_free_memory_non_y_n_gfs.o MoL_malloc_non_y_n_gfs.o apply_bcs_inner_only.o 
@@ -35,7 +35,7 @@ CU_OBJ_FILES += Spherical/rfm_precompute_free__rfm__Spherical.o Spherical/rfm_pr
 CU_OBJ_FILES += numerical_grids_and_timestep.o Spherical/numerical_grid_params_Nxx_dxx_xx__rfm__Spherical.o 
 CU_OBJ_FILES += set__constant__.o main.o MoL_step_forward_in_time.o 
 CU_OBJ_FILES += Spherical/apply_bcs_outerradiation_and_inner__rfm__Spherical.o MoL_RK_substeps_in_time.o
-CU_OBJ_FILES += apply_bcs_outerextrap_and_inner.o
+CU_OBJ_FILES += apply_bcs_outerextrap_and_inner.o Spherical/enforce_detgammabar_equals_detgammahat__rfm__Spherical.o
 
 all: two_blackholes_collide_nosimd_rfm
 
