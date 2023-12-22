@@ -5,29 +5,34 @@
 /*
  * Compute 1st derivative finite-difference derivative with arbitrary upwind
  */
-static inline REAL FD1_arbitrary_upwind_x0_dirn(const commondata_struct *restrict commondata, const params_struct *restrict params,
-                                                const REAL *restrict gf, const int i0, const int i1, const int i2, const int offset) {
-#include "../set_CodeParameters.h"
+static inline REAL FD1_arbitrary_upwind_x0_dirn(const REAL *restrict gf, const int i0, const int i1, const int i2, const int offset) {
+  REAL const& invdxx0 = d_params.invdxx0;
+  int const& Nxx_plus_2NGHOSTS0 = d_params.Nxx_plus_2NGHOSTS0;
+  int const& Nxx_plus_2NGHOSTS1 = d_params.Nxx_plus_2NGHOSTS1;
+  int const& Nxx_plus_2NGHOSTS2 = d_params.Nxx_plus_2NGHOSTS2;
   switch (offset) {
   case 0:
-    return (+1.0 / 12.0 * gf[IDX3(i0 - 2, i1, i2)] - 2.0 / 3.0 * gf[IDX3(i0 - 1, i1, i2)] + 2.0 / 3.0 * gf[IDX3(i0 + 1, i1, i2)] -
-            1.0 / 12.0 * gf[IDX3(i0 + 2, i1, i2)]) *
+    return (+ FDPart1_Rational_1_12 * gf[IDX3(i0 - 2, i1, i2)] - FDPart1_Rational_2_3  * gf[IDX3(i0 - 1, i1, i2)] 
+            + FDPart1_Rational_2_3  * gf[IDX3(i0 + 1, i1, i2)] - FDPart1_Rational_1_12 * gf[IDX3(i0 + 2, i1, i2)]) *
            invdxx0;
   case 1:
-    return (-1.0 / 4.0 * gf[IDX3(i0 - 1, i1, i2)] - 5.0 / 6.0 * gf[IDX3(i0, i1, i2)] + 3.0 / 2.0 * gf[IDX3(i0 + 1, i1, i2)] -
-            1.0 / 2.0 * gf[IDX3(i0 + 2, i1, i2)] + 1.0 / 12.0 * gf[IDX3(i0 + 3, i1, i2)]) *
+    return (-FDPart1_Rational_1_4 * gf[IDX3(i0 - 1, i1, i2)] - FDPart1_Rational_5_6 * gf[IDX3(i0, i1, i2)] 
+            + FDPart1_Rational_3_2 * gf[IDX3(i0 + 1, i1, i2)] - FDPart1_Rational_1_2 * gf[IDX3(i0 + 2, i1, i2)] 
+            + FDPart1_Rational_1_12 * gf[IDX3(i0 + 3, i1, i2)]) *
            invdxx0;
   case -1:
-    return (-1.0 / 12.0 * gf[IDX3(i0 - 3, i1, i2)] + 1.0 / 2.0 * gf[IDX3(i0 - 2, i1, i2)] - 3.0 / 2.0 * gf[IDX3(i0 - 1, i1, i2)] +
-            5.0 / 6.0 * gf[IDX3(i0, i1, i2)] + 1.0 / 4.0 * gf[IDX3(i0 + 1, i1, i2)]) *
+    return (-FDPart1_Rational_1_12 * gf[IDX3(i0 - 3, i1, i2)] + FDPart1_Rational_1_2 * gf[IDX3(i0 - 2, i1, i2)] 
+            - FDPart1_Rational_3_2 * gf[IDX3(i0 - 1, i1, i2)] + FDPart1_Rational_5_6 * gf[IDX3(i0, i1, i2)] 
+            + FDPart1_Rational_1_4 * gf[IDX3(i0 + 1, i1, i2)]) *
            invdxx0;
   case 2:
-    return (-25.0 / 12.0 * gf[IDX3(i0, i1, i2)] + 4 * gf[IDX3(i0 + 1, i1, i2)] - 3 * gf[IDX3(i0 + 2, i1, i2)] + 4.0 / 3.0 * gf[IDX3(i0 + 3, i1, i2)] -
-            1.0 / 4.0 * gf[IDX3(i0 + 4, i1, i2)]) *
+    return (-FDPart1_Rational_5_2 * FDPart1_Rational_5_6 * gf[IDX3(i0, i1, i2)] + 4 * gf[IDX3(i0 + 1, i1, i2)] - 3 * gf[IDX3(i0 + 2, i1, i2)] 
+            + FDPart1_Rational_4_3 * gf[IDX3(i0 + 3, i1, i2)] - FDPart1_Rational_1_4 * gf[IDX3(i0 + 4, i1, i2)]) *
            invdxx0;
   case -2:
-    return (+1.0 / 4.0 * gf[IDX3(i0 - 4, i1, i2)] - 4.0 / 3.0 * gf[IDX3(i0 - 3, i1, i2)] + 3 * gf[IDX3(i0 - 2, i1, i2)] -
-            4 * gf[IDX3(i0 - 1, i1, i2)] + 25.0 / 12.0 * gf[IDX3(i0, i1, i2)]) *
+    return (+FDPart1_Rational_1_4 * gf[IDX3(i0 - 4, i1, i2)] - FDPart1_Rational_4_3 * gf[IDX3(i0 - 3, i1, i2)] 
+            + 3 * gf[IDX3(i0 - 2, i1, i2)] - 4 * gf[IDX3(i0 - 1, i1, i2)] 
+            + FDPart1_Rational_5_2 * FDPart1_Rational_5_6 * gf[IDX3(i0, i1, i2)]) *
            invdxx0;
   }
   return 0.0 / 0.0; // poison output if offset computed incorrectly
@@ -35,10 +40,8 @@ static inline REAL FD1_arbitrary_upwind_x0_dirn(const commondata_struct *restric
 /*
  * Compute r(xx0,xx1,xx2) and partial_r x^i.
  */
-static inline void r_and_partial_xi_partial_r_derivs(const commondata_struct *restrict commondata, const params_struct *restrict params,
-                                                     const REAL xx0, const REAL xx1, const REAL xx2, REAL *r, REAL *partial_x0_partial_r,
+__device__ inline void r_and_partial_xi_partial_r_derivs(const REAL xx0, const REAL xx1, const REAL xx2, REAL *r, REAL *partial_x0_partial_r,
                                                      REAL *partial_x1_partial_r, REAL *partial_x2_partial_r) {
-#include "../set_CodeParameters.h"
   *r = xx0;
   *partial_x0_partial_r = 1;
   *partial_x1_partial_r = 0;
@@ -47,11 +50,13 @@ static inline void r_and_partial_xi_partial_r_derivs(const commondata_struct *re
 /*
  * Compute \partial_r f
  */
-static inline REAL compute_partial_r_f(const commondata_struct *restrict commondata, const params_struct *restrict params, REAL *restrict xx[3],
-                                       const REAL *restrict gfs, const int which_gf, const int dest_i0, const int dest_i1, const int dest_i2,
+static inline REAL compute_partial_r_f(const REAL *restrict gfs, const int which_gf, const int dest_i0, const int dest_i1, const int dest_i2,
                                        const int FACEi0, const int FACEi1, const int FACEi2, const REAL partial_x0_partial_r,
                                        const REAL partial_x1_partial_r, const REAL partial_x2_partial_r) {
-#include "../set_CodeParameters.h"
+// #include "../set_CodeParameters.h"
+  int const& Nxx_plus_2NGHOSTS0 = d_params.Nxx_plus_2NGHOSTS0;
+  int const& Nxx_plus_2NGHOSTS1 = d_params.Nxx_plus_2NGHOSTS1;
+  int const& Nxx_plus_2NGHOSTS2 = d_params.Nxx_plus_2NGHOSTS2;
   ///////////////////////////////////////////////////////////
 
   // FD1_stencil_radius = radiation_BC_fd_order/2 = 2
@@ -79,7 +84,7 @@ static inline REAL compute_partial_r_f(const commondata_struct *restrict commond
     i0_offset = FD1_stencil_radius - dest_i0;
   else if (dest_i0 > (Nxx_plus_2NGHOSTS0 - FD1_stencil_radius - 1))
     i0_offset = (Nxx_plus_2NGHOSTS0 - FD1_stencil_radius - 1) - dest_i0;
-  const REAL partial_x0_f = FD1_arbitrary_upwind_x0_dirn(commondata, params, &gfs[which_gf * ntot], dest_i0, dest_i1, dest_i2, i0_offset);
+  const REAL partial_x0_f = FD1_arbitrary_upwind_x0_dirn(&gfs[which_gf * ntot], dest_i0, dest_i1, dest_i2, i0_offset);
   const REAL partial_x1_f = 0.0;
   const REAL partial_x2_f = 0.0;
   return partial_x0_partial_r * partial_x0_f + partial_x1_partial_r * partial_x1_f + partial_x2_partial_r * partial_x2_f;
@@ -89,24 +94,26 @@ static inline REAL compute_partial_r_f(const commondata_struct *restrict commond
  * *** Apply radiation BCs to all outer boundaries. ***
  *
  */
-static inline REAL radiation_bcs(const commondata_struct *restrict commondata, const params_struct *restrict params,
-                                 const bc_struct *restrict bcstruct, REAL *restrict xx[3], const REAL *restrict gfs, REAL *restrict gfs_rhss,
+__device__ inline REAL radiation_bcs(REAL *restrict xx[3], const REAL *restrict gfs, REAL *restrict gfs_rhss,
                                  const int which_gf, const REAL gf_wavespeed, const REAL gf_f_infinity, const int dest_i0, const int dest_i1,
                                  const int dest_i2, const short FACEi0, const short FACEi1, const short FACEi2) {
-#include "../set_CodeParameters.h"
+
   // Nearest "interior" neighbor of this gridpoint, based on current face
   const int dest_i0_int = dest_i0 + 1 * FACEi0, dest_i1_int = dest_i1 + 1 * FACEi1, dest_i2_int = dest_i2 + 1 * FACEi2;
   REAL r, partial_x0_partial_r, partial_x1_partial_r, partial_x2_partial_r;
   REAL r_int, partial_x0_partial_r_int, partial_x1_partial_r_int, partial_x2_partial_r_int;
-  r_and_partial_xi_partial_r_derivs(commondata, params, xx[0][dest_i0], xx[1][dest_i1], xx[2][dest_i2], &r, &partial_x0_partial_r,
+  r_and_partial_xi_partial_r_derivs(xx[0][dest_i0], xx[1][dest_i1], xx[2][dest_i2], &r, &partial_x0_partial_r,
                                     &partial_x1_partial_r, &partial_x2_partial_r);
-  r_and_partial_xi_partial_r_derivs(commondata, params, xx[0][dest_i0_int], xx[1][dest_i1_int], xx[2][dest_i2_int], &r_int, &partial_x0_partial_r_int,
+  r_and_partial_xi_partial_r_derivs(xx[0][dest_i0_int], xx[1][dest_i1_int], xx[2][dest_i2_int], &r_int, &partial_x0_partial_r_int,
                                     &partial_x1_partial_r_int, &partial_x2_partial_r_int);
-  const REAL partial_r_f = compute_partial_r_f(commondata, params, xx, gfs, which_gf, dest_i0, dest_i1, dest_i2, FACEi0, FACEi1, FACEi2,
+  const REAL partial_r_f = compute_partial_r_f(gfs, which_gf, dest_i0, dest_i1, dest_i2, FACEi0, FACEi1, FACEi2,
                                                partial_x0_partial_r, partial_x1_partial_r, partial_x2_partial_r);
-  const REAL partial_r_f_int = compute_partial_r_f(commondata, params, xx, gfs, which_gf, dest_i0_int, dest_i1_int, dest_i2_int, FACEi0, FACEi1,
+  const REAL partial_r_f_int = compute_partial_r_f(gfs, which_gf, dest_i0_int, dest_i1_int, dest_i2_int, FACEi0, FACEi1,
                                                    FACEi2, partial_x0_partial_r_int, partial_x1_partial_r_int, partial_x2_partial_r_int);
-
+  
+  int const & Nxx_plus_2NGHOSTS0 = d_params.Nxx_plus_2NGHOSTS0;
+  int const & Nxx_plus_2NGHOSTS1 = d_params.Nxx_plus_2NGHOSTS1;
+  int const & Nxx_plus_2NGHOSTS2 = d_params.Nxx_plus_2NGHOSTS2;
   const int idx3 = IDX3(dest_i0, dest_i1, dest_i2);
   const int idx3_int = IDX3(dest_i0_int, dest_i1_int, dest_i2_int);
 
@@ -135,7 +142,7 @@ static inline REAL radiation_bcs(const commondata_struct *restrict commondata, c
  */
 __global__
 void apply_bcs_pure_only_gpu(const int num_pure_outer_boundary_points, const int which_gz, const int dirn,
-  outerpt_bc_struct *restrict const pure_outer_bc_array) {
+  const outerpt_bc_struct *restrict pure_outer_bc_array) {
   int const & Nxx_plus_2NGHOSTS0 = d_params.Nxx_plus_2NGHOSTS0;
   int const & Nxx_plus_2NGHOSTS1 = d_params.Nxx_plus_2NGHOSTS1;
   int const & Nxx_plus_2NGHOSTS2 = d_params.Nxx_plus_2NGHOSTS2;
@@ -151,17 +158,17 @@ void apply_bcs_pure_only_gpu(const int num_pure_outer_boundary_points, const int
     const int stride2 = 1; //blockDim.z * gridDim.z;
 
   for (int idx2d = 0; idx2d < num_pure_outer_boundary_points; idx2d++) {
-    const short i0 = pure_outer_bc_array[dirn + (3 * which_gz)][idx2d].i0;
-    const short i1 = pure_outer_bc_array[dirn + (3 * which_gz)][idx2d].i1;
-    const short i2 = pure_outer_bc_array[dirn + (3 * which_gz)][idx2d].i2;
-    const short FACEX0 = pure_outer_bc_array[dirn + (3 * which_gz)][idx2d].FACEX0;
-    const short FACEX1 = pure_outer_bc_array[dirn + (3 * which_gz)][idx2d].FACEX1;
-    const short FACEX2 = pure_outer_bc_array[dirn + (3 * which_gz)][idx2d].FACEX2;
+    const short i0 = pure_outer_bc_array[idx2d].i0;
+    const short i1 = pure_outer_bc_array[idx2d].i1;
+    const short i2 = pure_outer_bc_array[idx2d].i2;
+    const short FACEX0 = pure_outer_bc_array[idx2d].FACEX0;
+    const short FACEX1 = pure_outer_bc_array[idx2d].FACEX1;
+    const short FACEX2 = pure_outer_bc_array[idx2d].FACEX2;
     const int idx3 = IDX3(i0, i1, i2);
     for (int which_gf = 0; which_gf < NUM_EVOL_GFS; which_gf++) {
       // *** Apply radiation BCs to all outer boundary points. ***
-      // rhs_gfs[IDX4pt(which_gf, idx3)] = radiation_bcs(commondata, params, bcstruct, xx, gfs, rhs_gfs, which_gf, custom_wavespeed[which_gf],
-      //                                                 custom_f_infinity[which_gf], i0, i1, i2, FACEX0, FACEX1, FACEX2);
+      rhs_gfs[IDX4pt(which_gf, idx3)] = radiation_bcs(xx, gfs, rhs_gfs, which_gf, custom_wavespeed[which_gf],
+                                                      custom_f_infinity[which_gf], i0, i1, i2, FACEX0, FACEX1, FACEX2);
     }
   }
 }
@@ -173,7 +180,8 @@ void apply_bcs_pure_only(const bc_info_struct *restrict bc_info, const bc_struct
         int num_pure = bc_info->num_pure_outer_boundary_points[which_gz][dirn];
         size_t block_threadsx = MIN(1024,num_pure);
         size_t grid_blocks = (num_pure + block_threadsx -1) / block_threadsx;
-        apply_bcs_pure_only_gpu(num_pure, which_gz, dirn, bcstruct->pure_outer_bc_array)
+        size_t gz_idx = dirn + (3 * which_gz);
+        apply_bcs_pure_only_gpu(num_pure, which_gz, dirn, bcstruct->pure_outer_bc_array[gz_idx]);
       }
     }
   }
@@ -199,7 +207,7 @@ void apply_bcs_outerradiation_and_inner__rfm__Spherical(const commondata_struct 
   //              then +/- x1 faces, finally +/- x2 faces,
   //              filling in the edges as we go.
   // Spawn N OpenMP threads, either across all cores, or according to e.g., taskset.
-  apply_bcs_pure_only(bc_info, bcstruct);
+  apply_bcs_pure_only(bc_info, bcstruct, xx, gfs, rhs_gfs, custom_wavespeed, custom_f_infinity);
 // #pragma omp parallel
 //   {
 //     for (int which_gz = 0; which_gz < NGHOSTS; which_gz++)
