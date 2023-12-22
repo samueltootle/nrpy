@@ -219,5 +219,5 @@ void apply_bcs_outerradiation_and_inner__rfm__Spherical(const commondata_struct 
   //              that map to outer require that outer be
   //              populated first; hence this being
   //              STEP 2 OF 2.
-  // apply_bcs_inner_only(commondata, params, bcstruct, rhs_gfs); // <- apply inner BCs to RHS gfs only
+  apply_bcs_inner_only(commondata, params, bcstruct, rhs_gfs); // <- apply inner BCs to RHS gfs only
 }
