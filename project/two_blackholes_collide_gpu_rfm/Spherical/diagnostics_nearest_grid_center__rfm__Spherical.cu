@@ -14,9 +14,9 @@ void diagnostics_nearest_grid_center__rfm__Spherical(commondata_struct *restrict
 #include "../set_CodeParameters.h"
 
   // Unpack gridfuncs struct:
-  const REAL *restrict y_n_gfs = gridfuncs->y_n_gfs;
-  const REAL *restrict auxevol_gfs = gridfuncs->auxevol_gfs;
-  const REAL *restrict diagnostic_output_gfs = gridfuncs->diagnostic_output_gfs;
+  __attribute_maybe_unused__ const REAL *restrict y_n_gfs = gridfuncs->y_n_gfs;
+  __attribute_maybe_unused__ const REAL *restrict auxevol_gfs = gridfuncs->auxevol_gfs;
+  __attribute_maybe_unused__ const REAL *restrict diagnostic_output_gfs = gridfuncs->diagnostic_output_gfs;
 
   // Output to file diagnostic quantities at grid's *physical* center.
   char filename[256];
