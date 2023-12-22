@@ -87,3 +87,68 @@ __device__ REAL fd_function_dDD12_fdorder4(const REAL FDPROTO_i1m1_i2m1, const R
 
 __device__ REAL fd_function_dDD22_fdorder4(const REAL FDPROTO, const REAL FDPROTO_i2m1, const REAL FDPROTO_i2m2, const REAL FDPROTO_i2p1,
                                        const REAL FDPROTO_i2p2, const REAL invdxx2);
+
+
+__global__
+void rk_substep1_gpu(const REAL *restrict y_n_gfs,
+                REAL *restrict y_nplus1_running_total_gfs,
+                REAL *restrict k_odd_gfs,
+                const REAL *restrict k_even_gfs,
+                REAL *restrict auxevol_gfs,
+                REAL const dt,
+                size_t const N);
+__host__
+void rk_substep1(params_struct *restrict params,
+                REAL *restrict y_n_gfs,
+                REAL *restrict y_nplus1_running_total_gfs,
+                REAL *restrict k_odd_gfs,
+                REAL *restrict k_even_gfs,
+                REAL *restrict auxevol_gfs, REAL const dt) ;
+
+__global__
+void rk_substep2_gpu(const REAL *restrict y_n_gfs,
+                REAL *restrict y_nplus1_running_total_gfs,
+                const REAL *restrict k_odd_gfs,
+                REAL *restrict k_even_gfs,
+                REAL *restrict auxevol_gfs,
+                REAL const dt,
+                size_t const N);
+__host__
+void rk_substep2(params_struct *restrict params,
+                REAL *restrict y_n_gfs,
+                REAL *restrict y_nplus1_running_total_gfs,
+                REAL *restrict k_odd_gfs,
+                REAL *restrict k_even_gfs,
+                REAL *restrict auxevol_gfs, REAL const dt) ;
+
+__global__
+void rk_substep3_gpu(const REAL *restrict y_n_gfs,
+                REAL *restrict y_nplus1_running_total_gfs,
+                REAL *restrict k_odd_gfs,
+                const REAL *restrict k_even_gfs,
+                REAL *restrict auxevol_gfs,
+                REAL const dt,
+                size_t const N);
+__host__
+void rk_substep3(params_struct *restrict params,
+                REAL *restrict y_n_gfs,
+                REAL *restrict y_nplus1_running_total_gfs,
+                REAL *restrict k_odd_gfs,
+                REAL *restrict k_even_gfs,
+                REAL *restrict auxevol_gfs, REAL const dt) ;
+
+__global__
+void rk_substep4_gpu(REAL *restrict y_n_gfs,
+                const REAL *restrict y_nplus1_running_total_gfs,
+                REAL *restrict k_odd_gfs,
+                const REAL *restrict k_even_gfs,
+                REAL *restrict auxevol_gfs,
+                REAL const dt,
+                size_t const N);
+__host__
+void rk_substep4(params_struct *restrict params,
+                REAL *restrict y_n_gfs,
+                REAL *restrict y_nplus1_running_total_gfs,
+                REAL *restrict k_odd_gfs,
+                REAL *restrict k_even_gfs,
+                REAL *restrict auxevol_gfs, REAL const dt) ;
