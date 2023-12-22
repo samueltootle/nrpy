@@ -5,7 +5,7 @@
 /*
  * Compute 1st derivative finite-difference derivative with arbitrary upwind
  */
-static inline REAL FD1_arbitrary_upwind_x0_dirn(const REAL *restrict gf, const int i0, const int i1, const int i2, const int offset) {
+__device__ inline REAL FD1_arbitrary_upwind_x0_dirn(const REAL *restrict gf, const int i0, const int i1, const int i2, const int offset) {
   REAL const& invdxx0 = d_params.invdxx0;
   int const& Nxx_plus_2NGHOSTS0 = d_params.Nxx_plus_2NGHOSTS0;
   int const& Nxx_plus_2NGHOSTS1 = d_params.Nxx_plus_2NGHOSTS1;
@@ -50,7 +50,7 @@ __device__ inline void r_and_partial_xi_partial_r_derivs(const REAL xx0, const R
 /*
  * Compute \partial_r f
  */
-static inline REAL compute_partial_r_f(const REAL *restrict gfs, const int which_gf, const int dest_i0, const int dest_i1, const int dest_i2,
+__device__ inline REAL compute_partial_r_f(const REAL *restrict gfs, const int which_gf, const int dest_i0, const int dest_i1, const int dest_i2,
                                        const int FACEi0, const int FACEi1, const int FACEi2, const REAL partial_x0_partial_r,
                                        const REAL partial_x1_partial_r, const REAL partial_x2_partial_r) {
 // #include "../set_CodeParameters.h"
@@ -167,7 +167,7 @@ void apply_bcs_pure_only_gpu(const int num_pure_outer_boundary_points, const int
     const int idx3 = IDX3(i0, i1, i2);
     for (int which_gf = 0; which_gf < NUM_EVOL_GFS; which_gf++) {
       // *** Apply radiation BCs to all outer boundary points. ***
-      rhs_gfs[IDX4pt(which_gf, idx3)] = radiation_bcs(xx, gfs, rhs_gfs, which_gf, custom_wavespeed[which_gf],
+      rhs_gfs[IDX4pt(which_gf, idx3)] = radiation_bcs(xx, gfs, rhs_gfs, which_gf, d_custom_wavespeed[which_gf],
                                                       custom_f_infinity[which_gf], i0, i1, i2, FACEX0, FACEX1, FACEX2);
     }
   }
