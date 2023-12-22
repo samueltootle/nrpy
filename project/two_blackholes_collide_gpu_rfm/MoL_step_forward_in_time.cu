@@ -15,6 +15,7 @@ void MoL_step_forward_in_time(commondata_struct *restrict commondata, griddata_s
   // -={ START k1 substep }=-
   for (int grid = 0; grid < commondata->NUMGRIDS; grid++) {
     commondata->time = time_start + 0.00000000000000000e+00 * commondata->dt;
+    set_param_constants(&griddata[grid].params);
     // Set gridfunction aliases from gridfuncs struct
     // y_n gridfunctions
     __attribute__((unused)) REAL *restrict y_n_gfs = griddata[grid].gridfuncs.y_n_gfs;
@@ -32,17 +33,19 @@ void MoL_step_forward_in_time(commondata_struct *restrict commondata, griddata_s
 
     Ricci_eval(commondata, params, rfmstruct, y_n_gfs, auxevol_gfs);
     rhs_eval(commondata, params, rfmstruct, auxevol_gfs, y_n_gfs, k_odd_gfs);
-    if (strncmp(commondata->outer_bc_type, "radiation", 50) == 0)
+    if (strncmp(commondata->outer_bc_type, "radiation", 50) == 0) {
       apply_bcs_outerradiation_and_inner(commondata, params, bcstruct, griddata[grid].xx, d_gridfunctions_wavespeed, d_gridfunctions_f_infinity, y_n_gfs,
                                          k_odd_gfs);
-    // LOOP_ALL_GFS_GPS(i) {
-    //   const REAL k_odd_gfsL = k_odd_gfs[i];
-    //   const REAL y_n_gfsL = y_n_gfs[i];
-    //   y_nplus1_running_total_gfs[i] = (1.0 / 6.0) * commondata->dt * k_odd_gfsL;
-    //   k_odd_gfs[i] = (1.0 / 2.0) * commondata->dt * k_odd_gfsL + y_n_gfsL;
-    // }
-    // if (strncmp(commondata->outer_bc_type, "extrapolation", 50) == 0)
-    //   apply_bcs_outerextrap_and_inner(commondata, params, bcstruct, k_odd_gfs);
+    }
+    rk_substep1(params,
+            y_n_gfs,
+            y_nplus1_running_total_gfs,
+            k_odd_gfs,
+            k_even_gfs,
+            auxevol_gfs,commondata->dt);
+    if (strncmp(commondata->outer_bc_type, "extrapolation", 50) == 0) {
+      apply_bcs_outerextrap_and_inner(commondata, params, bcstruct, k_odd_gfs);
+    }
     // enforce_detgammabar_equals_detgammahat(commondata, params, rfmstruct, k_odd_gfs);
   }
   // -={ END k1 substep }=-
