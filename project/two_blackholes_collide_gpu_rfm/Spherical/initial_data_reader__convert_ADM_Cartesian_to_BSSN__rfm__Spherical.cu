@@ -537,6 +537,45 @@ void initial_data_reader__convert_ADM_Cartesian_to_BSSN__rfm__Spherical_gpu(cons
           y_n_gfs[IDX4pt(LAMBDAU0GF, idx3)] = 0.0;
           y_n_gfs[IDX4pt(LAMBDAU1GF, idx3)] = 0.0;
           y_n_gfs[IDX4pt(LAMBDAU2GF, idx3)] = 0.0;
+
+          // if(idx3 == centeridx || idx3 == arbidx || idx3 == edgeidx) {
+          //   // printf("Cart %d - %1.15e, %1.15e, %1.15e\n", idx3, xCart[0], xCart[1], xCart[2]);
+          //   // printf("Cart %d - %1.15e, %1.15e, %1.15e, %1.15e, %1.15e, %1.15e, %1.15e\n", 
+          //   //   idx3, initial_data.alpha, 
+          //   //   initial_data.gammaSphorCartDD00, initial_data.gammaSphorCartDD01, initial_data.gammaSphorCartDD02,
+          //   //   initial_data.KSphorCartDD11, initial_data.KSphorCartDD12, initial_data.KSphorCartDD22);
+          //   // printf("Cart %d - %1.15e, %1.15e, %1.15e, %1.15e, %1.15e, %1.15e, %1.15e\n", 
+          //   //   idx3, ADM_Cart_basis.alpha,
+          //   //   ADM_Cart_basis.BU0, ADM_Cart_basis.BU1, ADM_Cart_basis.BU2,
+          //   //   ADM_Cart_basis.gammaDD00, ADM_Cart_basis.gammaDD01, ADM_Cart_basis.gammaDD02);
+            
+          //   // BSSN_Cart - CPU code stores gamma matrix with 9.999999999999998e-01 instead of 1 in some places
+          //   // GPU code stores at 1e000000000e0
+          //   // printf("Cart %d - %1.15e, %1.15e, %1.15e, %1.15e, "
+          //   //       "%1.15e, %1.15e, %1.15e, "
+          //   //       "%1.15e, %1.15e, %1.15e\n", 
+          //   //   idx3, BSSN_Cart_basis.alpha,
+          //   //   BSSN_Cart_basis.BU0, BSSN_Cart_basis.BU1, BSSN_Cart_basis.BU2,
+          //   //   BSSN_Cart_basis.gammabarDD00, BSSN_Cart_basis.gammabarDD11, BSSN_Cart_basis.gammabarDD22,
+          //   //   BSSN_Cart_basis.AbarDD01, BSSN_Cart_basis.AbarDD02, BSSN_Cart_basis.AbarDD12);            
+          //   // printf("Cart %d - %1.15e, %1.15e, %1.15e, %1.15e, %1.15e, \n\t"
+          //   //       "%1.15e, %1.15e, %1.15e, "
+          //   //       "%1.15e, %1.15e, %1.15e\n", 
+          //   //   idx3, rescaled_BSSN_rfm_basis.alpha, rescaled_BSSN_rfm_basis.cf,
+          //   //   rescaled_BSSN_rfm_basis.betU0, rescaled_BSSN_rfm_basis.betU1, rescaled_BSSN_rfm_basis.betU2,
+          //   //   rescaled_BSSN_rfm_basis.hDD00, rescaled_BSSN_rfm_basis.hDD11, rescaled_BSSN_rfm_basis.hDD22,
+          //   //   rescaled_BSSN_rfm_basis.aDD00, rescaled_BSSN_rfm_basis.aDD11, rescaled_BSSN_rfm_basis.aDD22);  
+          //     printf("Cart %d - %1.15e, %1.15e, %1.15e, "
+          //         "%1.15e, %1.15e, \n\t"
+          //         "%1.15e, %1.15e, %1.15e, "
+          //         "\n\t\t"
+          //         "%1.15e, %1.15e, %1.15e\n", 
+          //     idx3, xCart[0], xCart[1], xCart[2],
+          //     rescaled_BSSN_rfm_basis.alpha, rescaled_BSSN_rfm_basis.cf,
+          //     BSSN_Cart_basis.gammabarDD00, BSSN_Cart_basis.gammabarDD11, BSSN_Cart_basis.gammabarDD22,
+          //     // BSSN_Cart_basis.gammabarDD02, BSSN_Cart_basis.gammabarDD12,
+          //     rescaled_BSSN_rfm_basis.hDD00, rescaled_BSSN_rfm_basis.hDD11, rescaled_BSSN_rfm_basis.hDD22);  
+          // }
         }
       }
     }
@@ -564,6 +603,35 @@ void initial_data_reader__convert_ADM_Cartesian_to_BSSN__rfm__Spherical(
     MoL_gridfunctions_struct *restrict gridfuncs, ID_persist_struct *restrict ID_persist, 
     void ID_function(const commondata_struct *restrict commondata, const REAL xCart[3],
                      const ID_persist_struct *restrict ID_persist, initial_data_struct *restrict initial_data)) {
+  int const & Nxx_plus_2NGHOSTS0 = params->Nxx_plus_2NGHOSTS0;
+  int const & Nxx_plus_2NGHOSTS1 = params->Nxx_plus_2NGHOSTS1;
+  int const & Nxx_plus_2NGHOSTS2 = params->Nxx_plus_2NGHOSTS2;
+  auto print_gfs = [&](auto idx3) {
+          print_var<<<1,1>>>(gridfuncs->y_n_gfs,IDX4pt(ADD00GF, idx3));
+          print_var<<<1,1>>>(gridfuncs->y_n_gfs,IDX4pt(ADD01GF, idx3));
+          print_var<<<1,1>>>(gridfuncs->y_n_gfs,IDX4pt(ADD02GF, idx3));
+          print_var<<<1,1>>>(gridfuncs->y_n_gfs,IDX4pt(ADD11GF, idx3));
+          print_var<<<1,1>>>(gridfuncs->y_n_gfs,IDX4pt(ADD12GF, idx3));
+          print_var<<<1,1>>>(gridfuncs->y_n_gfs,IDX4pt(ADD22GF, idx3));
+          print_var<<<1,1>>>(gridfuncs->y_n_gfs,IDX4pt(ALPHAGF, idx3));
+          print_var<<<1,1>>>(gridfuncs->y_n_gfs,IDX4pt(BETU0GF, idx3));
+          print_var<<<1,1>>>(gridfuncs->y_n_gfs,IDX4pt(BETU1GF, idx3));
+          print_var<<<1,1>>>(gridfuncs->y_n_gfs,IDX4pt(BETU2GF, idx3));
+          print_var<<<1,1>>>(gridfuncs->y_n_gfs,IDX4pt(CFGF, idx3));
+          print_var<<<1,1>>>(gridfuncs->y_n_gfs,IDX4pt(HDD00GF, idx3));
+          print_var<<<1,1>>>(gridfuncs->y_n_gfs,IDX4pt(HDD01GF, idx3));
+          print_var<<<1,1>>>(gridfuncs->y_n_gfs,IDX4pt(HDD02GF, idx3));
+          print_var<<<1,1>>>(gridfuncs->y_n_gfs,IDX4pt(HDD11GF, idx3));
+          print_var<<<1,1>>>(gridfuncs->y_n_gfs,IDX4pt(HDD12GF, idx3));
+          print_var<<<1,1>>>(gridfuncs->y_n_gfs,IDX4pt(HDD22GF, idx3));          
+          print_var<<<1,1>>>(gridfuncs->y_n_gfs,IDX4pt(TRKGF, idx3));
+          print_var<<<1,1>>>(gridfuncs->y_n_gfs,IDX4pt(VETU0GF, idx3));
+          print_var<<<1,1>>>(gridfuncs->y_n_gfs,IDX4pt(VETU1GF, idx3));
+          print_var<<<1,1>>>(gridfuncs->y_n_gfs,IDX4pt(VETU2GF, idx3));
+          print_var<<<1,1>>>(gridfuncs->y_n_gfs,IDX4pt(LAMBDAU0GF, idx3));
+          print_var<<<1,1>>>(gridfuncs->y_n_gfs,IDX4pt(LAMBDAU1GF, idx3));
+          print_var<<<1,1>>>(gridfuncs->y_n_gfs,IDX4pt(LAMBDAU2GF, idx3));
+  };
 
   commondata_struct* commondata_gpu;
   cudaMalloc(&commondata_gpu, sizeof(commondata_struct));
@@ -607,4 +675,20 @@ void initial_data_reader__convert_ADM_Cartesian_to_BSSN__rfm__Spherical(
   initial_data_lambdaU_grid_interior(commondata, params, xx, gridfuncs->y_n_gfs);
   cudaFree(commondata_gpu); 
   cudaFree(ID_persist_gpu);
+  
+  // Here we find differences between CPU and GPU code specifically with small values near zero
+  // and evaluation of trig functions resulting in larger relative differences in values especially
+  // due to sign changes about zero.
+  // printf("center: \n");
+  // print_gfs(centeridx);
+  // cudaDeviceSynchronize();
+
+  // printf("edge: \n");
+  // print_gfs(edgeidx);
+  // cudaDeviceSynchronize();
+
+  // printf("arb: \n");
+  // print_gfs(arbidx);
+  // cudaDeviceSynchronize();
+  // abort();
 }
