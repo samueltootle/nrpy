@@ -2,6 +2,19 @@
 #include "../BHaH_function_prototypes.h"
 #include "../BHaH_gpu_defines.h"
 #include "../BHaH_gpu_function_prototypes.h"
+
+__global__
+void print_inner(innerpt_bc_struct *restrict inner_bc_array, size_t const N) {
+  for(int i = 0; i < N; ++i) {
+    for(int j = 0; j < 10; ++j) {
+      auto p = inner_bc_array[i].parity[j];
+      auto dstpt = inner_bc_array[i].dstpt;
+      auto srcpt = inner_bc_array[i].srcpt;
+      printf("%d: (%d, %d) %d, %d\n", p, i, j, dstpt, srcpt);
+    }
+  }
+}
+
 /*
  * EigenCoord_set_x0x1x2_inbounds__i0i1i2_inbounds_single_pt():
  * A coordinate system's "eigencoordinate" is the simplest member
@@ -700,4 +713,9 @@ for (int which_gz = 0; which_gz < NGHOSTS; which_gz++) {
     ////////////////////////
   }
   set_pure_outer_bc_array(xx, bcstruct);
+
+  // print_inner<<<1,1>>>(bcstruct->inner_bc_array, bcstruct->bc_info.num_inner_boundary_points);
+  // cudaDeviceSynchronize();
+  // print_data<<<1,1>>>(bcstruct->inner_bc_array, bcstruct->bc_info.num_inner_boundary_points);
+  // abort();
 }
