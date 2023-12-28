@@ -1,0 +1,37 @@
+#### two_blackholes_collide BH@H parameter file. NOTE: only commondata CodeParameters appear here ###
+###########################
+###########################
+### Module: nrpy.equations.general_relativity.BSSN_gauge_RHSs
+eta = 1.0                        # (type: REAL)
+###########################
+###########################
+### Module: nrpy.equations.general_relativity.InitialData_Cartesian
+BH1_mass = 0.5                   # (type: REAL)
+BH1_posn_x = 0.0                 # (type: REAL)
+BH1_posn_y = 0.0                 # (type: REAL)
+BH1_posn_z = 0.5                 # (type: REAL)
+BH2_mass = 0.5                   # (type: REAL)
+BH2_posn_x = 0.0                 # (type: REAL)
+BH2_posn_y = 0.0                 # (type: REAL)
+BH2_posn_z = -0.5                # (type: REAL)
+###########################
+###########################
+### Module: nrpy.grid
+NUMGRIDS = 1                     # (type: int)
+###########################
+###########################
+### Module: nrpy.infrastructures.BHaH.CurviBoundaryConditions.CurviBoundaryConditions
+outer_bc_type = radiation        # (type: char[50])
+###########################
+###########################
+### Module: nrpy.infrastructures.BHaH.MoLtimestepping.MoL
+CFL_FACTOR = 0.5                 # (type: REAL)
+t_final = 7.5                    # (type: REAL)
+###########################
+###########################
+### Module: nrpy.infrastructures.BHaH.general_relativity.BSSN_C_codegen_library
+diagnostics_output_every = 0.25  # (type: REAL)
+###########################
+###########################
+### Module: nrpy.infrastructures.BHaH.numerical_grids_and_timestep
+convergence_factor = 1.0         # (type: REAL)
