@@ -305,3 +305,8 @@ typedef struct __ID_persist_struct__ {
 //********************************************
 // Basic definitions for module nrpy.infrastructures.BHaH.rfm_wrapper_functions:
 #define SPHERICAL 1307621703
+
+// The following are diagnostic indicies for testing only.  See main file for definitions
+#define arbidx 3315U
+#define edgeidx 8265U
+#define centeridx 6321U

@@ -54,6 +54,21 @@ int main(int argc, const char *argv[]) {
     const bool calling_for_first_time = true;
     numerical_grids_and_timestep(&commondata, griddata, calling_for_first_time);
   }
+  // for(int grid = 0; grid < commondata.NUMGRIDS; ++grid)
+    // arbitrary point idx = 3315
+    // print_idx(&griddata[0].params, 
+    //   griddata[0].params.Nxx_plus_2NGHOSTS0/2, 
+    //   griddata[0].params.Nxx_plus_2NGHOSTS1/3, 
+    //   griddata[0].params.Nxx_plus_2NGHOSTS2/4);
+    // edge idx = 8265
+    // print_idx(&griddata[0].params, 
+    //   griddata[0].params.Nxx_plus_2NGHOSTS0 - NGHOSTS, 
+    //   griddata[0].params.Nxx_plus_2NGHOSTS1 - NGHOSTS, 
+    //   griddata[0].params.Nxx_plus_2NGHOSTS2 - NGHOSTS);
+    // center idx = 6321
+    // print_idx(&griddata[0].params, NGHOSTS, 
+    //   griddata[0].params.Nxx_plus_2NGHOSTS1/2, 
+    //   griddata[0].params.Nxx_plus_2NGHOSTS2/2);
 
   for (int grid = 0; grid < commondata.NUMGRIDS; grid++) {
     // Step 2: Initial data are set on y_n_gfs gridfunctions. Allocate storage for them first.

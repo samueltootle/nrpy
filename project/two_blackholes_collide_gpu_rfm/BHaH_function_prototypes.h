@@ -66,3 +66,12 @@ void rfm_precompute_malloc(const commondata_struct *restrict commondata, const p
 void rfm_precompute_malloc__rfm__Spherical(const commondata_struct *restrict commondata, const params_struct *restrict params, rfm_struct *restrict rfmstruct);
 void rhs_eval(const commondata_struct *restrict commondata, const params_struct *restrict params, const rfm_struct *restrict rfmstruct, const REAL *restrict auxevol_gfs, const REAL *restrict in_gfs, REAL *restrict rhs_gfs);
 void rhs_eval__rfm__Spherical(const commondata_struct *restrict commondata, const params_struct *restrict params, const rfm_struct *restrict rfmstruct, const REAL *restrict auxevol_gfs, const REAL *restrict in_gfs, REAL *restrict rhs_gfs);
+template<class T>
+void print_idx(T * p, size_t i, size_t j, size_t k) {
+
+    int const& Nxx_plus_2NGHOSTS0 = p->Nxx_plus_2NGHOSTS0;
+    int const& Nxx_plus_2NGHOSTS1 = p->Nxx_plus_2NGHOSTS1;
+    int const& Nxx_plus_2NGHOSTS2 = p->Nxx_plus_2NGHOSTS2;
+
+    printf("%u\n", IDX3(i,j,k));
+}
