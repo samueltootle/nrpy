@@ -9,8 +9,13 @@ template<class T>
 __global__
 void find_min_cu(T * data, unsigned long long int * min, uint const data_length);
 
+template<class T>
 __global__
-void print_data(REAL * data, uint const length);
+void print_data(T * data, uint const length) {
+    for(int i = 0; i < length; ++i) {
+        printf("%1.15e\n", data[i]);
+    }
+}
 
 __host__
 REAL reduction_sum(REAL * data, uint const data_length);
