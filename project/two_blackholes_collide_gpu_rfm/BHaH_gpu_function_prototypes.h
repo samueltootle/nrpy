@@ -35,6 +35,12 @@ void set_param_constants(const params_struct *restrict params);
 __global__
 void print_params();
 
+template<class T>
+__global__
+void print_var(T * data, size_t index) {
+    printf("%1.15e\n", data[index]);
+}
+
 __host__ __device__
 void BrillLindquist(const commondata_struct * commondata, const REAL xCart[3], const ID_persist_struct *restrict ID_persist, initial_data_struct *restrict initial_data);
 

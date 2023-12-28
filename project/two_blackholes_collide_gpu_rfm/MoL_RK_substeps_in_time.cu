@@ -4,12 +4,6 @@
 #include "BHaH_gpu_function_prototypes.h"
 #include <unistd.h>
 
-template<class T>
-__global__
-void print_var(T * data, size_t index) {
-    printf("%1.15f - ", data[index]);
-}
-
 __global__
 void rk_substep1_gpu(const REAL *restrict y_n_gfs,
                 REAL *restrict y_nplus1_running_total_gfs,
