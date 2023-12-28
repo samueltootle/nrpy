@@ -1,5 +1,6 @@
 #include "../BHaH_defines.h"
 #include "../BHaH_gpu_defines.h"
+#include "../BHaH_gpu_function_prototypes.h"
 /*
  * rfm_precompute_defines: reference metric precomputed lookup arrays: defines
  */
@@ -67,4 +68,18 @@ void rfm_precompute_defines__rfm__Spherical(const commondata_struct *restrict co
   cudaCheckErrors(rfm_precompute_defines__rfm__Spherical_xx1__D1_gpu, "kernel failed");
   rfm_precompute_defines__rfm__Spherical_xx1__DD11_gpu<<<grid_blocks, block_threads, 0, stream2>>>(rfmstruct->f1_of_xx1__DD11, rfmstruct->f1_of_xx1);
   cudaCheckErrors(rfm_precompute_defines__rfm__Spherical_xx1__DD11_gpu, "kernel failed");
+
+//   printf("f0_of_xx0: \n");
+//   print_data<<<1,1>>>(rfmstruct->f0_of_xx0, Nxx_plus_2NGHOSTS0);
+// cudaDeviceSynchronize();
+//   printf("f1_of_xx1: \n");
+//   print_data<<<1,1>>>(rfmstruct->f1_of_xx1, Nxx_plus_2NGHOSTS1);
+// cudaDeviceSynchronize();
+//   printf("f1_of_xx1__D1: \n");
+//   print_data<<<1,1>>>(rfmstruct->f1_of_xx1__D1, Nxx_plus_2NGHOSTS1);
+// cudaDeviceSynchronize();
+//   printf("f1_of_xx1__DD11: \n");
+//   print_data<<<1,1>>>(rfmstruct->f1_of_xx1__DD11, Nxx_plus_2NGHOSTS1);
+// cudaDeviceSynchronize();
+//   abort();
 }
