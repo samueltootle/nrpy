@@ -273,4 +273,5 @@ uint reduction_sum(uint * data, uint const data_length) {
 __global__
 void print_params() {
   printf("dxx0: %f - dxx1: %f - dxx2: %f\n", d_params.dxx0, d_params.dxx1, d_params.dxx2);
+  printf("Nxx0+G: %d - Nxx1+G: %d - Nxx2+G: %d\n", d_params.Nxx_plus_2NGHOSTS0, d_params.Nxx_plus_2NGHOSTS1, d_params.Nxx_plus_2NGHOSTS2);
 }
