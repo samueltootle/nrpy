@@ -12,7 +12,7 @@ void params_struct_set_to_default(commondata_struct *restrict commondata, gridda
     params->Cart_originz = 0.0;       // nrpy.grid::Cart_originz
     params->Nxx0 = 72;                // nrpy.infrastructures.BHaH.numerical_grids_and_timestep::Nxx0
     params->Nxx1 = 12;                // nrpy.infrastructures.BHaH.numerical_grids_and_timestep::Nxx1
-    params->Nxx2 = 12;                 // nrpy.infrastructures.BHaH.numerical_grids_and_timestep::Nxx2
+    params->Nxx2 = 12;                // nrpy.infrastructures.BHaH.numerical_grids_and_timestep::Nxx2
     params->grid_physical_size = 7.5; // nrpy.reference_metric::grid_physical_size
   }
 }

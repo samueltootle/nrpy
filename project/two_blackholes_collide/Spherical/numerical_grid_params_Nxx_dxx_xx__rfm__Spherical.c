@@ -6,7 +6,7 @@
 void numerical_grid_params_Nxx_dxx_xx__rfm__Spherical(commondata_struct *restrict commondata, params_struct *restrict params, REAL *restrict xx[3]) {
   params->Nxx0 = 72;
   params->Nxx1 = 12;
-  params->Nxx2 = 2;
+  params->Nxx2 = 12;
 
   const REAL grid_physical_size = params->grid_physical_size;
   snprintf(params->CoordSystemName, 50, "Spherical");
