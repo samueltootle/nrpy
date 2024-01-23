@@ -1,0 +1,8 @@
+project
+*.sqlite
+*.nsys-rep
+Makefile
+__pycache__
+*.o
+*.c*
+*.h
