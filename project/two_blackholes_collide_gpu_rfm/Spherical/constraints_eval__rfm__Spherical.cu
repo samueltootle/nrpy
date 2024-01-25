@@ -622,6 +622,7 @@ void constraints_eval__rfm__Spherical(const commondata_struct *restrict commonda
   // Assumes the grids are small enough such that Nxx0 < 1024, therefore we only
   // need tiles to cover y and z
   dim3 grid_blocks(params->Nxx1 / threads_in_y_dir, params->Nxx2, 1);
-  constraints_eval__rfm__Spherical_gpu<<<grid_blocks, block_threads>>>(rfmstruct->f0_of_xx0, rfmstruct->f1_of_xx1, 
+//   constraints_eval__rfm__Spherical_gpu<<<grid_blocks, block_threads>>>(rfmstruct->f0_of_xx0, rfmstruct->f1_of_xx1, 
+  constraints_eval__rfm__Spherical_gpu<<<1,1>>>(rfmstruct->f0_of_xx0, rfmstruct->f1_of_xx1, 
     rfmstruct->f1_of_xx1__D1, rfmstruct->f1_of_xx1__DD11, in_gfs, auxevol_gfs, diagnostic_output_gfs);
 }

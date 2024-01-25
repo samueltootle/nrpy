@@ -84,10 +84,11 @@ int main(int argc, const char *argv[]) {
   }
 
   // Step 5: MAIN SIMULATION LOOP
-  while (commondata.time < commondata.t_final) { // Main loop to progress forward in time.
+  // while (commondata.time < commondata.t_final) { // Main loop to progress forward in time.
   // for(int i =0; i < 3; ++i) {
     // Step 5.a: Main loop, part 1: Output diagnostics
-    diagnostics(&commondata, griddata);
+    // diagnostics(&commondata, griddata);
+    // abort();
 
     // Step 5.b: Main loop, part 2 (pre_MoL_step_forward_in_time): Prepare to step forward in time
     // (nothing here; specify by setting pre_MoL_step_forward_in_time string in register_CFunction_main_c().)
@@ -95,11 +96,12 @@ int main(int argc, const char *argv[]) {
     // Step 5.c: Main loop, part 3: Step forward in time using Method of Lines with RK4 algorithm,
     //           applying outgoing radiation boundary conditions.
     MoL_step_forward_in_time(&commondata, griddata);
+    diagnostics(&commondata, griddata);
 
     // Step 5.d: Main loop, part 4 (post_MoL_step_forward_in_time): Finish up step in time
     // (nothing here; specify by setting post_MoL_step_forward_in_time string in register_CFunction_main_c().)
 
-  } // End main loop to progress forward in time.
+  // } // End main loop to progress forward in time.
   cudaDeviceSynchronize();
   cudaStreamDestroy(stream1);
   cudaStreamDestroy(stream2);

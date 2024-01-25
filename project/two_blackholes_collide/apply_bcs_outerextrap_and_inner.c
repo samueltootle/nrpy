@@ -56,6 +56,7 @@ void apply_bcs_outerextrap_and_inner(const commondata_struct *restrict commondat
               // *** Apply 2nd-order polynomial extrapolation BCs to all outer boundary points. ***
               gfs[IDX4pt(which_gf, idx_offset0)] =
                   +3.0 * gfs[IDX4pt(which_gf, idx_offset1)] - 3.0 * gfs[IDX4pt(which_gf, idx_offset2)] + 1.0 * gfs[IDX4pt(which_gf, idx_offset3)];
+            // printf("%d: %f\n", idx_offset0, gfs[IDX4pt(which_gf, idx_offset0)]);
             }
           }
         }

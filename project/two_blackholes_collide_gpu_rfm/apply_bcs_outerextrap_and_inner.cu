@@ -33,6 +33,7 @@ void apply_bcs_outerextrap_and_inner_only_gpu(const int num_pure_outer_boundary_
           + 3.0 * gfs[IDX4pt(which_gf, idx_offset1)] 
           - 3.0 * gfs[IDX4pt(which_gf, idx_offset2)] 
           + 1.0 * gfs[IDX4pt(which_gf, idx_offset3)];
+          // printf("%d: %f\n", idx_offset0, gfs[IDX4pt(which_gf, idx_offset0)]);
     }
   }
 }
@@ -41,12 +42,14 @@ void apply_bcs_outerextrap_and_inner_only(const bc_struct *restrict bcstruct, RE
   const bc_info_struct *bc_info = &bcstruct->bc_info;
   for (int which_gz = 0; which_gz < NGHOSTS; which_gz++) {
     for (int dirn = 0; dirn < 3; dirn++) {
+      // printf("%d - %d - %d\n", which_gz, dirn,bc_info->num_pure_outer_boundary_points[which_gz][dirn] );
       if (bc_info->num_pure_outer_boundary_points[which_gz][dirn] > 0) {
         int num_pure = bc_info->num_pure_outer_boundary_points[which_gz][dirn];
         size_t block_threadsx = MIN(1024,num_pure);
         size_t grid_blocks = (num_pure + block_threadsx -1) / block_threadsx;
         size_t gz_idx = dirn + (3 * which_gz);
-        apply_bcs_outerextrap_and_inner_only_gpu<<<grid_blocks, block_threadsx>>>(
+        // apply_bcs_outerextrap_and_inner_only_gpu<<<grid_blocks, block_threadsx>>>(
+        apply_bcs_outerextrap_and_inner_only_gpu<<<1,1>>>(  
           num_pure, which_gz, dirn, bcstruct->pure_outer_bc_array[gz_idx], gfs);
       }
     }

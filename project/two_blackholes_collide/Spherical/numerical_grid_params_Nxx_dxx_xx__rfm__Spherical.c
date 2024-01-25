@@ -4,7 +4,7 @@
  * Set up a cell-centered Spherical grid of size grid_physical_size. Set params: Nxx, Nxx_plus_2NGHOSTS, dxx, invdxx, and xx.
  */
 void numerical_grid_params_Nxx_dxx_xx__rfm__Spherical(commondata_struct *restrict commondata, params_struct *restrict params, REAL *restrict xx[3]) {
-  params->Nxx0 = 72;
+  params->Nxx0 = 64;
   params->Nxx1 = 12;
   params->Nxx2 = 12;
 

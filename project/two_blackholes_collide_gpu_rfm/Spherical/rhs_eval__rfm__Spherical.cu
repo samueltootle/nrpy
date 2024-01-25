@@ -1286,7 +1286,7 @@ void rhs_eval__rfm__Spherical_gpu(const REAL eta, const REAL *restrict _f0_of_xx
         const REAL FDPart3tmp2 = (1.0 / (f0_of_xx0));
         const REAL FDPart3tmp4 = (1.0 / (f1_of_xx1));
         const REAL FDPart3tmp7 = ((f0_of_xx0) * (f0_of_xx0));
-        const REAL FDPart3tmp12 = 2 * f0_of_xx0;
+        const REAL FDPart3tmp12 = 2. * f0_of_xx0;
         const REAL FDPart3tmp18 = aDD02 * f1_of_xx1;
         const REAL FDPart3tmp28 = aDD01 * f0_of_xx0;
         const REAL FDPart3tmp29 = ((f0_of_xx0) * (f0_of_xx0) * (f0_of_xx0) * (f0_of_xx0));
@@ -1295,10 +1295,10 @@ void rhs_eval__rfm__Spherical_gpu(const REAL eta, const REAL *restrict _f0_of_xx
         const REAL FDPart3tmp42 = f1_of_xx1 * hDD02;
         const REAL FDPart3tmp47 = ((f0_of_xx0) * (f0_of_xx0) * (f0_of_xx0));
         const REAL FDPart3tmp56 = f0_of_xx0 * hDD01;
-        const REAL FDPart3tmp68 = 2 * alpha;
+        const REAL FDPart3tmp68 = 2. * alpha;
         const REAL FDPart3tmp70 = ((cf) * (cf));
         const REAL FDPart3tmp71 = (1.0 / (cf));
-        const REAL FDPart3tmp75 = 2 * hDD01;
+        const REAL FDPart3tmp75 = 2. * hDD01;
         const REAL FDPart3tmp102 = f0_of_xx0 * hDD_dD012;
         const REAL FDPart3tmp105 = f0_of_xx0 * f1_of_xx1;
         const REAL FDPart3tmp166 = f1_of_xx1 * f1_of_xx1__D1;
@@ -1309,10 +1309,10 @@ void rhs_eval__rfm__Spherical_gpu(const REAL eta, const REAL *restrict _f0_of_xx
         const REAL FDPart3tmp271 = ((f1_of_xx1__D1) * (f1_of_xx1__D1));
         const REAL FDPart3tmp290 = betU0 * vetU0;
         const REAL FDPart3tmp291 = (3.0 / 4.0) * lambdaU0;
-        const REAL FDPart3tmp317 = 3 * alpha;
-        const REAL FDPart3tmp351 = (3.0 / 2.0) * alpha;
+        const REAL FDPart3tmp317 = 3. * alpha;
+        const REAL FDPart3tmp351 = FDPart1_Rational_3_2 * alpha;
         const REAL FDPart3tmp440 = (1.0 / ((f1_of_xx1) * (f1_of_xx1) * (f1_of_xx1)));
-        const REAL FDPart3tmp457 = 4 * alpha;
+        const REAL FDPart3tmp457 = 4. * alpha;
         const REAL FDPart3tmp465 = ((vetU0) * (vetU0));
         const REAL FDPart3tmp3 = FDPart3tmp2 * vetU1;
         const REAL FDPart3tmp5 = FDPart3tmp2 * FDPart3tmp4;
@@ -1321,7 +1321,7 @@ void rhs_eval__rfm__Spherical_gpu(const REAL eta, const REAL *restrict _f0_of_xx
         const REAL FDPart3tmp14 = FDPart3tmp4 * vetU2;
         const REAL FDPart3tmp19 = FDPart3tmp12 * FDPart3tmp18;
         const REAL FDPart3tmp20 = FDPart3tmp2 * vetU_dD11;
-        const REAL FDPart3tmp21 = 2 * FDPart3tmp2;
+        const REAL FDPart3tmp21 = 2. * FDPart3tmp2;
         const REAL FDPart3tmp24 = FDPart3tmp4 * f1_of_xx1__D1;
         const REAL FDPart3tmp32 = FDPart3tmp29 * FDPart3tmp30 * ((hDD12) * (hDD12));
         const REAL FDPart3tmp33 = FDPart3tmp7 * hDD11;
@@ -1333,7 +1333,7 @@ void rhs_eval__rfm__Spherical_gpu(const REAL eta, const REAL *restrict _f0_of_xx
         const REAL FDPart3tmp69 = FDPart3tmp68 * aDD00;
         const REAL FDPart3tmp76 = FDPart3tmp12 * hDD_dD010 + FDPart3tmp75 - hDD_dD001;
         const REAL FDPart3tmp78 = FDPart3tmp12 * f1_of_xx1;
-        const REAL FDPart3tmp83 = (1.0 / 2.0) * FDPart3tmp71;
+        const REAL FDPart3tmp83 = FDPart1_Rational_1_2 * FDPart3tmp71;
         const REAL FDPart3tmp94 = (1.0 / (FDPart3tmp70));
         const REAL FDPart3tmp95 = FDPart3tmp71 * cf_dD0;
         const REAL FDPart3tmp99 = FDPart3tmp12 * hDD11 + FDPart3tmp12;
@@ -1345,13 +1345,13 @@ void rhs_eval__rfm__Spherical_gpu(const REAL eta, const REAL *restrict _f0_of_xx
         const REAL FDPart3tmp201 = FDPart3tmp7 * aDD11;
         const REAL FDPart3tmp202 = FDPart3tmp2 * vetU2;
         const REAL FDPart3tmp203 = (1.0 / (FDPart3tmp30));
-        const REAL FDPart3tmp223 = (2.0 / 3.0) * FDPart3tmp7;
+        const REAL FDPart3tmp223 = FDPart1_Rational_2_3 * FDPart3tmp7;
         const REAL FDPart3tmp239 = FDPart3tmp2 * vetU_dD01;
         const REAL FDPart3tmp241 = FDPart3tmp2 * vetU_dD02;
         const REAL FDPart3tmp242 = FDPart3tmp4 * lambdaU2;
         const REAL FDPart3tmp252 = FDPart3tmp30 * f0_of_xx0;
-        const REAL FDPart3tmp270 = 2 * FDPart3tmp29;
-        const REAL FDPart3tmp273 = 4 * FDPart3tmp30 * FDPart3tmp47;
+        const REAL FDPart3tmp270 = 2. * FDPart3tmp29;
+        const REAL FDPart3tmp273 = 4. * FDPart3tmp30 * FDPart3tmp47;
         const REAL FDPart3tmp274 = FDPart3tmp2 * vetU0;
         const REAL FDPart3tmp292 = FDPart3tmp291 * vetU0;
         const REAL FDPart3tmp294 = FDPart3tmp2 * betU1;
@@ -1365,7 +1365,7 @@ void rhs_eval__rfm__Spherical_gpu(const REAL eta, const REAL *restrict _f0_of_xx
         const REAL FDPart3tmp44 = FDPart3tmp43 * hDD12;
         const REAL FDPart3tmp55 = FDPart3tmp19 * alpha;
         const REAL FDPart3tmp60 = FDPart3tmp13 * alpha;
-        const REAL FDPart3tmp79 = 2 * FDPart3tmp42 + FDPart3tmp78 * hDD_dD020 - hDD_dD002;
+        const REAL FDPart3tmp79 = 2. * FDPart3tmp42 + FDPart3tmp78 * hDD_dD020 - hDD_dD002;
         const REAL FDPart3tmp84 = FDPart3tmp83 * cf_dD2;
         const REAL FDPart3tmp87 = FDPart3tmp83 * cf_dD1;
         const REAL FDPart3tmp93 = FDPart3tmp83 * cf_dD0;
@@ -1373,10 +1373,10 @@ void rhs_eval__rfm__Spherical_gpu(const REAL eta, const REAL *restrict _f0_of_xx
         const REAL FDPart3tmp107 = FDPart3tmp104 + FDPart3tmp105 * hDD_dD021;
         const REAL FDPart3tmp108 = FDPart3tmp78 * hDD12;
         const REAL FDPart3tmp123 = FDPart3tmp71 * alpha_dD1 * cf_dD0;
-        const REAL FDPart3tmp130 = (1.0 / 2.0) * FDPart3tmp7 * hDD_dD111;
+        const REAL FDPart3tmp130 = FDPart1_Rational_1_2 * FDPart3tmp7 * hDD_dD111;
         const REAL FDPart3tmp135 = FDPart3tmp7 * f1_of_xx1__D1 * hDD12;
         const REAL FDPart3tmp150 = FDPart3tmp149 * hDD22 + FDPart3tmp149;
-        const REAL FDPart3tmp168 = 2 * FDPart3tmp166 * FDPart3tmp7;
+        const REAL FDPart3tmp168 = 2. * FDPart3tmp166 * FDPart3tmp7;
         const REAL FDPart3tmp179 = FDPart3tmp71 * alpha_dD1 * cf_dD2;
         const REAL FDPart3tmp207 = FDPart3tmp43 * aDD12;
         const REAL FDPart3tmp214 = FDPart3tmp35 * aDD22;
@@ -1384,8 +1384,8 @@ void rhs_eval__rfm__Spherical_gpu(const REAL eta, const REAL *restrict _f0_of_xx
         const REAL FDPart3tmp233 = FDPart3tmp4 * FDPart3tmp8;
         const REAL FDPart3tmp237 = FDPart3tmp203 * FDPart3tmp8;
         const REAL FDPart3tmp255 = FDPart3tmp2 * FDPart3tmp24 * vetU_dD12;
-        const REAL FDPart3tmp257 = 2 * FDPart3tmp241 + FDPart3tmp5 * vetU_dDD222;
-        const REAL FDPart3tmp272 = (1.0 / 2.0) * FDPart3tmp203 / FDPart3tmp29;
+        const REAL FDPart3tmp257 = 2. * FDPart3tmp241 + FDPart3tmp5 * vetU_dDD222;
+        const REAL FDPart3tmp272 = FDPart1_Rational_1_2 * FDPart3tmp203 / FDPart3tmp29;
         const REAL FDPart3tmp278 = FDPart3tmp2 * FDPart3tmp203;
         const REAL FDPart3tmp293 = FDPart3tmp3 * betU0;
         const REAL FDPart3tmp295 = FDPart3tmp294 * vetU0;
@@ -1396,8 +1396,8 @@ void rhs_eval__rfm__Spherical_gpu(const REAL eta, const REAL *restrict _f0_of_xx
         const REAL FDPart3tmp318 = FDPart3tmp317 * FDPart3tmp95 + alpha_dD0;
         const REAL FDPart3tmp367 = FDPart3tmp159 * FDPart3tmp317 + alpha_dD2;
         const REAL FDPart3tmp377 = FDPart3tmp120 * FDPart3tmp317 + alpha_dD1;
-        const REAL FDPart3tmp436 = 2 * FDPart3tmp14;
-        const REAL FDPart3tmp466 = 2 * FDPart3tmp3 * vetU0;
+        const REAL FDPart3tmp436 = 2. * FDPart3tmp14;
+        const REAL FDPart3tmp466 = 2. * FDPart3tmp3 * vetU0;
         const REAL FDPart3tmp467 = FDPart3tmp8 * ((vetU1) * (vetU1));
         const REAL FDPart3tmp26 = FDPart3tmp20 + FDPart3tmp21 * vetU0 + FDPart3tmp24 * FDPart3tmp3 + FDPart3tmp5 * vetU_dD22 + vetU_dD00;
         const REAL FDPart3tmp38 = FDPart3tmp35 + FDPart3tmp37;
@@ -1410,9 +1410,9 @@ void rhs_eval__rfm__Spherical_gpu(const REAL eta, const REAL *restrict _f0_of_xx
         const REAL FDPart3tmp151 = FDPart3tmp150 + FDPart3tmp35 * hDD_dD220;
         const REAL FDPart3tmp169 = FDPart3tmp168 * hDD22 + FDPart3tmp168;
         const REAL FDPart3tmp172 = FDPart3tmp102 + FDPart3tmp107 - FDPart3tmp108 - FDPart3tmp43 * hDD_dD120;
-        const REAL FDPart3tmp186 = (1.0 / 2.0) * FDPart3tmp35 * hDD_dD222;
+        const REAL FDPart3tmp186 = FDPart1_Rational_1_2 * FDPart3tmp35 * hDD_dD222;
         const REAL FDPart3tmp205 = -FDPart3tmp202 * FDPart3tmp203 * f1_of_xx1__D1;
-        const REAL FDPart3tmp222 = 2 * FDPart3tmp43 * aDD12;
+        const REAL FDPart3tmp222 = 2. * FDPart3tmp43 * aDD12;
         const REAL FDPart3tmp225 = FDPart3tmp207 * FDPart3tmp68;
         const REAL FDPart3tmp258 = FDPart3tmp2 * vetU_dDD112 + FDPart3tmp255 + FDPart3tmp257 + vetU_dDD002;
         const REAL FDPart3tmp277 = FDPart3tmp203 * FDPart3tmp271 * FDPart3tmp3;
@@ -1439,8 +1439,8 @@ void rhs_eval__rfm__Spherical_gpu(const REAL eta, const REAL *restrict _f0_of_xx
         const REAL FDPart3tmp469 = FDPart3tmp237 * ((vetU2) * (vetU2));
         const REAL FDPart3tmp11 = FDPart3tmp2 * vetU_dD10 - FDPart3tmp9;
         const REAL FDPart3tmp17 = -FDPart3tmp15 + FDPart3tmp5 * vetU_dD20;
-        const REAL FDPart3tmp27 = (2.0 / 3.0) * FDPart3tmp26;
-        const REAL FDPart3tmp40 = 2 * FDPart3tmp29 * FDPart3tmp30 * hDD01 * hDD02 * hDD12 - FDPart3tmp31 * FDPart3tmp32 +
+        const REAL FDPart3tmp27 = FDPart1_Rational_2_3 * FDPart3tmp26;
+        const REAL FDPart3tmp40 = 2. * FDPart3tmp29 * FDPart3tmp30 * hDD01 * hDD02 * hDD12 - FDPart3tmp31 * FDPart3tmp32 +
                                   FDPart3tmp31 * FDPart3tmp34 * FDPart3tmp38 - FDPart3tmp34 * FDPart3tmp36 - FDPart3tmp38 * FDPart3tmp39;
         const REAL FDPart3tmp57 = FDPart3tmp30 * FDPart3tmp47 * hDD02 * hDD12 - FDPart3tmp38 * FDPart3tmp56;
         const REAL FDPart3tmp58 = FDPart3tmp31 * FDPart3tmp38 - FDPart3tmp36;
@@ -1450,7 +1450,7 @@ void rhs_eval__rfm__Spherical_gpu(const REAL eta, const REAL *restrict _f0_of_xx
         const REAL FDPart3tmp170 = FDPart3tmp169 + FDPart3tmp35 * hDD_dD221;
         const REAL FDPart3tmp189 = -FDPart3tmp151 + 2 * f0_of_xx0 * f1_of_xx1 * hDD_dD022;
         const REAL FDPart3tmp206 = FDPart3tmp205 + FDPart3tmp5 * vetU_dD21;
-        const REAL FDPart3tmp259 = (1.0 / 4.0) * FDPart3tmp258;
+        const REAL FDPart3tmp259 = FDPart1_Rational_1_4 * FDPart3tmp258;
         const REAL FDPart3tmp281 = -FDPart3tmp280 + FDPart3tmp5 * vetU_dDD212;
         const REAL FDPart3tmp315 = FDPart3tmp314 * betU2;
         const REAL FDPart3tmp316 = (3.0 / 4.0) * FDPart3tmp314 * lambdaU2;
@@ -1460,14 +1460,14 @@ void rhs_eval__rfm__Spherical_gpu(const REAL eta, const REAL *restrict _f0_of_xx
         const REAL FDPart3tmp187 = -FDPart3tmp170 + 2 * FDPart3tmp7 * f1_of_xx1 * hDD_dD122;
         const REAL FDPart3tmp260 = FDPart3tmp11 * f0_of_xx0;
         const REAL FDPart3tmp266 = -FDPart3tmp206 * FDPart3tmp252 - FDPart3tmp24 * vetU_dD02 - vetU_dD12 + vetU_dDD012;
-        const REAL FDPart3tmp282 = FDPart3tmp2 * vetU_dDD111 - 4 * FDPart3tmp24 * FDPart3tmp274 +
-                                   FDPart3tmp272 * (8 * FDPart3tmp166 * FDPart3tmp47 * vetU0 + FDPart3tmp273 * vetU_dD01) +
-                                   FDPart3tmp272 * (2 * FDPart3tmp166 * FDPart3tmp47 * vetU_dD11 +
+        const REAL FDPart3tmp282 = FDPart3tmp2 * vetU_dDD111 - 4.* FDPart3tmp24 * FDPart3tmp274 +
+                                   FDPart3tmp272 * (8. * FDPart3tmp166 * FDPart3tmp47 * vetU0 + FDPart3tmp273 * vetU_dD01) +
+                                   FDPart3tmp272 * (2. * FDPart3tmp166 * FDPart3tmp47 * vetU_dD11 +
                                                     FDPart3tmp3 * (FDPart3tmp270 * FDPart3tmp271 + FDPart3tmp270 * f1_of_xx1 * f1_of_xx1__DD11)) -
-                                   2 * FDPart3tmp277 + FDPart3tmp281 + vetU_dDD001;
-        const REAL FDPart3tmp288 = -4 * FDPart3tmp24 * FDPart3tmp9 + FDPart3tmp272 * (FDPart3tmp273 * vetU_dD00 + 12 * FDPart3tmp35 * vetU0) +
-                                   FDPart3tmp272 * (FDPart3tmp11 * FDPart3tmp166 * FDPart3tmp270 + 8 * FDPart3tmp166 * FDPart3tmp7 * vetU1) +
-                                   FDPart3tmp286 + FDPart3tmp287 - 8 * FDPart3tmp8 * vetU0 + vetU_dDD000;
+                                   2. * FDPart3tmp277 + FDPart3tmp281 + vetU_dDD001;
+        const REAL FDPart3tmp288 = -4 * FDPart3tmp24 * FDPart3tmp9 + FDPart3tmp272 * (FDPart3tmp273 * vetU_dD00 + 12. * FDPart3tmp35 * vetU0) +
+                                   FDPart3tmp272 * (FDPart3tmp11 * FDPart3tmp166 * FDPart3tmp270 + 8. * FDPart3tmp166 * FDPart3tmp7 * vetU1) +
+                                   FDPart3tmp286 + FDPart3tmp287 - 8. * FDPart3tmp8 * vetU0 + vetU_dDD000;
         const REAL FDPart3tmp319 = (1.0 / ((FDPart3tmp40) * (FDPart3tmp40)));
         const REAL FDPart3tmp328 = FDPart3tmp50 * FDPart3tmp57;
         const REAL FDPart3tmp358 = FDPart3tmp45 * FDPart3tmp57;
@@ -1486,11 +1486,11 @@ void rhs_eval__rfm__Spherical_gpu(const REAL eta, const REAL *restrict _f0_of_xx
         const REAL FDPart3tmp61 = FDPart3tmp41 * FDPart3tmp50;
         const REAL FDPart3tmp63 = FDPart3tmp41 * FDPart3tmp57;
         const REAL FDPart3tmp66 = FDPart3tmp41 * FDPart3tmp65;
-        const REAL FDPart3tmp74 = (1.0 / 2.0) * FDPart3tmp41 * hDD_dD000;
+        const REAL FDPart3tmp74 = FDPart1_Rational_1_2 * FDPart3tmp41 * hDD_dD000;
         const REAL FDPart3tmp261 = -FDPart3tmp239 - FDPart3tmp260 + vetU_dDD001;
         const REAL FDPart3tmp264 = -FDPart3tmp17 * FDPart3tmp252 - FDPart3tmp241 + vetU_dDD002;
-        const REAL FDPart3tmp283 = (1.0 / 4.0) * FDPart3tmp282;
-        const REAL FDPart3tmp289 = (1.0 / 4.0) * FDPart3tmp288;
+        const REAL FDPart3tmp283 = FDPart1_Rational_1_4 * FDPart3tmp282;
+        const REAL FDPart3tmp289 = FDPart1_Rational_1_4 * FDPart3tmp288;
         const REAL FDPart3tmp321 = FDPart3tmp319 * ((FDPart3tmp50) * (FDPart3tmp50));
         const REAL FDPart3tmp324 = FDPart3tmp319 * ((FDPart3tmp57) * (FDPart3tmp57));
         const REAL FDPart3tmp326 = FDPart3tmp319 * aDD00;
@@ -1505,24 +1505,24 @@ void rhs_eval__rfm__Spherical_gpu(const REAL eta, const REAL *restrict _f0_of_xx
         const REAL FDPart3tmp354 = FDPart3tmp319 * ((FDPart3tmp45) * (FDPart3tmp45));
         const REAL FDPart3tmp453 = (1.0 / 3.0) * FDPart3tmp282;
         const REAL FDPart3tmp454 = (1.0 / 3.0) * FDPart3tmp288;
-        const REAL FDPart3tmp81 = (1.0 / 2.0) * FDPart3tmp46 * FDPart3tmp76 + FDPart3tmp50 * FDPart3tmp74 + (1.0 / 2.0) * FDPart3tmp53 * FDPart3tmp79;
-        const REAL FDPart3tmp85 = (1.0 / 2.0) * FDPart3tmp46 * FDPart3tmp79 + FDPart3tmp57 * FDPart3tmp74 + (1.0 / 2.0) * FDPart3tmp59 * FDPart3tmp76;
-        const REAL FDPart3tmp89 = (1.0 / 2.0) * FDPart3tmp41 * FDPart3tmp50;
-        const REAL FDPart3tmp90 = (1.0 / 2.0) * FDPart3tmp41 * FDPart3tmp57;
-        const REAL FDPart3tmp117 = (1.0 / 2.0) * FDPart3tmp66;
-        const REAL FDPart3tmp127 = 2 * FDPart3tmp41 * FDPart3tmp57;
-        const REAL FDPart3tmp164 = 2 * FDPart3tmp41 * FDPart3tmp50;
+        const REAL FDPart3tmp81 = FDPart1_Rational_1_2 * FDPart3tmp46 * FDPart3tmp76 + FDPart3tmp50 * FDPart3tmp74 + FDPart1_Rational_1_2 * FDPart3tmp53 * FDPart3tmp79;
+        const REAL FDPart3tmp85 = FDPart1_Rational_1_2 * FDPart3tmp46 * FDPart3tmp79 + FDPart3tmp57 * FDPart3tmp74 + FDPart1_Rational_1_2 * FDPart3tmp59 * FDPart3tmp76;
+        const REAL FDPart3tmp89 = FDPart1_Rational_1_2 * FDPart3tmp41 * FDPart3tmp50;
+        const REAL FDPart3tmp90 = FDPart1_Rational_1_2 * FDPart3tmp41 * FDPart3tmp57;
+        const REAL FDPart3tmp117 = FDPart1_Rational_1_2 * FDPart3tmp66;
+        const REAL FDPart3tmp127 = 2. * FDPart3tmp41 * FDPart3tmp57;
+        const REAL FDPart3tmp164 = 2. * FDPart3tmp41 * FDPart3tmp50;
         const REAL FDPart3tmp208 = FDPart3tmp201 * FDPart3tmp46 + FDPart3tmp207 * FDPart3tmp53 + FDPart3tmp28 * FDPart3tmp61;
         const REAL FDPart3tmp212 = FDPart3tmp201 * FDPart3tmp63 + FDPart3tmp207 * FDPart3tmp61 + FDPart3tmp28 * FDPart3tmp66;
         const REAL FDPart3tmp217 = FDPart3tmp207 * FDPart3tmp59 + FDPart3tmp214 * FDPart3tmp46 + FDPart3tmp54 * FDPart3tmp63;
         const REAL FDPart3tmp218 = FDPart3tmp207 * FDPart3tmp63 + FDPart3tmp214 * FDPart3tmp61 + FDPart3tmp54 * FDPart3tmp66;
         const REAL FDPart3tmp250 = FDPart3tmp59 * (FDPart3tmp200 - vetU0 - 2 * vetU_dD11 + vetU_dDD011);
-        const REAL FDPart3tmp253 = FDPart3tmp53 * (-2 * FDPart3tmp166 * vetU1 + FDPart3tmp166 * vetU_dD01 + FDPart3tmp252 * vetU_dD00 -
-                                                   FDPart3tmp30 * vetU0 - 2 * f1_of_xx1 * vetU_dD22 + vetU_dDD022);
-        const REAL FDPart3tmp262 = (3.0 / 2.0) * FDPart3tmp63;
-        const REAL FDPart3tmp265 = (3.0 / 2.0) * FDPart3tmp61;
+        const REAL FDPart3tmp253 = FDPart3tmp53 * (-2. * FDPart3tmp166 * vetU1 + FDPart3tmp166 * vetU_dD01 + FDPart3tmp252 * vetU_dD00 -
+                                                   FDPart3tmp30 * vetU0 - 2. * f1_of_xx1 * vetU_dD22 + vetU_dDD022);
+        const REAL FDPart3tmp262 = FDPart1_Rational_3_2 * FDPart3tmp63;
+        const REAL FDPart3tmp265 = FDPart1_Rational_3_2 * FDPart3tmp61;
         const REAL FDPart3tmp327 = FDPart3tmp326 * ((FDPart3tmp65) * (FDPart3tmp65));
-        const REAL FDPart3tmp330 = 4 * FDPart3tmp329;
+        const REAL FDPart3tmp330 = 4. * FDPart3tmp329;
         const REAL FDPart3tmp332 = FDPart3tmp331 * FDPart3tmp65;
         const REAL FDPart3tmp335 = FDPart3tmp334 * FDPart3tmp65;
         const REAL FDPart3tmp341 = FDPart3tmp340 * ((FDPart3tmp45) * (FDPart3tmp45));
@@ -1532,12 +1532,12 @@ void rhs_eval__rfm__Spherical_gpu(const REAL eta, const REAL *restrict _f0_of_xx
         const REAL FDPart3tmp357 = FDPart3tmp340 * ((FDPart3tmp58) * (FDPart3tmp58));
         const REAL FDPart3tmp362 = FDPart3tmp349 * FDPart3tmp65;
         const REAL FDPart3tmp363 = FDPart3tmp345 * FDPart3tmp65;
-        const REAL FDPart3tmp394 = (2.0 / 3.0) * FDPart3tmp66;
-        const REAL FDPart3tmp395 = (4.0 / 3.0) * FDPart3tmp63;
-        const REAL FDPart3tmp396 = (4.0 / 3.0) * FDPart3tmp46;
-        const REAL FDPart3tmp397 = (4.0 / 3.0) * FDPart3tmp61;
-        const REAL FDPart3tmp398 = (2.0 / 3.0) * FDPart3tmp59;
-        const REAL FDPart3tmp399 = (2.0 / 3.0) * FDPart3tmp53;
+        const REAL FDPart3tmp394 = FDPart1_Rational_2_3 * FDPart3tmp66;
+        const REAL FDPart3tmp395 = FDPart1_Rational_4_3 * FDPart3tmp63;
+        const REAL FDPart3tmp396 = FDPart1_Rational_4_3 * FDPart3tmp46;
+        const REAL FDPart3tmp397 = FDPart1_Rational_4_3 * FDPart3tmp61;
+        const REAL FDPart3tmp398 = FDPart1_Rational_2_3 * FDPart3tmp59;
+        const REAL FDPart3tmp399 = FDPart1_Rational_2_3 * FDPart3tmp53;
         const REAL FDPart3tmp409 = FDPart3tmp59 * (FDPart3tmp2 * vetU_dDD111 + 2 * FDPart3tmp239 + FDPart3tmp260);
         const REAL FDPart3tmp411 = FDPart3tmp46 * (FDPart3tmp2 * vetU_dDD112 + FDPart3tmp241 - FDPart3tmp255 - FDPart3tmp410);
         const REAL FDPart3tmp413 =
@@ -1559,29 +1559,29 @@ void rhs_eval__rfm__Spherical_gpu(const REAL eta, const REAL *restrict _f0_of_xx
                                                    FDPart3tmp203 * FDPart3tmp21 * f1_of_xx1__D1 * vetU_dD21 + 2 * FDPart3tmp206 * FDPart3tmp24 +
                                                    FDPart3tmp434 * FDPart3tmp6 + FDPart3tmp5 * vetU_dDD211 + FDPart3tmp6 +
                                                    vetU2 * (2 * FDPart3tmp2 * FDPart3tmp271 * FDPart3tmp440 - FDPart3tmp278 * f1_of_xx1__DD11));
-        const REAL FDPart3tmp91 = (1.0 / 2.0) * FDPart3tmp66 * hDD_dD000 + FDPart3tmp76 * FDPart3tmp90 + FDPart3tmp79 * FDPart3tmp89;
-        const REAL FDPart3tmp113 = (1.0 / 2.0) * FDPart3tmp100 * FDPart3tmp46 + (1.0 / 2.0) * FDPart3tmp111 * FDPart3tmp53 + FDPart3tmp89 * hDD_dD001;
-        const REAL FDPart3tmp115 = (1.0 / 2.0) * FDPart3tmp100 * FDPart3tmp59 + (1.0 / 2.0) * FDPart3tmp111 * FDPart3tmp46 + FDPart3tmp90 * hDD_dD001;
+        const REAL FDPart3tmp91 = FDPart1_Rational_1_2 * FDPart3tmp66 * hDD_dD000 + FDPart3tmp76 * FDPart3tmp90 + FDPart3tmp79 * FDPart3tmp89;
+        const REAL FDPart3tmp113 = FDPart1_Rational_1_2 * FDPart3tmp100 * FDPart3tmp46 + FDPart1_Rational_1_2 * FDPart3tmp111 * FDPart3tmp53 + FDPart3tmp89 * hDD_dD001;
+        const REAL FDPart3tmp115 = FDPart1_Rational_1_2 * FDPart3tmp100 * FDPart3tmp59 + FDPart1_Rational_1_2 * FDPart3tmp111 * FDPart3tmp46 + FDPart3tmp90 * hDD_dD001;
         const REAL FDPart3tmp118 = FDPart3tmp100 * FDPart3tmp90 + FDPart3tmp111 * FDPart3tmp89 + FDPart3tmp117 * hDD_dD001;
-        const REAL FDPart3tmp138 = FDPart3tmp130 * FDPart3tmp46 + FDPart3tmp131 * FDPart3tmp89 + (1.0 / 2.0) * FDPart3tmp136 * FDPart3tmp53;
-        const REAL FDPart3tmp140 = FDPart3tmp130 * FDPart3tmp59 + FDPart3tmp131 * FDPart3tmp90 + (1.0 / 2.0) * FDPart3tmp136 * FDPart3tmp46;
+        const REAL FDPart3tmp138 = FDPart3tmp130 * FDPart3tmp46 + FDPart3tmp131 * FDPart3tmp89 + FDPart1_Rational_1_2 * FDPart3tmp136 * FDPart3tmp53;
+        const REAL FDPart3tmp140 = FDPart3tmp130 * FDPart3tmp59 + FDPart3tmp131 * FDPart3tmp90 + FDPart1_Rational_1_2 * FDPart3tmp136 * FDPart3tmp46;
         const REAL FDPart3tmp142 = FDPart3tmp117 * FDPart3tmp131 + FDPart3tmp136 * FDPart3tmp89 + FDPart3tmp7 * FDPart3tmp90 * hDD_dD111;
-        const REAL FDPart3tmp153 = (1.0 / 2.0) * FDPart3tmp147 * FDPart3tmp46 + (1.0 / 2.0) * FDPart3tmp151 * FDPart3tmp53 + FDPart3tmp89 * hDD_dD002;
-        const REAL FDPart3tmp155 = (1.0 / 2.0) * FDPart3tmp147 * FDPart3tmp59 + (1.0 / 2.0) * FDPart3tmp151 * FDPart3tmp46 + FDPart3tmp90 * hDD_dD002;
+        const REAL FDPart3tmp153 = FDPart1_Rational_1_2 * FDPart3tmp147 * FDPart3tmp46 + FDPart1_Rational_1_2 * FDPart3tmp151 * FDPart3tmp53 + FDPart3tmp89 * hDD_dD002;
+        const REAL FDPart3tmp155 = FDPart1_Rational_1_2 * FDPart3tmp147 * FDPart3tmp59 + FDPart1_Rational_1_2 * FDPart3tmp151 * FDPart3tmp46 + FDPart3tmp90 * hDD_dD002;
         const REAL FDPart3tmp157 = FDPart3tmp117 * hDD_dD002 + FDPart3tmp147 * FDPart3tmp90 + FDPart3tmp151 * FDPart3tmp89;
         const REAL FDPart3tmp173 =
-            (1.0 / 2.0) * FDPart3tmp132 * FDPart3tmp46 + (1.0 / 2.0) * FDPart3tmp170 * FDPart3tmp53 + FDPart3tmp172 * FDPart3tmp89;
+            FDPart1_Rational_1_2 * FDPart3tmp132 * FDPart3tmp46 + FDPart1_Rational_1_2 * FDPart3tmp170 * FDPart3tmp53 + FDPart3tmp172 * FDPart3tmp89;
         const REAL FDPart3tmp175 =
-            (1.0 / 2.0) * FDPart3tmp132 * FDPart3tmp59 + (1.0 / 2.0) * FDPart3tmp170 * FDPart3tmp46 + FDPart3tmp172 * FDPart3tmp90;
+            FDPart1_Rational_1_2 * FDPart3tmp132 * FDPart3tmp59 + FDPart1_Rational_1_2 * FDPart3tmp170 * FDPart3tmp46 + FDPart3tmp172 * FDPart3tmp90;
         const REAL FDPart3tmp177 = FDPart3tmp117 * FDPart3tmp172 + FDPart3tmp132 * FDPart3tmp90 + FDPart3tmp170 * FDPart3tmp89;
-        const REAL FDPart3tmp190 = FDPart3tmp186 * FDPart3tmp53 + (1.0 / 2.0) * FDPart3tmp187 * FDPart3tmp46 + FDPart3tmp189 * FDPart3tmp89;
-        const REAL FDPart3tmp192 = FDPart3tmp186 * FDPart3tmp46 + (1.0 / 2.0) * FDPart3tmp187 * FDPart3tmp59 + FDPart3tmp189 * FDPart3tmp90;
+        const REAL FDPart3tmp190 = FDPart3tmp186 * FDPart3tmp53 + FDPart1_Rational_1_2 * FDPart3tmp187 * FDPart3tmp46 + FDPart3tmp189 * FDPart3tmp89;
+        const REAL FDPart3tmp192 = FDPart3tmp186 * FDPart3tmp46 + FDPart1_Rational_1_2 * FDPart3tmp187 * FDPart3tmp59 + FDPart3tmp189 * FDPart3tmp90;
         const REAL FDPart3tmp194 = FDPart3tmp117 * FDPart3tmp189 + FDPart3tmp187 * FDPart3tmp90 + FDPart3tmp35 * FDPart3tmp89 * hDD_dD222;
         const REAL FDPart3tmp211 = FDPart3tmp201 * FDPart3tmp59 + FDPart3tmp207 * FDPart3tmp46 + FDPart3tmp28 * FDPart3tmp63;
         const REAL FDPart3tmp216 = FDPart3tmp207 * FDPart3tmp46 + FDPart3tmp214 * FDPart3tmp53 + FDPart3tmp54 * FDPart3tmp61;
         const REAL FDPart3tmp337 =
-            FDPart3tmp318 * (-2 * FDPart3tmp201 * FDPart3tmp324 - 2 * FDPart3tmp214 * FDPart3tmp321 - 2 * FDPart3tmp327 -
-                             FDPart3tmp328 * FDPart3tmp330 - 4 * FDPart3tmp332 * FDPart3tmp50 - 4 * FDPart3tmp335 * FDPart3tmp57);
+            FDPart3tmp318 * (-2. * FDPart3tmp201 * FDPart3tmp324 - 2. * FDPart3tmp214 * FDPart3tmp321 - 2. * FDPart3tmp327 -
+                             FDPart3tmp328 * FDPart3tmp330 - 4. * FDPart3tmp332 * FDPart3tmp50 - 4. * FDPart3tmp335 * FDPart3tmp57);
         const REAL FDPart3tmp350 = FDPart3tmp341 + FDPart3tmp342 + FDPart3tmp344 + FDPart3tmp345 * FDPart3tmp346 +
                                    FDPart3tmp347 * FDPart3tmp45 * FDPart3tmp52 + FDPart3tmp349 * FDPart3tmp50 * FDPart3tmp52;
         const REAL FDPart3tmp360 = FDPart3tmp214 * FDPart3tmp354 + FDPart3tmp345 * FDPart3tmp57 * FDPart3tmp58 + FDPart3tmp347 * FDPart3tmp359 +
@@ -1595,21 +1595,21 @@ void rhs_eval__rfm__Spherical_gpu(const REAL eta, const REAL *restrict _f0_of_xx
         const REAL FDPart3tmp381 = FDPart3tmp326 * FDPart3tmp57 * FDPart3tmp65;
         const REAL FDPart3tmp384 = FDPart3tmp343 * FDPart3tmp45 * FDPart3tmp52;
         const REAL FDPart3tmp418 =
-            FDPart3tmp377 * (-2 * FDPart3tmp214 * FDPart3tmp354 - FDPart3tmp330 * FDPart3tmp359 - 4 * FDPart3tmp331 * FDPart3tmp358 -
-                             4 * FDPart3tmp334 * FDPart3tmp57 * FDPart3tmp58 - 2 * FDPart3tmp356 - 2 * FDPart3tmp357);
-        const REAL FDPart3tmp443 = FDPart3tmp367 * (-FDPart3tmp330 * FDPart3tmp45 * FDPart3tmp52 - 4 * FDPart3tmp331 * FDPart3tmp50 * FDPart3tmp52 -
-                                                    4 * FDPart3tmp334 * FDPart3tmp346 - 2 * FDPart3tmp341 - 2 * FDPart3tmp342 - 2 * FDPart3tmp344);
+            FDPart3tmp377 * (-2. * FDPart3tmp214 * FDPart3tmp354 - FDPart3tmp330 * FDPart3tmp359 - 4. * FDPart3tmp331 * FDPart3tmp358 -
+                             4. * FDPart3tmp334 * FDPart3tmp57 * FDPart3tmp58 - 2. * FDPart3tmp356 - 2. * FDPart3tmp357);
+        const REAL FDPart3tmp443 = FDPart3tmp367 * (-FDPart3tmp330 * FDPart3tmp45 * FDPart3tmp52 - 4. * FDPart3tmp331 * FDPart3tmp50 * FDPart3tmp52 -
+                                                    4. * FDPart3tmp334 * FDPart3tmp346 - 2. * FDPart3tmp341 - 2. * FDPart3tmp342 - 2. * FDPart3tmp344);
         const REAL FDPart3tmp450 = -FDPart3tmp26 + alpha * (FDPart3tmp13 * FDPart3tmp63 + FDPart3tmp19 * FDPart3tmp61 + FDPart3tmp201 * FDPart3tmp59 +
                                                             FDPart3tmp214 * FDPart3tmp53 + FDPart3tmp222 * FDPart3tmp46 + FDPart3tmp66 * aDD00);
         const REAL FDPart3tmp309 = FDPart3tmp177 * FDPart3tmp9;
         const REAL FDPart3tmp338 = FDPart3tmp194 + FDPart3tmp252;
         const REAL FDPart3tmp352 = FDPart3tmp350 * FDPart3tmp351;
         const REAL FDPart3tmp375 = -FDPart3tmp19 * FDPart3tmp321 - FDPart3tmp328 * FDPart3tmp345 - FDPart3tmp346 * FDPart3tmp347 -
-                                   FDPart3tmp347 * FDPart3tmp372 - FDPart3tmp362 * FDPart3tmp52 - FDPart3tmp363 * FDPart3tmp45 - 2 * FDPart3tmp369 -
-                                   2 * FDPart3tmp371 - 2 * FDPart3tmp374;
+                                   FDPart3tmp347 * FDPart3tmp372 - FDPart3tmp362 * FDPart3tmp52 - FDPart3tmp363 * FDPart3tmp45 - 2. * FDPart3tmp369 -
+                                   2. * FDPart3tmp371 - 2. * FDPart3tmp374;
         const REAL FDPart3tmp382 = -FDPart3tmp13 * FDPart3tmp324 - FDPart3tmp328 * FDPart3tmp349 - 2 * FDPart3tmp343 * FDPart3tmp346 -
                                    FDPart3tmp347 * FDPart3tmp358 - FDPart3tmp347 * FDPart3tmp379 - FDPart3tmp362 * FDPart3tmp45 -
-                                   FDPart3tmp363 * FDPart3tmp58 - 2 * FDPart3tmp380 - 2 * FDPart3tmp381;
+                                   FDPart3tmp363 * FDPart3tmp58 - 2. * FDPart3tmp380 - 2. * FDPart3tmp381;
         const REAL FDPart3tmp388 = FDPart3tmp207 * FDPart3tmp354 + FDPart3tmp326 * FDPart3tmp328 + FDPart3tmp329 * FDPart3tmp52 * FDPart3tmp58 +
                                    FDPart3tmp331 * FDPart3tmp346 + FDPart3tmp331 * FDPart3tmp372 + FDPart3tmp334 * FDPart3tmp358 +
                                    FDPart3tmp334 * FDPart3tmp379 + FDPart3tmp340 * FDPart3tmp359 + FDPart3tmp384;
@@ -1620,9 +1620,9 @@ void rhs_eval__rfm__Spherical_gpu(const REAL eta, const REAL *restrict _f0_of_xx
                                    FDPart3tmp329 * FDPart3tmp379 + FDPart3tmp332 * FDPart3tmp45 + FDPart3tmp335 * FDPart3tmp58 +
                                    FDPart3tmp343 * FDPart3tmp346 + FDPart3tmp380 + FDPart3tmp381;
         const REAL FDPart3tmp419 = FDPart3tmp166 + FDPart3tmp192;
-        const REAL FDPart3tmp421 = -FDPart3tmp222 * FDPart3tmp354 - 2 * FDPart3tmp326 * FDPart3tmp328 - 2 * FDPart3tmp340 * FDPart3tmp359 -
+        const REAL FDPart3tmp421 = -FDPart3tmp222 * FDPart3tmp354 - 2. * FDPart3tmp326 * FDPart3tmp328 - 2. * FDPart3tmp340 * FDPart3tmp359 -
                                    FDPart3tmp345 * FDPart3tmp358 - FDPart3tmp345 * FDPart3tmp379 - FDPart3tmp346 * FDPart3tmp349 -
-                                   FDPart3tmp347 * FDPart3tmp52 * FDPart3tmp58 - FDPart3tmp349 * FDPart3tmp372 - 2 * FDPart3tmp384;
+                                   FDPart3tmp347 * FDPart3tmp52 * FDPart3tmp58 - FDPart3tmp349 * FDPart3tmp372 - 2. * FDPart3tmp384;
         const REAL FDPart3tmp425 = FDPart3tmp115 - FDPart3tmp2;
         const REAL FDPart3tmp446 = FDPart3tmp173 - FDPart3tmp24;
         const REAL FDPart3tmp447 = FDPart3tmp153 - FDPart3tmp2;
@@ -1635,7 +1635,7 @@ void rhs_eval__rfm__Spherical_gpu(const REAL eta, const REAL *restrict _f0_of_xx
         const REAL FDPart3tmp181 = -FDPart3tmp173 * alpha_dD2 - FDPart3tmp175 * alpha_dD1 - FDPart3tmp177 * alpha_dD0 + alpha_dDD12;
         const REAL FDPart3tmp197 = -FDPart3tmp190 * alpha_dD2 - FDPart3tmp192 * alpha_dD1 - FDPart3tmp194 * alpha_dD0 + alpha_dDD22;
         const REAL FDPart3tmp361 = FDPart3tmp360 * (FDPart3tmp142 + f0_of_xx0);
-        const REAL FDPart3tmp366 = (3.0 / 2.0) * FDPart3tmp364 * alpha;
+        const REAL FDPart3tmp366 = FDPart1_Rational_3_2 * FDPart3tmp364 * alpha;
         const REAL FDPart3tmp389 = FDPart3tmp317 * FDPart3tmp388;
         const REAL FDPart3tmp391 = FDPart3tmp317 * FDPart3tmp390;
         const REAL FDPart3tmp393 = FDPart3tmp317 * FDPart3tmp392;
@@ -1649,38 +1649,38 @@ void rhs_eval__rfm__Spherical_gpu(const REAL eta, const REAL *restrict _f0_of_xx
         const REAL FDPart3tmp458 = FDPart3tmp388 * FDPart3tmp457;
         const REAL FDPart3tmp459 = FDPart3tmp390 * FDPart3tmp457;
         const REAL FDPart3tmp460 = FDPart3tmp392 * FDPart3tmp457;
-        const REAL FDPart3tmp98 = FDPart3tmp68 * ((1.0 / 2.0) * FDPart3tmp71 * (FDPart3tmp71 * ((cf_dD0) * (cf_dD0)) - cf_dDD00) +
+        const REAL FDPart3tmp98 = FDPart3tmp68 * (FDPart1_Rational_1_2 * FDPart3tmp71 * (FDPart3tmp71 * ((cf_dD0) * (cf_dD0)) - cf_dDD00) +
                                                   FDPart3tmp81 * FDPart3tmp84 + FDPart3tmp85 * FDPart3tmp87 + FDPart3tmp91 * FDPart3tmp93) -
-                                  FDPart3tmp94 * alpha * ((cf_dD0) * (cf_dD0)) + 2 * FDPart3tmp95 * alpha_dD0 + FDPart3tmp97 - RbarDD00 * alpha;
+                                  FDPart3tmp94 * alpha * ((cf_dD0) * (cf_dD0)) + 2. * FDPart3tmp95 * alpha_dD0 + FDPart3tmp97 - RbarDD00 * alpha;
         const REAL FDPart3tmp125 = FDPart3tmp120 * alpha_dD0 + FDPart3tmp123 + FDPart3tmp124 +
                                    FDPart3tmp68 * (FDPart3tmp113 * FDPart3tmp84 + FDPart3tmp115 * FDPart3tmp87 + FDPart3tmp118 * FDPart3tmp93 +
-                                                   (1.0 / 2.0) * FDPart3tmp71 * (FDPart3tmp71 * cf_dD0 * cf_dD1 - cf_dDD01)) -
+                                                   FDPart1_Rational_1_2 * FDPart3tmp71 * (FDPart3tmp71 * cf_dD0 * cf_dD1 - cf_dDD01)) -
                                    FDPart3tmp94 * alpha * cf_dD0 * cf_dD1 - RbarDD01 * alpha;
-        const REAL FDPart3tmp146 = 2 * FDPart3tmp120 * alpha_dD1 + FDPart3tmp145 +
+        const REAL FDPart3tmp146 = 2. * FDPart3tmp120 * alpha_dD1 + FDPart3tmp145 +
                                    FDPart3tmp68 * (FDPart3tmp138 * FDPart3tmp84 + FDPart3tmp140 * FDPart3tmp87 + FDPart3tmp142 * FDPart3tmp93 +
-                                                   (1.0 / 2.0) * FDPart3tmp71 * (FDPart3tmp71 * ((cf_dD1) * (cf_dD1)) - cf_dDD11)) -
+                                                   FDPart1_Rational_1_2 * FDPart3tmp71 * (FDPart3tmp71 * ((cf_dD1) * (cf_dD1)) - cf_dDD11)) -
                                    FDPart3tmp94 * alpha * ((cf_dD1) * (cf_dD1)) - RbarDD11 * alpha;
         const REAL FDPart3tmp163 = FDPart3tmp159 * alpha_dD0 + FDPart3tmp162 +
                                    FDPart3tmp68 * (FDPart3tmp153 * FDPart3tmp84 + FDPart3tmp155 * FDPart3tmp87 + FDPart3tmp157 * FDPart3tmp93 +
-                                                   (1.0 / 2.0) * FDPart3tmp71 * (FDPart3tmp71 * cf_dD0 * cf_dD2 - cf_dDD02)) -
+                                                   FDPart1_Rational_1_2 * FDPart3tmp71 * (FDPart3tmp71 * cf_dD0 * cf_dD2 - cf_dDD02)) -
                                    FDPart3tmp94 * alpha * cf_dD0 * cf_dD2 + FDPart3tmp95 * alpha_dD2 - RbarDD02 * alpha;
         const REAL FDPart3tmp182 = FDPart3tmp120 * alpha_dD2 + FDPart3tmp179 + FDPart3tmp181 +
                                    FDPart3tmp68 * (FDPart3tmp173 * FDPart3tmp84 + FDPart3tmp175 * FDPart3tmp87 + FDPart3tmp177 * FDPart3tmp93 +
-                                                   (1.0 / 2.0) * FDPart3tmp71 * (FDPart3tmp71 * cf_dD1 * cf_dD2 - cf_dDD12)) -
+                                                   FDPart1_Rational_1_2 * FDPart3tmp71 * (FDPart3tmp71 * cf_dD1 * cf_dD2 - cf_dDD12)) -
                                    FDPart3tmp94 * alpha * cf_dD1 * cf_dD2 - RbarDD12 * alpha;
-        const REAL FDPart3tmp198 = 2 * FDPart3tmp159 * alpha_dD2 + FDPart3tmp197 +
+        const REAL FDPart3tmp198 = 2. * FDPart3tmp159 * alpha_dD2 + FDPart3tmp197 +
                                    FDPart3tmp68 * (FDPart3tmp190 * FDPart3tmp84 + FDPart3tmp192 * FDPart3tmp87 + FDPart3tmp194 * FDPart3tmp93 +
-                                                   (1.0 / 2.0) * FDPart3tmp71 * (FDPart3tmp71 * ((cf_dD2) * (cf_dD2)) - cf_dDD22)) -
+                                                   FDPart1_Rational_1_2 * FDPart3tmp71 * (FDPart3tmp71 * ((cf_dD2) * (cf_dD2)) - cf_dDD22)) -
                                    FDPart3tmp94 * alpha * ((cf_dD2) * (cf_dD2)) - RbarDD22 * alpha;
         const REAL FDPart3tmp199 = -FDPart3tmp125 * FDPart3tmp127 - FDPart3tmp146 * FDPart3tmp59 - FDPart3tmp163 * FDPart3tmp164 -
-                                   2 * FDPart3tmp182 * FDPart3tmp46 - FDPart3tmp198 * FDPart3tmp53 - FDPart3tmp66 * FDPart3tmp98;
+                                   2. * FDPart3tmp182 * FDPart3tmp46 - FDPart3tmp198 * FDPart3tmp53 - FDPart3tmp66 * FDPart3tmp98;
         rhs_gfs[IDX4(ADD00GF, i0, i1, i2)] =
             FDPart3tmp1 * aDD00 + FDPart3tmp11 * FDPart3tmp13 + FDPart3tmp17 * FDPart3tmp19 - FDPart3tmp27 * aDD00 + FDPart3tmp3 * aDD_dupD001 -
             FDPart3tmp55 * (FDPart3tmp28 * FDPart3tmp46 + FDPart3tmp41 * FDPart3tmp50 * aDD00 + FDPart3tmp53 * FDPart3tmp54) +
             FDPart3tmp6 * aDD_dupD002 -
             FDPart3tmp60 * (FDPart3tmp28 * FDPart3tmp59 + FDPart3tmp41 * FDPart3tmp57 * aDD00 + FDPart3tmp46 * FDPart3tmp54) -
             FDPart3tmp69 * (FDPart3tmp28 * FDPart3tmp63 + FDPart3tmp54 * FDPart3tmp61 + FDPart3tmp66 * aDD00) +
-            FDPart3tmp70 * (-FDPart3tmp199 * ((1.0 / 3.0) * hDD00 + 1.0 / 3.0) - FDPart3tmp98) + 2 * aDD00 * vetU_dD00 + aDD_dupD000 * vetU0;
+            FDPart3tmp70 * (-FDPart3tmp199 * ((1.0 / 3.0) * hDD00 + 1.0 / 3.0) - FDPart3tmp98) + 2. * aDD00 * vetU_dD00 + aDD_dupD000 * vetU0;
         rhs_gfs[IDX4(ADD01GF, i0, i1, i2)] =
             FDPart3tmp2 *
             (FDPart3tmp1 * FDPart3tmp28 + FDPart3tmp11 * FDPart3tmp201 + FDPart3tmp14 * aDD_dupD012 + FDPart3tmp17 * FDPart3tmp207 +
@@ -1722,7 +1722,7 @@ void rhs_eval__rfm__Spherical_gpu(const REAL eta, const REAL *restrict _f0_of_xx
             FDPart3tmp194 * FDPart3tmp316 - 3.0 / 4.0 * FDPart3tmp239 * lambdaU1 - 3.0 / 4.0 * FDPart3tmp241 * FDPart3tmp242 -
             3.0 / 4.0 * FDPart3tmp242 * FDPart3tmp309 - FDPart3tmp244 * FDPart3tmp61 - FDPart3tmp245 * FDPart3tmp63 - FDPart3tmp247 * FDPart3tmp66 +
             (3.0 / 4.0) * FDPart3tmp250 + (3.0 / 4.0) * FDPart3tmp253 + FDPart3tmp259 * FDPart3tmp61 + FDPart3tmp261 * FDPart3tmp262 +
-            FDPart3tmp264 * FDPart3tmp265 + (3.0 / 2.0) * FDPart3tmp266 * FDPart3tmp46 + FDPart3tmp283 * FDPart3tmp63 + FDPart3tmp289 * FDPart3tmp66 +
+            FDPart3tmp264 * FDPart3tmp265 + FDPart1_Rational_3_2 * FDPart3tmp266 * FDPart3tmp46 + FDPart3tmp283 * FDPart3tmp63 + FDPart3tmp289 * FDPart3tmp66 +
             FDPart3tmp290 * FDPart3tmp91 - FDPart3tmp292 * FDPart3tmp91 + FDPart3tmp3 * betU_dupD01 + FDPart3tmp309 * FDPart3tmp4 * betU2 +
             (3.0 / 4.0) * FDPart3tmp337 + FDPart3tmp338 * FDPart3tmp352 + FDPart3tmp351 * FDPart3tmp361 + FDPart3tmp366 * FDPart3tmp91 +
             (3.0 / 4.0) * FDPart3tmp367 * FDPart3tmp375 + (3.0 / 4.0) * FDPart3tmp377 * FDPart3tmp382 + (3.0 / 4.0) * FDPart3tmp400 +
@@ -1761,25 +1761,25 @@ void rhs_eval__rfm__Spherical_gpu(const REAL eta, const REAL *restrict _f0_of_xx
              (3.0 / 4.0) * FDPart3tmp442 + (3.0 / 4.0) * FDPart3tmp443 + (3.0 / 4.0) * FDPart3tmp448 +
              vetU0 * (FDPart3tmp2 * FDPart3tmp4 * betU_dupD20 - FDPart3tmp233 * betU2));
         rhs_gfs[IDX4(CFGF, i0, i1, i2)] =
-            -2 * cf *
+            -2. * cf *
             (-1.0 / 6.0 * FDPart3tmp1 + (1.0 / 6.0) * FDPart3tmp20 + (1.0 / 6.0) * FDPart3tmp24 * FDPart3tmp3 + (1.0 / 3.0) * FDPart3tmp274 -
              FDPart3tmp3 * FDPart3tmp83 * cf_dupD1 + (1.0 / 6.0) * FDPart3tmp5 * vetU_dD22 - FDPart3tmp6 * FDPart3tmp83 * cf_dupD2 -
              FDPart3tmp83 * cf_dupD0 * vetU0 + (1.0 / 6.0) * vetU_dD00);
         rhs_gfs[IDX4(HDD00GF, i0, i1, i2)] = FDPart3tmp12 * FDPart3tmp17 * FDPart3tmp42 + FDPart3tmp260 * FDPart3tmp75 + FDPart3tmp3 * hDD_dupD001 +
-                                             2 * FDPart3tmp31 * vetU_dD00 + FDPart3tmp450 * ((2.0 / 3.0) * hDD00 + 2.0 / 3.0) +
+                                             2. * FDPart3tmp31 * vetU_dD00 + FDPart3tmp450 * (FDPart1_Rational_2_3 * hDD00 + 2.0 / 3.0) +
                                              FDPart3tmp6 * hDD_dupD002 - FDPart3tmp69 + hDD_dupD000 * vetU0;
         rhs_gfs[IDX4(HDD01GF, i0, i1, i2)] =
             FDPart3tmp2 * (FDPart3tmp11 * FDPart3tmp34 + FDPart3tmp14 * hDD_dupD012 + FDPart3tmp17 * FDPart3tmp44 + FDPart3tmp200 * hDD01 +
-                           FDPart3tmp206 * FDPart3tmp49 + FDPart3tmp31 * vetU_dD01 + (2.0 / 3.0) * FDPart3tmp450 * FDPart3tmp56 - FDPart3tmp60 +
+                           FDPart3tmp206 * FDPart3tmp49 + FDPart3tmp31 * vetU_dD01 + FDPart1_Rational_2_3 * FDPart3tmp450 * FDPart3tmp56 - FDPart3tmp60 +
                            hDD01 * vetU_dD11 + hDD_dupD011 * vetU1 + vetU0 * (f0_of_xx0 * hDD_dupD010 + hDD01));
         rhs_gfs[IDX4(HDD02GF, i0, i1, i2)] =
             FDPart3tmp5 *
             (FDPart3tmp11 * FDPart3tmp44 + FDPart3tmp17 * FDPart3tmp38 + FDPart3tmp200 * FDPart3tmp42 +
-             FDPart3tmp3 * (FDPart3tmp104 + FDPart3tmp105 * hDD_dupD021) + FDPart3tmp31 * vetU_dD02 + (2.0 / 3.0) * FDPart3tmp450 * FDPart3tmp49 -
+             FDPart3tmp3 * (FDPart3tmp104 + FDPart3tmp105 * hDD_dupD021) + FDPart3tmp31 * vetU_dD02 + FDPart1_Rational_2_3 * FDPart3tmp450 * FDPart3tmp49 -
              FDPart3tmp55 + hDD01 * vetU_dD12 + hDD02 * vetU_dD22 + hDD_dupD022 * vetU2 + vetU0 * (FDPart3tmp105 * hDD_dupD020 + FDPart3tmp42));
         rhs_gfs[IDX4(HDD11GF, i0, i1, i2)] =
-            FDPart3tmp8 * (FDPart3tmp14 * f0_of_xx0 * hDD_dupD112 + 2 * FDPart3tmp20 * FDPart3tmp34 + 2 * FDPart3tmp206 * FDPart3tmp44 -
-                           FDPart3tmp226 + FDPart3tmp450 * (FDPart3tmp223 + (2.0 / 3.0) * FDPart3tmp33) + FDPart3tmp75 * f0_of_xx0 * vetU_dD01 +
+            FDPart3tmp8 * (FDPart3tmp14 * f0_of_xx0 * hDD_dupD112 + 2. * FDPart3tmp20 * FDPart3tmp34 + 2. * FDPart3tmp206 * FDPart3tmp44 -
+                           FDPart3tmp226 + FDPart3tmp450 * (FDPart3tmp223 + FDPart1_Rational_2_3 * FDPart3tmp33) + FDPart3tmp75 * f0_of_xx0 * vetU_dD01 +
                            f0_of_xx0 * hDD_dupD111 * vetU1 + vetU0 * (FDPart3tmp7 * hDD_dupD110 + FDPart3tmp99));
         rhs_gfs[IDX4(HDD12GF, i0, i1, i2)] =
             FDPart3tmp233 * (FDPart3tmp105 * hDD12 * vetU_dD11 + FDPart3tmp2 * FDPart3tmp34 * vetU_dD12 + FDPart3tmp206 * FDPart3tmp38 +
@@ -1790,7 +1790,7 @@ void rhs_eval__rfm__Spherical_gpu(const REAL eta, const REAL *restrict _f0_of_xx
             FDPart3tmp237 *
             (FDPart3tmp105 * hDD_dupD222 * vetU2 + FDPart3tmp108 * vetU_dD12 + FDPart3tmp12 * FDPart3tmp42 * vetU_dD02 +
              FDPart3tmp21 * FDPart3tmp38 * FDPart3tmp4 * vetU_dD22 - FDPart3tmp214 * FDPart3tmp68 +
-             FDPart3tmp3 * (FDPart3tmp169 + FDPart3tmp35 * hDD_dupD221) + FDPart3tmp450 * ((2.0 / 3.0) * FDPart3tmp35 + (2.0 / 3.0) * FDPart3tmp37) +
+             FDPart3tmp3 * (FDPart3tmp169 + FDPart3tmp35 * hDD_dupD221) + FDPart3tmp450 * (FDPart1_Rational_2_3 * FDPart3tmp35 + FDPart1_Rational_2_3 * FDPart3tmp37) +
              vetU0 * (FDPart3tmp150 + FDPart3tmp35 * hDD_dupD220));
         rhs_gfs[IDX4(LAMBDAU0GF, i0, i1, i2)] =
             FDPart3tmp118 * FDPart3tmp460 + FDPart3tmp127 * FDPart3tmp261 + FDPart3tmp157 * FDPart3tmp459 + FDPart3tmp164 * FDPart3tmp264 +
@@ -1843,7 +1843,45 @@ void rhs_eval__rfm__Spherical_gpu(const REAL eta, const REAL *restrict _f0_of_xx
             (FDPart3tmp113 * FDPart3tmp466 + FDPart3tmp138 * FDPart3tmp467 + FDPart3tmp153 * FDPart3tmp468 +
              FDPart3tmp173 * FDPart3tmp436 * FDPart3tmp9 + FDPart3tmp190 * FDPart3tmp469 + FDPart3tmp3 * (FDPart3tmp205 + FDPart3tmp5 * vetU_dupD21) +
              FDPart3tmp302 + FDPart3tmp314 * vetU_dupD22 + FDPart3tmp465 * FDPart3tmp81 + vetU0 * (-FDPart3tmp15 + FDPart3tmp5 * vetU_dupD20));
+        // if(IDX4(VETU2GF, i0, i1, i2) == IDX4(VETU2GF, 17, 6 , 6)) {
+        //     // printf("VETU2GF: %f, %f, %f, %f, %f, %f, %f\n",
+        //     // FDPart3tmp105, FDPart3tmp113, FDPart3tmp466, FDPart3tmp138, FDPart3tmp467, FDPart3tmp153, FDPart3tmp468);
+        //     printf("VETU2GF: %f, %f, %f, %f, %f, %f, %f, %f, %f, %f,\n",
+        //     FDPart3tmp173, FDPart3tmp436, FDPart3tmp9, FDPart3tmp190, FDPart3tmp469, FDPart3tmp3, FDPart3tmp205, FDPart3tmp5, vetU_dupD21);
+        // }
+            int const iref0 = 3;
+            int const iref1 = (int)(NGHOSTS + FDPart1_Rational_1_4 * Nxx2 - 1.0 / 2.0);
+            int const iref2 = (int)(NGHOSTS + (3.0 / 4.0) * Nxx2 - 1.0 / 2.0);
+            if(IDX4(ADD22GF, i0, i1, i2) == IDX4(ADD22GF, iref0, iref1 , iref2)) {
+                printf("ADD22GF:\n"
+                " %1.13e, %1.13e, %1.13e, %1.13e, %1.13e\n"
+                " %1.13e, %1.13e, %1.13e, %1.13e, %1.13e \n"
+                " %1.13e, %1.13e, %1.13e, %1.13e, %1.13e\n"
+                " %1.13e, %1.13e, %1.13e, %1.13e, %1.13e\n"
+                " %1.13e, %1.13e, %1.13e, %1.13e, %1.13e\n"
+                " %1.13e, %1.13e, %1.13e, %1.13e, %1.13e\n"
+                " %1.13e, %1.13e, %1.13e\n ", 
+                FDPart3tmp237, FDPart3tmp1, FDPart3tmp214, FDPart3tmp105, aDD_dupD222,
+                vetU2, FDPart3tmp12, aDD22, f1_of_xx1, vetU_dD22, 
+                FDPart3tmp19, vetU_dD02, FDPart3tmp216, FDPart3tmp68, FDPart3tmp27, 
+                FDPart3tmp217, FDPart3tmp225, FDPart3tmp218, FDPart3tmp55, FDPart3tmp3, 
+                FDPart3tmp168, FDPart3tmp35, aDD_dupD221, FDPart3tmp70, FDPart3tmp198, 
+                FDPart3tmp199, FDPart3tmp37, FDPart3tmp78, aDD12, vetU_dD12, 
+                vetU0, FDPart3tmp149, aDD_dupD220);
+                printf("FDPart3tmp199: \n"
+                " %1.13e, %1.13e, %1.13e, %1.13e, %1.13e\n"
+                " %1.13e, %1.13e, %1.13e, %1.13e, %1.13e, %1.13e\n",
+                FDPart3tmp125, FDPart3tmp127, FDPart3tmp146, FDPart3tmp59, FDPart3tmp163,
+                FDPart3tmp164, FDPart3tmp182, FDPart3tmp46, FDPart3tmp53, FDPart3tmp66, FDPart3tmp98);
 
+                printf("FDPart3tmp98: \n"
+                " %1.13e, %1.13e, %1.13e, %1.13e, %1.13e\n"
+                " %1.13e, %1.13e, %1.13e, %1.13e, %1.13e\n"
+                " %1.13e, %1.13e, %1.13e, %1.13e, %1.13e, %1.13e\n",
+                FDPart3tmp68, FDPart3tmp71, cf_dD0, cf_dDD00,FDPart3tmp81, 
+                FDPart3tmp84, FDPart3tmp85, FDPart3tmp87, FDPart3tmp91, FDPart3tmp93,
+                FDPart3tmp94, alpha, FDPart3tmp95, alpha_dD0, FDPart3tmp97, RbarDD00);
+            }
       } // END LOOP: for (int i0 = NGHOSTS; i0 < NGHOSTS+Nxx0; i0++)
     }   // END LOOP: for (int i1 = NGHOSTS; i1 < NGHOSTS+Nxx1; i1++)
   }     // END LOOP: for (int i2 = NGHOSTS; i2 < NGHOSTS+Nxx2; i2++)
@@ -1867,11 +1905,11 @@ void rhs_eval__rfm__Spherical(const commondata_struct *restrict commondata, cons
     (Nxx_plus_2NGHOSTS1 + threads_in_y_dir - 1) / threads_in_y_dir,
     (Nxx_plus_2NGHOSTS2 + threads_in_z_dir - 1) / threads_in_z_dir
   );
-
-    rhs_eval__rfm__Spherical_gpu<<<grid_blocks, block_threads>>>(eta, rfmstruct->f0_of_xx0, rfmstruct->f1_of_xx1, 
+    // rhs_eval__rfm__Spherical_gpu<<<grid_blocks, block_threads>>>(eta, rfmstruct->f0_of_xx0, rfmstruct->f1_of_xx1, 
+    rhs_eval__rfm__Spherical_gpu<<<1,1>>>(eta, rfmstruct->f0_of_xx0, rfmstruct->f1_of_xx1, 
     rfmstruct->f1_of_xx1__D1, rfmstruct->f1_of_xx1__DD11, auxevol_gfs, in_gfs, rhs_gfs);
       // print_params<<<1,1>>>();
-    // cudaDeviceSynchronize();
+    cudaDeviceSynchronize();
     // for(int i = 0; i < NUM_EVOL_GFS; ++i)
     //     print_var<<<1,1>>>(rhs_gfs, IDX4(i, 34, 18 , 18));
     // printf("**************************\n");

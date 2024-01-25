@@ -24,6 +24,7 @@ void apply_bcs_inner_only(const commondata_struct *restrict commondata, const pa
       const int dstpt = bcstruct->inner_bc_array[pt].dstpt;
       const int srcpt = bcstruct->inner_bc_array[pt].srcpt;
       gfs[IDX4pt(which_gf, dstpt)] = bcstruct->inner_bc_array[pt].parity[evol_gf_parity[which_gf]] * gfs[IDX4pt(which_gf, srcpt)];
+      // printf("INNER: %d: %f\n", dstpt, gfs[IDX4pt(which_gf, dstpt)]);
     } // END for(int pt=0;pt<num_inner_pts;pt++)
   }   // END for(int which_gf=0;which_gf<NUM_EVOL_GFS;which_gf++)
 }

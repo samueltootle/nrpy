@@ -36,7 +36,7 @@ void diagnostics_nearest_grid_center__rfm__Spherical(commondata_struct *restrict
     const REAL cfL = y_n_gfs[IDX4pt(CFGF, idx3)];
     const REAL alphaL = y_n_gfs[IDX4pt(ALPHAGF, idx3)];
     const REAL trKL = y_n_gfs[IDX4pt(TRKGF, idx3)];
-    printf("3index: %d\n",idx3);
+    // printf("3index: %d\n",idx3);
 
     fprintf(outfile, "%e %.15e %.15e %.15e %.15e %.15e\n", time, log10HL, log10sqrtM2L, cfL, alphaL, trKL);
   }

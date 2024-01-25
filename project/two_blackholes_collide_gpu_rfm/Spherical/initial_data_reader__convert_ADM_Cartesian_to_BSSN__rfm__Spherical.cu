@@ -592,7 +592,8 @@ void initial_data_lambdaU_grid_interior(const commondata_struct *restrict common
   // Assumes the grids are small enough such that Nxx0 < 1024, therefore we only
   // need tiles to cover y and z
   dim3 grid_blocks(params->Nxx1 / threads_in_y_dir, params->Nxx2, 1);
-  initial_data_lambdaU_grid_interior_gpu<<<grid_blocks, block_threads>>>(xx[0], xx[1], xx[2], in_gfs);
+  // initial_data_lambdaU_grid_interior_gpu<<<grid_blocks, block_threads>>>(xx[0], xx[1], xx[2], in_gfs);
+  initial_data_lambdaU_grid_interior_gpu<<<1,1>>>(xx[0], xx[1], xx[2], in_gfs);
 }
 
 /*
@@ -680,8 +681,10 @@ void initial_data_reader__convert_ADM_Cartesian_to_BSSN__rfm__Spherical(
   // and evaluation of trig functions resulting in larger relative differences in values especially
   // due to sign changes about zero.
   // printf("center: \n");
-  // print_gfs(centeridx);
-  // cudaDeviceSynchronize();
+  cudaDeviceSynchronize();
+  int idx3 = IDX3(Nxx_plus_2NGHOSTS0/2, Nxx_plus_2NGHOSTS1/2, Nxx_plus_2NGHOSTS2/2);
+  print_gfs(idx3);
+  
 
   // printf("edge: \n");
   // print_gfs(edgeidx);

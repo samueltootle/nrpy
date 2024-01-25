@@ -50,4 +50,8 @@ void enforce_detgammabar_equals_detgammahat__rfm__Spherical(const commondata_str
       } // END LOOP: for (int i0 = 0; i0 < Nxx_plus_2NGHOSTS0; i0++)
     }   // END LOOP: for (int i1 = 0; i1 < Nxx_plus_2NGHOSTS1; i1++)
   }     // END LOOP: for (int i2 = 0; i2 < Nxx_plus_2NGHOSTS2; i2++)
+          
+//       for(int i = 0; i < NUM_EVOL_GFS; ++i)
+//         print_var(in_gfs, IDX4(i, 3, 3, 3));
+//     printf("**************************\n");
 }

@@ -502,9 +502,9 @@ void initial_data_reader__convert_ADM_Cartesian_to_BSSN__rfm__Spherical(
 
     BSSN_Cart_basis_struct BSSN_Cart_basis;
     ADM_Cart_to_BSSN_Cart(commondata, params, xCart, &ADM_Cart_basis, &BSSN_Cart_basis);
-    // BSSN_Cart_basis.gammabarDD00 = 1;
-    // BSSN_Cart_basis.gammabarDD11 = 1;
-    // BSSN_Cart_basis.gammabarDD22 = 1;
+    BSSN_Cart_basis.gammabarDD00 = 1;
+    BSSN_Cart_basis.gammabarDD11 = 1;
+    BSSN_Cart_basis.gammabarDD22 = 1;
 
     rescaled_BSSN_rfm_basis_struct rescaled_BSSN_rfm_basis;
     BSSN_Cart_to_rescaled_BSSN_rfm(commondata, params, xCart, &BSSN_Cart_basis, &rescaled_BSSN_rfm_basis);
@@ -575,8 +575,9 @@ void initial_data_reader__convert_ADM_Cartesian_to_BSSN__rfm__Spherical(
 
   initial_data_lambdaU_grid_interior(commondata, params, xx, gridfuncs->y_n_gfs);
   
-  // printf("center: \n");
-  // print_gfs(params, gridfuncs, centeridx);
+  int idx3 = IDX3(Nxx_plus_2NGHOSTS0/2, Nxx_plus_2NGHOSTS1/2, Nxx_plus_2NGHOSTS2/2);
+  printf("center: \n");
+  print_gfs(params, gridfuncs, idx3);
   
   // printf("edge: \n");
   // print_gfs(params, gridfuncs, edgeidx);

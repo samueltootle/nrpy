@@ -1864,8 +1864,46 @@ void rhs_eval__rfm__Spherical(const commondata_struct *restrict commondata, cons
             (FDPart3tmp113 * FDPart3tmp466 + FDPart3tmp138 * FDPart3tmp467 + FDPart3tmp153 * FDPart3tmp468 +
              FDPart3tmp173 * FDPart3tmp436 * FDPart3tmp9 + FDPart3tmp190 * FDPart3tmp469 + FDPart3tmp3 * (FDPart3tmp205 + FDPart3tmp5 * vetU_dupD21) +
              FDPart3tmp302 + FDPart3tmp314 * vetU_dupD22 + FDPart3tmp465 * FDPart3tmp81 + vetU0 * (-FDPart3tmp15 + FDPart3tmp5 * vetU_dupD20));
-
+        // if(IDX4(VETU2GF, i0, i1, i2) == IDX4(VETU2GF, 17, 6 , 6)) {
+        //     printf("VETU2GF: %f, %f, %f, %f, %f, %f, %f, %f, %f, %f,\n",
+        //     FDPart3tmp173, FDPart3tmp436, FDPart3tmp9, FDPart3tmp190, FDPart3tmp469, FDPart3tmp3, FDPart3tmp205, FDPart3tmp5, vetU_dupD21);
+        // }
+            int const iref0 = 3;
+            int const iref1 = (int)(NGHOSTS + (1.0 / 4.0) * Nxx2 - 1.0 / 2.0);
+            int const iref2 = (int)(NGHOSTS + (3.0 / 4.0) * Nxx2 - 1.0 / 2.0);
+            if(IDX4(ADD22GF, i0, i1, i2) == IDX4(ADD22GF, iref0, iref1 , iref2)) {
+                printf("ADD22GF: \n"
+                " %1.13e, %1.13e, %1.13e, %1.13e, %1.13e\n"
+                " %1.13e, %1.13e, %1.13e, %1.13e, %1.13e \n"
+                " %1.13e, %1.13e, %1.13e, %1.13e, %1.13e\n"
+                " %1.13e, %1.13e, %1.13e, %1.13e, %1.13e\n"
+                " %1.13e, %1.13e, %1.13e, %1.13e, %1.13e\n"
+                " %1.13e, %1.13e, %1.13e, %1.13e, %1.13e\n"
+                " %1.13e, %1.13e, %1.13e\n ", 
+                FDPart3tmp237, FDPart3tmp1, FDPart3tmp214, FDPart3tmp105, aDD_dupD222,
+                vetU2, FDPart3tmp12, aDD22, f1_of_xx1, vetU_dD22, 
+                FDPart3tmp19, vetU_dD02, FDPart3tmp216, FDPart3tmp68, FDPart3tmp27, 
+                FDPart3tmp217, FDPart3tmp225, FDPart3tmp218, FDPart3tmp55, FDPart3tmp3, 
+                FDPart3tmp168, FDPart3tmp35, aDD_dupD221, FDPart3tmp70, FDPart3tmp198, 
+                FDPart3tmp199, FDPart3tmp37, FDPart3tmp78, aDD12, vetU_dD12, 
+                vetU0, FDPart3tmp149, aDD_dupD220);
+                printf("FDPart3tmp199: \n"
+                " %1.13e, %1.13e, %1.13e, %1.13e, %1.13e\n"
+                " %1.13e, %1.13e, %1.13e, %1.13e, %1.13e, %1.13e\n",
+                FDPart3tmp125, FDPart3tmp127, FDPart3tmp146, FDPart3tmp59, FDPart3tmp163,
+                FDPart3tmp164, FDPart3tmp182, FDPart3tmp46, FDPart3tmp53, FDPart3tmp66, FDPart3tmp98);
+                printf("FDPart3tmp98: \n"
+                " %1.13e, %1.13e, %1.13e, %1.13e, %1.13e\n"
+                " %1.13e, %1.13e, %1.13e, %1.13e, %1.13e\n"
+                " %1.13e, %1.13e, %1.13e, %1.13e, %1.13e, %1.13e\n",
+                FDPart3tmp68, FDPart3tmp71, cf_dD0, cf_dDD00,FDPart3tmp81, 
+                FDPart3tmp84, FDPart3tmp85, FDPart3tmp87, FDPart3tmp91, FDPart3tmp93,
+                FDPart3tmp94, alpha, FDPart3tmp95, alpha_dD0, FDPart3tmp97, RbarDD00);
+            }
       } // END LOOP: for (int i0 = NGHOSTS; i0 < NGHOSTS+Nxx0; i0++)
     }   // END LOOP: for (int i1 = NGHOSTS; i1 < NGHOSTS+Nxx1; i1++)
   }     // END LOOP: for (int i2 = NGHOSTS; i2 < NGHOSTS+Nxx2; i2++)
+//     for(int i = 0; i < NUM_EVOL_GFS; ++i)
+//     print_var(rhs_gfs, IDX4(i, 34, 18 , 18));
+//   printf("**************************\n");
 }

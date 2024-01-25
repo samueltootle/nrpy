@@ -175,6 +175,11 @@ void apply_bcs_outerradiation_and_inner__rfm__Spherical(const commondata_struct 
               // *** Apply radiation BCs to all outer boundary points. ***
               rhs_gfs[IDX4pt(which_gf, idx3)] = radiation_bcs(commondata, params, bcstruct, xx, gfs, rhs_gfs, which_gf, custom_wavespeed[which_gf],
                                                               custom_f_infinity[which_gf], i0, i1, i2, FACEX0, FACEX1, FACEX2);
+            // printf("PURE: %d: %f\n", idx3, rhs_gfs[IDX4pt(which_gf, idx3)]);
+            if(idx3 == IDX3(34, 18 , 18)) {
+            printf("GF %d: %f\n", which_gf,
+            rhs_gfs[IDX4pt(which_gf, idx3)]);
+        }
             }
           }
         }

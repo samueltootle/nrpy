@@ -521,6 +521,7 @@ void bcstruct_set_up__rfm__Spherical(const commondata_struct *restrict commondat
         }
       }
       bcstruct->bc_info.num_pure_outer_boundary_points[which_gz][dirn] = idx2d;
+      // printf("pure pts: %d\n", idx2d);
     }
 
     // print_inner(bcstruct->inner_bc_array, bcstruct->bc_info.num_inner_boundary_points);

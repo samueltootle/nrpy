@@ -492,6 +492,7 @@ void set_pure_outer_bc_array(REAL * xx[3], bc_struct *restrict bcstruct) {
       cudaMemcpy(&idx2d, idx2d_gpu, sizeof(uint), cudaMemcpyDeviceToHost);
       cudaCheckErrors(cudaMemcpy, "copy failure")
       bcstruct->bc_info.num_pure_outer_boundary_points[which_gz][dirn] = idx2d;
+      // printf("pure pts: %d\n", idx2d);
     }
   }
   cudaFree(idx2d_gpu);
