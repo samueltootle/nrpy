@@ -20,12 +20,13 @@ void diagnostics(commondata_struct *restrict commondata, griddata_struct *restri
       REAL *restrict diagnostic_output_gfs = griddata[grid].gridfuncs.diagnostic_output_gfs;
       // REAL *restrict xx[3];
       // {
-      //   for (int ww = 0; ww < 3; ww++)
+      //   for (int ww = 0; ww < 3; ww++) {
       //     xx[ww] = griddata[grid].xx[ww];
+      //   }
       // }
       const params_struct *restrict params = &griddata[grid].params;
       set_param_constants(params);
-#include "set_CodeParameters.h"
+      #include "set_CodeParameters.h"
 
       // Constraint output
       {
@@ -37,7 +38,7 @@ void diagnostics(commondata_struct *restrict commondata, griddata_struct *restri
       diagnostics_nearest_grid_center(commondata, params, &griddata[grid].gridfuncs);
 
       // // 1D output
-      // diagnostics_nearest_1d_y_axis(commondata, params, xx, &griddata[grid].gridfuncs);
+      diagnostics_nearest_1d_y_axis(commondata, params, griddata[grid].xx, &griddata[grid].gridfuncs);
       // diagnostics_nearest_1d_z_axis(commondata, params, xx, &griddata[grid].gridfuncs);
 
       // // 2D output

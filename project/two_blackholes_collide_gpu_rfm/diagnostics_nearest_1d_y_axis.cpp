@@ -3,7 +3,7 @@
 /*
  * Output diagnostic quantities at gridpoints closest to y axis.
  */
-void diagnostics_nearest_1d_y_axis(commondata_struct *restrict commondata, const params_struct *restrict params, REAL *restrict xx[3],
+void diagnostics_nearest_1d_y_axis(commondata_struct *restrict commondata, const params_struct *restrict params, REAL * xx[3],
                                    MoL_gridfunctions_struct *restrict gridfuncs) {
   switch (params->CoordSystem_hash) {
   case SPHERICAL:

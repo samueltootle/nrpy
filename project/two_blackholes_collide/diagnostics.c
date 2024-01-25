@@ -33,8 +33,8 @@ void diagnostics(commondata_struct *restrict commondata, griddata_struct *restri
       // 0D output
       diagnostics_nearest_grid_center(commondata, params, &griddata[grid].gridfuncs);
 
-      // // 1D output
-      // diagnostics_nearest_1d_y_axis(commondata, params, xx, &griddata[grid].gridfuncs);
+      // 1D output
+      diagnostics_nearest_1d_y_axis(commondata, params, xx, &griddata[grid].gridfuncs);
       // diagnostics_nearest_1d_z_axis(commondata, params, xx, &griddata[grid].gridfuncs);
 
       // // 2D output
