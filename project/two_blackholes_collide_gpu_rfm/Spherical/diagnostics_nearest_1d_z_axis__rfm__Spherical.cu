@@ -1,5 +1,7 @@
 #include "../BHaH_defines.h"
 #include "../BHaH_function_prototypes.h"
+#include "../BHaH_gpu_defines.h"
+#include "../BHaH_gpu_function_prototypes.h"
 
 typedef struct {
   REAL xCart_axis;
@@ -20,14 +22,15 @@ static int compare(const void *a, const void *b) {
 /*
  * Output diagnostic quantities at gridpoints closest to z axis.
  */
-void diagnostics_nearest_1d_z_axis__rfm__Spherical(commondata_struct *restrict commondata, const params_struct *restrict params, REAL *restrict xx[3],
+void diagnostics_nearest_1d_z_axis__rfm__Spherical(commondata_struct *restrict commondata, const params_struct *restrict params, REAL * xx[3],
                                                    MoL_gridfunctions_struct *restrict gridfuncs) {
 #include "../set_CodeParameters.h"
 
   // Unpack gridfuncs struct:
-  const REAL *restrict y_n_gfs = gridfuncs->y_n_gfs;
-  const REAL *restrict auxevol_gfs = gridfuncs->auxevol_gfs;
-  const REAL *restrict diagnostic_output_gfs = gridfuncs->diagnostic_output_gfs;
+  __attribute_maybe_unused__ const REAL *restrict y_n_gfs = gridfuncs->y_n_gfs;
+  __attribute_maybe_unused__ const REAL *restrict auxevol_gfs = gridfuncs->auxevol_gfs;
+  __attribute_maybe_unused__ const REAL *restrict diagnostic_output_gfs = gridfuncs->diagnostic_output_gfs;
+  __attribute_maybe_unused__ const REAL *restrict k_odd_gfs = gridfuncs->k_odd_gfs;
 
   // 1D output
   char filename[256];
@@ -39,13 +42,28 @@ void diagnostics_nearest_1d_z_axis__rfm__Spherical(commondata_struct *restrict c
   }
 
   // Output along z-axis in Spherical coordinates.
-  const int numpts_i0 = Nxx0, numpts_i1 = 2, numpts_i2 = 1;
+  const int numpts_i0 = Nxx_plus_2NGHOSTS0, numpts_i1 = 2, numpts_i2 = 1;
   int i0_pts[numpts_i0], i1_pts[numpts_i1], i2_pts[numpts_i2];
 
   data_point_1d_struct data_points[numpts_i0 * numpts_i1 * numpts_i2];
   int data_index = 0;
+
+  const auto get_diagnostics = [](auto index, const REAL *restrict g_data) {
+    REAL h_data;
+    cudaMemcpy(&h_data, &g_data[index], sizeof(REAL), cudaMemcpyDeviceToHost);
+    cudaCheckErrors(cudaMemcpy, "memory error");
+    return h_data;
+  };
+  const auto xx_to_cart = [&params] (auto const xx0, auto const xx1, auto const xx2, REAL * xCart) {
+    const REAL tmp0 = xx0 * sin(xx1);
+    xCart[0] = params->Cart_originx + tmp0 * cos(xx2);
+    xCart[1] = params->Cart_originy + tmp0 * sin(xx2);
+    xCart[2] = params->Cart_originz + xx0 * cos(xx1);
+    return xCart;
+  };
 #pragma omp parallel for
-  for (int i0 = NGHOSTS; i0 < Nxx0 + NGHOSTS; i0++)
+  // for (int i0 = NGHOSTS; i0 < Nxx0 + NGHOSTS; i0++)
+  for (int i0 = 0; i0 < Nxx_plus_2NGHOSTS0; i0++)
     i0_pts[i0 - NGHOSTS] = i0;
   i1_pts[0] = (int)(NGHOSTS);
   i1_pts[1] = (int)(-NGHOSTS + Nxx_plus_2NGHOSTS1 - 1);
@@ -55,7 +73,12 @@ void diagnostics_nearest_1d_z_axis__rfm__Spherical(commondata_struct *restrict c
     const int i0 = i0_pts[i0_pt], i1 = i1_pts[i1_pt], i2 = i2_pts[i2_pt];
     const int idx3 = IDX3(i0, i1, i2);
     REAL xCart[3];
-    xx_to_Cart(commondata, params, xx, i0, i1, i2, xCart);
+    {
+      const REAL xx0 = get_diagnostics(i0, xx[0]);
+      const REAL xx1 = get_diagnostics(i1, xx[1]);
+      const REAL xx2 = get_diagnostics(i2, xx[2]);
+      xx_to_cart(xx0, xx1, xx2, xCart);
+    }
 
     {
       data_point_1d_struct dp1d;
