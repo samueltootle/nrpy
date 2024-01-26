@@ -1055,11 +1055,11 @@ void Ricci_eval__rfm__Spherical(const commondata_struct *restrict commondata, co
   );
   // printf("%d - %d - %d\n", threads_in_x_dir, threads_in_y_dir ,threads_in_z_dir);
   // printf("%d - %d - %d\n", params->Nxx1 / threads_in_y_dir, params->Nxx2, 1);
-//   Ricci_eval__rfm__Spherical_gpu<<<grid_blocks, block_threads>>>(rfmstruct->f0_of_xx0, rfmstruct->f1_of_xx1, 
-    Ricci_eval__rfm__Spherical_gpu<<<1,1>>>(rfmstruct->f0_of_xx0, rfmstruct->f1_of_xx1,     
+  Ricci_eval__rfm__Spherical_gpu<<<grid_blocks, block_threads>>>(rfmstruct->f0_of_xx0, rfmstruct->f1_of_xx1, 
+    // Ricci_eval__rfm__Spherical_gpu<<<1,1>>>(rfmstruct->f0_of_xx0, rfmstruct->f1_of_xx1,     
     rfmstruct->f1_of_xx1__D1, rfmstruct->f1_of_xx1__DD11, in_gfs, auxevol_gfs);
   // print_params<<<1,1>>>();
-  cudaDeviceSynchronize();
+//   cudaDeviceSynchronize();
 //   for(int i = 0; i < NUM_AUXEVOL_GFS; ++i)
 //     print_var<<<1,1>>>(auxevol_gfs, IDX4(i, 17, 18 , 18));
 //   printf("**************************\n");

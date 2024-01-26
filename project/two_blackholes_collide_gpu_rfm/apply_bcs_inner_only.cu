@@ -33,9 +33,9 @@ void apply_bcs_inner_only(const commondata_struct *restrict commondata, const pa
   const bc_info_struct *bc_info = &bcstruct->bc_info;
   const int num_inner_bp = bc_info->num_inner_boundary_points;
   for (int which_gf = 0; which_gf < NUM_EVOL_GFS; which_gf++) {
-    int block_threads = MIN(1024, num_inner_bp);
-    int grid_blocks = (block_threads > 1024) ? (num_inner_bp + block_threads - 1) / block_threads : 1;
-    apply_bcs_inner_only_gpu<<<1,1>>>(which_gf, num_inner_bp, bcstruct->inner_bc_array, gfs);
-    // apply_bcs_inner_only_gpu<<<grid_blocks, block_threads>>>(which_gf, num_inner_bp, bcstruct->inner_bc_array, gfs);
+    size_t block_threads = MIN(1024,(num_inner_bp/32U) * 32U);
+    size_t grid_blocks = (num_inner_bp + block_threads -1) / block_threads;
+    // apply_bcs_inner_only_gpu<<<1,1>>>(which_gf, num_inner_bp, bcstruct->inner_bc_array, gfs);
+    apply_bcs_inner_only_gpu<<<grid_blocks, block_threads>>>(which_gf, num_inner_bp, bcstruct->inner_bc_array, gfs);
   }
 }

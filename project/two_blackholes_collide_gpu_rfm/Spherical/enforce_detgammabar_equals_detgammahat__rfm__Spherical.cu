@@ -92,8 +92,8 @@ void enforce_detgammabar_equals_detgammahat__rfm__Spherical(const commondata_str
     (Nxx_plus_2NGHOSTS1 + threads_in_y_dir - 1) / threads_in_y_dir,
     (Nxx_plus_2NGHOSTS2 + threads_in_z_dir - 1) / threads_in_z_dir
   );
-  enforce_detgammabar_equals_detgammahat__rfm__Spherical_gpu<<<1,1>>>(
-  // enforce_detgammabar_equals_detgammahat__rfm__Spherical_gpu<<<grid_blocks, block_threads>>>(
+  // enforce_detgammabar_equals_detgammahat__rfm__Spherical_gpu<<<1,1>>>(
+  enforce_detgammabar_equals_detgammahat__rfm__Spherical_gpu<<<grid_blocks, block_threads>>>(
     rfmstruct->f0_of_xx0, rfmstruct->f1_of_xx1, 
     rfmstruct->f1_of_xx1__D1, rfmstruct->f1_of_xx1__DD11, in_gfs
   );

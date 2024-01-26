@@ -48,8 +48,8 @@ void apply_bcs_outerextrap_and_inner_only(const bc_struct *restrict bcstruct, RE
         size_t block_threadsx = MIN(1024,num_pure);
         size_t grid_blocks = (num_pure + block_threadsx -1) / block_threadsx;
         size_t gz_idx = dirn + (3 * which_gz);
-        // apply_bcs_outerextrap_and_inner_only_gpu<<<grid_blocks, block_threadsx>>>(
-        apply_bcs_outerextrap_and_inner_only_gpu<<<1,1>>>(  
+        apply_bcs_outerextrap_and_inner_only_gpu<<<grid_blocks, block_threadsx>>>(
+        // apply_bcs_outerextrap_and_inner_only_gpu<<<1,1>>>(  
           num_pure, which_gz, dirn, bcstruct->pure_outer_bc_array[gz_idx], gfs);
       }
     }

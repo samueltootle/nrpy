@@ -33,6 +33,7 @@ void MoL_step_forward_in_time(commondata_struct *restrict commondata, griddata_s
 
     Ricci_eval(commondata, params, rfmstruct, y_n_gfs, auxevol_gfs);
     rhs_eval(commondata, params, rfmstruct, auxevol_gfs, y_n_gfs, k_odd_gfs);
+    // return;
     if (strncmp(commondata->outer_bc_type, "radiation", 50) == 0) {
       apply_bcs_outerradiation_and_inner(commondata, params, bcstruct, griddata[grid].xx, 
                                          d_gridfunctions_wavespeed, d_gridfunctions_f_infinity, 
@@ -44,13 +45,12 @@ void MoL_step_forward_in_time(commondata_struct *restrict commondata, griddata_s
             k_odd_gfs,
             k_even_gfs,
             auxevol_gfs,commondata->dt);
-return;
     if (strncmp(commondata->outer_bc_type, "extrapolation", 50) == 0) {
       apply_bcs_outerextrap_and_inner(commondata, params, bcstruct, k_odd_gfs);
     }
     enforce_detgammabar_equals_detgammahat(commondata, params, rfmstruct, k_odd_gfs);
   }
-  
+  // return;
   // -={ END k1 substep }=-
 
   // -={ START k2 substep }=-
