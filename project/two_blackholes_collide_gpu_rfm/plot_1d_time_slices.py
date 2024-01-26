@@ -14,10 +14,10 @@ cpu_dict = {
     #                   'ls' : '-',
     #                   'alpha' : 1,
     #                   'lw' : 3},
-    # "NOSIMD_PRE"   : {'folder' : "../two_blackholes_collide/",
-    #                   'ls' : '--',
-    #                   'alpha' : 0.7,
-    #                   'lw' : 3},
+    "NOSIMD_PRE"   : {'folder' : "../two_blackholes_collide_nosimd_rfm/",
+                      'ls' : '--',
+                      'alpha' : 0.7,
+                      'lw' : 3},
     #"NOSIMD_PRE_C"   : {'folder' : "../two_blackholes_collide_nosimd_rfm_clean",
     #                  'ls' : '--',
     #                  'alpha' : 0.7,
@@ -26,10 +26,10 @@ cpu_dict = {
     #                   'ls' : '-',
     #                   'alpha' : 1,
     #                   'lw' : 3},
-     "SIMD_PRE"     : {'folder' : "../two_blackholes_collide_simd_rfm_clean",
-                       'ls' : '--',
-                       'alpha' : 0.7,
-                       'lw' : 3},
+    #  "SIMD_PRE"     : {'folder' : "../two_blackholes_collide_simd_rfm_clean",
+    #                    'ls' : '--',
+    #                    'alpha' : 0.7,
+    #                    'lw' : 3},
 }
 
 def plot(direction,f):
@@ -39,6 +39,7 @@ def plot(direction,f):
         return f[start:stop]
     t = get_time()
     direction_file = f
+    # gpu_output=f"../two_blackholes_collide_nosimd_rfm/{direction_file}"
     gpu_output=f"./{direction_file}"
     g_xx, g_log10HL, g_log10sqrtM2L, g_cfL, g_alphaL, g_trKL =np.loadtxt(gpu_output, delimiter=' ',unpack=True)
 
@@ -47,10 +48,10 @@ def plot(direction,f):
     
     for ax in axs:
         axs[ax].set_ylabel(r"$\log_{10} {\rm HL}$")
-        axs[ax].set_xlabel(r"t")
+        axs[ax].set_xlabel(rf"{direction}")
         axs[ax].set_ylim(-7, -2)
     axs['Top'].set_title(rf"t = {t}")
-    axs['Top'].set_ylabel(rf"Rel. Diff GPU vs CPU ({direction})")
+    axs['Top'].set_ylabel(rf"Rel. Diff CPUO0 vs CPUO2")
     axs['Top'].set_yscale('log')
     axs['Top'].set_ylim(1e-12, 1e-5)
     # axs.plot(g_t, np.fabs(1. - g_Unum/cs_Unum), label="CPU_SIMD_PRE")
@@ -93,7 +94,7 @@ for direction in ['y','z']:
         plot(direction, f)
         # plt.legend()
         # plt.ylim(-7, -2)
-        plt.savefig(f"out/{direction}-{i:02d}.png")
+        plt.savefig(f"out-CPU/{direction}-{i:02d}.png")
     # break
 # plot('y')
 # plot('z')
