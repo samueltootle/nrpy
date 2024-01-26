@@ -39,14 +39,14 @@ void diagnostics(commondata_struct *restrict commondata, griddata_struct *restri
 
       // // 1D output
       diagnostics_nearest_1d_y_axis(commondata, params, griddata[grid].xx, &griddata[grid].gridfuncs);
-      // diagnostics_nearest_1d_z_axis(commondata, params, xx, &griddata[grid].gridfuncs);
+      diagnostics_nearest_1d_z_axis(commondata, params, griddata[grid].xx, &griddata[grid].gridfuncs);
 
       // // 2D output
       // diagnostics_nearest_2d_xy_plane(commondata, params, xx, &griddata[grid].gridfuncs);
       // diagnostics_nearest_2d_yz_plane(commondata, params, xx, &griddata[grid].gridfuncs);
     }
   }
-  // progress_indicator(commondata, griddata);
-  // if (commondata->time + commondata->dt > commondata->t_final)
-  //   printf("\n");
+  progress_indicator(commondata, griddata);
+  if (commondata->time + commondata->dt > commondata->t_final)
+    printf("\n");
 }

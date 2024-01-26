@@ -64,7 +64,7 @@ void diagnostics_nearest_1d_z_axis__rfm__Spherical(commondata_struct *restrict c
 #pragma omp parallel for
   // for (int i0 = NGHOSTS; i0 < Nxx0 + NGHOSTS; i0++)
   for (int i0 = 0; i0 < Nxx_plus_2NGHOSTS0; i0++)
-    i0_pts[i0 - NGHOSTS] = i0;
+    i0_pts[i0] = i0;
   i1_pts[0] = (int)(NGHOSTS);
   i1_pts[1] = (int)(-NGHOSTS + Nxx_plus_2NGHOSTS1 - 1);
   i2_pts[0] = (int)(NGHOSTS);
@@ -83,11 +83,13 @@ void diagnostics_nearest_1d_z_axis__rfm__Spherical(commondata_struct *restrict c
     {
       data_point_1d_struct dp1d;
       dp1d.xCart_axis = xCart[2];
-      dp1d.log10HL = log10(fabs(diagnostic_output_gfs[IDX4pt(HGF, idx3)] + 1e-16));
-      dp1d.log10sqrtM2L = log10(sqrt(diagnostic_output_gfs[IDX4pt(MSQUAREDGF, idx3)]) + 1e-16);
-      dp1d.cfL = y_n_gfs[IDX4pt(CFGF, idx3)];
-      dp1d.alphaL = y_n_gfs[IDX4pt(ALPHAGF, idx3)];
-      dp1d.trKL = y_n_gfs[IDX4pt(TRKGF, idx3)];
+      const REAL HL = get_diagnostics(IDX4pt(HGF, idx3), diagnostic_output_gfs);
+      dp1d.log10HL = log10(fabs(HL + 1e-16));
+      const REAL M2L = get_diagnostics(IDX4pt(MSQUAREDGF, idx3), diagnostic_output_gfs);
+      dp1d.log10sqrtM2L = log10(sqrt(M2L) + 1e-16);
+      dp1d.cfL = get_diagnostics(IDX4pt(CFGF, idx3), y_n_gfs);
+      dp1d.alphaL = get_diagnostics(IDX4pt(ALPHAGF, idx3), y_n_gfs);
+      dp1d.trKL = get_diagnostics(IDX4pt(TRKGF, idx3), y_n_gfs);
       data_points[data_index] = dp1d;
       data_index++;
     }

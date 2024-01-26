@@ -2,7 +2,7 @@ CC = nvcc  # assigns the value CC to gcc only if environment variable CC is not 
 # CFLAGS = -O2 -march=native -g -Wall -Wno-unused-variable -std=gnu99
 #CFLAGS = -O3 -funroll-loops -march=native -g -Wall -Wno-unused-variable -std=gnu99 -std=gnu99
 #CFLAGS = -O2 -g -Wall -Wno-unused-variable -Wno-unknown-pragmas -std=gnu99
-CFLAGS = -Xcompiler -g -Xptxas=-O3 -arch=native  -O3 -Xcompiler=-march=native -Xcompiler -Wall --forward-unknown-to-host-compiler --Werror cross-execution-space-call --relocatable-device-code=true -allow-unsupported-compiler
+CFLAGS = -Xcompiler -g -Xptxas=-O3 -arch=native -O3 -Xcompiler=-march=native -Xcompiler -Wall --forward-unknown-to-host-compiler --Werror cross-execution-space-call --relocatable-device-code=true -allow-unsupported-compiler
 
 INCLUDEDIRS =
 LDFLAGS = -lm
@@ -23,7 +23,7 @@ OBJ_FILES += initial_data_reader__convert_ADM_Cartesian_to_BSSN.o cfl_limited_ti
 OBJ_FILES += bcstruct_set_up.o rfm_precompute_free.o rfm_precompute_malloc.o rfm_precompute_defines.o 
 OBJ_FILES += numerical_grid_params_Nxx_dxx_xx.o params_struct_set_to_default.o CoordSystem_hash_setup.o 
 OBJ_FILES += cmdline_input_and_parfile_parser.o commondata_struct_set_to_default.o enforce_detgammabar_equals_detgammahat.o
-OBJ_FILES += diagnostics_nearest_1d_y_axis.o
+OBJ_FILES += diagnostics_nearest_1d_y_axis.o diagnostics_nearest_1d_z_axis.o progress_indicator.o
 CU_OBJ_FILES  = Spherical/rhs_eval__rfm__Spherical.o Spherical/diagnostics_nearest_grid_center__rfm__Spherical.o 
 CU_OBJ_FILES += Spherical/constraints_eval__rfm__Spherical.o Spherical/Ricci_eval__rfm__Spherical.o diagnostics.o 
 CU_OBJ_FILES += MoL_free_memory_non_y_n_gfs.o MoL_malloc_non_y_n_gfs.o apply_bcs_inner_only.o 
@@ -37,7 +37,7 @@ CU_OBJ_FILES += numerical_grids_and_timestep.o Spherical/numerical_grid_params_N
 CU_OBJ_FILES += set__constant__.o main.o MoL_step_forward_in_time.o 
 CU_OBJ_FILES += Spherical/apply_bcs_outerradiation_and_inner__rfm__Spherical.o MoL_RK_substeps_in_time.o
 CU_OBJ_FILES += apply_bcs_outerextrap_and_inner.o Spherical/enforce_detgammabar_equals_detgammahat__rfm__Spherical.o
-CU_OBJ_FILES += Spherical/diagnostics_nearest_1d_y_axis__rfm__Spherical.o
+CU_OBJ_FILES += Spherical/diagnostics_nearest_1d_y_axis__rfm__Spherical.o Spherical/diagnostics_nearest_1d_z_axis__rfm__Spherical.o
 
 all: two_blackholes_collide_nosimd_rfm
 
