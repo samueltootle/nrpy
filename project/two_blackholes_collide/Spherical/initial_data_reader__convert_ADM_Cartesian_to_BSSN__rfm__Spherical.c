@@ -576,8 +576,8 @@ void initial_data_reader__convert_ADM_Cartesian_to_BSSN__rfm__Spherical(
   initial_data_lambdaU_grid_interior(commondata, params, xx, gridfuncs->y_n_gfs);
   
   int idx3 = IDX3(Nxx_plus_2NGHOSTS0/2, Nxx_plus_2NGHOSTS1/2, Nxx_plus_2NGHOSTS2/2);
-  printf("center: \n");
-  print_gfs(params, gridfuncs, idx3);
+  // printf("center: \n");
+  // print_gfs(params, gridfuncs, idx3);
   
   // printf("edge: \n");
   // print_gfs(params, gridfuncs, edgeidx);

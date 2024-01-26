@@ -58,20 +58,20 @@ void diagnostics_nearest_1d_y_axis__rfm__Spherical(commondata_struct *restrict c
     const int idx3 = IDX3(i0, i1, i2);
     REAL xCart[3];
     xx_to_Cart(commondata, params, xx, i0, i1, i2, xCart);
-    {
-      int idx = ADD22GF;
-      data_point_1d_struct dp1d;
-      dp1d.xCart_axis = xCart[1];
-      const REAL GF1 = k_odd_gfs[IDX4pt(idx, idx3)];
-      dp1d.log10HL = GF1;
-      const REAL GF2 = k_odd_gfs[IDX4pt(idx+1, idx3)];
-      dp1d.log10sqrtM2L = GF2;
-      dp1d.cfL = k_odd_gfs[IDX4pt(idx+2, idx3)];
-      dp1d.alphaL = k_odd_gfs[IDX4pt(idx+3, idx3)];
-      dp1d.trKL = k_odd_gfs[IDX4pt(idx+4, idx3)];
-      data_points[data_index] = dp1d;
-      data_index++;
-    }
+    // {
+    //   int idx = ADD22GF;
+    //   data_point_1d_struct dp1d;
+    //   dp1d.xCart_axis = xCart[1];
+    //   const REAL GF1 = k_odd_gfs[IDX4pt(idx, idx3)];
+    //   dp1d.log10HL = GF1;
+    //   const REAL GF2 = k_odd_gfs[IDX4pt(idx+1, idx3)];
+    //   dp1d.log10sqrtM2L = GF2;
+    //   dp1d.cfL = k_odd_gfs[IDX4pt(idx+2, idx3)];
+    //   dp1d.alphaL = k_odd_gfs[IDX4pt(idx+3, idx3)];
+    //   dp1d.trKL = k_odd_gfs[IDX4pt(idx+4, idx3)];
+    //   data_points[data_index] = dp1d;
+    //   data_index++;
+    // }
     // {
     //   int idx = ADD22GF;
     //   data_point_1d_struct dp1d;
@@ -101,17 +101,17 @@ void diagnostics_nearest_1d_y_axis__rfm__Spherical(commondata_struct *restrict c
     //   data_index++;
     // }
 
-    // {
-    //   data_point_1d_struct dp1d;
-    //   dp1d.xCart_axis = xCart[1];
-    //   dp1d.log10HL = log10(fabs(diagnostic_output_gfs[IDX4pt(HGF, idx3)] + 1e-16));
-    //   dp1d.log10sqrtM2L = log10(sqrt(diagnostic_output_gfs[IDX4pt(MSQUAREDGF, idx3)]) + 1e-16);
-    //   dp1d.cfL = y_n_gfs[IDX4pt(CFGF, idx3)];
-    //   dp1d.alphaL = y_n_gfs[IDX4pt(ALPHAGF, idx3)];
-    //   dp1d.trKL = y_n_gfs[IDX4pt(TRKGF, idx3)];
-    //   data_points[data_index] = dp1d;
-    //   data_index++;
-    // }
+    {
+      data_point_1d_struct dp1d;
+      dp1d.xCart_axis = xCart[1];
+      dp1d.log10HL = log10(fabs(diagnostic_output_gfs[IDX4pt(HGF, idx3)] + 1e-16));
+      dp1d.log10sqrtM2L = log10(sqrt(diagnostic_output_gfs[IDX4pt(MSQUAREDGF, idx3)]) + 1e-16);
+      dp1d.cfL = y_n_gfs[IDX4pt(CFGF, idx3)];
+      dp1d.alphaL = y_n_gfs[IDX4pt(ALPHAGF, idx3)];
+      dp1d.trKL = y_n_gfs[IDX4pt(TRKGF, idx3)];
+      data_points[data_index] = dp1d;
+      data_index++;
+    }
   }
 
   qsort(data_points, data_index, sizeof(data_point_1d_struct), compare);

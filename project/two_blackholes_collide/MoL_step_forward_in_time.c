@@ -41,13 +41,12 @@ void MoL_step_forward_in_time(commondata_struct *restrict commondata, griddata_s
       y_nplus1_running_total_gfs[i] = (1.0 / 6.0) * commondata->dt * k_odd_gfsL;
       k_odd_gfs[i] = (1.0 / 2.0) * commondata->dt * k_odd_gfsL + y_n_gfsL;
     }
-    return;
     if (strncmp(commondata->outer_bc_type, "extrapolation", 50) == 0) {
       apply_bcs_outerextrap_and_inner(commondata, params, bcstruct, k_odd_gfs);
     }
     enforce_detgammabar_equals_detgammahat(commondata, params, rfmstruct, k_odd_gfs);
   }
-  return;
+  // return;
   // -={ END k1 substep }=-
 
   // -={ START k2 substep }=-
