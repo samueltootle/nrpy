@@ -1,32 +1,6 @@
 #include "../BHaH_defines.h"
 #include "../BHaH_gpu_defines.h"
 #include "../BHaH_gpu_function_prototypes.h"
-#include <functional>
-
-__device__ REAL return_zero(const REAL&,const REAL&, const REAL&) { return 0.; }
-__device__ REAL upwind_eval_func(const REAL& upwind, const REAL& a, const REAL& b) {
-    return upwind * (-a + b) + a;
-}
-
-struct Upwind_eval_base {
-    
-    __device__  Upwind_eval_base () : f_(nullptr), upwind_(0.) {}
-    __device__  Upwind_eval_base (const REAL & upwind) : upwind_(upwind) {
-        if(upwind <= 0) {
-            f_ = &return_zero;
-        } else {
-            f_ = &upwind_eval_func;
-        }
-    }
-    __device__ REAL operator() (const REAL& a, const REAL& b) {
-        return f_(upwind_, a, b);
-    }
-
-    private:
-    REAL (*f_)(const REAL&, const REAL&, const REAL&);
-    const REAL upwind_;
-};
-
 /*
  * Finite difference function for operator dD0, with FD accuracy order 4.
  */
@@ -949,306 +923,276 @@ void rhs_eval__rfm__Spherical_gpu(const REAL eta, const REAL *restrict _f0_of_xx
         const REAL vetU2_i1p1_i2p2 = in_gfs[IDX4(VETU2GF, i0, i1 + 1, i2 + 2)];
         const REAL vetU2_i1p2_i2p2 = in_gfs[IDX4(VETU2GF, i0, i1 + 2, i2 + 2)];
         const REAL vetU2_i2p3 = in_gfs[IDX4(VETU2GF, i0, i1, i2 + 3)];
-
         const REAL UpwindAlgInputaDD_ddnD000 = fd_function_ddnD0_fdorder4(aDD00, aDD00_i0m1, aDD00_i0m2, aDD00_i0m3, aDD00_i0p1, invdxx0);
+        const REAL UpwindAlgInputaDD_ddnD001 = fd_function_ddnD1_fdorder4(aDD00, aDD00_i1m1, aDD00_i1m2, aDD00_i1m3, aDD00_i1p1, invdxx1);
+        const REAL UpwindAlgInputaDD_ddnD002 = fd_function_ddnD2_fdorder4(aDD00, aDD00_i2m1, aDD00_i2m2, aDD00_i2m3, aDD00_i2p1, invdxx2);
         const REAL UpwindAlgInputaDD_ddnD010 = fd_function_ddnD0_fdorder4(aDD01, aDD01_i0m1, aDD01_i0m2, aDD01_i0m3, aDD01_i0p1, invdxx0);
+        const REAL UpwindAlgInputaDD_ddnD011 = fd_function_ddnD1_fdorder4(aDD01, aDD01_i1m1, aDD01_i1m2, aDD01_i1m3, aDD01_i1p1, invdxx1);
+        const REAL UpwindAlgInputaDD_ddnD012 = fd_function_ddnD2_fdorder4(aDD01, aDD01_i2m1, aDD01_i2m2, aDD01_i2m3, aDD01_i2p1, invdxx2);
         const REAL UpwindAlgInputaDD_ddnD020 = fd_function_ddnD0_fdorder4(aDD02, aDD02_i0m1, aDD02_i0m2, aDD02_i0m3, aDD02_i0p1, invdxx0);
+        const REAL UpwindAlgInputaDD_ddnD021 = fd_function_ddnD1_fdorder4(aDD02, aDD02_i1m1, aDD02_i1m2, aDD02_i1m3, aDD02_i1p1, invdxx1);
+        const REAL UpwindAlgInputaDD_ddnD022 = fd_function_ddnD2_fdorder4(aDD02, aDD02_i2m1, aDD02_i2m2, aDD02_i2m3, aDD02_i2p1, invdxx2);
         const REAL UpwindAlgInputaDD_ddnD110 = fd_function_ddnD0_fdorder4(aDD11, aDD11_i0m1, aDD11_i0m2, aDD11_i0m3, aDD11_i0p1, invdxx0);
+        const REAL UpwindAlgInputaDD_ddnD111 = fd_function_ddnD1_fdorder4(aDD11, aDD11_i1m1, aDD11_i1m2, aDD11_i1m3, aDD11_i1p1, invdxx1);
+        const REAL UpwindAlgInputaDD_ddnD112 = fd_function_ddnD2_fdorder4(aDD11, aDD11_i2m1, aDD11_i2m2, aDD11_i2m3, aDD11_i2p1, invdxx2);
         const REAL UpwindAlgInputaDD_ddnD120 = fd_function_ddnD0_fdorder4(aDD12, aDD12_i0m1, aDD12_i0m2, aDD12_i0m3, aDD12_i0p1, invdxx0);
+        const REAL UpwindAlgInputaDD_ddnD121 = fd_function_ddnD1_fdorder4(aDD12, aDD12_i1m1, aDD12_i1m2, aDD12_i1m3, aDD12_i1p1, invdxx1);
+        const REAL UpwindAlgInputaDD_ddnD122 = fd_function_ddnD2_fdorder4(aDD12, aDD12_i2m1, aDD12_i2m2, aDD12_i2m3, aDD12_i2p1, invdxx2);
         const REAL UpwindAlgInputaDD_ddnD220 = fd_function_ddnD0_fdorder4(aDD22, aDD22_i0m1, aDD22_i0m2, aDD22_i0m3, aDD22_i0p1, invdxx0);
+        const REAL UpwindAlgInputaDD_ddnD221 = fd_function_ddnD1_fdorder4(aDD22, aDD22_i1m1, aDD22_i1m2, aDD22_i1m3, aDD22_i1p1, invdxx1);
+        const REAL UpwindAlgInputaDD_ddnD222 = fd_function_ddnD2_fdorder4(aDD22, aDD22_i2m1, aDD22_i2m2, aDD22_i2m3, aDD22_i2p1, invdxx2);
+        const REAL UpwindAlgInputaDD_dupD000 = fd_function_dupD0_fdorder4(aDD00, aDD00_i0m1, aDD00_i0p1, aDD00_i0p2, aDD00_i0p3, invdxx0);
+        const REAL UpwindAlgInputaDD_dupD001 = fd_function_dupD1_fdorder4(aDD00, aDD00_i1m1, aDD00_i1p1, aDD00_i1p2, aDD00_i1p3, invdxx1);
+        const REAL UpwindAlgInputaDD_dupD002 = fd_function_dupD2_fdorder4(aDD00, aDD00_i2m1, aDD00_i2p1, aDD00_i2p2, aDD00_i2p3, invdxx2);
+        const REAL UpwindAlgInputaDD_dupD010 = fd_function_dupD0_fdorder4(aDD01, aDD01_i0m1, aDD01_i0p1, aDD01_i0p2, aDD01_i0p3, invdxx0);
+        const REAL UpwindAlgInputaDD_dupD011 = fd_function_dupD1_fdorder4(aDD01, aDD01_i1m1, aDD01_i1p1, aDD01_i1p2, aDD01_i1p3, invdxx1);
+        const REAL UpwindAlgInputaDD_dupD012 = fd_function_dupD2_fdorder4(aDD01, aDD01_i2m1, aDD01_i2p1, aDD01_i2p2, aDD01_i2p3, invdxx2);
+        const REAL UpwindAlgInputaDD_dupD020 = fd_function_dupD0_fdorder4(aDD02, aDD02_i0m1, aDD02_i0p1, aDD02_i0p2, aDD02_i0p3, invdxx0);
+        const REAL UpwindAlgInputaDD_dupD021 = fd_function_dupD1_fdorder4(aDD02, aDD02_i1m1, aDD02_i1p1, aDD02_i1p2, aDD02_i1p3, invdxx1);
+        const REAL UpwindAlgInputaDD_dupD022 = fd_function_dupD2_fdorder4(aDD02, aDD02_i2m1, aDD02_i2p1, aDD02_i2p2, aDD02_i2p3, invdxx2);
+        const REAL UpwindAlgInputaDD_dupD110 = fd_function_dupD0_fdorder4(aDD11, aDD11_i0m1, aDD11_i0p1, aDD11_i0p2, aDD11_i0p3, invdxx0);
+        const REAL UpwindAlgInputaDD_dupD111 = fd_function_dupD1_fdorder4(aDD11, aDD11_i1m1, aDD11_i1p1, aDD11_i1p2, aDD11_i1p3, invdxx1);
+        const REAL UpwindAlgInputaDD_dupD112 = fd_function_dupD2_fdorder4(aDD11, aDD11_i2m1, aDD11_i2p1, aDD11_i2p2, aDD11_i2p3, invdxx2);
+        const REAL UpwindAlgInputaDD_dupD120 = fd_function_dupD0_fdorder4(aDD12, aDD12_i0m1, aDD12_i0p1, aDD12_i0p2, aDD12_i0p3, invdxx0);
+        const REAL UpwindAlgInputaDD_dupD121 = fd_function_dupD1_fdorder4(aDD12, aDD12_i1m1, aDD12_i1p1, aDD12_i1p2, aDD12_i1p3, invdxx1);
+        const REAL UpwindAlgInputaDD_dupD122 = fd_function_dupD2_fdorder4(aDD12, aDD12_i2m1, aDD12_i2p1, aDD12_i2p2, aDD12_i2p3, invdxx2);
+        const REAL UpwindAlgInputaDD_dupD220 = fd_function_dupD0_fdorder4(aDD22, aDD22_i0m1, aDD22_i0p1, aDD22_i0p2, aDD22_i0p3, invdxx0);
+        const REAL UpwindAlgInputaDD_dupD221 = fd_function_dupD1_fdorder4(aDD22, aDD22_i1m1, aDD22_i1p1, aDD22_i1p2, aDD22_i1p3, invdxx1);
+        const REAL UpwindAlgInputaDD_dupD222 = fd_function_dupD2_fdorder4(aDD22, aDD22_i2m1, aDD22_i2p1, aDD22_i2p2, aDD22_i2p3, invdxx2);
         const REAL UpwindAlgInputalpha_ddnD0 = fd_function_ddnD0_fdorder4(alpha, alpha_i0m1, alpha_i0m2, alpha_i0m3, alpha_i0p1, invdxx0);
+        const REAL UpwindAlgInputalpha_ddnD1 = fd_function_ddnD1_fdorder4(alpha, alpha_i1m1, alpha_i1m2, alpha_i1m3, alpha_i1p1, invdxx1);
+        const REAL UpwindAlgInputalpha_ddnD2 = fd_function_ddnD2_fdorder4(alpha, alpha_i2m1, alpha_i2m2, alpha_i2m3, alpha_i2p1, invdxx2);
+        const REAL UpwindAlgInputalpha_dupD0 = fd_function_dupD0_fdorder4(alpha, alpha_i0m1, alpha_i0p1, alpha_i0p2, alpha_i0p3, invdxx0);
+        const REAL UpwindAlgInputalpha_dupD1 = fd_function_dupD1_fdorder4(alpha, alpha_i1m1, alpha_i1p1, alpha_i1p2, alpha_i1p3, invdxx1);
+        const REAL UpwindAlgInputalpha_dupD2 = fd_function_dupD2_fdorder4(alpha, alpha_i2m1, alpha_i2p1, alpha_i2p2, alpha_i2p3, invdxx2);
         const REAL UpwindAlgInputbetU_ddnD00 = fd_function_ddnD0_fdorder4(betU0, betU0_i0m1, betU0_i0m2, betU0_i0m3, betU0_i0p1, invdxx0);
+        const REAL UpwindAlgInputbetU_ddnD01 = fd_function_ddnD1_fdorder4(betU0, betU0_i1m1, betU0_i1m2, betU0_i1m3, betU0_i1p1, invdxx1);
+        const REAL UpwindAlgInputbetU_ddnD02 = fd_function_ddnD2_fdorder4(betU0, betU0_i2m1, betU0_i2m2, betU0_i2m3, betU0_i2p1, invdxx2);
         const REAL UpwindAlgInputbetU_ddnD10 = fd_function_ddnD0_fdorder4(betU1, betU1_i0m1, betU1_i0m2, betU1_i0m3, betU1_i0p1, invdxx0);
+        const REAL UpwindAlgInputbetU_ddnD11 = fd_function_ddnD1_fdorder4(betU1, betU1_i1m1, betU1_i1m2, betU1_i1m3, betU1_i1p1, invdxx1);
+        const REAL UpwindAlgInputbetU_ddnD12 = fd_function_ddnD2_fdorder4(betU1, betU1_i2m1, betU1_i2m2, betU1_i2m3, betU1_i2p1, invdxx2);
         const REAL UpwindAlgInputbetU_ddnD20 = fd_function_ddnD0_fdorder4(betU2, betU2_i0m1, betU2_i0m2, betU2_i0m3, betU2_i0p1, invdxx0);
+        const REAL UpwindAlgInputbetU_ddnD21 = fd_function_ddnD1_fdorder4(betU2, betU2_i1m1, betU2_i1m2, betU2_i1m3, betU2_i1p1, invdxx1);
+        const REAL UpwindAlgInputbetU_ddnD22 = fd_function_ddnD2_fdorder4(betU2, betU2_i2m1, betU2_i2m2, betU2_i2m3, betU2_i2p1, invdxx2);
+        const REAL UpwindAlgInputbetU_dupD00 = fd_function_dupD0_fdorder4(betU0, betU0_i0m1, betU0_i0p1, betU0_i0p2, betU0_i0p3, invdxx0);
+        const REAL UpwindAlgInputbetU_dupD01 = fd_function_dupD1_fdorder4(betU0, betU0_i1m1, betU0_i1p1, betU0_i1p2, betU0_i1p3, invdxx1);
+        const REAL UpwindAlgInputbetU_dupD02 = fd_function_dupD2_fdorder4(betU0, betU0_i2m1, betU0_i2p1, betU0_i2p2, betU0_i2p3, invdxx2);
+        const REAL UpwindAlgInputbetU_dupD10 = fd_function_dupD0_fdorder4(betU1, betU1_i0m1, betU1_i0p1, betU1_i0p2, betU1_i0p3, invdxx0);
+        const REAL UpwindAlgInputbetU_dupD11 = fd_function_dupD1_fdorder4(betU1, betU1_i1m1, betU1_i1p1, betU1_i1p2, betU1_i1p3, invdxx1);
+        const REAL UpwindAlgInputbetU_dupD12 = fd_function_dupD2_fdorder4(betU1, betU1_i2m1, betU1_i2p1, betU1_i2p2, betU1_i2p3, invdxx2);
+        const REAL UpwindAlgInputbetU_dupD20 = fd_function_dupD0_fdorder4(betU2, betU2_i0m1, betU2_i0p1, betU2_i0p2, betU2_i0p3, invdxx0);
+        const REAL UpwindAlgInputbetU_dupD21 = fd_function_dupD1_fdorder4(betU2, betU2_i1m1, betU2_i1p1, betU2_i1p2, betU2_i1p3, invdxx1);
+        const REAL UpwindAlgInputbetU_dupD22 = fd_function_dupD2_fdorder4(betU2, betU2_i2m1, betU2_i2p1, betU2_i2p2, betU2_i2p3, invdxx2);
         const REAL UpwindAlgInputcf_ddnD0 = fd_function_ddnD0_fdorder4(cf, cf_i0m1, cf_i0m2, cf_i0m3, cf_i0p1, invdxx0);
+        const REAL UpwindAlgInputcf_ddnD1 = fd_function_ddnD1_fdorder4(cf, cf_i1m1, cf_i1m2, cf_i1m3, cf_i1p1, invdxx1);
+        const REAL UpwindAlgInputcf_ddnD2 = fd_function_ddnD2_fdorder4(cf, cf_i2m1, cf_i2m2, cf_i2m3, cf_i2p1, invdxx2);
+        const REAL UpwindAlgInputcf_dupD0 = fd_function_dupD0_fdorder4(cf, cf_i0m1, cf_i0p1, cf_i0p2, cf_i0p3, invdxx0);
+        const REAL UpwindAlgInputcf_dupD1 = fd_function_dupD1_fdorder4(cf, cf_i1m1, cf_i1p1, cf_i1p2, cf_i1p3, invdxx1);
+        const REAL UpwindAlgInputcf_dupD2 = fd_function_dupD2_fdorder4(cf, cf_i2m1, cf_i2p1, cf_i2p2, cf_i2p3, invdxx2);
         const REAL UpwindAlgInputhDD_ddnD000 = fd_function_ddnD0_fdorder4(hDD00, hDD00_i0m1, hDD00_i0m2, hDD00_i0m3, hDD00_i0p1, invdxx0);
+        const REAL UpwindAlgInputhDD_ddnD001 = fd_function_ddnD1_fdorder4(hDD00, hDD00_i1m1, hDD00_i1m2, hDD00_i1m3, hDD00_i1p1, invdxx1);
+        const REAL UpwindAlgInputhDD_ddnD002 = fd_function_ddnD2_fdorder4(hDD00, hDD00_i2m1, hDD00_i2m2, hDD00_i2m3, hDD00_i2p1, invdxx2);
         const REAL UpwindAlgInputhDD_ddnD010 = fd_function_ddnD0_fdorder4(hDD01, hDD01_i0m1, hDD01_i0m2, hDD01_i0m3, hDD01_i0p1, invdxx0);
+        const REAL UpwindAlgInputhDD_ddnD011 = fd_function_ddnD1_fdorder4(hDD01, hDD01_i1m1, hDD01_i1m2, hDD01_i1m3, hDD01_i1p1, invdxx1);
+        const REAL UpwindAlgInputhDD_ddnD012 = fd_function_ddnD2_fdorder4(hDD01, hDD01_i2m1, hDD01_i2m2, hDD01_i2m3, hDD01_i2p1, invdxx2);
         const REAL UpwindAlgInputhDD_ddnD020 = fd_function_ddnD0_fdorder4(hDD02, hDD02_i0m1, hDD02_i0m2, hDD02_i0m3, hDD02_i0p1, invdxx0);
+        const REAL UpwindAlgInputhDD_ddnD021 = fd_function_ddnD1_fdorder4(hDD02, hDD02_i1m1, hDD02_i1m2, hDD02_i1m3, hDD02_i1p1, invdxx1);
+        const REAL UpwindAlgInputhDD_ddnD022 = fd_function_ddnD2_fdorder4(hDD02, hDD02_i2m1, hDD02_i2m2, hDD02_i2m3, hDD02_i2p1, invdxx2);
         const REAL UpwindAlgInputhDD_ddnD110 = fd_function_ddnD0_fdorder4(hDD11, hDD11_i0m1, hDD11_i0m2, hDD11_i0m3, hDD11_i0p1, invdxx0);
+        const REAL UpwindAlgInputhDD_ddnD111 = fd_function_ddnD1_fdorder4(hDD11, hDD11_i1m1, hDD11_i1m2, hDD11_i1m3, hDD11_i1p1, invdxx1);
+        const REAL UpwindAlgInputhDD_ddnD112 = fd_function_ddnD2_fdorder4(hDD11, hDD11_i2m1, hDD11_i2m2, hDD11_i2m3, hDD11_i2p1, invdxx2);
         const REAL UpwindAlgInputhDD_ddnD120 = fd_function_ddnD0_fdorder4(hDD12, hDD12_i0m1, hDD12_i0m2, hDD12_i0m3, hDD12_i0p1, invdxx0);
+        const REAL UpwindAlgInputhDD_ddnD121 = fd_function_ddnD1_fdorder4(hDD12, hDD12_i1m1, hDD12_i1m2, hDD12_i1m3, hDD12_i1p1, invdxx1);
+        const REAL UpwindAlgInputhDD_ddnD122 = fd_function_ddnD2_fdorder4(hDD12, hDD12_i2m1, hDD12_i2m2, hDD12_i2m3, hDD12_i2p1, invdxx2);
         const REAL UpwindAlgInputhDD_ddnD220 = fd_function_ddnD0_fdorder4(hDD22, hDD22_i0m1, hDD22_i0m2, hDD22_i0m3, hDD22_i0p1, invdxx0);
+        const REAL UpwindAlgInputhDD_ddnD221 = fd_function_ddnD1_fdorder4(hDD22, hDD22_i1m1, hDD22_i1m2, hDD22_i1m3, hDD22_i1p1, invdxx1);
+        const REAL UpwindAlgInputhDD_ddnD222 = fd_function_ddnD2_fdorder4(hDD22, hDD22_i2m1, hDD22_i2m2, hDD22_i2m3, hDD22_i2p1, invdxx2);
+        const REAL UpwindAlgInputhDD_dupD000 = fd_function_dupD0_fdorder4(hDD00, hDD00_i0m1, hDD00_i0p1, hDD00_i0p2, hDD00_i0p3, invdxx0);
+        const REAL UpwindAlgInputhDD_dupD001 = fd_function_dupD1_fdorder4(hDD00, hDD00_i1m1, hDD00_i1p1, hDD00_i1p2, hDD00_i1p3, invdxx1);
+        const REAL UpwindAlgInputhDD_dupD002 = fd_function_dupD2_fdorder4(hDD00, hDD00_i2m1, hDD00_i2p1, hDD00_i2p2, hDD00_i2p3, invdxx2);
+        const REAL UpwindAlgInputhDD_dupD010 = fd_function_dupD0_fdorder4(hDD01, hDD01_i0m1, hDD01_i0p1, hDD01_i0p2, hDD01_i0p3, invdxx0);
+        const REAL UpwindAlgInputhDD_dupD011 = fd_function_dupD1_fdorder4(hDD01, hDD01_i1m1, hDD01_i1p1, hDD01_i1p2, hDD01_i1p3, invdxx1);
+        const REAL UpwindAlgInputhDD_dupD012 = fd_function_dupD2_fdorder4(hDD01, hDD01_i2m1, hDD01_i2p1, hDD01_i2p2, hDD01_i2p3, invdxx2);
+        const REAL UpwindAlgInputhDD_dupD020 = fd_function_dupD0_fdorder4(hDD02, hDD02_i0m1, hDD02_i0p1, hDD02_i0p2, hDD02_i0p3, invdxx0);
+        const REAL UpwindAlgInputhDD_dupD021 = fd_function_dupD1_fdorder4(hDD02, hDD02_i1m1, hDD02_i1p1, hDD02_i1p2, hDD02_i1p3, invdxx1);
+        const REAL UpwindAlgInputhDD_dupD022 = fd_function_dupD2_fdorder4(hDD02, hDD02_i2m1, hDD02_i2p1, hDD02_i2p2, hDD02_i2p3, invdxx2);
+        const REAL UpwindAlgInputhDD_dupD110 = fd_function_dupD0_fdorder4(hDD11, hDD11_i0m1, hDD11_i0p1, hDD11_i0p2, hDD11_i0p3, invdxx0);
+        const REAL UpwindAlgInputhDD_dupD111 = fd_function_dupD1_fdorder4(hDD11, hDD11_i1m1, hDD11_i1p1, hDD11_i1p2, hDD11_i1p3, invdxx1);
+        const REAL UpwindAlgInputhDD_dupD112 = fd_function_dupD2_fdorder4(hDD11, hDD11_i2m1, hDD11_i2p1, hDD11_i2p2, hDD11_i2p3, invdxx2);
+        const REAL UpwindAlgInputhDD_dupD120 = fd_function_dupD0_fdorder4(hDD12, hDD12_i0m1, hDD12_i0p1, hDD12_i0p2, hDD12_i0p3, invdxx0);
+        const REAL UpwindAlgInputhDD_dupD121 = fd_function_dupD1_fdorder4(hDD12, hDD12_i1m1, hDD12_i1p1, hDD12_i1p2, hDD12_i1p3, invdxx1);
+        const REAL UpwindAlgInputhDD_dupD122 = fd_function_dupD2_fdorder4(hDD12, hDD12_i2m1, hDD12_i2p1, hDD12_i2p2, hDD12_i2p3, invdxx2);
+        const REAL UpwindAlgInputhDD_dupD220 = fd_function_dupD0_fdorder4(hDD22, hDD22_i0m1, hDD22_i0p1, hDD22_i0p2, hDD22_i0p3, invdxx0);
+        const REAL UpwindAlgInputhDD_dupD221 = fd_function_dupD1_fdorder4(hDD22, hDD22_i1m1, hDD22_i1p1, hDD22_i1p2, hDD22_i1p3, invdxx1);
+        const REAL UpwindAlgInputhDD_dupD222 = fd_function_dupD2_fdorder4(hDD22, hDD22_i2m1, hDD22_i2p1, hDD22_i2p2, hDD22_i2p3, invdxx2);
         const REAL UpwindAlgInputlambdaU_ddnD00 =
             fd_function_ddnD0_fdorder4(lambdaU0, lambdaU0_i0m1, lambdaU0_i0m2, lambdaU0_i0m3, lambdaU0_i0p1, invdxx0);
-        const REAL UpwindAlgInputlambdaU_ddnD10 =
-            fd_function_ddnD0_fdorder4(lambdaU1, lambdaU1_i0m1, lambdaU1_i0m2, lambdaU1_i0m3, lambdaU1_i0p1, invdxx0);
-        const REAL UpwindAlgInputlambdaU_ddnD20 =
-            fd_function_ddnD0_fdorder4(lambdaU2, lambdaU2_i0m1, lambdaU2_i0m2, lambdaU2_i0m3, lambdaU2_i0p1, invdxx0);
-        const REAL UpwindAlgInputvetU_ddnD00 = fd_function_ddnD0_fdorder4(vetU0, vetU0_i0m1, vetU0_i0m2, vetU0_i0m3, vetU0_i0p1, invdxx0);
-        const REAL UpwindAlgInputtrK_ddnD0 = fd_function_ddnD0_fdorder4(trK, trK_i0m1, trK_i0m2, trK_i0m3, trK_i0p1, invdxx0);
-        const REAL UpwindAlgInputvetU_ddnD10 = fd_function_ddnD0_fdorder4(vetU1, vetU1_i0m1, vetU1_i0m2, vetU1_i0m3, vetU1_i0p1, invdxx0);
-        const REAL UpwindAlgInputvetU_ddnD20 = fd_function_ddnD0_fdorder4(vetU2, vetU2_i0m1, vetU2_i0m2, vetU2_i0m3, vetU2_i0p1, invdxx0);
-        
-        const REAL UpwindAlgInputaDD_ddnD001 = fd_function_ddnD1_fdorder4(aDD00, aDD00_i1m1, aDD00_i1m2, aDD00_i1m3, aDD00_i1p1, invdxx1);
-        const REAL UpwindAlgInputaDD_ddnD011 = fd_function_ddnD1_fdorder4(aDD01, aDD01_i1m1, aDD01_i1m2, aDD01_i1m3, aDD01_i1p1, invdxx1);
-        const REAL UpwindAlgInputaDD_ddnD021 = fd_function_ddnD1_fdorder4(aDD02, aDD02_i1m1, aDD02_i1m2, aDD02_i1m3, aDD02_i1p1, invdxx1);
-        const REAL UpwindAlgInputaDD_ddnD111 = fd_function_ddnD1_fdorder4(aDD11, aDD11_i1m1, aDD11_i1m2, aDD11_i1m3, aDD11_i1p1, invdxx1);
-        const REAL UpwindAlgInputaDD_ddnD121 = fd_function_ddnD1_fdorder4(aDD12, aDD12_i1m1, aDD12_i1m2, aDD12_i1m3, aDD12_i1p1, invdxx1);
-        const REAL UpwindAlgInputaDD_ddnD221 = fd_function_ddnD1_fdorder4(aDD22, aDD22_i1m1, aDD22_i1m2, aDD22_i1m3, aDD22_i1p1, invdxx1);
-        const REAL UpwindAlgInputalpha_ddnD1 = fd_function_ddnD1_fdorder4(alpha, alpha_i1m1, alpha_i1m2, alpha_i1m3, alpha_i1p1, invdxx1);
-        const REAL UpwindAlgInputbetU_ddnD01 = fd_function_ddnD1_fdorder4(betU0, betU0_i1m1, betU0_i1m2, betU0_i1m3, betU0_i1p1, invdxx1);
-        const REAL UpwindAlgInputbetU_ddnD11 = fd_function_ddnD1_fdorder4(betU1, betU1_i1m1, betU1_i1m2, betU1_i1m3, betU1_i1p1, invdxx1);
-        const REAL UpwindAlgInputbetU_ddnD21 = fd_function_ddnD1_fdorder4(betU2, betU2_i1m1, betU2_i1m2, betU2_i1m3, betU2_i1p1, invdxx1);
-        const REAL UpwindAlgInputcf_ddnD1 = fd_function_ddnD1_fdorder4(cf, cf_i1m1, cf_i1m2, cf_i1m3, cf_i1p1, invdxx1);
-        const REAL UpwindAlgInputhDD_ddnD001 = fd_function_ddnD1_fdorder4(hDD00, hDD00_i1m1, hDD00_i1m2, hDD00_i1m3, hDD00_i1p1, invdxx1);
-        const REAL UpwindAlgInputhDD_ddnD011 = fd_function_ddnD1_fdorder4(hDD01, hDD01_i1m1, hDD01_i1m2, hDD01_i1m3, hDD01_i1p1, invdxx1);
-        const REAL UpwindAlgInputhDD_ddnD021 = fd_function_ddnD1_fdorder4(hDD02, hDD02_i1m1, hDD02_i1m2, hDD02_i1m3, hDD02_i1p1, invdxx1);
-        const REAL UpwindAlgInputhDD_ddnD111 = fd_function_ddnD1_fdorder4(hDD11, hDD11_i1m1, hDD11_i1m2, hDD11_i1m3, hDD11_i1p1, invdxx1);
-        const REAL UpwindAlgInputhDD_ddnD121 = fd_function_ddnD1_fdorder4(hDD12, hDD12_i1m1, hDD12_i1m2, hDD12_i1m3, hDD12_i1p1, invdxx1);
-        const REAL UpwindAlgInputhDD_ddnD221 = fd_function_ddnD1_fdorder4(hDD22, hDD22_i1m1, hDD22_i1m2, hDD22_i1m3, hDD22_i1p1, invdxx1);
         const REAL UpwindAlgInputlambdaU_ddnD01 =
             fd_function_ddnD1_fdorder4(lambdaU0, lambdaU0_i1m1, lambdaU0_i1m2, lambdaU0_i1m3, lambdaU0_i1p1, invdxx1);
-        const REAL UpwindAlgInputlambdaU_ddnD11 =
-            fd_function_ddnD1_fdorder4(lambdaU1, lambdaU1_i1m1, lambdaU1_i1m2, lambdaU1_i1m3, lambdaU1_i1p1, invdxx1);
-        const REAL UpwindAlgInputlambdaU_ddnD21 =
-            fd_function_ddnD1_fdorder4(lambdaU2, lambdaU2_i1m1, lambdaU2_i1m2, lambdaU2_i1m3, lambdaU2_i1p1, invdxx1);
-        const REAL UpwindAlgInputtrK_ddnD1 = fd_function_ddnD1_fdorder4(trK, trK_i1m1, trK_i1m2, trK_i1m3, trK_i1p1, invdxx1);
-        const REAL UpwindAlgInputvetU_ddnD01 = fd_function_ddnD1_fdorder4(vetU0, vetU0_i1m1, vetU0_i1m2, vetU0_i1m3, vetU0_i1p1, invdxx1);
-        const REAL UpwindAlgInputvetU_ddnD11 = fd_function_ddnD1_fdorder4(vetU1, vetU1_i1m1, vetU1_i1m2, vetU1_i1m3, vetU1_i1p1, invdxx1);
-        const REAL UpwindAlgInputvetU_ddnD21 = fd_function_ddnD1_fdorder4(vetU2, vetU2_i1m1, vetU2_i1m2, vetU2_i1m3, vetU2_i1p1, invdxx1);
-        
-        
-        const REAL UpwindAlgInputaDD_ddnD002 = fd_function_ddnD2_fdorder4(aDD00, aDD00_i2m1, aDD00_i2m2, aDD00_i2m3, aDD00_i2p1, invdxx2);
-        const REAL UpwindAlgInputaDD_ddnD012 = fd_function_ddnD2_fdorder4(aDD01, aDD01_i2m1, aDD01_i2m2, aDD01_i2m3, aDD01_i2p1, invdxx2);
-        const REAL UpwindAlgInputaDD_ddnD022 = fd_function_ddnD2_fdorder4(aDD02, aDD02_i2m1, aDD02_i2m2, aDD02_i2m3, aDD02_i2p1, invdxx2);
-        const REAL UpwindAlgInputaDD_ddnD112 = fd_function_ddnD2_fdorder4(aDD11, aDD11_i2m1, aDD11_i2m2, aDD11_i2m3, aDD11_i2p1, invdxx2);
-        const REAL UpwindAlgInputaDD_ddnD122 = fd_function_ddnD2_fdorder4(aDD12, aDD12_i2m1, aDD12_i2m2, aDD12_i2m3, aDD12_i2p1, invdxx2);
-        const REAL UpwindAlgInputaDD_ddnD222 = fd_function_ddnD2_fdorder4(aDD22, aDD22_i2m1, aDD22_i2m2, aDD22_i2m3, aDD22_i2p1, invdxx2);
-        const REAL UpwindAlgInputalpha_ddnD2 = fd_function_ddnD2_fdorder4(alpha, alpha_i2m1, alpha_i2m2, alpha_i2m3, alpha_i2p1, invdxx2);
-        const REAL UpwindAlgInputbetU_ddnD02 = fd_function_ddnD2_fdorder4(betU0, betU0_i2m1, betU0_i2m2, betU0_i2m3, betU0_i2p1, invdxx2);
-        const REAL UpwindAlgInputbetU_ddnD12 = fd_function_ddnD2_fdorder4(betU1, betU1_i2m1, betU1_i2m2, betU1_i2m3, betU1_i2p1, invdxx2);
-        const REAL UpwindAlgInputbetU_ddnD22 = fd_function_ddnD2_fdorder4(betU2, betU2_i2m1, betU2_i2m2, betU2_i2m3, betU2_i2p1, invdxx2);
-        const REAL UpwindAlgInputcf_ddnD2 = fd_function_ddnD2_fdorder4(cf, cf_i2m1, cf_i2m2, cf_i2m3, cf_i2p1, invdxx2);
-        const REAL UpwindAlgInputhDD_ddnD002 = fd_function_ddnD2_fdorder4(hDD00, hDD00_i2m1, hDD00_i2m2, hDD00_i2m3, hDD00_i2p1, invdxx2);
-        const REAL UpwindAlgInputhDD_ddnD012 = fd_function_ddnD2_fdorder4(hDD01, hDD01_i2m1, hDD01_i2m2, hDD01_i2m3, hDD01_i2p1, invdxx2);
-        const REAL UpwindAlgInputhDD_ddnD022 = fd_function_ddnD2_fdorder4(hDD02, hDD02_i2m1, hDD02_i2m2, hDD02_i2m3, hDD02_i2p1, invdxx2);
-        const REAL UpwindAlgInputhDD_ddnD112 = fd_function_ddnD2_fdorder4(hDD11, hDD11_i2m1, hDD11_i2m2, hDD11_i2m3, hDD11_i2p1, invdxx2);
-        const REAL UpwindAlgInputhDD_ddnD122 = fd_function_ddnD2_fdorder4(hDD12, hDD12_i2m1, hDD12_i2m2, hDD12_i2m3, hDD12_i2p1, invdxx2);
-        const REAL UpwindAlgInputhDD_ddnD222 = fd_function_ddnD2_fdorder4(hDD22, hDD22_i2m1, hDD22_i2m2, hDD22_i2m3, hDD22_i2p1, invdxx2);
         const REAL UpwindAlgInputlambdaU_ddnD02 =
             fd_function_ddnD2_fdorder4(lambdaU0, lambdaU0_i2m1, lambdaU0_i2m2, lambdaU0_i2m3, lambdaU0_i2p1, invdxx2);
-
+        const REAL UpwindAlgInputlambdaU_ddnD10 =
+            fd_function_ddnD0_fdorder4(lambdaU1, lambdaU1_i0m1, lambdaU1_i0m2, lambdaU1_i0m3, lambdaU1_i0p1, invdxx0);
+        const REAL UpwindAlgInputlambdaU_ddnD11 =
+            fd_function_ddnD1_fdorder4(lambdaU1, lambdaU1_i1m1, lambdaU1_i1m2, lambdaU1_i1m3, lambdaU1_i1p1, invdxx1);
         const REAL UpwindAlgInputlambdaU_ddnD12 =
             fd_function_ddnD2_fdorder4(lambdaU1, lambdaU1_i2m1, lambdaU1_i2m2, lambdaU1_i2m3, lambdaU1_i2p1, invdxx2);
-
+        const REAL UpwindAlgInputlambdaU_ddnD20 =
+            fd_function_ddnD0_fdorder4(lambdaU2, lambdaU2_i0m1, lambdaU2_i0m2, lambdaU2_i0m3, lambdaU2_i0p1, invdxx0);
+        const REAL UpwindAlgInputlambdaU_ddnD21 =
+            fd_function_ddnD1_fdorder4(lambdaU2, lambdaU2_i1m1, lambdaU2_i1m2, lambdaU2_i1m3, lambdaU2_i1p1, invdxx1);
         const REAL UpwindAlgInputlambdaU_ddnD22 =
             fd_function_ddnD2_fdorder4(lambdaU2, lambdaU2_i2m1, lambdaU2_i2m2, lambdaU2_i2m3, lambdaU2_i2p1, invdxx2);
-        const REAL UpwindAlgInputtrK_ddnD2 = fd_function_ddnD2_fdorder4(trK, trK_i2m1, trK_i2m2, trK_i2m3, trK_i2p1, invdxx2);
-        const REAL UpwindAlgInputvetU_ddnD02 = fd_function_ddnD2_fdorder4(vetU0, vetU0_i2m1, vetU0_i2m2, vetU0_i2m3, vetU0_i2p1, invdxx2);
-        const REAL UpwindAlgInputvetU_ddnD12 = fd_function_ddnD2_fdorder4(vetU1, vetU1_i2m1, vetU1_i2m2, vetU1_i2m3, vetU1_i2p1, invdxx2);
-        const REAL UpwindAlgInputvetU_ddnD22 = fd_function_ddnD2_fdorder4(vetU2, vetU2_i2m1, vetU2_i2m2, vetU2_i2m3, vetU2_i2p1, invdxx2);
-
-        const REAL UpwindAlgInputaDD_dupD000 = fd_function_dupD0_fdorder4(aDD00, aDD00_i0m1, aDD00_i0p1, aDD00_i0p2, aDD00_i0p3, invdxx0);
-        const REAL UpwindAlgInputaDD_dupD010 = fd_function_dupD0_fdorder4(aDD01, aDD01_i0m1, aDD01_i0p1, aDD01_i0p2, aDD01_i0p3, invdxx0);
-        const REAL UpwindAlgInputaDD_dupD020 = fd_function_dupD0_fdorder4(aDD02, aDD02_i0m1, aDD02_i0p1, aDD02_i0p2, aDD02_i0p3, invdxx0);
-        const REAL UpwindAlgInputaDD_dupD110 = fd_function_dupD0_fdorder4(aDD11, aDD11_i0m1, aDD11_i0p1, aDD11_i0p2, aDD11_i0p3, invdxx0);
-        const REAL UpwindAlgInputaDD_dupD120 = fd_function_dupD0_fdorder4(aDD12, aDD12_i0m1, aDD12_i0p1, aDD12_i0p2, aDD12_i0p3, invdxx0);
-        const REAL UpwindAlgInputaDD_dupD220 = fd_function_dupD0_fdorder4(aDD22, aDD22_i0m1, aDD22_i0p1, aDD22_i0p2, aDD22_i0p3, invdxx0);
-        const REAL UpwindAlgInputalpha_dupD0 = fd_function_dupD0_fdorder4(alpha, alpha_i0m1, alpha_i0p1, alpha_i0p2, alpha_i0p3, invdxx0);
-        const REAL UpwindAlgInputbetU_dupD00 = fd_function_dupD0_fdorder4(betU0, betU0_i0m1, betU0_i0p1, betU0_i0p2, betU0_i0p3, invdxx0);
-        const REAL UpwindAlgInputbetU_dupD10 = fd_function_dupD0_fdorder4(betU1, betU1_i0m1, betU1_i0p1, betU1_i0p2, betU1_i0p3, invdxx0);
-        const REAL UpwindAlgInputbetU_dupD20 = fd_function_dupD0_fdorder4(betU2, betU2_i0m1, betU2_i0p1, betU2_i0p2, betU2_i0p3, invdxx0);
-        const REAL UpwindAlgInputcf_dupD0 = fd_function_dupD0_fdorder4(cf, cf_i0m1, cf_i0p1, cf_i0p2, cf_i0p3, invdxx0);
-        const REAL UpwindAlgInputhDD_dupD000 = fd_function_dupD0_fdorder4(hDD00, hDD00_i0m1, hDD00_i0p1, hDD00_i0p2, hDD00_i0p3, invdxx0);
-        const REAL UpwindAlgInputhDD_dupD010 = fd_function_dupD0_fdorder4(hDD01, hDD01_i0m1, hDD01_i0p1, hDD01_i0p2, hDD01_i0p3, invdxx0);
-        const REAL UpwindAlgInputhDD_dupD020 = fd_function_dupD0_fdorder4(hDD02, hDD02_i0m1, hDD02_i0p1, hDD02_i0p2, hDD02_i0p3, invdxx0);
-        const REAL UpwindAlgInputhDD_dupD110 = fd_function_dupD0_fdorder4(hDD11, hDD11_i0m1, hDD11_i0p1, hDD11_i0p2, hDD11_i0p3, invdxx0);
-        const REAL UpwindAlgInputhDD_dupD120 = fd_function_dupD0_fdorder4(hDD12, hDD12_i0m1, hDD12_i0p1, hDD12_i0p2, hDD12_i0p3, invdxx0);
-        const REAL UpwindAlgInputhDD_dupD220 = fd_function_dupD0_fdorder4(hDD22, hDD22_i0m1, hDD22_i0p1, hDD22_i0p2, hDD22_i0p3, invdxx0);
         const REAL UpwindAlgInputlambdaU_dupD00 =
             fd_function_dupD0_fdorder4(lambdaU0, lambdaU0_i0m1, lambdaU0_i0p1, lambdaU0_i0p2, lambdaU0_i0p3, invdxx0);
-        const REAL UpwindAlgInputlambdaU_dupD10 =
-            fd_function_dupD0_fdorder4(lambdaU1, lambdaU1_i0m1, lambdaU1_i0p1, lambdaU1_i0p2, lambdaU1_i0p3, invdxx0);
-        const REAL UpwindAlgInputlambdaU_dupD20 =
-            fd_function_dupD0_fdorder4(lambdaU2, lambdaU2_i0m1, lambdaU2_i0p1, lambdaU2_i0p2, lambdaU2_i0p3, invdxx0);
-        const REAL UpwindAlgInputtrK_dupD0 = fd_function_dupD0_fdorder4(trK, trK_i0m1, trK_i0p1, trK_i0p2, trK_i0p3, invdxx0);
-        const REAL UpwindAlgInputvetU_dupD00 = fd_function_dupD0_fdorder4(vetU0, vetU0_i0m1, vetU0_i0p1, vetU0_i0p2, vetU0_i0p3, invdxx0);
-        const REAL UpwindAlgInputvetU_dupD10 = fd_function_dupD0_fdorder4(vetU1, vetU1_i0m1, vetU1_i0p1, vetU1_i0p2, vetU1_i0p3, invdxx0);
-        const REAL UpwindAlgInputvetU_dupD20 = fd_function_dupD0_fdorder4(vetU2, vetU2_i0m1, vetU2_i0p1, vetU2_i0p2, vetU2_i0p3, invdxx0);
-
-        const REAL UpwindAlgInputaDD_dupD001 = fd_function_dupD1_fdorder4(aDD00, aDD00_i1m1, aDD00_i1p1, aDD00_i1p2, aDD00_i1p3, invdxx1);
-        const REAL UpwindAlgInputaDD_dupD011 = fd_function_dupD1_fdorder4(aDD01, aDD01_i1m1, aDD01_i1p1, aDD01_i1p2, aDD01_i1p3, invdxx1);
-        const REAL UpwindAlgInputaDD_dupD021 = fd_function_dupD1_fdorder4(aDD02, aDD02_i1m1, aDD02_i1p1, aDD02_i1p2, aDD02_i1p3, invdxx1);
-        const REAL UpwindAlgInputaDD_dupD111 = fd_function_dupD1_fdorder4(aDD11, aDD11_i1m1, aDD11_i1p1, aDD11_i1p2, aDD11_i1p3, invdxx1);
-        const REAL UpwindAlgInputaDD_dupD121 = fd_function_dupD1_fdorder4(aDD12, aDD12_i1m1, aDD12_i1p1, aDD12_i1p2, aDD12_i1p3, invdxx1);
-        const REAL UpwindAlgInputaDD_dupD221 = fd_function_dupD1_fdorder4(aDD22, aDD22_i1m1, aDD22_i1p1, aDD22_i1p2, aDD22_i1p3, invdxx1);
-        const REAL UpwindAlgInputalpha_dupD1 = fd_function_dupD1_fdorder4(alpha, alpha_i1m1, alpha_i1p1, alpha_i1p2, alpha_i1p3, invdxx1);
-        const REAL UpwindAlgInputbetU_dupD01 = fd_function_dupD1_fdorder4(betU0, betU0_i1m1, betU0_i1p1, betU0_i1p2, betU0_i1p3, invdxx1);
-        const REAL UpwindAlgInputbetU_dupD11 = fd_function_dupD1_fdorder4(betU1, betU1_i1m1, betU1_i1p1, betU1_i1p2, betU1_i1p3, invdxx1);
-        const REAL UpwindAlgInputbetU_dupD21 = fd_function_dupD1_fdorder4(betU2, betU2_i1m1, betU2_i1p1, betU2_i1p2, betU2_i1p3, invdxx1);
-        const REAL UpwindAlgInputcf_dupD1 = fd_function_dupD1_fdorder4(cf, cf_i1m1, cf_i1p1, cf_i1p2, cf_i1p3, invdxx1);
-        const REAL UpwindAlgInputhDD_dupD001 = fd_function_dupD1_fdorder4(hDD00, hDD00_i1m1, hDD00_i1p1, hDD00_i1p2, hDD00_i1p3, invdxx1);
-        const REAL UpwindAlgInputhDD_dupD011 = fd_function_dupD1_fdorder4(hDD01, hDD01_i1m1, hDD01_i1p1, hDD01_i1p2, hDD01_i1p3, invdxx1);
-        const REAL UpwindAlgInputhDD_dupD021 = fd_function_dupD1_fdorder4(hDD02, hDD02_i1m1, hDD02_i1p1, hDD02_i1p2, hDD02_i1p3, invdxx1);
-        const REAL UpwindAlgInputhDD_dupD111 = fd_function_dupD1_fdorder4(hDD11, hDD11_i1m1, hDD11_i1p1, hDD11_i1p2, hDD11_i1p3, invdxx1);
-        const REAL UpwindAlgInputhDD_dupD121 = fd_function_dupD1_fdorder4(hDD12, hDD12_i1m1, hDD12_i1p1, hDD12_i1p2, hDD12_i1p3, invdxx1);
-        const REAL UpwindAlgInputhDD_dupD221 = fd_function_dupD1_fdorder4(hDD22, hDD22_i1m1, hDD22_i1p1, hDD22_i1p2, hDD22_i1p3, invdxx1);
         const REAL UpwindAlgInputlambdaU_dupD01 =
             fd_function_dupD1_fdorder4(lambdaU0, lambdaU0_i1m1, lambdaU0_i1p1, lambdaU0_i1p2, lambdaU0_i1p3, invdxx1);
-        const REAL UpwindAlgInputlambdaU_dupD11 =
-            fd_function_dupD1_fdorder4(lambdaU1, lambdaU1_i1m1, lambdaU1_i1p1, lambdaU1_i1p2, lambdaU1_i1p3, invdxx1);
-        const REAL UpwindAlgInputlambdaU_dupD21 =
-            fd_function_dupD1_fdorder4(lambdaU2, lambdaU2_i1m1, lambdaU2_i1p1, lambdaU2_i1p2, lambdaU2_i1p3, invdxx1);
-        const REAL UpwindAlgInputtrK_dupD1 = fd_function_dupD1_fdorder4(trK, trK_i1m1, trK_i1p1, trK_i1p2, trK_i1p3, invdxx1);
-        const REAL UpwindAlgInputvetU_dupD01 = fd_function_dupD1_fdorder4(vetU0, vetU0_i1m1, vetU0_i1p1, vetU0_i1p2, vetU0_i1p3, invdxx1);
-        const REAL UpwindAlgInputvetU_dupD11 = fd_function_dupD1_fdorder4(vetU1, vetU1_i1m1, vetU1_i1p1, vetU1_i1p2, vetU1_i1p3, invdxx1);
-        const REAL UpwindAlgInputvetU_dupD21 = fd_function_dupD1_fdorder4(vetU2, vetU2_i1m1, vetU2_i1p1, vetU2_i1p2, vetU2_i1p3, invdxx1);
-
-
-        const REAL UpwindAlgInputaDD_dupD002 = fd_function_dupD2_fdorder4(aDD00, aDD00_i2m1, aDD00_i2p1, aDD00_i2p2, aDD00_i2p3, invdxx2);
-        const REAL UpwindAlgInputaDD_dupD012 = fd_function_dupD2_fdorder4(aDD01, aDD01_i2m1, aDD01_i2p1, aDD01_i2p2, aDD01_i2p3, invdxx2);
-        const REAL UpwindAlgInputaDD_dupD022 = fd_function_dupD2_fdorder4(aDD02, aDD02_i2m1, aDD02_i2p1, aDD02_i2p2, aDD02_i2p3, invdxx2);
-        const REAL UpwindAlgInputaDD_dupD112 = fd_function_dupD2_fdorder4(aDD11, aDD11_i2m1, aDD11_i2p1, aDD11_i2p2, aDD11_i2p3, invdxx2);
-        const REAL UpwindAlgInputaDD_dupD122 = fd_function_dupD2_fdorder4(aDD12, aDD12_i2m1, aDD12_i2p1, aDD12_i2p2, aDD12_i2p3, invdxx2);
-        const REAL UpwindAlgInputaDD_dupD222 = fd_function_dupD2_fdorder4(aDD22, aDD22_i2m1, aDD22_i2p1, aDD22_i2p2, aDD22_i2p3, invdxx2);
-        const REAL UpwindAlgInputalpha_dupD2 = fd_function_dupD2_fdorder4(alpha, alpha_i2m1, alpha_i2p1, alpha_i2p2, alpha_i2p3, invdxx2);
-        const REAL UpwindAlgInputbetU_dupD02 = fd_function_dupD2_fdorder4(betU0, betU0_i2m1, betU0_i2p1, betU0_i2p2, betU0_i2p3, invdxx2);
-        const REAL UpwindAlgInputbetU_dupD12 = fd_function_dupD2_fdorder4(betU1, betU1_i2m1, betU1_i2p1, betU1_i2p2, betU1_i2p3, invdxx2);
-        const REAL UpwindAlgInputbetU_dupD22 = fd_function_dupD2_fdorder4(betU2, betU2_i2m1, betU2_i2p1, betU2_i2p2, betU2_i2p3, invdxx2);
-        const REAL UpwindAlgInputcf_dupD2 = fd_function_dupD2_fdorder4(cf, cf_i2m1, cf_i2p1, cf_i2p2, cf_i2p3, invdxx2);
-        const REAL UpwindAlgInputhDD_dupD002 = fd_function_dupD2_fdorder4(hDD00, hDD00_i2m1, hDD00_i2p1, hDD00_i2p2, hDD00_i2p3, invdxx2);
-        const REAL UpwindAlgInputhDD_dupD012 = fd_function_dupD2_fdorder4(hDD01, hDD01_i2m1, hDD01_i2p1, hDD01_i2p2, hDD01_i2p3, invdxx2);
-        const REAL UpwindAlgInputhDD_dupD022 = fd_function_dupD2_fdorder4(hDD02, hDD02_i2m1, hDD02_i2p1, hDD02_i2p2, hDD02_i2p3, invdxx2);
-        const REAL UpwindAlgInputhDD_dupD112 = fd_function_dupD2_fdorder4(hDD11, hDD11_i2m1, hDD11_i2p1, hDD11_i2p2, hDD11_i2p3, invdxx2);
-        const REAL UpwindAlgInputhDD_dupD122 = fd_function_dupD2_fdorder4(hDD12, hDD12_i2m1, hDD12_i2p1, hDD12_i2p2, hDD12_i2p3, invdxx2);
-        const REAL UpwindAlgInputhDD_dupD222 = fd_function_dupD2_fdorder4(hDD22, hDD22_i2m1, hDD22_i2p1, hDD22_i2p2, hDD22_i2p3, invdxx2);
         const REAL UpwindAlgInputlambdaU_dupD02 =
             fd_function_dupD2_fdorder4(lambdaU0, lambdaU0_i2m1, lambdaU0_i2p1, lambdaU0_i2p2, lambdaU0_i2p3, invdxx2);
+        const REAL UpwindAlgInputlambdaU_dupD10 =
+            fd_function_dupD0_fdorder4(lambdaU1, lambdaU1_i0m1, lambdaU1_i0p1, lambdaU1_i0p2, lambdaU1_i0p3, invdxx0);
+        const REAL UpwindAlgInputlambdaU_dupD11 =
+            fd_function_dupD1_fdorder4(lambdaU1, lambdaU1_i1m1, lambdaU1_i1p1, lambdaU1_i1p2, lambdaU1_i1p3, invdxx1);
         const REAL UpwindAlgInputlambdaU_dupD12 =
             fd_function_dupD2_fdorder4(lambdaU1, lambdaU1_i2m1, lambdaU1_i2p1, lambdaU1_i2p2, lambdaU1_i2p3, invdxx2);
+        const REAL UpwindAlgInputlambdaU_dupD20 =
+            fd_function_dupD0_fdorder4(lambdaU2, lambdaU2_i0m1, lambdaU2_i0p1, lambdaU2_i0p2, lambdaU2_i0p3, invdxx0);
+        const REAL UpwindAlgInputlambdaU_dupD21 =
+            fd_function_dupD1_fdorder4(lambdaU2, lambdaU2_i1m1, lambdaU2_i1p1, lambdaU2_i1p2, lambdaU2_i1p3, invdxx1);
         const REAL UpwindAlgInputlambdaU_dupD22 =
             fd_function_dupD2_fdorder4(lambdaU2, lambdaU2_i2m1, lambdaU2_i2p1, lambdaU2_i2p2, lambdaU2_i2p3, invdxx2);
+        const REAL UpwindAlgInputtrK_ddnD0 = fd_function_ddnD0_fdorder4(trK, trK_i0m1, trK_i0m2, trK_i0m3, trK_i0p1, invdxx0);
+        const REAL UpwindAlgInputtrK_ddnD1 = fd_function_ddnD1_fdorder4(trK, trK_i1m1, trK_i1m2, trK_i1m3, trK_i1p1, invdxx1);
+        const REAL UpwindAlgInputtrK_ddnD2 = fd_function_ddnD2_fdorder4(trK, trK_i2m1, trK_i2m2, trK_i2m3, trK_i2p1, invdxx2);
+        const REAL UpwindAlgInputtrK_dupD0 = fd_function_dupD0_fdorder4(trK, trK_i0m1, trK_i0p1, trK_i0p2, trK_i0p3, invdxx0);
+        const REAL UpwindAlgInputtrK_dupD1 = fd_function_dupD1_fdorder4(trK, trK_i1m1, trK_i1p1, trK_i1p2, trK_i1p3, invdxx1);
         const REAL UpwindAlgInputtrK_dupD2 = fd_function_dupD2_fdorder4(trK, trK_i2m1, trK_i2p1, trK_i2p2, trK_i2p3, invdxx2);
+        const REAL UpwindAlgInputvetU_ddnD00 = fd_function_ddnD0_fdorder4(vetU0, vetU0_i0m1, vetU0_i0m2, vetU0_i0m3, vetU0_i0p1, invdxx0);
+        const REAL UpwindAlgInputvetU_ddnD01 = fd_function_ddnD1_fdorder4(vetU0, vetU0_i1m1, vetU0_i1m2, vetU0_i1m3, vetU0_i1p1, invdxx1);
+        const REAL UpwindAlgInputvetU_ddnD02 = fd_function_ddnD2_fdorder4(vetU0, vetU0_i2m1, vetU0_i2m2, vetU0_i2m3, vetU0_i2p1, invdxx2);
+        const REAL UpwindAlgInputvetU_ddnD10 = fd_function_ddnD0_fdorder4(vetU1, vetU1_i0m1, vetU1_i0m2, vetU1_i0m3, vetU1_i0p1, invdxx0);
+        const REAL UpwindAlgInputvetU_ddnD11 = fd_function_ddnD1_fdorder4(vetU1, vetU1_i1m1, vetU1_i1m2, vetU1_i1m3, vetU1_i1p1, invdxx1);
+        const REAL UpwindAlgInputvetU_ddnD12 = fd_function_ddnD2_fdorder4(vetU1, vetU1_i2m1, vetU1_i2m2, vetU1_i2m3, vetU1_i2p1, invdxx2);
+        const REAL UpwindAlgInputvetU_ddnD20 = fd_function_ddnD0_fdorder4(vetU2, vetU2_i0m1, vetU2_i0m2, vetU2_i0m3, vetU2_i0p1, invdxx0);
+        const REAL UpwindAlgInputvetU_ddnD21 = fd_function_ddnD1_fdorder4(vetU2, vetU2_i1m1, vetU2_i1m2, vetU2_i1m3, vetU2_i1p1, invdxx1);
+        const REAL UpwindAlgInputvetU_ddnD22 = fd_function_ddnD2_fdorder4(vetU2, vetU2_i2m1, vetU2_i2m2, vetU2_i2m3, vetU2_i2p1, invdxx2);
+        const REAL UpwindAlgInputvetU_dupD00 = fd_function_dupD0_fdorder4(vetU0, vetU0_i0m1, vetU0_i0p1, vetU0_i0p2, vetU0_i0p3, invdxx0);
+        const REAL UpwindAlgInputvetU_dupD01 = fd_function_dupD1_fdorder4(vetU0, vetU0_i1m1, vetU0_i1p1, vetU0_i1p2, vetU0_i1p3, invdxx1);
         const REAL UpwindAlgInputvetU_dupD02 = fd_function_dupD2_fdorder4(vetU0, vetU0_i2m1, vetU0_i2p1, vetU0_i2p2, vetU0_i2p3, invdxx2);
+        const REAL UpwindAlgInputvetU_dupD10 = fd_function_dupD0_fdorder4(vetU1, vetU1_i0m1, vetU1_i0p1, vetU1_i0p2, vetU1_i0p3, invdxx0);
+        const REAL UpwindAlgInputvetU_dupD11 = fd_function_dupD1_fdorder4(vetU1, vetU1_i1m1, vetU1_i1p1, vetU1_i1p2, vetU1_i1p3, invdxx1);
         const REAL UpwindAlgInputvetU_dupD12 = fd_function_dupD2_fdorder4(vetU1, vetU1_i2m1, vetU1_i2p1, vetU1_i2p2, vetU1_i2p3, invdxx2);
+        const REAL UpwindAlgInputvetU_dupD20 = fd_function_dupD0_fdorder4(vetU2, vetU2_i0m1, vetU2_i0p1, vetU2_i0p2, vetU2_i0p3, invdxx0);
+        const REAL UpwindAlgInputvetU_dupD21 = fd_function_dupD1_fdorder4(vetU2, vetU2_i1m1, vetU2_i1p1, vetU2_i1p2, vetU2_i1p3, invdxx1);
         const REAL UpwindAlgInputvetU_dupD22 = fd_function_dupD2_fdorder4(vetU2, vetU2_i2m1, vetU2_i2p1, vetU2_i2p2, vetU2_i2p3, invdxx2);
-        
-        
         const REAL alpha_dD0 = fd_function_dD0_fdorder4(alpha_i0m1, alpha_i0m2, alpha_i0p1, alpha_i0p2, invdxx0);
-        const REAL cf_dD0 = fd_function_dD0_fdorder4(cf_i0m1, cf_i0m2, cf_i0p1, cf_i0p2, invdxx0);
-        const REAL hDD_dD000 = fd_function_dD0_fdorder4(hDD00_i0m1, hDD00_i0m2, hDD00_i0p1, hDD00_i0p2, invdxx0);
-        const REAL hDD_dD010 = fd_function_dD0_fdorder4(hDD01_i0m1, hDD01_i0m2, hDD01_i0p1, hDD01_i0p2, invdxx0);
-        const REAL hDD_dD020 = fd_function_dD0_fdorder4(hDD02_i0m1, hDD02_i0m2, hDD02_i0p1, hDD02_i0p2, invdxx0);
-        const REAL hDD_dD110 = fd_function_dD0_fdorder4(hDD11_i0m1, hDD11_i0m2, hDD11_i0p1, hDD11_i0p2, invdxx0);
-        const REAL hDD_dD120 = fd_function_dD0_fdorder4(hDD12_i0m1, hDD12_i0m2, hDD12_i0p1, hDD12_i0p2, invdxx0);
-        const REAL hDD_dD220 = fd_function_dD0_fdorder4(hDD22_i0m1, hDD22_i0m2, hDD22_i0p1, hDD22_i0p2, invdxx0);
-        const REAL trK_dD0 = fd_function_dD0_fdorder4(trK_i0m1, trK_i0m2, trK_i0p1, trK_i0p2, invdxx0);
-        const REAL vetU_dD00 = fd_function_dD0_fdorder4(vetU0_i0m1, vetU0_i0m2, vetU0_i0p1, vetU0_i0p2, invdxx0);
-        const REAL vetU_dD10 = fd_function_dD0_fdorder4(vetU1_i0m1, vetU1_i0m2, vetU1_i0p1, vetU1_i0p2, invdxx0);
-        const REAL vetU_dD20 = fd_function_dD0_fdorder4(vetU2_i0m1, vetU2_i0m2, vetU2_i0p1, vetU2_i0p2, invdxx0);
-
         const REAL alpha_dD1 = fd_function_dD1_fdorder4(alpha_i1m1, alpha_i1m2, alpha_i1p1, alpha_i1p2, invdxx1);
-        const REAL cf_dD1 = fd_function_dD1_fdorder4(cf_i1m1, cf_i1m2, cf_i1p1, cf_i1p2, invdxx1);
-        const REAL hDD_dD001 = fd_function_dD1_fdorder4(hDD00_i1m1, hDD00_i1m2, hDD00_i1p1, hDD00_i1p2, invdxx1);
-        const REAL hDD_dD011 = fd_function_dD1_fdorder4(hDD01_i1m1, hDD01_i1m2, hDD01_i1p1, hDD01_i1p2, invdxx1);
-        const REAL hDD_dD021 = fd_function_dD1_fdorder4(hDD02_i1m1, hDD02_i1m2, hDD02_i1p1, hDD02_i1p2, invdxx1);
-        const REAL hDD_dD111 = fd_function_dD1_fdorder4(hDD11_i1m1, hDD11_i1m2, hDD11_i1p1, hDD11_i1p2, invdxx1);
-        const REAL hDD_dD121 = fd_function_dD1_fdorder4(hDD12_i1m1, hDD12_i1m2, hDD12_i1p1, hDD12_i1p2, invdxx1);
-        const REAL hDD_dD221 = fd_function_dD1_fdorder4(hDD22_i1m1, hDD22_i1m2, hDD22_i1p1, hDD22_i1p2, invdxx1);
-        const REAL trK_dD1 = fd_function_dD1_fdorder4(trK_i1m1, trK_i1m2, trK_i1p1, trK_i1p2, invdxx1);
-        const REAL vetU_dD01 = fd_function_dD1_fdorder4(vetU0_i1m1, vetU0_i1m2, vetU0_i1p1, vetU0_i1p2, invdxx1);
-        const REAL vetU_dD11 = fd_function_dD1_fdorder4(vetU1_i1m1, vetU1_i1m2, vetU1_i1p1, vetU1_i1p2, invdxx1);
-        const REAL vetU_dD21 = fd_function_dD1_fdorder4(vetU2_i1m1, vetU2_i1m2, vetU2_i1p1, vetU2_i1p2, invdxx1);
-
         const REAL alpha_dD2 = fd_function_dD2_fdorder4(alpha_i2m1, alpha_i2m2, alpha_i2p1, alpha_i2p2, invdxx2);
-        const REAL cf_dD2 = fd_function_dD2_fdorder4(cf_i2m1, cf_i2m2, cf_i2p1, cf_i2p2, invdxx2);
-        const REAL hDD_dD002 = fd_function_dD2_fdorder4(hDD00_i2m1, hDD00_i2m2, hDD00_i2p1, hDD00_i2p2, invdxx2);
-        const REAL hDD_dD012 = fd_function_dD2_fdorder4(hDD01_i2m1, hDD01_i2m2, hDD01_i2p1, hDD01_i2p2, invdxx2);
-        const REAL hDD_dD022 = fd_function_dD2_fdorder4(hDD02_i2m1, hDD02_i2m2, hDD02_i2p1, hDD02_i2p2, invdxx2);
-        const REAL hDD_dD112 = fd_function_dD2_fdorder4(hDD11_i2m1, hDD11_i2m2, hDD11_i2p1, hDD11_i2p2, invdxx2);
-        const REAL hDD_dD122 = fd_function_dD2_fdorder4(hDD12_i2m1, hDD12_i2m2, hDD12_i2p1, hDD12_i2p2, invdxx2);
-        const REAL hDD_dD222 = fd_function_dD2_fdorder4(hDD22_i2m1, hDD22_i2m2, hDD22_i2p1, hDD22_i2p2, invdxx2);
-        const REAL trK_dD2 = fd_function_dD2_fdorder4(trK_i2m1, trK_i2m2, trK_i2p1, trK_i2p2, invdxx2);
-        const REAL vetU_dD02 = fd_function_dD2_fdorder4(vetU0_i2m1, vetU0_i2m2, vetU0_i2p1, vetU0_i2p2, invdxx2);
-        const REAL vetU_dD12 = fd_function_dD2_fdorder4(vetU1_i2m1, vetU1_i2m2, vetU1_i2p1, vetU1_i2p2, invdxx2);
-        const REAL vetU_dD22 = fd_function_dD2_fdorder4(vetU2_i2m1, vetU2_i2m2, vetU2_i2p1, vetU2_i2p2, invdxx2);
-
         const REAL alpha_dDD00 = fd_function_dDD00_fdorder4(alpha, alpha_i0m1, alpha_i0m2, alpha_i0p1, alpha_i0p2, invdxx0);
-        const REAL cf_dDD00 = fd_function_dDD00_fdorder4(cf, cf_i0m1, cf_i0m2, cf_i0p1, cf_i0p2, invdxx0);
-        const REAL vetU_dDD000 = fd_function_dDD00_fdorder4(vetU0, vetU0_i0m1, vetU0_i0m2, vetU0_i0p1, vetU0_i0p2, invdxx0);
-        const REAL vetU_dDD100 = fd_function_dDD00_fdorder4(vetU1, vetU1_i0m1, vetU1_i0m2, vetU1_i0p1, vetU1_i0p2, invdxx0);
-        const REAL vetU_dDD200 = fd_function_dDD00_fdorder4(vetU2, vetU2_i0m1, vetU2_i0m2, vetU2_i0p1, vetU2_i0p2, invdxx0);
         const REAL alpha_dDD01 =
             fd_function_dDD01_fdorder4(alpha_i0m1_i1m1, alpha_i0m1_i1m2, alpha_i0m1_i1p1, alpha_i0m1_i1p2, alpha_i0m2_i1m1, alpha_i0m2_i1m2,
                                        alpha_i0m2_i1p1, alpha_i0m2_i1p2, alpha_i0p1_i1m1, alpha_i0p1_i1m2, alpha_i0p1_i1p1, alpha_i0p1_i1p2,
                                        alpha_i0p2_i1m1, alpha_i0p2_i1m2, alpha_i0p2_i1p1, alpha_i0p2_i1p2, invdxx0, invdxx1);
-        const REAL cf_dDD01 = fd_function_dDD01_fdorder4(cf_i0m1_i1m1, cf_i0m1_i1m2, cf_i0m1_i1p1, cf_i0m1_i1p2, cf_i0m2_i1m1, cf_i0m2_i1m2,
-                                                         cf_i0m2_i1p1, cf_i0m2_i1p2, cf_i0p1_i1m1, cf_i0p1_i1m2, cf_i0p1_i1p1, cf_i0p1_i1p2,
-                                                         cf_i0p2_i1m1, cf_i0p2_i1m2, cf_i0p2_i1p1, cf_i0p2_i1p2, invdxx0, invdxx1);
-        const REAL vetU_dDD001 =
-            fd_function_dDD01_fdorder4(vetU0_i0m1_i1m1, vetU0_i0m1_i1m2, vetU0_i0m1_i1p1, vetU0_i0m1_i1p2, vetU0_i0m2_i1m1, vetU0_i0m2_i1m2,
-                                       vetU0_i0m2_i1p1, vetU0_i0m2_i1p2, vetU0_i0p1_i1m1, vetU0_i0p1_i1m2, vetU0_i0p1_i1p1, vetU0_i0p1_i1p2,
-                                       vetU0_i0p2_i1m1, vetU0_i0p2_i1m2, vetU0_i0p2_i1p1, vetU0_i0p2_i1p2, invdxx0, invdxx1);        
-        const REAL vetU_dDD101 =
-            fd_function_dDD01_fdorder4(vetU1_i0m1_i1m1, vetU1_i0m1_i1m2, vetU1_i0m1_i1p1, vetU1_i0m1_i1p2, vetU1_i0m2_i1m1, vetU1_i0m2_i1m2,
-                                       vetU1_i0m2_i1p1, vetU1_i0m2_i1p2, vetU1_i0p1_i1m1, vetU1_i0p1_i1m2, vetU1_i0p1_i1p1, vetU1_i0p1_i1p2,
-                                       vetU1_i0p2_i1m1, vetU1_i0p2_i1m2, vetU1_i0p2_i1p1, vetU1_i0p2_i1p2, invdxx0, invdxx1);
-        const REAL vetU_dDD201 =
-            fd_function_dDD01_fdorder4(vetU2_i0m1_i1m1, vetU2_i0m1_i1m2, vetU2_i0m1_i1p1, vetU2_i0m1_i1p2, vetU2_i0m2_i1m1, vetU2_i0m2_i1m2,
-                                       vetU2_i0m2_i1p1, vetU2_i0m2_i1p2, vetU2_i0p1_i1m1, vetU2_i0p1_i1m2, vetU2_i0p1_i1p1, vetU2_i0p1_i1p2,
-                                       vetU2_i0p2_i1m1, vetU2_i0p2_i1m2, vetU2_i0p2_i1p1, vetU2_i0p2_i1p2, invdxx0, invdxx1);
-
         const REAL alpha_dDD02 =
             fd_function_dDD02_fdorder4(alpha_i0m1_i2m1, alpha_i0m1_i2m2, alpha_i0m1_i2p1, alpha_i0m1_i2p2, alpha_i0m2_i2m1, alpha_i0m2_i2m2,
                                        alpha_i0m2_i2p1, alpha_i0m2_i2p2, alpha_i0p1_i2m1, alpha_i0p1_i2m2, alpha_i0p1_i2p1, alpha_i0p1_i2p2,
                                        alpha_i0p2_i2m1, alpha_i0p2_i2m2, alpha_i0p2_i2p1, alpha_i0p2_i2p2, invdxx0, invdxx2);
-        const REAL cf_dDD02 = fd_function_dDD02_fdorder4(cf_i0m1_i2m1, cf_i0m1_i2m2, cf_i0m1_i2p1, cf_i0m1_i2p2, cf_i0m2_i2m1, cf_i0m2_i2m2,
-                                                         cf_i0m2_i2p1, cf_i0m2_i2p2, cf_i0p1_i2m1, cf_i0p1_i2m2, cf_i0p1_i2p1, cf_i0p1_i2p2,
-                                                         cf_i0p2_i2m1, cf_i0p2_i2m2, cf_i0p2_i2p1, cf_i0p2_i2p2, invdxx0, invdxx2);        
-        const REAL vetU_dDD002 =
-            fd_function_dDD02_fdorder4(vetU0_i0m1_i2m1, vetU0_i0m1_i2m2, vetU0_i0m1_i2p1, vetU0_i0m1_i2p2, vetU0_i0m2_i2m1, vetU0_i0m2_i2m2,
-                                       vetU0_i0m2_i2p1, vetU0_i0m2_i2p2, vetU0_i0p1_i2m1, vetU0_i0p1_i2m2, vetU0_i0p1_i2p1, vetU0_i0p1_i2p2,
-                                       vetU0_i0p2_i2m1, vetU0_i0p2_i2m2, vetU0_i0p2_i2p1, vetU0_i0p2_i2p2, invdxx0, invdxx2);        
-        const REAL vetU_dDD102 =
-            fd_function_dDD02_fdorder4(vetU1_i0m1_i2m1, vetU1_i0m1_i2m2, vetU1_i0m1_i2p1, vetU1_i0m1_i2p2, vetU1_i0m2_i2m1, vetU1_i0m2_i2m2,
-                                       vetU1_i0m2_i2p1, vetU1_i0m2_i2p2, vetU1_i0p1_i2m1, vetU1_i0p1_i2m2, vetU1_i0p1_i2p1, vetU1_i0p1_i2p2,
-                                       vetU1_i0p2_i2m1, vetU1_i0p2_i2m2, vetU1_i0p2_i2p1, vetU1_i0p2_i2p2, invdxx0, invdxx2);        
-        const REAL vetU_dDD202 =
-            fd_function_dDD02_fdorder4(vetU2_i0m1_i2m1, vetU2_i0m1_i2m2, vetU2_i0m1_i2p1, vetU2_i0m1_i2p2, vetU2_i0m2_i2m1, vetU2_i0m2_i2m2,
-                                       vetU2_i0m2_i2p1, vetU2_i0m2_i2p2, vetU2_i0p1_i2m1, vetU2_i0p1_i2m2, vetU2_i0p1_i2p1, vetU2_i0p1_i2p2,
-                                       vetU2_i0p2_i2m1, vetU2_i0p2_i2m2, vetU2_i0p2_i2p1, vetU2_i0p2_i2p2, invdxx0, invdxx2);
-        
         const REAL alpha_dDD11 = fd_function_dDD11_fdorder4(alpha, alpha_i1m1, alpha_i1m2, alpha_i1p1, alpha_i1p2, invdxx1);
-        const REAL cf_dDD11 = fd_function_dDD11_fdorder4(cf, cf_i1m1, cf_i1m2, cf_i1p1, cf_i1p2, invdxx1);
-        const REAL vetU_dDD011 = fd_function_dDD11_fdorder4(vetU0, vetU0_i1m1, vetU0_i1m2, vetU0_i1p1, vetU0_i1p2, invdxx1);
-        const REAL vetU_dDD111 = fd_function_dDD11_fdorder4(vetU1, vetU1_i1m1, vetU1_i1m2, vetU1_i1p1, vetU1_i1p2, invdxx1);
-        const REAL vetU_dDD211 = fd_function_dDD11_fdorder4(vetU2, vetU2_i1m1, vetU2_i1m2, vetU2_i1p1, vetU2_i1p2, invdxx1);
-        
         const REAL alpha_dDD12 =
             fd_function_dDD12_fdorder4(alpha_i1m1_i2m1, alpha_i1m1_i2m2, alpha_i1m1_i2p1, alpha_i1m1_i2p2, alpha_i1m2_i2m1, alpha_i1m2_i2m2,
                                        alpha_i1m2_i2p1, alpha_i1m2_i2p2, alpha_i1p1_i2m1, alpha_i1p1_i2m2, alpha_i1p1_i2p1, alpha_i1p1_i2p2,
                                        alpha_i1p2_i2m1, alpha_i1p2_i2m2, alpha_i1p2_i2p1, alpha_i1p2_i2p2, invdxx1, invdxx2);
-        
-
+        const REAL alpha_dDD22 = fd_function_dDD22_fdorder4(alpha, alpha_i2m1, alpha_i2m2, alpha_i2p1, alpha_i2p2, invdxx2);
+        const REAL cf_dD0 = fd_function_dD0_fdorder4(cf_i0m1, cf_i0m2, cf_i0p1, cf_i0p2, invdxx0);
+        const REAL cf_dD1 = fd_function_dD1_fdorder4(cf_i1m1, cf_i1m2, cf_i1p1, cf_i1p2, invdxx1);
+        const REAL cf_dD2 = fd_function_dD2_fdorder4(cf_i2m1, cf_i2m2, cf_i2p1, cf_i2p2, invdxx2);
+        const REAL cf_dDD00 = fd_function_dDD00_fdorder4(cf, cf_i0m1, cf_i0m2, cf_i0p1, cf_i0p2, invdxx0);
+        const REAL cf_dDD01 = fd_function_dDD01_fdorder4(cf_i0m1_i1m1, cf_i0m1_i1m2, cf_i0m1_i1p1, cf_i0m1_i1p2, cf_i0m2_i1m1, cf_i0m2_i1m2,
+                                                         cf_i0m2_i1p1, cf_i0m2_i1p2, cf_i0p1_i1m1, cf_i0p1_i1m2, cf_i0p1_i1p1, cf_i0p1_i1p2,
+                                                         cf_i0p2_i1m1, cf_i0p2_i1m2, cf_i0p2_i1p1, cf_i0p2_i1p2, invdxx0, invdxx1);
+        const REAL cf_dDD02 = fd_function_dDD02_fdorder4(cf_i0m1_i2m1, cf_i0m1_i2m2, cf_i0m1_i2p1, cf_i0m1_i2p2, cf_i0m2_i2m1, cf_i0m2_i2m2,
+                                                         cf_i0m2_i2p1, cf_i0m2_i2p2, cf_i0p1_i2m1, cf_i0p1_i2m2, cf_i0p1_i2p1, cf_i0p1_i2p2,
+                                                         cf_i0p2_i2m1, cf_i0p2_i2m2, cf_i0p2_i2p1, cf_i0p2_i2p2, invdxx0, invdxx2);
+        const REAL cf_dDD11 = fd_function_dDD11_fdorder4(cf, cf_i1m1, cf_i1m2, cf_i1p1, cf_i1p2, invdxx1);
         const REAL cf_dDD12 = fd_function_dDD12_fdorder4(cf_i1m1_i2m1, cf_i1m1_i2m2, cf_i1m1_i2p1, cf_i1m1_i2p2, cf_i1m2_i2m1, cf_i1m2_i2m2,
                                                          cf_i1m2_i2p1, cf_i1m2_i2p2, cf_i1p1_i2m1, cf_i1p1_i2m2, cf_i1p1_i2p1, cf_i1p1_i2p2,
                                                          cf_i1p2_i2m1, cf_i1p2_i2m2, cf_i1p2_i2p1, cf_i1p2_i2p2, invdxx1, invdxx2);
+        const REAL cf_dDD22 = fd_function_dDD22_fdorder4(cf, cf_i2m1, cf_i2m2, cf_i2p1, cf_i2p2, invdxx2);
+        const REAL hDD_dD000 = fd_function_dD0_fdorder4(hDD00_i0m1, hDD00_i0m2, hDD00_i0p1, hDD00_i0p2, invdxx0);
+        const REAL hDD_dD001 = fd_function_dD1_fdorder4(hDD00_i1m1, hDD00_i1m2, hDD00_i1p1, hDD00_i1p2, invdxx1);
+        const REAL hDD_dD002 = fd_function_dD2_fdorder4(hDD00_i2m1, hDD00_i2m2, hDD00_i2p1, hDD00_i2p2, invdxx2);
+        const REAL hDD_dD010 = fd_function_dD0_fdorder4(hDD01_i0m1, hDD01_i0m2, hDD01_i0p1, hDD01_i0p2, invdxx0);
+        const REAL hDD_dD011 = fd_function_dD1_fdorder4(hDD01_i1m1, hDD01_i1m2, hDD01_i1p1, hDD01_i1p2, invdxx1);
+        const REAL hDD_dD012 = fd_function_dD2_fdorder4(hDD01_i2m1, hDD01_i2m2, hDD01_i2p1, hDD01_i2p2, invdxx2);
+        const REAL hDD_dD020 = fd_function_dD0_fdorder4(hDD02_i0m1, hDD02_i0m2, hDD02_i0p1, hDD02_i0p2, invdxx0);
+        const REAL hDD_dD021 = fd_function_dD1_fdorder4(hDD02_i1m1, hDD02_i1m2, hDD02_i1p1, hDD02_i1p2, invdxx1);
+        const REAL hDD_dD022 = fd_function_dD2_fdorder4(hDD02_i2m1, hDD02_i2m2, hDD02_i2p1, hDD02_i2p2, invdxx2);
+        const REAL hDD_dD110 = fd_function_dD0_fdorder4(hDD11_i0m1, hDD11_i0m2, hDD11_i0p1, hDD11_i0p2, invdxx0);
+        const REAL hDD_dD111 = fd_function_dD1_fdorder4(hDD11_i1m1, hDD11_i1m2, hDD11_i1p1, hDD11_i1p2, invdxx1);
+        const REAL hDD_dD112 = fd_function_dD2_fdorder4(hDD11_i2m1, hDD11_i2m2, hDD11_i2p1, hDD11_i2p2, invdxx2);
+        const REAL hDD_dD120 = fd_function_dD0_fdorder4(hDD12_i0m1, hDD12_i0m2, hDD12_i0p1, hDD12_i0p2, invdxx0);
+        const REAL hDD_dD121 = fd_function_dD1_fdorder4(hDD12_i1m1, hDD12_i1m2, hDD12_i1p1, hDD12_i1p2, invdxx1);
+        const REAL hDD_dD122 = fd_function_dD2_fdorder4(hDD12_i2m1, hDD12_i2m2, hDD12_i2p1, hDD12_i2p2, invdxx2);
+        const REAL hDD_dD220 = fd_function_dD0_fdorder4(hDD22_i0m1, hDD22_i0m2, hDD22_i0p1, hDD22_i0p2, invdxx0);
+        const REAL hDD_dD221 = fd_function_dD1_fdorder4(hDD22_i1m1, hDD22_i1m2, hDD22_i1p1, hDD22_i1p2, invdxx1);
+        const REAL hDD_dD222 = fd_function_dD2_fdorder4(hDD22_i2m1, hDD22_i2m2, hDD22_i2p1, hDD22_i2p2, invdxx2);
+        const REAL trK_dD0 = fd_function_dD0_fdorder4(trK_i0m1, trK_i0m2, trK_i0p1, trK_i0p2, invdxx0);
+        const REAL trK_dD1 = fd_function_dD1_fdorder4(trK_i1m1, trK_i1m2, trK_i1p1, trK_i1p2, invdxx1);
+        const REAL trK_dD2 = fd_function_dD2_fdorder4(trK_i2m1, trK_i2m2, trK_i2p1, trK_i2p2, invdxx2);
+        const REAL vetU_dD00 = fd_function_dD0_fdorder4(vetU0_i0m1, vetU0_i0m2, vetU0_i0p1, vetU0_i0p2, invdxx0);
+        const REAL vetU_dD01 = fd_function_dD1_fdorder4(vetU0_i1m1, vetU0_i1m2, vetU0_i1p1, vetU0_i1p2, invdxx1);
+        const REAL vetU_dD02 = fd_function_dD2_fdorder4(vetU0_i2m1, vetU0_i2m2, vetU0_i2p1, vetU0_i2p2, invdxx2);
+        const REAL vetU_dD10 = fd_function_dD0_fdorder4(vetU1_i0m1, vetU1_i0m2, vetU1_i0p1, vetU1_i0p2, invdxx0);
+        const REAL vetU_dD11 = fd_function_dD1_fdorder4(vetU1_i1m1, vetU1_i1m2, vetU1_i1p1, vetU1_i1p2, invdxx1);
+        const REAL vetU_dD12 = fd_function_dD2_fdorder4(vetU1_i2m1, vetU1_i2m2, vetU1_i2p1, vetU1_i2p2, invdxx2);
+        const REAL vetU_dD20 = fd_function_dD0_fdorder4(vetU2_i0m1, vetU2_i0m2, vetU2_i0p1, vetU2_i0p2, invdxx0);
+        const REAL vetU_dD21 = fd_function_dD1_fdorder4(vetU2_i1m1, vetU2_i1m2, vetU2_i1p1, vetU2_i1p2, invdxx1);
+        const REAL vetU_dD22 = fd_function_dD2_fdorder4(vetU2_i2m1, vetU2_i2m2, vetU2_i2p1, vetU2_i2p2, invdxx2);
+        const REAL vetU_dDD000 = fd_function_dDD00_fdorder4(vetU0, vetU0_i0m1, vetU0_i0m2, vetU0_i0p1, vetU0_i0p2, invdxx0);
+        const REAL vetU_dDD001 =
+            fd_function_dDD01_fdorder4(vetU0_i0m1_i1m1, vetU0_i0m1_i1m2, vetU0_i0m1_i1p1, vetU0_i0m1_i1p2, vetU0_i0m2_i1m1, vetU0_i0m2_i1m2,
+                                       vetU0_i0m2_i1p1, vetU0_i0m2_i1p2, vetU0_i0p1_i1m1, vetU0_i0p1_i1m2, vetU0_i0p1_i1p1, vetU0_i0p1_i1p2,
+                                       vetU0_i0p2_i1m1, vetU0_i0p2_i1m2, vetU0_i0p2_i1p1, vetU0_i0p2_i1p2, invdxx0, invdxx1);
+        const REAL vetU_dDD002 =
+            fd_function_dDD02_fdorder4(vetU0_i0m1_i2m1, vetU0_i0m1_i2m2, vetU0_i0m1_i2p1, vetU0_i0m1_i2p2, vetU0_i0m2_i2m1, vetU0_i0m2_i2m2,
+                                       vetU0_i0m2_i2p1, vetU0_i0m2_i2p2, vetU0_i0p1_i2m1, vetU0_i0p1_i2m2, vetU0_i0p1_i2p1, vetU0_i0p1_i2p2,
+                                       vetU0_i0p2_i2m1, vetU0_i0p2_i2m2, vetU0_i0p2_i2p1, vetU0_i0p2_i2p2, invdxx0, invdxx2);
+        const REAL vetU_dDD011 = fd_function_dDD11_fdorder4(vetU0, vetU0_i1m1, vetU0_i1m2, vetU0_i1p1, vetU0_i1p2, invdxx1);
         const REAL vetU_dDD012 =
             fd_function_dDD12_fdorder4(vetU0_i1m1_i2m1, vetU0_i1m1_i2m2, vetU0_i1m1_i2p1, vetU0_i1m1_i2p2, vetU0_i1m2_i2m1, vetU0_i1m2_i2m2,
                                        vetU0_i1m2_i2p1, vetU0_i1m2_i2p2, vetU0_i1p1_i2m1, vetU0_i1p1_i2m2, vetU0_i1p1_i2p1, vetU0_i1p1_i2p2,
                                        vetU0_i1p2_i2m1, vetU0_i1p2_i2m2, vetU0_i1p2_i2p1, vetU0_i1p2_i2p2, invdxx1, invdxx2);
-
-
+        const REAL vetU_dDD022 = fd_function_dDD22_fdorder4(vetU0, vetU0_i2m1, vetU0_i2m2, vetU0_i2p1, vetU0_i2p2, invdxx2);
+        const REAL vetU_dDD100 = fd_function_dDD00_fdorder4(vetU1, vetU1_i0m1, vetU1_i0m2, vetU1_i0p1, vetU1_i0p2, invdxx0);
+        const REAL vetU_dDD101 =
+            fd_function_dDD01_fdorder4(vetU1_i0m1_i1m1, vetU1_i0m1_i1m2, vetU1_i0m1_i1p1, vetU1_i0m1_i1p2, vetU1_i0m2_i1m1, vetU1_i0m2_i1m2,
+                                       vetU1_i0m2_i1p1, vetU1_i0m2_i1p2, vetU1_i0p1_i1m1, vetU1_i0p1_i1m2, vetU1_i0p1_i1p1, vetU1_i0p1_i1p2,
+                                       vetU1_i0p2_i1m1, vetU1_i0p2_i1m2, vetU1_i0p2_i1p1, vetU1_i0p2_i1p2, invdxx0, invdxx1);
+        const REAL vetU_dDD102 =
+            fd_function_dDD02_fdorder4(vetU1_i0m1_i2m1, vetU1_i0m1_i2m2, vetU1_i0m1_i2p1, vetU1_i0m1_i2p2, vetU1_i0m2_i2m1, vetU1_i0m2_i2m2,
+                                       vetU1_i0m2_i2p1, vetU1_i0m2_i2p2, vetU1_i0p1_i2m1, vetU1_i0p1_i2m2, vetU1_i0p1_i2p1, vetU1_i0p1_i2p2,
+                                       vetU1_i0p2_i2m1, vetU1_i0p2_i2m2, vetU1_i0p2_i2p1, vetU1_i0p2_i2p2, invdxx0, invdxx2);
+        const REAL vetU_dDD111 = fd_function_dDD11_fdorder4(vetU1, vetU1_i1m1, vetU1_i1m2, vetU1_i1p1, vetU1_i1p2, invdxx1);
         const REAL vetU_dDD112 =
             fd_function_dDD12_fdorder4(vetU1_i1m1_i2m1, vetU1_i1m1_i2m2, vetU1_i1m1_i2p1, vetU1_i1m1_i2p2, vetU1_i1m2_i2m1, vetU1_i1m2_i2m2,
                                        vetU1_i1m2_i2p1, vetU1_i1m2_i2p2, vetU1_i1p1_i2m1, vetU1_i1p1_i2m2, vetU1_i1p1_i2p1, vetU1_i1p1_i2p2,
                                        vetU1_i1p2_i2m1, vetU1_i1p2_i2m2, vetU1_i1p2_i2p1, vetU1_i1p2_i2p2, invdxx1, invdxx2);
-
-
+        const REAL vetU_dDD122 = fd_function_dDD22_fdorder4(vetU1, vetU1_i2m1, vetU1_i2m2, vetU1_i2p1, vetU1_i2p2, invdxx2);
+        const REAL vetU_dDD200 = fd_function_dDD00_fdorder4(vetU2, vetU2_i0m1, vetU2_i0m2, vetU2_i0p1, vetU2_i0p2, invdxx0);
+        const REAL vetU_dDD201 =
+            fd_function_dDD01_fdorder4(vetU2_i0m1_i1m1, vetU2_i0m1_i1m2, vetU2_i0m1_i1p1, vetU2_i0m1_i1p2, vetU2_i0m2_i1m1, vetU2_i0m2_i1m2,
+                                       vetU2_i0m2_i1p1, vetU2_i0m2_i1p2, vetU2_i0p1_i1m1, vetU2_i0p1_i1m2, vetU2_i0p1_i1p1, vetU2_i0p1_i1p2,
+                                       vetU2_i0p2_i1m1, vetU2_i0p2_i1m2, vetU2_i0p2_i1p1, vetU2_i0p2_i1p2, invdxx0, invdxx1);
+        const REAL vetU_dDD202 =
+            fd_function_dDD02_fdorder4(vetU2_i0m1_i2m1, vetU2_i0m1_i2m2, vetU2_i0m1_i2p1, vetU2_i0m1_i2p2, vetU2_i0m2_i2m1, vetU2_i0m2_i2m2,
+                                       vetU2_i0m2_i2p1, vetU2_i0m2_i2p2, vetU2_i0p1_i2m1, vetU2_i0p1_i2m2, vetU2_i0p1_i2p1, vetU2_i0p1_i2p2,
+                                       vetU2_i0p2_i2m1, vetU2_i0p2_i2m2, vetU2_i0p2_i2p1, vetU2_i0p2_i2p2, invdxx0, invdxx2);
+        const REAL vetU_dDD211 = fd_function_dDD11_fdorder4(vetU2, vetU2_i1m1, vetU2_i1m2, vetU2_i1p1, vetU2_i1p2, invdxx1);
         const REAL vetU_dDD212 =
             fd_function_dDD12_fdorder4(vetU2_i1m1_i2m1, vetU2_i1m1_i2m2, vetU2_i1m1_i2p1, vetU2_i1m1_i2p2, vetU2_i1m2_i2m1, vetU2_i1m2_i2m2,
                                        vetU2_i1m2_i2p1, vetU2_i1m2_i2p2, vetU2_i1p1_i2m1, vetU2_i1p1_i2m2, vetU2_i1p1_i2p1, vetU2_i1p1_i2p2,
-                                       vetU2_i1p2_i2m1, vetU2_i1p2_i2m2, vetU2_i1p2_i2p1, vetU2_i1p2_i2p2, invdxx1, invdxx2);        
-        
-        const REAL alpha_dDD22 = fd_function_dDD22_fdorder4(alpha, alpha_i2m1, alpha_i2m2, alpha_i2p1, alpha_i2p2, invdxx2);
-        const REAL cf_dDD22 = fd_function_dDD22_fdorder4(cf, cf_i2m1, cf_i2m2, cf_i2p1, cf_i2p2, invdxx2);
-        const REAL vetU_dDD022 = fd_function_dDD22_fdorder4(vetU0, vetU0_i2m1, vetU0_i2m2, vetU0_i2p1, vetU0_i2p2, invdxx2);
-        const REAL vetU_dDD122 = fd_function_dDD22_fdorder4(vetU1, vetU1_i2m1, vetU1_i2m2, vetU1_i2p1, vetU1_i2p2, invdxx2);
+                                       vetU2_i1p2_i2m1, vetU2_i1p2_i2m2, vetU2_i1p2_i2p1, vetU2_i1p2_i2p2, invdxx1, invdxx2);
         const REAL vetU_dDD222 = fd_function_dDD22_fdorder4(vetU2, vetU2_i2m1, vetU2_i2m2, vetU2_i2p1, vetU2_i2p2, invdxx2);
-
-
-        // WARP SYNC NEEDED
-        // EACH WARP CAN COMPUTE THE FOLLOWING?
-
         const REAL FDPart1tmp0 = (1.0 / (f0_of_xx0));
         const REAL UpwindControlVectorU0 = vetU0;
         const REAL UpwindControlVectorU1 = FDPart1tmp0 * vetU1;
@@ -1257,108 +1201,87 @@ void rhs_eval__rfm__Spherical_gpu(const REAL eta, const REAL *restrict _f0_of_xx
         /*
          * NRPy+-Generated GF Access/FD Code, Step 2 of 3:
          * Implement upwinding algorithm.
-         * #define UPWIND_ALG(UpwindVecU) UpwindVecU > 0.0 ? 1.0 : 0.0
          */
         const REAL Upwind0 = UPWIND_ALG(UpwindControlVectorU0);
         const REAL Upwind1 = UPWIND_ALG(UpwindControlVectorU1);
         const REAL Upwind2 = UPWIND_ALG(UpwindControlVectorU2);
-        
-        // auto Upwind_zero_eval = [](const REAL& upwind, const REAL& a, const REAL& b) {return 0.;};
-        // auto Upwind_eval_func = [](const REAL& upwind, const REAL& a, const REAL& b) {
-        //         return upwind * (-a + b) + a;
-        //     };
-        
-        // std::function<REAL(const REAL&,const REAL&, const REAL&)> Upwind0_eval = (Upwind0 > 0.) ? Upwind_eval_func : Upwind_zero_eval;
-        // std::function<REAL(const REAL&,const REAL&, const REAL&)> Upwind1_eval = (Upwind1 > 0.) ? Upwind_eval_func : Upwind_zero_eval;
-        // std::function<REAL(const REAL&,const REAL&, const REAL&)> Upwind2_eval = (Upwind2 > 0.) ? Upwind_eval_func : Upwind_zero_eval;
-        
-        Upwind_eval_base Upwind0_eval(Upwind0);
-        Upwind_eval_base Upwind1_eval(Upwind1);
-        Upwind_eval_base Upwind2_eval(Upwind2);
-
-
-        const REAL aDD_dupD000    = Upwind0_eval(UpwindAlgInputaDD_ddnD000, UpwindAlgInputaDD_dupD000);
-        const REAL aDD_dupD010    = Upwind0_eval(UpwindAlgInputaDD_ddnD010, UpwindAlgInputaDD_dupD010);
-        const REAL aDD_dupD020    = Upwind0_eval(UpwindAlgInputaDD_ddnD020, UpwindAlgInputaDD_dupD020);
-        const REAL aDD_dupD110    = Upwind0_eval(UpwindAlgInputaDD_ddnD110, UpwindAlgInputaDD_dupD110);
-        const REAL aDD_dupD120    = Upwind0_eval(UpwindAlgInputaDD_ddnD120, UpwindAlgInputaDD_dupD120);
-        const REAL aDD_dupD220    = Upwind0_eval(UpwindAlgInputaDD_ddnD220, UpwindAlgInputaDD_dupD220);
-        const REAL alpha_dupD0    = Upwind0_eval(UpwindAlgInputalpha_ddnD0, UpwindAlgInputalpha_dupD0);
-        const REAL betU_dupD00    = Upwind0_eval(UpwindAlgInputbetU_ddnD00, UpwindAlgInputbetU_dupD00);
-        const REAL betU_dupD10    = Upwind0_eval(UpwindAlgInputbetU_ddnD10, UpwindAlgInputbetU_dupD10);
-        const REAL betU_dupD20    = Upwind0_eval(UpwindAlgInputbetU_ddnD20, UpwindAlgInputbetU_dupD20);
-        const REAL cf_dupD0       = Upwind0_eval(UpwindAlgInputcf_ddnD0, UpwindAlgInputcf_dupD0);
-        const REAL hDD_dupD000    = Upwind0_eval(UpwindAlgInputhDD_ddnD000, UpwindAlgInputhDD_dupD000);
-        const REAL hDD_dupD010    = Upwind0_eval(UpwindAlgInputhDD_ddnD010, UpwindAlgInputhDD_dupD010);
-        const REAL hDD_dupD020    = Upwind0_eval(UpwindAlgInputhDD_ddnD020, UpwindAlgInputhDD_dupD020);
-        const REAL hDD_dupD110    = Upwind0_eval(UpwindAlgInputhDD_ddnD110, UpwindAlgInputhDD_dupD110);
-        const REAL hDD_dupD120    = Upwind0_eval(UpwindAlgInputhDD_ddnD120, UpwindAlgInputhDD_dupD120);
-        const REAL hDD_dupD220    = Upwind0_eval(UpwindAlgInputhDD_ddnD220, UpwindAlgInputhDD_dupD220);
-        const REAL lambdaU_dupD00 = Upwind0_eval(UpwindAlgInputlambdaU_ddnD00, UpwindAlgInputlambdaU_dupD00);
-        const REAL lambdaU_dupD10 = Upwind0_eval(UpwindAlgInputlambdaU_ddnD10, UpwindAlgInputlambdaU_dupD10);
-        const REAL lambdaU_dupD20 = Upwind0_eval(UpwindAlgInputlambdaU_ddnD20, UpwindAlgInputlambdaU_dupD20);
-        const REAL trK_dupD0      = Upwind0_eval(UpwindAlgInputtrK_ddnD0, UpwindAlgInputtrK_dupD0);
-        const REAL vetU_dupD00    = Upwind0_eval(UpwindAlgInputvetU_ddnD00, UpwindAlgInputvetU_dupD00);
-        const REAL vetU_dupD10    = Upwind0_eval(UpwindAlgInputvetU_ddnD10, UpwindAlgInputvetU_dupD10);
-        const REAL vetU_dupD20    = Upwind0_eval(UpwindAlgInputvetU_ddnD20, UpwindAlgInputvetU_dupD20);
-
-        const REAL aDD_dupD001    = Upwind1_eval(UpwindAlgInputaDD_ddnD001, UpwindAlgInputaDD_dupD001);
-        const REAL aDD_dupD011    = Upwind1_eval(UpwindAlgInputaDD_ddnD011, UpwindAlgInputaDD_dupD011);
-        const REAL aDD_dupD021    = Upwind1_eval(UpwindAlgInputaDD_ddnD021, UpwindAlgInputaDD_dupD021);
-        const REAL aDD_dupD111    = Upwind1_eval(UpwindAlgInputaDD_ddnD111, UpwindAlgInputaDD_dupD111);
-        const REAL aDD_dupD121    = Upwind1_eval(UpwindAlgInputaDD_ddnD121, UpwindAlgInputaDD_dupD121);
-        const REAL aDD_dupD221    = Upwind1_eval(UpwindAlgInputaDD_ddnD221, UpwindAlgInputaDD_dupD221);
-        const REAL alpha_dupD1    = Upwind1_eval(UpwindAlgInputalpha_ddnD1, UpwindAlgInputalpha_dupD1);
-        const REAL betU_dupD01    = Upwind1_eval(UpwindAlgInputbetU_ddnD01, UpwindAlgInputbetU_dupD01);
-        const REAL betU_dupD11    = Upwind1_eval(UpwindAlgInputbetU_ddnD11, UpwindAlgInputbetU_dupD11);
-        const REAL betU_dupD21    = Upwind1_eval(UpwindAlgInputbetU_ddnD21, UpwindAlgInputbetU_dupD21);
-        const REAL cf_dupD1       = Upwind1_eval(UpwindAlgInputcf_ddnD1, UpwindAlgInputcf_dupD1);
-        const REAL hDD_dupD001    = Upwind1_eval(UpwindAlgInputhDD_ddnD001, UpwindAlgInputhDD_dupD001);
-        const REAL hDD_dupD011    = Upwind1_eval(UpwindAlgInputhDD_ddnD011, UpwindAlgInputhDD_dupD011);
-        const REAL hDD_dupD021    = Upwind1_eval(UpwindAlgInputhDD_ddnD021, UpwindAlgInputhDD_dupD021);
-        const REAL hDD_dupD111    = Upwind1_eval(UpwindAlgInputhDD_ddnD111, UpwindAlgInputhDD_dupD111);
-        const REAL hDD_dupD121    = Upwind1_eval(UpwindAlgInputhDD_ddnD121, UpwindAlgInputhDD_dupD121);
-        const REAL hDD_dupD221    = Upwind1_eval(UpwindAlgInputhDD_ddnD221, UpwindAlgInputhDD_dupD221);
-        const REAL lambdaU_dupD01 = Upwind1_eval(UpwindAlgInputlambdaU_ddnD01, UpwindAlgInputlambdaU_dupD01);
-        const REAL lambdaU_dupD11 = Upwind1_eval(UpwindAlgInputlambdaU_ddnD11, UpwindAlgInputlambdaU_dupD11);
-        const REAL lambdaU_dupD21 = Upwind1_eval(UpwindAlgInputlambdaU_ddnD21, UpwindAlgInputlambdaU_dupD21);
-        const REAL trK_dupD1      = Upwind1_eval(UpwindAlgInputtrK_ddnD1, UpwindAlgInputtrK_dupD1);
-        const REAL vetU_dupD01    = Upwind1_eval(UpwindAlgInputvetU_ddnD01, UpwindAlgInputvetU_dupD01);
-        const REAL vetU_dupD11    = Upwind1_eval(UpwindAlgInputvetU_ddnD11, UpwindAlgInputvetU_dupD11);
-        const REAL vetU_dupD21    = Upwind1_eval(UpwindAlgInputvetU_ddnD21, UpwindAlgInputvetU_dupD21);
-
-        const REAL aDD_dupD002    = Upwind2_eval(UpwindAlgInputaDD_ddnD002, UpwindAlgInputaDD_dupD002);
-        const REAL aDD_dupD012    = Upwind2_eval(UpwindAlgInputaDD_ddnD012, UpwindAlgInputaDD_dupD012);
-        const REAL aDD_dupD022    = Upwind2_eval(UpwindAlgInputaDD_ddnD022, UpwindAlgInputaDD_dupD022);
-        const REAL aDD_dupD112    = Upwind2_eval(UpwindAlgInputaDD_ddnD112, UpwindAlgInputaDD_dupD112);
-        const REAL aDD_dupD122    = Upwind2_eval(UpwindAlgInputaDD_ddnD122, UpwindAlgInputaDD_dupD122);
-        const REAL aDD_dupD222    = Upwind2_eval(UpwindAlgInputaDD_ddnD222, UpwindAlgInputaDD_dupD222);
-        const REAL alpha_dupD2    = Upwind2_eval(UpwindAlgInputalpha_ddnD2, UpwindAlgInputalpha_dupD2);
-        const REAL betU_dupD02    = Upwind2_eval(UpwindAlgInputbetU_ddnD02, UpwindAlgInputbetU_dupD02);
-        const REAL betU_dupD12    = Upwind2_eval(UpwindAlgInputbetU_ddnD12, UpwindAlgInputbetU_dupD12);
-        const REAL betU_dupD22    = Upwind2_eval(UpwindAlgInputbetU_ddnD22, UpwindAlgInputbetU_dupD22);
-        const REAL cf_dupD2       = Upwind2_eval(UpwindAlgInputcf_ddnD2, UpwindAlgInputcf_dupD2);
-        const REAL hDD_dupD002    = Upwind2_eval(UpwindAlgInputhDD_ddnD002, UpwindAlgInputhDD_dupD002);
-        const REAL hDD_dupD012    = Upwind2_eval(UpwindAlgInputhDD_ddnD012, UpwindAlgInputhDD_dupD012);
-        const REAL hDD_dupD022    = Upwind2_eval(UpwindAlgInputhDD_ddnD022, UpwindAlgInputhDD_dupD022);
-        const REAL hDD_dupD112    = Upwind2_eval(UpwindAlgInputhDD_ddnD112, UpwindAlgInputhDD_dupD112);
-        const REAL hDD_dupD122    = Upwind2_eval(UpwindAlgInputhDD_ddnD122, UpwindAlgInputhDD_dupD122);
-        const REAL hDD_dupD222    = Upwind2_eval(UpwindAlgInputhDD_ddnD222, UpwindAlgInputhDD_dupD222);
-        const REAL lambdaU_dupD02 = Upwind2_eval(UpwindAlgInputlambdaU_ddnD02, UpwindAlgInputlambdaU_dupD02);
-        const REAL lambdaU_dupD12 = Upwind2_eval(UpwindAlgInputlambdaU_ddnD12, UpwindAlgInputlambdaU_dupD12);
-        const REAL lambdaU_dupD22 = Upwind2_eval(UpwindAlgInputlambdaU_ddnD22, UpwindAlgInputlambdaU_dupD22);
-        const REAL trK_dupD2      = Upwind2_eval(UpwindAlgInputtrK_ddnD2, UpwindAlgInputtrK_dupD2);
-        const REAL vetU_dupD02    = Upwind2_eval(UpwindAlgInputvetU_ddnD02, UpwindAlgInputvetU_dupD02);
-        const REAL vetU_dupD12    = Upwind2_eval(UpwindAlgInputvetU_ddnD12, UpwindAlgInputvetU_dupD12);
-        const REAL vetU_dupD22    = Upwind2_eval(UpwindAlgInputvetU_ddnD22, UpwindAlgInputvetU_dupD22);
-        // WARP SYNC HERE
+        const REAL aDD_dupD000 = Upwind0 * (-UpwindAlgInputaDD_ddnD000 + UpwindAlgInputaDD_dupD000) + UpwindAlgInputaDD_ddnD000;
+        const REAL aDD_dupD001 = Upwind1 * (-UpwindAlgInputaDD_ddnD001 + UpwindAlgInputaDD_dupD001) + UpwindAlgInputaDD_ddnD001;
+        const REAL aDD_dupD002 = Upwind2 * (-UpwindAlgInputaDD_ddnD002 + UpwindAlgInputaDD_dupD002) + UpwindAlgInputaDD_ddnD002;
+        const REAL aDD_dupD010 = Upwind0 * (-UpwindAlgInputaDD_ddnD010 + UpwindAlgInputaDD_dupD010) + UpwindAlgInputaDD_ddnD010;
+        const REAL aDD_dupD011 = Upwind1 * (-UpwindAlgInputaDD_ddnD011 + UpwindAlgInputaDD_dupD011) + UpwindAlgInputaDD_ddnD011;
+        const REAL aDD_dupD012 = Upwind2 * (-UpwindAlgInputaDD_ddnD012 + UpwindAlgInputaDD_dupD012) + UpwindAlgInputaDD_ddnD012;
+        const REAL aDD_dupD020 = Upwind0 * (-UpwindAlgInputaDD_ddnD020 + UpwindAlgInputaDD_dupD020) + UpwindAlgInputaDD_ddnD020;
+        const REAL aDD_dupD021 = Upwind1 * (-UpwindAlgInputaDD_ddnD021 + UpwindAlgInputaDD_dupD021) + UpwindAlgInputaDD_ddnD021;
+        const REAL aDD_dupD022 = Upwind2 * (-UpwindAlgInputaDD_ddnD022 + UpwindAlgInputaDD_dupD022) + UpwindAlgInputaDD_ddnD022;
+        const REAL aDD_dupD110 = Upwind0 * (-UpwindAlgInputaDD_ddnD110 + UpwindAlgInputaDD_dupD110) + UpwindAlgInputaDD_ddnD110;
+        const REAL aDD_dupD111 = Upwind1 * (-UpwindAlgInputaDD_ddnD111 + UpwindAlgInputaDD_dupD111) + UpwindAlgInputaDD_ddnD111;
+        const REAL aDD_dupD112 = Upwind2 * (-UpwindAlgInputaDD_ddnD112 + UpwindAlgInputaDD_dupD112) + UpwindAlgInputaDD_ddnD112;
+        const REAL aDD_dupD120 = Upwind0 * (-UpwindAlgInputaDD_ddnD120 + UpwindAlgInputaDD_dupD120) + UpwindAlgInputaDD_ddnD120;
+        const REAL aDD_dupD121 = Upwind1 * (-UpwindAlgInputaDD_ddnD121 + UpwindAlgInputaDD_dupD121) + UpwindAlgInputaDD_ddnD121;
+        const REAL aDD_dupD122 = Upwind2 * (-UpwindAlgInputaDD_ddnD122 + UpwindAlgInputaDD_dupD122) + UpwindAlgInputaDD_ddnD122;
+        const REAL aDD_dupD220 = Upwind0 * (-UpwindAlgInputaDD_ddnD220 + UpwindAlgInputaDD_dupD220) + UpwindAlgInputaDD_ddnD220;
+        const REAL aDD_dupD221 = Upwind1 * (-UpwindAlgInputaDD_ddnD221 + UpwindAlgInputaDD_dupD221) + UpwindAlgInputaDD_ddnD221;
+        const REAL aDD_dupD222 = Upwind2 * (-UpwindAlgInputaDD_ddnD222 + UpwindAlgInputaDD_dupD222) + UpwindAlgInputaDD_ddnD222;
+        const REAL alpha_dupD0 = Upwind0 * (-UpwindAlgInputalpha_ddnD0 + UpwindAlgInputalpha_dupD0) + UpwindAlgInputalpha_ddnD0;
+        const REAL alpha_dupD1 = Upwind1 * (-UpwindAlgInputalpha_ddnD1 + UpwindAlgInputalpha_dupD1) + UpwindAlgInputalpha_ddnD1;
+        const REAL alpha_dupD2 = Upwind2 * (-UpwindAlgInputalpha_ddnD2 + UpwindAlgInputalpha_dupD2) + UpwindAlgInputalpha_ddnD2;
+        const REAL betU_dupD00 = Upwind0 * (-UpwindAlgInputbetU_ddnD00 + UpwindAlgInputbetU_dupD00) + UpwindAlgInputbetU_ddnD00;
+        const REAL betU_dupD01 = Upwind1 * (-UpwindAlgInputbetU_ddnD01 + UpwindAlgInputbetU_dupD01) + UpwindAlgInputbetU_ddnD01;
+        const REAL betU_dupD02 = Upwind2 * (-UpwindAlgInputbetU_ddnD02 + UpwindAlgInputbetU_dupD02) + UpwindAlgInputbetU_ddnD02;
+        const REAL betU_dupD10 = Upwind0 * (-UpwindAlgInputbetU_ddnD10 + UpwindAlgInputbetU_dupD10) + UpwindAlgInputbetU_ddnD10;
+        const REAL betU_dupD11 = Upwind1 * (-UpwindAlgInputbetU_ddnD11 + UpwindAlgInputbetU_dupD11) + UpwindAlgInputbetU_ddnD11;
+        const REAL betU_dupD12 = Upwind2 * (-UpwindAlgInputbetU_ddnD12 + UpwindAlgInputbetU_dupD12) + UpwindAlgInputbetU_ddnD12;
+        const REAL betU_dupD20 = Upwind0 * (-UpwindAlgInputbetU_ddnD20 + UpwindAlgInputbetU_dupD20) + UpwindAlgInputbetU_ddnD20;
+        const REAL betU_dupD21 = Upwind1 * (-UpwindAlgInputbetU_ddnD21 + UpwindAlgInputbetU_dupD21) + UpwindAlgInputbetU_ddnD21;
+        const REAL betU_dupD22 = Upwind2 * (-UpwindAlgInputbetU_ddnD22 + UpwindAlgInputbetU_dupD22) + UpwindAlgInputbetU_ddnD22;
+        const REAL cf_dupD0 = Upwind0 * (-UpwindAlgInputcf_ddnD0 + UpwindAlgInputcf_dupD0) + UpwindAlgInputcf_ddnD0;
+        const REAL cf_dupD1 = Upwind1 * (-UpwindAlgInputcf_ddnD1 + UpwindAlgInputcf_dupD1) + UpwindAlgInputcf_ddnD1;
+        const REAL cf_dupD2 = Upwind2 * (-UpwindAlgInputcf_ddnD2 + UpwindAlgInputcf_dupD2) + UpwindAlgInputcf_ddnD2;
+        const REAL hDD_dupD000 = Upwind0 * (-UpwindAlgInputhDD_ddnD000 + UpwindAlgInputhDD_dupD000) + UpwindAlgInputhDD_ddnD000;
+        const REAL hDD_dupD001 = Upwind1 * (-UpwindAlgInputhDD_ddnD001 + UpwindAlgInputhDD_dupD001) + UpwindAlgInputhDD_ddnD001;
+        const REAL hDD_dupD002 = Upwind2 * (-UpwindAlgInputhDD_ddnD002 + UpwindAlgInputhDD_dupD002) + UpwindAlgInputhDD_ddnD002;
+        const REAL hDD_dupD010 = Upwind0 * (-UpwindAlgInputhDD_ddnD010 + UpwindAlgInputhDD_dupD010) + UpwindAlgInputhDD_ddnD010;
+        const REAL hDD_dupD011 = Upwind1 * (-UpwindAlgInputhDD_ddnD011 + UpwindAlgInputhDD_dupD011) + UpwindAlgInputhDD_ddnD011;
+        const REAL hDD_dupD012 = Upwind2 * (-UpwindAlgInputhDD_ddnD012 + UpwindAlgInputhDD_dupD012) + UpwindAlgInputhDD_ddnD012;
+        const REAL hDD_dupD020 = Upwind0 * (-UpwindAlgInputhDD_ddnD020 + UpwindAlgInputhDD_dupD020) + UpwindAlgInputhDD_ddnD020;
+        const REAL hDD_dupD021 = Upwind1 * (-UpwindAlgInputhDD_ddnD021 + UpwindAlgInputhDD_dupD021) + UpwindAlgInputhDD_ddnD021;
+        const REAL hDD_dupD022 = Upwind2 * (-UpwindAlgInputhDD_ddnD022 + UpwindAlgInputhDD_dupD022) + UpwindAlgInputhDD_ddnD022;
+        const REAL hDD_dupD110 = Upwind0 * (-UpwindAlgInputhDD_ddnD110 + UpwindAlgInputhDD_dupD110) + UpwindAlgInputhDD_ddnD110;
+        const REAL hDD_dupD111 = Upwind1 * (-UpwindAlgInputhDD_ddnD111 + UpwindAlgInputhDD_dupD111) + UpwindAlgInputhDD_ddnD111;
+        const REAL hDD_dupD112 = Upwind2 * (-UpwindAlgInputhDD_ddnD112 + UpwindAlgInputhDD_dupD112) + UpwindAlgInputhDD_ddnD112;
+        const REAL hDD_dupD120 = Upwind0 * (-UpwindAlgInputhDD_ddnD120 + UpwindAlgInputhDD_dupD120) + UpwindAlgInputhDD_ddnD120;
+        const REAL hDD_dupD121 = Upwind1 * (-UpwindAlgInputhDD_ddnD121 + UpwindAlgInputhDD_dupD121) + UpwindAlgInputhDD_ddnD121;
+        const REAL hDD_dupD122 = Upwind2 * (-UpwindAlgInputhDD_ddnD122 + UpwindAlgInputhDD_dupD122) + UpwindAlgInputhDD_ddnD122;
+        const REAL hDD_dupD220 = Upwind0 * (-UpwindAlgInputhDD_ddnD220 + UpwindAlgInputhDD_dupD220) + UpwindAlgInputhDD_ddnD220;
+        const REAL hDD_dupD221 = Upwind1 * (-UpwindAlgInputhDD_ddnD221 + UpwindAlgInputhDD_dupD221) + UpwindAlgInputhDD_ddnD221;
+        const REAL hDD_dupD222 = Upwind2 * (-UpwindAlgInputhDD_ddnD222 + UpwindAlgInputhDD_dupD222) + UpwindAlgInputhDD_ddnD222;
+        const REAL lambdaU_dupD00 = Upwind0 * (-UpwindAlgInputlambdaU_ddnD00 + UpwindAlgInputlambdaU_dupD00) + UpwindAlgInputlambdaU_ddnD00;
+        const REAL lambdaU_dupD01 = Upwind1 * (-UpwindAlgInputlambdaU_ddnD01 + UpwindAlgInputlambdaU_dupD01) + UpwindAlgInputlambdaU_ddnD01;
+        const REAL lambdaU_dupD02 = Upwind2 * (-UpwindAlgInputlambdaU_ddnD02 + UpwindAlgInputlambdaU_dupD02) + UpwindAlgInputlambdaU_ddnD02;
+        const REAL lambdaU_dupD10 = Upwind0 * (-UpwindAlgInputlambdaU_ddnD10 + UpwindAlgInputlambdaU_dupD10) + UpwindAlgInputlambdaU_ddnD10;
+        const REAL lambdaU_dupD11 = Upwind1 * (-UpwindAlgInputlambdaU_ddnD11 + UpwindAlgInputlambdaU_dupD11) + UpwindAlgInputlambdaU_ddnD11;
+        const REAL lambdaU_dupD12 = Upwind2 * (-UpwindAlgInputlambdaU_ddnD12 + UpwindAlgInputlambdaU_dupD12) + UpwindAlgInputlambdaU_ddnD12;
+        const REAL lambdaU_dupD20 = Upwind0 * (-UpwindAlgInputlambdaU_ddnD20 + UpwindAlgInputlambdaU_dupD20) + UpwindAlgInputlambdaU_ddnD20;
+        const REAL lambdaU_dupD21 = Upwind1 * (-UpwindAlgInputlambdaU_ddnD21 + UpwindAlgInputlambdaU_dupD21) + UpwindAlgInputlambdaU_ddnD21;
+        const REAL lambdaU_dupD22 = Upwind2 * (-UpwindAlgInputlambdaU_ddnD22 + UpwindAlgInputlambdaU_dupD22) + UpwindAlgInputlambdaU_ddnD22;
+        const REAL trK_dupD0 = Upwind0 * (-UpwindAlgInputtrK_ddnD0 + UpwindAlgInputtrK_dupD0) + UpwindAlgInputtrK_ddnD0;
+        const REAL trK_dupD1 = Upwind1 * (-UpwindAlgInputtrK_ddnD1 + UpwindAlgInputtrK_dupD1) + UpwindAlgInputtrK_ddnD1;
+        const REAL trK_dupD2 = Upwind2 * (-UpwindAlgInputtrK_ddnD2 + UpwindAlgInputtrK_dupD2) + UpwindAlgInputtrK_ddnD2;
+        const REAL vetU_dupD00 = Upwind0 * (-UpwindAlgInputvetU_ddnD00 + UpwindAlgInputvetU_dupD00) + UpwindAlgInputvetU_ddnD00;
+        const REAL vetU_dupD01 = Upwind1 * (-UpwindAlgInputvetU_ddnD01 + UpwindAlgInputvetU_dupD01) + UpwindAlgInputvetU_ddnD01;
+        const REAL vetU_dupD02 = Upwind2 * (-UpwindAlgInputvetU_ddnD02 + UpwindAlgInputvetU_dupD02) + UpwindAlgInputvetU_ddnD02;
+        const REAL vetU_dupD10 = Upwind0 * (-UpwindAlgInputvetU_ddnD10 + UpwindAlgInputvetU_dupD10) + UpwindAlgInputvetU_ddnD10;
+        const REAL vetU_dupD11 = Upwind1 * (-UpwindAlgInputvetU_ddnD11 + UpwindAlgInputvetU_dupD11) + UpwindAlgInputvetU_ddnD11;
+        const REAL vetU_dupD12 = Upwind2 * (-UpwindAlgInputvetU_ddnD12 + UpwindAlgInputvetU_dupD12) + UpwindAlgInputvetU_ddnD12;
+        const REAL vetU_dupD20 = Upwind0 * (-UpwindAlgInputvetU_ddnD20 + UpwindAlgInputvetU_dupD20) + UpwindAlgInputvetU_ddnD20;
+        const REAL vetU_dupD21 = Upwind1 * (-UpwindAlgInputvetU_ddnD21 + UpwindAlgInputvetU_dupD21) + UpwindAlgInputvetU_ddnD21;
+        const REAL vetU_dupD22 = Upwind2 * (-UpwindAlgInputvetU_ddnD22 + UpwindAlgInputvetU_dupD22) + UpwindAlgInputvetU_ddnD22;
 
         /*
          * NRPy+-Generated GF Access/FD Code, Step 3 of 3:
          * Evaluate SymPy expressions and write to main memory.
          */
-        
-        // FDPart3tmp BLOCK 1
         const REAL FDPart3tmp1 = alpha * trK;
         const REAL FDPart3tmp2 = (1.0 / (f0_of_xx0));
         const REAL FDPart3tmp4 = (1.0 / (f1_of_xx1));
@@ -1391,9 +1314,6 @@ void rhs_eval__rfm__Spherical_gpu(const REAL eta, const REAL *restrict _f0_of_xx
         const REAL FDPart3tmp440 = (1.0 / ((f1_of_xx1) * (f1_of_xx1) * (f1_of_xx1)));
         const REAL FDPart3tmp457 = 4. * alpha;
         const REAL FDPart3tmp465 = ((vetU0) * (vetU0));
-        // END FDPart3tmp BLOCK 1
-
-        // FDPart3tmp BLOCK 2
         const REAL FDPart3tmp3 = FDPart3tmp2 * vetU1;
         const REAL FDPart3tmp5 = FDPart3tmp2 * FDPart3tmp4;
         const REAL FDPart3tmp8 = (1.0 / (FDPart3tmp7));
@@ -1436,9 +1356,6 @@ void rhs_eval__rfm__Spherical_gpu(const REAL eta, const REAL *restrict _f0_of_xx
         const REAL FDPart3tmp292 = FDPart3tmp291 * vetU0;
         const REAL FDPart3tmp294 = FDPart3tmp2 * betU1;
         const REAL FDPart3tmp412 = (1.0 / (FDPart3tmp47));
-        // END FDPart3tmp BLOCK 2
-
-        // FDPart3tmp BLOCK 3
         const REAL FDPart3tmp6 = FDPart3tmp5 * vetU2;
         const REAL FDPart3tmp9 = FDPart3tmp8 * vetU1;
         const REAL FDPart3tmp15 = FDPart3tmp14 * FDPart3tmp8;
@@ -1482,9 +1399,6 @@ void rhs_eval__rfm__Spherical_gpu(const REAL eta, const REAL *restrict _f0_of_xx
         const REAL FDPart3tmp436 = 2. * FDPart3tmp14;
         const REAL FDPart3tmp466 = 2. * FDPart3tmp3 * vetU0;
         const REAL FDPart3tmp467 = FDPart3tmp8 * ((vetU1) * (vetU1));
-        // END FDPart3tmp BLOCK 3
-
-        // FDPart3tmp BLOCK 4
         const REAL FDPart3tmp26 = FDPart3tmp20 + FDPart3tmp21 * vetU0 + FDPart3tmp24 * FDPart3tmp3 + FDPart3tmp5 * vetU_dD22 + vetU_dD00;
         const REAL FDPart3tmp38 = FDPart3tmp35 + FDPart3tmp37;
         const REAL FDPart3tmp45 = -FDPart3tmp31 * FDPart3tmp44 + FDPart3tmp42 * FDPart3tmp7 * hDD01;
@@ -1523,10 +1437,6 @@ void rhs_eval__rfm__Spherical_gpu(const REAL eta, const REAL *restrict _f0_of_xx
         const REAL FDPart3tmp434 = -FDPart3tmp203 * FDPart3tmp271 + FDPart3tmp4 * f1_of_xx1__DD11;
         const REAL FDPart3tmp468 = FDPart3tmp14 * FDPart3tmp21 * vetU0;
         const REAL FDPart3tmp469 = FDPart3tmp237 * ((vetU2) * (vetU2));
-        // END FDPart3tmp BLOCK 4
-
-
-        // FDPart3tmp BLOCK 5
         const REAL FDPart3tmp11 = FDPart3tmp2 * vetU_dD10 - FDPart3tmp9;
         const REAL FDPart3tmp17 = -FDPart3tmp15 + FDPart3tmp5 * vetU_dD20;
         const REAL FDPart3tmp27 = FDPart1_Rational_2_3 * FDPart3tmp26;
@@ -1546,9 +1456,6 @@ void rhs_eval__rfm__Spherical_gpu(const REAL eta, const REAL *restrict _f0_of_xx
         const REAL FDPart3tmp316 = (3.0 / 4.0) * FDPart3tmp314 * lambdaU2;
         const REAL FDPart3tmp346 = FDPart3tmp45 * FDPart3tmp50;
         const REAL FDPart3tmp452 = (1.0 / 3.0) * FDPart3tmp258;
-        // END FDPart3tmp BLOCK 5
-
-        // FDPart3tmp BLOCK 6
         const REAL FDPart3tmp41 = (1.0 / (FDPart3tmp40));
         const REAL FDPart3tmp187 = -FDPart3tmp170 + 2 * FDPart3tmp7 * f1_of_xx1 * hDD_dD122;
         const REAL FDPart3tmp260 = FDPart3tmp11 * f0_of_xx0;
@@ -1573,9 +1480,6 @@ void rhs_eval__rfm__Spherical_gpu(const REAL eta, const REAL *restrict _f0_of_xx
         const REAL FDPart3tmp432 = FDPart3tmp11 * FDPart3tmp24 + FDPart3tmp287 + FDPart3tmp406;
         const REAL FDPart3tmp438 = FDPart3tmp17 * FDPart3tmp24 - FDPart3tmp233 * vetU_dD21 + FDPart3tmp314 * f1_of_xx1__D1 -
                                    FDPart3tmp429 * vetU_dD20 + FDPart3tmp5 * vetU_dDD201;
-        // END sFDPart3tmp BLOCK 6
-        
-        // FDPart3tmp BLOCK 7
         const REAL FDPart3tmp46 = FDPart3tmp41 * FDPart3tmp45;
         const REAL FDPart3tmp53 = FDPart3tmp41 * FDPart3tmp52;
         const REAL FDPart3tmp59 = FDPart3tmp41 * FDPart3tmp58;
@@ -1601,9 +1505,6 @@ void rhs_eval__rfm__Spherical_gpu(const REAL eta, const REAL *restrict _f0_of_xx
         const REAL FDPart3tmp354 = FDPart3tmp319 * ((FDPart3tmp45) * (FDPart3tmp45));
         const REAL FDPart3tmp453 = (1.0 / 3.0) * FDPart3tmp282;
         const REAL FDPart3tmp454 = (1.0 / 3.0) * FDPart3tmp288;
-        // END FDPart3tmp BLOCK 7
-
-        // FDPart3tmp BLOCK 8
         const REAL FDPart3tmp81 = FDPart1_Rational_1_2 * FDPart3tmp46 * FDPart3tmp76 + FDPart3tmp50 * FDPart3tmp74 + FDPart1_Rational_1_2 * FDPart3tmp53 * FDPart3tmp79;
         const REAL FDPart3tmp85 = FDPart1_Rational_1_2 * FDPart3tmp46 * FDPart3tmp79 + FDPart3tmp57 * FDPart3tmp74 + FDPart1_Rational_1_2 * FDPart3tmp59 * FDPart3tmp76;
         const REAL FDPart3tmp89 = FDPart1_Rational_1_2 * FDPart3tmp41 * FDPart3tmp50;
@@ -1658,9 +1559,6 @@ void rhs_eval__rfm__Spherical_gpu(const REAL eta, const REAL *restrict _f0_of_xx
                                                    FDPart3tmp203 * FDPart3tmp21 * f1_of_xx1__D1 * vetU_dD21 + 2 * FDPart3tmp206 * FDPart3tmp24 +
                                                    FDPart3tmp434 * FDPart3tmp6 + FDPart3tmp5 * vetU_dDD211 + FDPart3tmp6 +
                                                    vetU2 * (2 * FDPart3tmp2 * FDPart3tmp271 * FDPart3tmp440 - FDPart3tmp278 * f1_of_xx1__DD11));
-        // END FDPart3tmp BLOCK 8
-        
-        // FDPart3tmp BLOCK 9
         const REAL FDPart3tmp91 = FDPart1_Rational_1_2 * FDPart3tmp66 * hDD_dD000 + FDPart3tmp76 * FDPart3tmp90 + FDPart3tmp79 * FDPart3tmp89;
         const REAL FDPart3tmp113 = FDPart1_Rational_1_2 * FDPart3tmp100 * FDPart3tmp46 + FDPart1_Rational_1_2 * FDPart3tmp111 * FDPart3tmp53 + FDPart3tmp89 * hDD_dD001;
         const REAL FDPart3tmp115 = FDPart1_Rational_1_2 * FDPart3tmp100 * FDPart3tmp59 + FDPart1_Rational_1_2 * FDPart3tmp111 * FDPart3tmp46 + FDPart3tmp90 * hDD_dD001;
@@ -1703,9 +1601,6 @@ void rhs_eval__rfm__Spherical_gpu(const REAL eta, const REAL *restrict _f0_of_xx
                                                     4. * FDPart3tmp334 * FDPart3tmp346 - 2. * FDPart3tmp341 - 2. * FDPart3tmp342 - 2. * FDPart3tmp344);
         const REAL FDPart3tmp450 = -FDPart3tmp26 + alpha * (FDPart3tmp13 * FDPart3tmp63 + FDPart3tmp19 * FDPart3tmp61 + FDPart3tmp201 * FDPart3tmp59 +
                                                             FDPart3tmp214 * FDPart3tmp53 + FDPart3tmp222 * FDPart3tmp46 + FDPart3tmp66 * aDD00);
-        // END FDPart3tmp BLOCK 9
-        
-        // FDPart3tmp BLOCK 10
         const REAL FDPart3tmp309 = FDPart3tmp177 * FDPart3tmp9;
         const REAL FDPart3tmp338 = FDPart3tmp194 + FDPart3tmp252;
         const REAL FDPart3tmp352 = FDPart3tmp350 * FDPart3tmp351;
@@ -1733,9 +1628,6 @@ void rhs_eval__rfm__Spherical_gpu(const REAL eta, const REAL *restrict _f0_of_xx
         const REAL FDPart3tmp447 = FDPart3tmp153 - FDPart3tmp2;
         const REAL FDPart3tmp455 = FDPart3tmp350 * FDPart3tmp68;
         const REAL FDPart3tmp456 = FDPart3tmp364 * FDPart3tmp68;
-        // END FDPart3tmp BLOCK 10
-        
-        // FDPart3tmp BLOCK 11
         const REAL FDPart3tmp97 = -FDPart3tmp81 * alpha_dD2 - FDPart3tmp85 * alpha_dD1 - FDPart3tmp91 * alpha_dD0 + alpha_dDD00;
         const REAL FDPart3tmp124 = -FDPart3tmp113 * alpha_dD2 - FDPart3tmp115 * alpha_dD1 - FDPart3tmp118 * alpha_dD0 + alpha_dDD01;
         const REAL FDPart3tmp145 = -FDPart3tmp138 * alpha_dD2 - FDPart3tmp140 * alpha_dD1 - FDPart3tmp142 * alpha_dD0 + alpha_dDD11;
@@ -1757,9 +1649,6 @@ void rhs_eval__rfm__Spherical_gpu(const REAL eta, const REAL *restrict _f0_of_xx
         const REAL FDPart3tmp458 = FDPart3tmp388 * FDPart3tmp457;
         const REAL FDPart3tmp459 = FDPart3tmp390 * FDPart3tmp457;
         const REAL FDPart3tmp460 = FDPart3tmp392 * FDPart3tmp457;
-        // END FDPart3tmp BLOCK 11
-        
-        // FDPart3tmp BLOCK 12
         const REAL FDPart3tmp98 = FDPart3tmp68 * (FDPart1_Rational_1_2 * FDPart3tmp71 * (FDPart3tmp71 * ((cf_dD0) * (cf_dD0)) - cf_dDD00) +
                                                   FDPart3tmp81 * FDPart3tmp84 + FDPart3tmp85 * FDPart3tmp87 + FDPart3tmp91 * FDPart3tmp93) -
                                   FDPart3tmp94 * alpha * ((cf_dD0) * (cf_dD0)) + 2. * FDPart3tmp95 * alpha_dD0 + FDPart3tmp97 - RbarDD00 * alpha;
@@ -1785,9 +1674,6 @@ void rhs_eval__rfm__Spherical_gpu(const REAL eta, const REAL *restrict _f0_of_xx
                                    FDPart3tmp94 * alpha * ((cf_dD2) * (cf_dD2)) - RbarDD22 * alpha;
         const REAL FDPart3tmp199 = -FDPart3tmp125 * FDPart3tmp127 - FDPart3tmp146 * FDPart3tmp59 - FDPart3tmp163 * FDPart3tmp164 -
                                    2. * FDPart3tmp182 * FDPart3tmp46 - FDPart3tmp198 * FDPart3tmp53 - FDPart3tmp66 * FDPart3tmp98;
-        // END FDPart3tmp BLOCK 12
-        // END ALL FDPart3tmp BLOCKS
-        
         rhs_gfs[IDX4(ADD00GF, i0, i1, i2)] =
             FDPart3tmp1 * aDD00 + FDPart3tmp11 * FDPart3tmp13 + FDPart3tmp17 * FDPart3tmp19 - FDPart3tmp27 * aDD00 + FDPart3tmp3 * aDD_dupD001 -
             FDPart3tmp55 * (FDPart3tmp28 * FDPart3tmp46 + FDPart3tmp41 * FDPart3tmp50 * aDD00 + FDPart3tmp53 * FDPart3tmp54) +
@@ -2023,8 +1909,8 @@ void rhs_eval__rfm__Spherical(const commondata_struct *restrict commondata, cons
     // rhs_eval__rfm__Spherical_gpu<<<1,1>>>(eta, rfmstruct->f0_of_xx0, rfmstruct->f1_of_xx1, 
     rfmstruct->f1_of_xx1__D1, rfmstruct->f1_of_xx1__DD11, auxevol_gfs, in_gfs, rhs_gfs);
       // print_params<<<1,1>>>();
-    cudaDeviceSynchronize();
-    for(int i = 0; i < NUM_EVOL_GFS; ++i)
-        print_var<<<1,1>>>(rhs_gfs, IDX4(i, 34, 18 , 18));
-    printf("**************************\n");
+    // cudaDeviceSynchronize();
+    // for(int i = 0; i < NUM_EVOL_GFS; ++i)
+    //     print_var<<<1,1>>>(rhs_gfs, IDX4(i, 34, 18 , 18));
+    // printf("**************************\n");
 }
