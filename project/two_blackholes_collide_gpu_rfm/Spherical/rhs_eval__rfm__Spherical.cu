@@ -1,6 +1,7 @@
 #include "../BHaH_defines.h"
 #include "../BHaH_gpu_defines.h"
 #include "../BHaH_gpu_function_prototypes.h"
+#ifdef _RHS_ORIGINAL_
 /*
  * Finite difference function for operator dD0, with FD accuracy order 4.
  */
@@ -1909,8 +1910,9 @@ void rhs_eval__rfm__Spherical(const commondata_struct *restrict commondata, cons
     // rhs_eval__rfm__Spherical_gpu<<<1,1>>>(eta, rfmstruct->f0_of_xx0, rfmstruct->f1_of_xx1, 
     rfmstruct->f1_of_xx1__D1, rfmstruct->f1_of_xx1__DD11, auxevol_gfs, in_gfs, rhs_gfs);
       // print_params<<<1,1>>>();
-    // cudaDeviceSynchronize();
-    // for(int i = 0; i < NUM_EVOL_GFS; ++i)
-    //     print_var<<<1,1>>>(rhs_gfs, IDX4(i, 34, 18 , 18));
-    // printf("**************************\n");
+    cudaDeviceSynchronize();
+    for(int i = 0; i < NUM_EVOL_GFS; ++i)
+        print_var<<<1,1>>>(rhs_gfs, IDX4(i, 34, 18 , 18));
+    printf("**************************\n");
 }
+#endif

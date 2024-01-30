@@ -1,7 +1,7 @@
 #include "../BHaH_defines.h"
 #include "../BHaH_gpu_defines.h"
 #include "../BHaH_gpu_function_prototypes.h"
-#include <functional>
+#ifdef _RHS_REIMAGINE_
 
 __device__ REAL return_zero(const REAL&,const REAL&, const REAL&) { return 0.; }
 __device__ REAL upwind_eval_func(const REAL& upwind, const REAL& a, const REAL& b) {
@@ -2028,3 +2028,4 @@ void rhs_eval__rfm__Spherical(const commondata_struct *restrict commondata, cons
         print_var<<<1,1>>>(rhs_gfs, IDX4(i, 34, 18 , 18));
     printf("**************************\n");
 }
+#endif
