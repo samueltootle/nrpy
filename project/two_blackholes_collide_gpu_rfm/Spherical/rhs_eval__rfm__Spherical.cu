@@ -3,22 +3,22 @@
 #include "../BHaH_gpu_function_prototypes.h"
 #include <functional>
 
-REAL return_zero(const REAL&,const REAL&, const REAL&) { return 0.; }
-REAL upwind_eval_func(const REAL& upwind, const REAL& a, const REAL& b) {
+__device__ REAL return_zero(const REAL&,const REAL&, const REAL&) { return 0.; }
+__device__ REAL upwind_eval_func(const REAL& upwind, const REAL& a, const REAL& b) {
     return upwind * (-a + b) + a;
 }
 
 struct Upwind_eval_base {
     
-    Upwind_eval_base () : f_(nullptr), upwind_(0.) {}
-    Upwind_eval_base (const REAL & upwind) : upwind_(upwind) {
+    __device__  Upwind_eval_base () : f_(nullptr), upwind_(0.) {}
+    __device__  Upwind_eval_base (const REAL & upwind) : upwind_(upwind) {
         if(upwind <= 0) {
             f_ = &return_zero;
         } else {
             f_ = &upwind_eval_func;
         }
     }
-    REAL operator() (const REAL& a, const REAL& b) const {
+    __device__ REAL operator() (const REAL& a, const REAL& b) {
         return f_(upwind_, a, b);
     }
 
