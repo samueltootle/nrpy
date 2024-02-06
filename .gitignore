@@ -1,7 +1,14 @@
-project
 *.sqlite
 *.nsys-rep
 Makefile
 __pycache__
 *.o
-*.c
+project/two_blackholes_collide_nosimd*
+project/two_blackholes_collide_simd*
+project/wavetoy_*simd*
+*.out
+*.txt
+*.png
+*.gif
+
+
