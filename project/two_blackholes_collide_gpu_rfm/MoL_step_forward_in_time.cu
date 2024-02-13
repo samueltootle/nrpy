@@ -45,6 +45,12 @@ void MoL_step_forward_in_time(commondata_struct *restrict commondata, griddata_s
             k_odd_gfs,
             k_even_gfs,
             auxevol_gfs,commondata->dt);
+    cudaDeviceSynchronize();
+    // for(int i = 0; i < NUM_EVOL_GFS; ++i)
+    //   print_var<<<1,1>>>(k_odd_gfs, IDX4(i, 34, 18 , 18));
+    // cudaDeviceSynchronize();
+    // printf("**************************_rk1\n");
+
     if (strncmp(commondata->outer_bc_type, "extrapolation", 50) == 0) {
       apply_bcs_outerextrap_and_inner(commondata, params, bcstruct, k_odd_gfs);
     }
@@ -84,6 +90,11 @@ void MoL_step_forward_in_time(commondata_struct *restrict commondata, griddata_s
             k_odd_gfs,
             k_even_gfs,
             auxevol_gfs,commondata->dt);
+    cudaDeviceSynchronize();
+    // for(int i = 0; i < NUM_EVOL_GFS; ++i)
+    //   print_var<<<1,1>>>(k_even_gfs, IDX4(i, 34, 18 , 18));
+    // cudaDeviceSynchronize();
+    // printf("**************************_rk2\n");
     if (strncmp(commondata->outer_bc_type, "extrapolation", 50) == 0) {
       apply_bcs_outerextrap_and_inner(commondata, params, bcstruct, k_even_gfs);
     }

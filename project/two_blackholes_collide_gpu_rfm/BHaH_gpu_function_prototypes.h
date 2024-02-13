@@ -43,7 +43,7 @@ void print_params();
 template<class T>
 __global__
 void print_var(T * data, size_t index) {
-    printf("%1.15e\n", data[index]);
+    printf("val: %1.15e\n", data[index]);
 }
 
 __host__ __device__

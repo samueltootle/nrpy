@@ -97,8 +97,10 @@ void enforce_detgammabar_equals_detgammahat__rfm__Spherical(const commondata_str
     rfmstruct->f0_of_xx0, rfmstruct->f1_of_xx1, 
     rfmstruct->f1_of_xx1__D1, rfmstruct->f1_of_xx1__DD11, in_gfs
   );
-    //       cudaDeviceSynchronize();
-    //   for(int i = 0; i < NUM_EVOL_GFS; ++i)
-    //     print_var<<<1,1>>>(in_gfs, IDX4(i, 3, 3, 3));
-    // printf("**************************\n");
+  cudaDeviceSynchronize();
+  // for(int i = 0; i < NUM_EVOL_GFS; ++i)
+  //   print_var<<<1,1>>>(in_gfs, IDX4(i, 34, 18 , 18));
+  // cudaDeviceSynchronize();
+  // printf("**************************_enforce\n");
+    
 }

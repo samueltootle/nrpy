@@ -10,8 +10,8 @@
 __host__
 void set_params(REAL convergence_factor, params_struct * params) {
   params->Nxx0 = 64;
-  params->Nxx1 = 12;
-  params->Nxx2 = 12;
+  params->Nxx1 = 16;
+  params->Nxx2 = 16;
 
   const REAL grid_physical_size = params->grid_physical_size;
   // Ignoring name for now since I don't see it used anywhere...

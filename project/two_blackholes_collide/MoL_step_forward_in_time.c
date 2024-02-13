@@ -35,12 +35,20 @@ void MoL_step_forward_in_time(commondata_struct *restrict commondata, griddata_s
     if (strncmp(commondata->outer_bc_type, "radiation", 50) == 0)
       apply_bcs_outerradiation_and_inner(commondata, params, bcstruct, griddata[grid].xx, gridfunctions_wavespeed, gridfunctions_f_infinity, y_n_gfs,
                                          k_odd_gfs);
+    // for (int(i) = 0; (i) < Nxx_plus_2NGHOSTS0 * Nxx_plus_2NGHOSTS1 * Nxx_plus_2NGHOSTS2 * 24; (i)++) {
     LOOP_ALL_GFS_GPS(i) {
       const REAL k_odd_gfsL = k_odd_gfs[i];
       const REAL y_n_gfsL = y_n_gfs[i];
       y_nplus1_running_total_gfs[i] = (1.0 / 6.0) * commondata->dt * k_odd_gfsL;
       k_odd_gfs[i] = (1.0 / 2.0) * commondata->dt * k_odd_gfsL + y_n_gfsL;
+      // printf("%d - %d\n", i, IDX4(VETU2GF, 34, 18 , 18));
+      // if(i == IDX4(VETU2GF, 34, 18 , 18))
+      //   printf("RK1: %1.15e - %1.15e - %1.15e\n", k_odd_gfsL, y_nplus1_running_total_gfs[i], k_odd_gfs[i]);
     }
+    // for(int i = 0; i < NUM_EVOL_GFS; ++i)
+    //   print_var(k_odd_gfs, IDX4(i, 34, 18 , 18));
+    // printf("**************************_rk1\n");
+    
     if (strncmp(commondata->outer_bc_type, "extrapolation", 50) == 0) {
       apply_bcs_outerextrap_and_inner(commondata, params, bcstruct, k_odd_gfs);
     }
@@ -79,6 +87,10 @@ void MoL_step_forward_in_time(commondata_struct *restrict commondata, griddata_s
       y_nplus1_running_total_gfs[i] = (1.0 / 3.0) * commondata->dt * k_even_gfsL + y_nplus1_running_total_gfsL;
       k_even_gfs[i] = (1.0 / 2.0) * commondata->dt * k_even_gfsL + y_n_gfsL;
     }
+    // for(int i = 0; i < NUM_EVOL_GFS; ++i)
+      // print_var(k_even_gfs, IDX4(i, 34, 18 , 18));
+    // printf("**************************_rk2\n");
+    
     if (strncmp(commondata->outer_bc_type, "extrapolation", 50) == 0)
       apply_bcs_outerextrap_and_inner(commondata, params, bcstruct, k_even_gfs);
     enforce_detgammabar_equals_detgammahat(commondata, params, rfmstruct, k_even_gfs);

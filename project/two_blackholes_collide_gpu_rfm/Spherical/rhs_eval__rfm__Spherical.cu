@@ -210,13 +210,13 @@ void rhs_eval__rfm__Spherical_gpu(const REAL eta, const REAL *restrict _f0_of_xx
   const int stride1 = blockDim.y * gridDim.y;
   const int stride2 = blockDim.z * gridDim.z;
 
-  for(size_t i2 = tid2+NGHOSTS; i2 < Nxx2+NGHOSTS; i2 += stride2) {
-    for(size_t i1 = tid1+NGHOSTS; i1 < Nxx1+NGHOSTS; i1 += stride1) {
+  for(int i2 = tid2+NGHOSTS; i2 < Nxx2+NGHOSTS; i2 += stride2) {
+    for(int i1 = tid1+NGHOSTS; i1 < Nxx1+NGHOSTS; i1 += stride1) {
       const REAL f1_of_xx1 = _f1_of_xx1[i1];
       const REAL f1_of_xx1__D1 = _f1_of_xx1__D1[i1];
       __attribute_maybe_unused__ const REAL f1_of_xx1__DD11 = _f1_of_xx1__DD11[i1];
 
-      for(size_t i0 = tid0+NGHOSTS; i0 < Nxx0+NGHOSTS; i0 += stride0) {
+      for(int i0 = tid0+NGHOSTS; i0 < Nxx0+NGHOSTS; i0 += stride0) {
         const REAL f0_of_xx0 = _f0_of_xx0[i0];
         /*
          * NRPy+-Generated GF Access/FD Code, Step 1 of 3:
@@ -1911,8 +1911,10 @@ void rhs_eval__rfm__Spherical(const commondata_struct *restrict commondata, cons
     rfmstruct->f1_of_xx1__D1, rfmstruct->f1_of_xx1__DD11, auxevol_gfs, in_gfs, rhs_gfs);
       // print_params<<<1,1>>>();
     cudaDeviceSynchronize();
-    for(int i = 0; i < NUM_EVOL_GFS; ++i)
-        print_var<<<1,1>>>(rhs_gfs, IDX4(i, 34, 18 , 18));
-    printf("**************************\n");
-}
+    // for(int i = 0; i < NUM_EVOL_GFS; ++i)
+    //     print_var<<<1,1>>>(rhs_gfs, IDX4(i, 34, 18 , 18));
+    // cudaDeviceSynchronize();
+    // printf("**************************_rhs\n");
+    
+    }
 #endif

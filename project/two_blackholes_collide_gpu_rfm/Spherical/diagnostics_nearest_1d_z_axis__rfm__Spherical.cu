@@ -34,7 +34,7 @@ void diagnostics_nearest_1d_z_axis__rfm__Spherical(commondata_struct *restrict c
 
   // 1D output
   char filename[256];
-  sprintf(filename, "out1d-z-conv_factor%.2f-t%08.2f.txt", convergence_factor, time);
+  sprintf(filename, "out1d-z-conv_factor%.2f-t%08.4f.txt", convergence_factor, time);
   FILE *outfile = (nn == 0) ? fopen(filename, "w") : fopen(filename, "a");
   if (!outfile) {
     fprintf(stderr, "Error: Cannot open file %s for writing.\n", filename);

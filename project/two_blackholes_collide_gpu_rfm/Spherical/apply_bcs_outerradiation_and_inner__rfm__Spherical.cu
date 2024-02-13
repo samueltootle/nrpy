@@ -203,7 +203,7 @@ void apply_bcs_outerradiation_and_inner__rfm__Spherical(const commondata_struct 
                                                         const bc_struct *restrict bcstruct, REAL * xx[3],
                                                         const REAL *restrict custom_wavespeed, const REAL *restrict custom_f_infinity,
                                                         REAL *restrict gfs, REAL *restrict rhs_gfs) {
-
+#include "../set_CodeParameters.h"
   ////////////////////////////////////////////////////////
   // STEP 1 of 2: Apply BCs to pure outer boundary points.
   //              By "pure" we mean that these points are
@@ -216,6 +216,12 @@ void apply_bcs_outerradiation_and_inner__rfm__Spherical(const commondata_struct 
   //              filling in the edges as we go.
   // Spawn N OpenMP threads, either across all cores, or according to e.g., taskset.
   apply_bcs_pure_only(bcstruct, xx, custom_wavespeed, custom_f_infinity, gfs, rhs_gfs);
+  
+  cudaDeviceSynchronize();
+  // for(int i = 0; i < NUM_EVOL_GFS; ++i)
+  //     print_var<<<1,1>>>(gfs, IDX4(i, 34, 18 , 18));
+  // cudaDeviceSynchronize();
+  // printf("**************************_pure\n");
 
   ///////////////////////////////////////////////////////
   // STEP 2 of 2: Apply BCs to inner boundary points.
@@ -226,5 +232,10 @@ void apply_bcs_outerradiation_and_inner__rfm__Spherical(const commondata_struct 
   //              populated first; hence this being
   //              STEP 2 OF 2.
   apply_bcs_inner_only(commondata, params, bcstruct, rhs_gfs); // <- apply inner BCs to RHS gfs only
+  
+  cudaDeviceSynchronize();
+  // for(int i = 0; i < NUM_EVOL_GFS; ++i)
+  //     print_var<<<1,1>>>(gfs, IDX4(i, 34, 18 , 18));
   // cudaDeviceSynchronize();
+  // printf("**************************_inner_only\n");
 }

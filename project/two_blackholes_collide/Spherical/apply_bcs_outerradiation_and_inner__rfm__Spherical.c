@@ -176,15 +176,18 @@ void apply_bcs_outerradiation_and_inner__rfm__Spherical(const commondata_struct 
               rhs_gfs[IDX4pt(which_gf, idx3)] = radiation_bcs(commondata, params, bcstruct, xx, gfs, rhs_gfs, which_gf, custom_wavespeed[which_gf],
                                                               custom_f_infinity[which_gf], i0, i1, i2, FACEX0, FACEX1, FACEX2);
             // printf("PURE: %d: %f\n", idx3, rhs_gfs[IDX4pt(which_gf, idx3)]);
-            if(idx3 == IDX3(34, 18 , 18)) {
-            printf("GF %d: %f\n", which_gf,
-            rhs_gfs[IDX4pt(which_gf, idx3)]);
-        }
+        //     if(idx3 == IDX3(34, 18 , 18)) {
+        //     printf("GF %d: %f\n", which_gf,
+        //     rhs_gfs[IDX4pt(which_gf, idx3)]);
+        // }
             }
           }
         }
       }
   }
+  // for(int i = 0; i < NUM_EVOL_GFS; ++i)
+  //   print_var(gfs, IDX4(i, 34, 18 , 18));
+  // printf("**************************_pure\n");
 
   ///////////////////////////////////////////////////////
   // STEP 2 of 2: Apply BCs to inner boundary points.
@@ -195,4 +198,7 @@ void apply_bcs_outerradiation_and_inner__rfm__Spherical(const commondata_struct 
   //              populated first; hence this being
   //              STEP 2 OF 2.
   apply_bcs_inner_only(commondata, params, bcstruct, rhs_gfs); // <- apply inner BCs to RHS gfs only
+  // for(int i = 0; i < NUM_EVOL_GFS; ++i)
+  //   print_var(gfs, IDX4(i, 34, 18 , 18));
+  // printf("**************************_inner_only\n");
 }

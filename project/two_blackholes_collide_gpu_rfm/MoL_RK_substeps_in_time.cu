@@ -11,8 +11,10 @@ void rk_substep1_gpu(const REAL *restrict y_n_gfs,
                 const REAL *restrict k_even_gfs,
                 REAL *restrict auxevol_gfs,
                 REAL const dt,
-                size_t const N) {
-    
+                int const N) {
+    int const Nxx_plus_2NGHOSTS0 = d_params.Nxx_plus_2NGHOSTS0;
+    int const Nxx_plus_2NGHOSTS1 = d_params.Nxx_plus_2NGHOSTS1;
+    int const Nxx_plus_2NGHOSTS2 = d_params.Nxx_plus_2NGHOSTS2;
     int index = blockIdx.x * blockDim.x + threadIdx.x;
     int stride = blockDim.x * gridDim.x;
 
@@ -25,6 +27,9 @@ void rk_substep1_gpu(const REAL *restrict y_n_gfs,
         const REAL y_n_gfsL = y_n_gfs[i];
         y_nplus1_running_total_gfs[i] = rk_weight * dt * k_odd_gfsL;
         k_odd_gfs[i] = dt_step_factor *dt * k_odd_gfsL + y_n_gfsL;
+        
+        // if(i == IDX4(VETU2GF, 34, 6 , 6))
+            // printf("RK1: %1.15e - %1.15e - %1.15e\n", k_odd_gfsL, y_nplus1_running_total_gfs[i], k_odd_gfs[i]);
     }
 }
 
@@ -52,7 +57,7 @@ void rk_substep1(params_struct *restrict params,
                                                    k_odd_gfs,
                                                    k_even_gfs,
                                                    auxevol_gfs,
-                                                   dt, (size_t) N);
+                                                   dt, N);
     cudaCheckErrors(rhs_substep1_gpu, "kernel failed")
     // testcpy(y_n_gfs);
 }
