@@ -43,4 +43,4 @@ typedef void (*ID_pfunc)(const commondata_struct *restrict commondata, const REA
         } \
     } while (0);
 
-#define _RHS_REIMAGINE_
+#define _RHS_ORIGINAL_
