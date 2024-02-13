@@ -14,7 +14,7 @@ cpu_dict = {
     #                   'ls' : '-',
     #                   'alpha' : 1,
     #                   'lw' : 3},
-    "NOSIMD_PRE"   : {'folder' : "../two_blackholes_collide_nosimd_rfm/O2/",
+    "NOSIMD_PRE"   : {'folder' : "../two_blackholes_collide/",
                       'ls' : '--',
                       'alpha' : 0.7,
                       'lw' : 3},
@@ -31,7 +31,7 @@ cpu_dict = {
     #                    'alpha' : 0.7,
     #                    'lw' : 3},
 }
-CPU = True
+CPU = False
 def plot(direction,f):
     def get_time():
         start = f.find("-t")+2
@@ -87,7 +87,7 @@ def plot(direction,f):
                 ls=ls,
                 alpha=alpha,
                 lw=lw)  
-        axs['Top'].plot(g_xx, 
+        axs['Top'].scatter(g_xx, 
                 np.fabs(1. - g_alphaL/c_alphaL), 
                 # np.fabs(1. - g_log10sqrtM2L/c_log10sqrtM2L), 
                 # label=f"{label}_{direction}",

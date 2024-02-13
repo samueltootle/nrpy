@@ -2,7 +2,7 @@ CC = nvcc  # assigns the value CC to gcc only if environment variable CC is not 
 # CFLAGS = -O2 -march=native -g -Wall -Wno-unused-variable -std=gnu99
 #CFLAGS = -O3 -funroll-loops -march=native -g -Wall -Wno-unused-variable -std=gnu99 -std=gnu99
 #CFLAGS = -O2 -g -Wall -Wno-unused-variable -Wno-unknown-pragmas -std=gnu99
-CFLAGS = -Xcompiler -g -Xptxas=-O3 -arch=native -O3 -Xcompiler=-march=native -Xcompiler -Wall --forward-unknown-to-host-compiler --Werror cross-execution-space-call --relocatable-device-code=true -allow-unsupported-compiler
+CFLAGS = -Xcompiler -g -Xptxas=-O2 -arch=native -O2 -Xcompiler=-march=native -Xcompiler -Wall --forward-unknown-to-host-compiler --Werror cross-execution-space-call --relocatable-device-code=true -allow-unsupported-compiler
 
 INCLUDEDIRS =
 LDFLAGS = -lm
