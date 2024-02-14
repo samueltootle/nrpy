@@ -85,7 +85,7 @@ int main(int argc, const char *argv[]) {
 
   // Step 5: MAIN SIMULATION LOOP
   while (commondata.time < commondata.t_final) { // Main loop to progress forward in time.
-  // for(int i =0; i < 1; ++i) {
+  // for(int i =0; i < 10; ++i) {
     // Step 5.a: Main loop, part 1: Output diagnostics
     diagnostics(&commondata, griddata);
     // abort();

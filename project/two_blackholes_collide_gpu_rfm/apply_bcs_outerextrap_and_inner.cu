@@ -84,9 +84,9 @@ void apply_bcs_outerextrap_and_inner(const commondata_struct *restrict commondat
   apply_bcs_outerextrap_and_inner_only(bcstruct, gfs);
   cudaDeviceSynchronize();
   // for(int i = 0; i < NUM_EVOL_GFS; ++i)
-  //     print_var<<<1,1>>>(gfs, IDX4(i, 34, 18 , 18));
+  //     print_var<<<1,1>>>(gfs, IDX4(i, 34, 10 , 10));
   // cudaDeviceSynchronize();
-  // printf("**************************_outer\n");
+  // printf("**************************_extr_pure\n");
   
   ///////////////////////////////////////////////////////
   // STEP 2 of 2: Apply BCs to inner boundary points.
@@ -99,7 +99,7 @@ void apply_bcs_outerextrap_and_inner(const commondata_struct *restrict commondat
   apply_bcs_inner_only(commondata, params, bcstruct, gfs);
   cudaDeviceSynchronize();
   // for(int i = 0; i < NUM_EVOL_GFS; ++i)
-  //     print_var<<<1,1>>>(gfs, IDX4(i, 34, 18 , 18));
+  //     print_var<<<1,1>>>(gfs, IDX4(i, 34, 10, 10));
   // cudaDeviceSynchronize();
-  // printf("**************************_inner\n");
+  // printf("**************************_extr_inner\n");
 }

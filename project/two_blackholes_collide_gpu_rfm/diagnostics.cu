@@ -46,7 +46,7 @@ void diagnostics(commondata_struct *restrict commondata, griddata_struct *restri
       // diagnostics_nearest_2d_yz_plane(commondata, params, xx, &griddata[grid].gridfuncs);
     }
   }
-  progress_indicator(commondata, griddata);
-  if (commondata->time + commondata->dt > commondata->t_final)
-    printf("\n");
+  // progress_indicator(commondata, griddata);
+  // if (commondata->time + commondata->dt > commondata->t_final)
+  //   printf("\n");
 }

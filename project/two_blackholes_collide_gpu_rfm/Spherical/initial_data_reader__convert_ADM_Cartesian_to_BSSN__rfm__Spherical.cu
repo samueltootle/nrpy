@@ -471,7 +471,58 @@ void initial_data_lambdaU_grid_interior_gpu(REAL *restrict _xx0, REAL *restrict 
     }   // END LOOP: for (int i1 = NGHOSTS; i1 < NGHOSTS+Nxx1; i1++)
   }     // END LOOP: for (int i2 = NGHOSTS; i2 < NGHOSTS+Nxx2; i2++)
 }
+#include <curand_kernel.h>
+__device__ void perturb_ID(initial_data_struct *restrict initial_data, unsigned long seed, int tid) {
 
+  curandState state;
+
+  curand_init(seed, tid, 0, &state);
+
+  REAL perturbation = (1. + 1e-12 * curand_uniform(&state));
+  // const REAL alpha = initial_data->alpha;
+
+  // const REAL betaSphorCartU0 = initial_data->betaSphorCartU0;
+  // const REAL betaSphorCartU1 = initial_data->betaSphorCartU1;
+  // const REAL betaSphorCartU2 = initial_data->betaSphorCartU2;
+
+  // const REAL BSphorCartU0 = initial_data->BSphorCartU0;
+  // const REAL BSphorCartU1 = initial_data->BSphorCartU1;
+  // const REAL BSphorCartU2 = initial_data->BSphorCartU2;
+
+  // const REAL gammaSphorCartDD00 = initial_data->gammaSphorCartDD00;
+  // const REAL gammaSphorCartDD01 = initial_data->gammaSphorCartDD01;
+  // const REAL gammaSphorCartDD02 = initial_data->gammaSphorCartDD02;
+  // const REAL gammaSphorCartDD11 = initial_data->gammaSphorCartDD11;
+  // const REAL gammaSphorCartDD12 = initial_data->gammaSphorCartDD12;
+  // const REAL gammaSphorCartDD22 = initial_data->gammaSphorCartDD22;
+
+  // const REAL KSphorCartDD00 = initial_data->KSphorCartDD00;
+  // const REAL KSphorCartDD01 = initial_data->KSphorCartDD01;
+  // const REAL KSphorCartDD02 = initial_data->KSphorCartDD02;
+  // const REAL KSphorCartDD11 = initial_data->KSphorCartDD11;
+  // const REAL KSphorCartDD12 = initial_data->KSphorCartDD12;
+  // const REAL KSphorCartDD22 = initial_data->KSphorCartDD22;
+
+  initial_data->BSphorCartU0   *= perturbation;
+  initial_data->BSphorCartU0   *= perturbation;
+  initial_data->BSphorCartU0   *= perturbation;
+  initial_data->KSphorCartDD00 *= perturbation;
+  initial_data->KSphorCartDD01 *= perturbation;
+  initial_data->KSphorCartDD02 *= perturbation;
+  initial_data->KSphorCartDD11 *= perturbation;
+  initial_data->KSphorCartDD12 *= perturbation;
+  initial_data->KSphorCartDD22 *= perturbation;
+  initial_data->alpha          *= perturbation;
+  initial_data->betaSphorCartU0    *= perturbation;
+  initial_data->betaSphorCartU1    *= perturbation;
+  initial_data->betaSphorCartU2    *= perturbation;
+  initial_data->gammaSphorCartDD00 *= perturbation;
+  initial_data->gammaSphorCartDD01 *= perturbation;
+  initial_data->gammaSphorCartDD02 *= perturbation;
+  initial_data->gammaSphorCartDD11 *= perturbation;
+  initial_data->gammaSphorCartDD12 *= perturbation;
+  initial_data->gammaSphorCartDD22 *= perturbation;
+}
 __global__
 void initial_data_reader__convert_ADM_Cartesian_to_BSSN__rfm__Spherical_gpu(const commondata_struct *restrict commondata,
   REAL *restrict _xx0, REAL *restrict _xx1, REAL *restrict _xx2, REAL *restrict y_n_gfs, 
@@ -500,12 +551,67 @@ void initial_data_reader__convert_ADM_Cartesian_to_BSSN__rfm__Spherical_gpu(cons
           xx_to_Cart(xx, i0, i1, i2, xCart);
           initial_data_struct initial_data;
           ID_function(commondata, xCart, ID_persist, &initial_data);
+          // perturb_ID(&initial_data, 0, tid0);
 
           ADM_Cart_basis_struct ADM_Cart_basis;
           ADM_SphorCart_to_Cart(commondata, xCart, &initial_data, &ADM_Cart_basis);
+          // if(IDX3(i0, i1, i2) == IDX3(34, 10, 10)) {
+          //   printf("ADM: %1.15e, %1.15e, %1.15e, %1.15e, %1.15e\n"
+          //   "\t%1.15e, %1.15e, %1.15e, %1.15e, %1.15e\n"
+          //   "\t%1.15e, %1.15e, %1.15e, %1.15e, %1.15e\n"
+          //   "\t%1.15e, %1.15e, %1.15e, %1.15e\n", 
+          //     ADM_Cart_basis.BU0,
+          //     ADM_Cart_basis.BU1,
+          //     ADM_Cart_basis.BU2,
+          //     ADM_Cart_basis.KDD00,
+          //     ADM_Cart_basis.KDD01,
+          //     ADM_Cart_basis.KDD02,
+          //     ADM_Cart_basis.KDD11,
+          //     ADM_Cart_basis.KDD12,
+          //     ADM_Cart_basis.KDD22,
+          //     ADM_Cart_basis.alpha,
+          //     ADM_Cart_basis.betaU0,
+          //     ADM_Cart_basis.betaU1,
+          //     ADM_Cart_basis.betaU2,
+          //     ADM_Cart_basis.gammaDD00,
+          //     ADM_Cart_basis.gammaDD01,
+          //     ADM_Cart_basis.gammaDD02,
+          //     ADM_Cart_basis.gammaDD11,
+          //     ADM_Cart_basis.gammaDD12,
+          //     ADM_Cart_basis.gammaDD22
+          //   );
+          // }
 
           BSSN_Cart_basis_struct BSSN_Cart_basis;
           ADM_Cart_to_BSSN_Cart(commondata, xCart, &ADM_Cart_basis, &BSSN_Cart_basis);
+          // if(IDX3(i0, i1, i2) == IDX3(34, 10, 10)) {
+          //   printf("BSSN: %1.15e, %1.15e, %1.15e, %1.15e, %1.15e\n"
+          //   "\t%1.15e, %1.15e, %1.15e, %1.15e, %1.15e\n"
+          //   "\t%1.15e, %1.15e, %1.15e, %1.15e, %1.15e\n"
+          //   "\t%1.15e, %1.15e, %1.15e, %1.15e, %1.15e\n"
+          //   "\t%1.15e\n",             
+          //     BSSN_Cart_basis.BU0,
+          //     BSSN_Cart_basis.BU1,
+          //     BSSN_Cart_basis.BU2,
+          //     BSSN_Cart_basis.AbarDD00,
+          //     BSSN_Cart_basis.AbarDD01,
+          //     BSSN_Cart_basis.AbarDD02,
+          //     BSSN_Cart_basis.AbarDD11,
+          //     BSSN_Cart_basis.AbarDD12,
+          //     BSSN_Cart_basis.AbarDD22,
+          //     BSSN_Cart_basis.alpha,
+          //     BSSN_Cart_basis.cf,
+          //     BSSN_Cart_basis.trK,
+          //     BSSN_Cart_basis.betaU0,
+          //     BSSN_Cart_basis.betaU1,
+          //     BSSN_Cart_basis.betaU2,
+          //     BSSN_Cart_basis.gammabarDD00,
+          //     BSSN_Cart_basis.gammabarDD01,
+          //     BSSN_Cart_basis.gammabarDD02,
+          //     BSSN_Cart_basis.gammabarDD11,
+          //     BSSN_Cart_basis.gammabarDD12,
+          //     BSSN_Cart_basis.gammabarDD22);
+          // }
 
           rescaled_BSSN_rfm_basis_struct rescaled_BSSN_rfm_basis;
           BSSN_Cart_to_rescaled_BSSN_rfm(commondata, xCart, &BSSN_Cart_basis, &rescaled_BSSN_rfm_basis);
@@ -537,45 +643,6 @@ void initial_data_reader__convert_ADM_Cartesian_to_BSSN__rfm__Spherical_gpu(cons
           y_n_gfs[IDX4pt(LAMBDAU0GF, idx3)] = 0.0;
           y_n_gfs[IDX4pt(LAMBDAU1GF, idx3)] = 0.0;
           y_n_gfs[IDX4pt(LAMBDAU2GF, idx3)] = 0.0;
-
-          // if(idx3 == centeridx || idx3 == arbidx || idx3 == edgeidx) {
-          //   // printf("Cart %d - %1.15e, %1.15e, %1.15e\n", idx3, xCart[0], xCart[1], xCart[2]);
-          //   // printf("Cart %d - %1.15e, %1.15e, %1.15e, %1.15e, %1.15e, %1.15e, %1.15e\n", 
-          //   //   idx3, initial_data.alpha, 
-          //   //   initial_data.gammaSphorCartDD00, initial_data.gammaSphorCartDD01, initial_data.gammaSphorCartDD02,
-          //   //   initial_data.KSphorCartDD11, initial_data.KSphorCartDD12, initial_data.KSphorCartDD22);
-          //   // printf("Cart %d - %1.15e, %1.15e, %1.15e, %1.15e, %1.15e, %1.15e, %1.15e\n", 
-          //   //   idx3, ADM_Cart_basis.alpha,
-          //   //   ADM_Cart_basis.BU0, ADM_Cart_basis.BU1, ADM_Cart_basis.BU2,
-          //   //   ADM_Cart_basis.gammaDD00, ADM_Cart_basis.gammaDD01, ADM_Cart_basis.gammaDD02);
-            
-          //   // BSSN_Cart - CPU code stores gamma matrix with 9.999999999999998e-01 instead of 1 in some places
-          //   // GPU code stores at 1e000000000e0
-          //   // printf("Cart %d - %1.15e, %1.15e, %1.15e, %1.15e, "
-          //   //       "%1.15e, %1.15e, %1.15e, "
-          //   //       "%1.15e, %1.15e, %1.15e\n", 
-          //   //   idx3, BSSN_Cart_basis.alpha,
-          //   //   BSSN_Cart_basis.BU0, BSSN_Cart_basis.BU1, BSSN_Cart_basis.BU2,
-          //   //   BSSN_Cart_basis.gammabarDD00, BSSN_Cart_basis.gammabarDD11, BSSN_Cart_basis.gammabarDD22,
-          //   //   BSSN_Cart_basis.AbarDD01, BSSN_Cart_basis.AbarDD02, BSSN_Cart_basis.AbarDD12);            
-          //   // printf("Cart %d - %1.15e, %1.15e, %1.15e, %1.15e, %1.15e, \n\t"
-          //   //       "%1.15e, %1.15e, %1.15e, "
-          //   //       "%1.15e, %1.15e, %1.15e\n", 
-          //   //   idx3, rescaled_BSSN_rfm_basis.alpha, rescaled_BSSN_rfm_basis.cf,
-          //   //   rescaled_BSSN_rfm_basis.betU0, rescaled_BSSN_rfm_basis.betU1, rescaled_BSSN_rfm_basis.betU2,
-          //   //   rescaled_BSSN_rfm_basis.hDD00, rescaled_BSSN_rfm_basis.hDD11, rescaled_BSSN_rfm_basis.hDD22,
-          //   //   rescaled_BSSN_rfm_basis.aDD00, rescaled_BSSN_rfm_basis.aDD11, rescaled_BSSN_rfm_basis.aDD22);  
-          //     printf("Cart %d - %1.15e, %1.15e, %1.15e, "
-          //         "%1.15e, %1.15e, \n\t"
-          //         "%1.15e, %1.15e, %1.15e, "
-          //         "\n\t\t"
-          //         "%1.15e, %1.15e, %1.15e\n", 
-          //     idx3, xCart[0], xCart[1], xCart[2],
-          //     rescaled_BSSN_rfm_basis.alpha, rescaled_BSSN_rfm_basis.cf,
-          //     BSSN_Cart_basis.gammabarDD00, BSSN_Cart_basis.gammabarDD11, BSSN_Cart_basis.gammabarDD22,
-          //     // BSSN_Cart_basis.gammabarDD02, BSSN_Cart_basis.gammabarDD12,
-          //     rescaled_BSSN_rfm_basis.hDD00, rescaled_BSSN_rfm_basis.hDD11, rescaled_BSSN_rfm_basis.hDD22);  
-          // }
         }
       }
     }
@@ -607,32 +674,6 @@ void initial_data_reader__convert_ADM_Cartesian_to_BSSN__rfm__Spherical(
   int const & Nxx_plus_2NGHOSTS0 = params->Nxx_plus_2NGHOSTS0;
   int const & Nxx_plus_2NGHOSTS1 = params->Nxx_plus_2NGHOSTS1;
   int const & Nxx_plus_2NGHOSTS2 = params->Nxx_plus_2NGHOSTS2;
-  auto print_gfs = [&](auto idx3) {
-          print_var<<<1,1>>>(gridfuncs->y_n_gfs,IDX4pt(ADD00GF, idx3));
-          print_var<<<1,1>>>(gridfuncs->y_n_gfs,IDX4pt(ADD01GF, idx3));
-          print_var<<<1,1>>>(gridfuncs->y_n_gfs,IDX4pt(ADD02GF, idx3));
-          print_var<<<1,1>>>(gridfuncs->y_n_gfs,IDX4pt(ADD11GF, idx3));
-          print_var<<<1,1>>>(gridfuncs->y_n_gfs,IDX4pt(ADD12GF, idx3));
-          print_var<<<1,1>>>(gridfuncs->y_n_gfs,IDX4pt(ADD22GF, idx3));
-          print_var<<<1,1>>>(gridfuncs->y_n_gfs,IDX4pt(ALPHAGF, idx3));
-          print_var<<<1,1>>>(gridfuncs->y_n_gfs,IDX4pt(BETU0GF, idx3));
-          print_var<<<1,1>>>(gridfuncs->y_n_gfs,IDX4pt(BETU1GF, idx3));
-          print_var<<<1,1>>>(gridfuncs->y_n_gfs,IDX4pt(BETU2GF, idx3));
-          print_var<<<1,1>>>(gridfuncs->y_n_gfs,IDX4pt(CFGF, idx3));
-          print_var<<<1,1>>>(gridfuncs->y_n_gfs,IDX4pt(HDD00GF, idx3));
-          print_var<<<1,1>>>(gridfuncs->y_n_gfs,IDX4pt(HDD01GF, idx3));
-          print_var<<<1,1>>>(gridfuncs->y_n_gfs,IDX4pt(HDD02GF, idx3));
-          print_var<<<1,1>>>(gridfuncs->y_n_gfs,IDX4pt(HDD11GF, idx3));
-          print_var<<<1,1>>>(gridfuncs->y_n_gfs,IDX4pt(HDD12GF, idx3));
-          print_var<<<1,1>>>(gridfuncs->y_n_gfs,IDX4pt(HDD22GF, idx3));          
-          print_var<<<1,1>>>(gridfuncs->y_n_gfs,IDX4pt(TRKGF, idx3));
-          print_var<<<1,1>>>(gridfuncs->y_n_gfs,IDX4pt(VETU0GF, idx3));
-          print_var<<<1,1>>>(gridfuncs->y_n_gfs,IDX4pt(VETU1GF, idx3));
-          print_var<<<1,1>>>(gridfuncs->y_n_gfs,IDX4pt(VETU2GF, idx3));
-          print_var<<<1,1>>>(gridfuncs->y_n_gfs,IDX4pt(LAMBDAU0GF, idx3));
-          print_var<<<1,1>>>(gridfuncs->y_n_gfs,IDX4pt(LAMBDAU1GF, idx3));
-          print_var<<<1,1>>>(gridfuncs->y_n_gfs,IDX4pt(LAMBDAU2GF, idx3));
-  };
 
   commondata_struct* commondata_gpu;
   cudaMalloc(&commondata_gpu, sizeof(commondata_struct));
@@ -663,6 +704,11 @@ void initial_data_reader__convert_ADM_Cartesian_to_BSSN__rfm__Spherical(
   initial_data_reader__convert_ADM_Cartesian_to_BSSN__rfm__Spherical_gpu<<<grid_blocks,block_threads>>>(
     commondata_gpu, xx[0], xx[1], xx[2], gridfuncs->y_n_gfs, ID_persist_gpu, host_function_ptr
   );
+    cudaDeviceSynchronize();
+  // for(int i = 0; i < NUM_EVOL_GFS; ++i)
+  //     print_var<<<1,1>>>(gridfuncs->y_n_gfs, IDX4(i, 34, 10 , 10));
+  // cudaDeviceSynchronize();
+  // printf("**************************_ID\n");
 
   // Now we've set all but lambda^i, which will be computed via a finite-difference of hDD.
   //    However, hDD is not correctly set in inner boundary points so we apply inner bcs first.
@@ -672,26 +718,16 @@ void initial_data_reader__convert_ADM_Cartesian_to_BSSN__rfm__Spherical(
   //    to the grid interior. It therefore does not account for parity conditions across
   //    symmetry boundaries being correct.
   apply_bcs_inner_only(commondata, params, bcstruct, gridfuncs->y_n_gfs);
+  // for(int i = 0; i < NUM_EVOL_GFS; ++i)
+  //     print_var<<<1,1>>>(gridfuncs->y_n_gfs, IDX4(i, 34, 10 , 10));
+  // cudaDeviceSynchronize();
+  // printf("**************************_ID_inner_only\n");
 
   initial_data_lambdaU_grid_interior(commondata, params, xx, gridfuncs->y_n_gfs);
   cudaFree(commondata_gpu); 
   cudaFree(ID_persist_gpu);
-  
-  // Here we find differences between CPU and GPU code specifically with small values near zero
-  // and evaluation of trig functions resulting in larger relative differences in values especially
-  // due to sign changes about zero.
-  // printf("center: \n");
+  // for(int i = 0; i < NUM_EVOL_GFS; ++i)
+  //   print_var<<<1,1>>>(gridfuncs->y_n_gfs, IDX4(i, 34, 10 , 10));
   // cudaDeviceSynchronize();
-  // int idx3 = IDX3(Nxx_plus_2NGHOSTS0/2, Nxx_plus_2NGHOSTS1/2, Nxx_plus_2NGHOSTS2/2);
-  // print_gfs(idx3);
-  
-
-  // printf("edge: \n");
-  // print_gfs(edgeidx);
-  // cudaDeviceSynchronize();
-
-  // printf("arb: \n");
-  // print_gfs(arbidx);
-  // cudaDeviceSynchronize();
-  // abort();
+  // printf("**************************_ID_lambda\n");
 }

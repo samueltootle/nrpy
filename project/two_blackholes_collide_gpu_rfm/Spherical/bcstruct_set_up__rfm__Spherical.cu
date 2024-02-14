@@ -314,7 +314,7 @@ void count_ib_points(uint * n_ib, REAL *restrict _xx0, REAL *restrict _xx1, REAL
 
     // // warp mask - says all threads are involved in shuffle
     // // 0xFFFFFFFFU in binary is 32 1's.
-    unsigned mask = 0xFFFFFFFFU;
+    unsigned int mask = 0xFFFFFFFFU;
 
     // lane = which thread am I in the warp
     uint lane = tid % warpSize;
@@ -613,6 +613,7 @@ void bcstruct_set_up__rfm__Spherical(const commondata_struct *restrict commondat
   {
     // Get number of inner boundary points
     uint num_inner = compute_num_inner(xx, params);
+    // printf("INNER: %d\n", num_inner);
     // Allocate storage for mapping
     bcstruct->bc_info.num_inner_boundary_points = num_inner;
     cudaMalloc(&bcstruct->inner_bc_array, sizeof(innerpt_bc_struct) * num_inner);
@@ -632,7 +633,7 @@ void bcstruct_set_up__rfm__Spherical(const commondata_struct *restrict commondat
   
   int imin[3] = {NGHOSTS, NGHOSTS, NGHOSTS};
   int imax[3] = {Nxx_plus_2NGHOSTS0 - NGHOSTS, Nxx_plus_2NGHOSTS1 - NGHOSTS, Nxx_plus_2NGHOSTS2 - NGHOSTS};
-for (int which_gz = 0; which_gz < NGHOSTS; which_gz++) {
+  for (int which_gz = 0; which_gz < NGHOSTS; which_gz++) {
     const int x0min_face_range[6] = {imin[0] - 1, imin[0], imin[1], imax[1], imin[2], imax[2]};
     imin[0]--;
     const int x0max_face_range[6] = {imax[0], imax[0] + 1, imin[1], imax[1], imin[2], imax[2]};

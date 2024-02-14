@@ -219,7 +219,7 @@ void apply_bcs_outerradiation_and_inner__rfm__Spherical(const commondata_struct 
   
   cudaDeviceSynchronize();
   // for(int i = 0; i < NUM_EVOL_GFS; ++i)
-  //     print_var<<<1,1>>>(gfs, IDX4(i, 34, 18 , 18));
+  //     print_var<<<1,1>>>(gfs, IDX4(i, 34, 10 , 10));
   // cudaDeviceSynchronize();
   // printf("**************************_pure\n");
 
@@ -235,7 +235,7 @@ void apply_bcs_outerradiation_and_inner__rfm__Spherical(const commondata_struct 
   
   cudaDeviceSynchronize();
   // for(int i = 0; i < NUM_EVOL_GFS; ++i)
-  //     print_var<<<1,1>>>(gfs, IDX4(i, 34, 18 , 18));
+  //     print_var<<<1,1>>>(gfs, IDX4(i, 34, 10, 10));
   // cudaDeviceSynchronize();
   // printf("**************************_inner_only\n");
 }
