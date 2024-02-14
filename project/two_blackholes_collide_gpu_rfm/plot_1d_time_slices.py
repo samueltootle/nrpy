@@ -26,24 +26,24 @@ cpu_dict = {
     #                   'ls' : '-',
     #                   'alpha' : 1,
     #                   'lw' : 3},
-    #  "SIMD_PRE"     : {'folder' : "../two_blackholes_collide_simd_rfm_clean",
+    #  "GPU_PERT"     : {'folder' : "./output-pert",
     #                    'ls' : '--',
     #                    'alpha' : 0.7,
     #                    'lw' : 3},
 }
 CPU = False
-def plot(direction,f):
+def plot(direction,f, directory=None):
     def get_time():
         start = f.find("-t")+2
         stop  = f.find(".txt")
         return f[start:stop]
     t = get_time()
-    direction_file = f
+    direction_file = f if directory == None else f.replace(directory,"")
     
     if CPU:
         gpu_output=f"../two_blackholes_collide_nosimd_rfm/{direction_file}"
     else:
-        gpu_output=f"./{direction_file}"
+        gpu_output=f"./{f}"
     g_xx, g_log10HL, g_log10sqrtM2L, g_cfL, g_alphaL, g_trKL =np.loadtxt(gpu_output, delimiter=' ',unpack=True)
 
     fig = plt.figure(tight_layout=True)
@@ -58,7 +58,7 @@ def plot(direction,f):
     if CPU:
         axs['Top'].set_ylabel(rf"Rel. Diff CPUO0 vs CPUO2 (alphaL)")
     else:
-        axs['Top'].set_ylabel(rf"Rel. Diff GPUO0 vs CPUO2 (alphaL)")
+        axs['Top'].set_ylabel(rf"Rel. Diff GPU vs CPUO0 (alphaL)")
     axs['Top'].set_yscale('log')
     axs['Top'].set_ylim(1e-15, 1e-5)
     # axs.plot(g_t, np.fabs(1. - g_Unum/cs_Unum), label="CPU_SIMD_PRE")
@@ -98,8 +98,8 @@ def plot(direction,f):
 for direction in ['y','z']:
     for i, f in enumerate(sorted(glob.glob(f"{out1d_files[direction]}*.*"))):
         plt.close('all')
-        plot(direction, f)
-        fnout = f"out-CPU/{direction}-{i:02d}.png" if CPU else f"out-GPU/{direction}-{i:02d}.png"
+        plot(direction, f, directory="")
+        fnout = f"out-CPU/{direction}-{i:02d}.png" if CPU else f"out-O0/{direction}-{i:02d}.png"
         # plt.legend()
         # plt.ylim(-7, -2)
         plt.savefig(fnout)
