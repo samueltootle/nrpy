@@ -499,12 +499,66 @@ void initial_data_reader__convert_ADM_Cartesian_to_BSSN__rfm__Spherical(
 
     ADM_Cart_basis_struct ADM_Cart_basis;
     ADM_SphorCart_to_Cart(commondata, params, xCart, &initial_data, &ADM_Cart_basis);
+    // if(IDX3(i0, i1, i2) == IDX3(34, 10, 10)) {
+    //   printf("ADM: %1.15e, %1.15e, %1.15e, %1.15e, %1.15e\n"
+    //   "\t%1.15e, %1.15e, %1.15e, %1.15e, %1.15e\n"
+    //   "\t%1.15e, %1.15e, %1.15e, %1.15e, %1.15e\n"
+    //   "\t%1.15e, %1.15e, %1.15e, %1.15e\n", 
+    //     ADM_Cart_basis.BU0,
+    //     ADM_Cart_basis.BU1,
+    //     ADM_Cart_basis.BU2,
+    //     ADM_Cart_basis.KDD00,
+    //     ADM_Cart_basis.KDD01,
+    //     ADM_Cart_basis.KDD02,
+    //     ADM_Cart_basis.KDD11,
+    //     ADM_Cart_basis.KDD12,
+    //     ADM_Cart_basis.KDD22,
+    //     ADM_Cart_basis.alpha,
+    //     ADM_Cart_basis.betaU0,
+    //     ADM_Cart_basis.betaU1,
+    //     ADM_Cart_basis.betaU2,
+    //     ADM_Cart_basis.gammaDD00,
+    //     ADM_Cart_basis.gammaDD01,
+    //     ADM_Cart_basis.gammaDD02,
+    //     ADM_Cart_basis.gammaDD11,
+    //     ADM_Cart_basis.gammaDD12,
+    //     ADM_Cart_basis.gammaDD22
+    //   );
+    // }
 
     BSSN_Cart_basis_struct BSSN_Cart_basis;
     ADM_Cart_to_BSSN_Cart(commondata, params, xCart, &ADM_Cart_basis, &BSSN_Cart_basis);
-    BSSN_Cart_basis.gammabarDD00 = 1;
-    BSSN_Cart_basis.gammabarDD11 = 1;
-    BSSN_Cart_basis.gammabarDD22 = 1;
+    // if(IDX3(i0, i1, i2) == IDX3(34, 10, 10)) {
+    //   printf("BSSN: %1.15e, %1.15e, %1.15e, %1.15e, %1.15e\n"
+    //   "\t%1.15e, %1.15e, %1.15e, %1.15e, %1.15e\n"
+    //   "\t%1.15e, %1.15e, %1.15e, %1.15e, %1.15e\n"
+    //   "\t%1.15e, %1.15e, %1.15e, %1.15e, %1.15e\n"
+    //   "\t%1.15e\n",             
+    //     BSSN_Cart_basis.BU0,
+    //     BSSN_Cart_basis.BU1,
+    //     BSSN_Cart_basis.BU2,
+    //     BSSN_Cart_basis.AbarDD00,
+    //     BSSN_Cart_basis.AbarDD01,
+    //     BSSN_Cart_basis.AbarDD02,
+    //     BSSN_Cart_basis.AbarDD11,
+    //     BSSN_Cart_basis.AbarDD12,
+    //     BSSN_Cart_basis.AbarDD22,
+    //     BSSN_Cart_basis.alpha,
+    //     BSSN_Cart_basis.cf,
+    //     BSSN_Cart_basis.trK,
+    //     BSSN_Cart_basis.betaU0,
+    //     BSSN_Cart_basis.betaU1,
+    //     BSSN_Cart_basis.betaU2,
+    //     BSSN_Cart_basis.gammabarDD00,
+    //     BSSN_Cart_basis.gammabarDD01,
+    //     BSSN_Cart_basis.gammabarDD02,
+    //     BSSN_Cart_basis.gammabarDD11,
+    //     BSSN_Cart_basis.gammabarDD12,
+    //     BSSN_Cart_basis.gammabarDD22);
+    // }
+    // BSSN_Cart_basis.gammabarDD00 = 1;
+    // BSSN_Cart_basis.gammabarDD11 = 1;
+    // BSSN_Cart_basis.gammabarDD22 = 1;
 
     rescaled_BSSN_rfm_basis_struct rescaled_BSSN_rfm_basis;
     BSSN_Cart_to_rescaled_BSSN_rfm(commondata, params, xCart, &BSSN_Cart_basis, &rescaled_BSSN_rfm_basis);
@@ -536,34 +590,10 @@ void initial_data_reader__convert_ADM_Cartesian_to_BSSN__rfm__Spherical(
     gridfuncs->y_n_gfs[IDX4pt(LAMBDAU0GF, idx3)] = 0.0;
     gridfuncs->y_n_gfs[IDX4pt(LAMBDAU1GF, idx3)] = 0.0;
     gridfuncs->y_n_gfs[IDX4pt(LAMBDAU2GF, idx3)] = 0.0;
-    // if(idx3 == centeridx || idx3 == arbidx || idx3 == edgeidx) {
-    //   // printf("Cart %d - %1.15e, %1.15e, %1.15e\n", idx3, xCart[0], xCart[1], xCart[2]);
-    //   // printf("Cart %d - %1.15e, %1.15e, %1.15e, %1.15e, %1.15e, %1.15e, %1.15e\n", 
-    //   //         idx3, initial_data.alpha, 
-    //   //         initial_data.gammaSphorCartDD00, initial_data.gammaSphorCartDD01, initial_data.gammaSphorCartDD02,
-    //   //         initial_data.KSphorCartDD11, initial_data.KSphorCartDD12, initial_data.KSphorCartDD22);
-    //   // printf("Cart %d - %1.15e, %1.15e, %1.15e, %1.15e, %1.15e, %1.15e, %1.15e\n", 
-    //   //         idx3, ADM_Cart_basis.alpha,
-    //   //         ADM_Cart_basis.BU0, ADM_Cart_basis.BU1, ADM_Cart_basis.BU2,
-    //   //         ADM_Cart_basis.gammaDD00, ADM_Cart_basis.gammaDD01, ADM_Cart_basis.gammaDD02);
-    //   // printf("Cart %d - %1.15e, %1.15e, %1.15e, %1.15e, "
-    //   //       "%1.15e, %1.15e, %1.15e\n", 
-    //   //         idx3, BSSN_Cart_basis.alpha,
-    //   //         BSSN_Cart_basis.BU0, BSSN_Cart_basis.BU1, BSSN_Cart_basis.BU2,
-    //   //         BSSN_Cart_basis.gammabarDD00, BSSN_Cart_basis.gammabarDD11, BSSN_Cart_basis.gammabarDD22);
-    //         printf("Cart %d - %1.15e, %1.15e, %1.15e, "
-    //               "%1.15e, %1.15e, \n\t"
-    //               "%1.15e, %1.15e, %1.15e, "
-    //               "\n\t\t"
-    //               "%1.15e, %1.15e, %1.15e\n", 
-    //           idx3, xCart[0], xCart[1], xCart[2],
-    //           rescaled_BSSN_rfm_basis.alpha, rescaled_BSSN_rfm_basis.cf,
-    //           BSSN_Cart_basis.gammabarDD00, BSSN_Cart_basis.gammabarDD11, BSSN_Cart_basis.gammabarDD22,
-    //           // BSSN_Cart_basis.gammabarDD02, BSSN_Cart_basis.gammabarDD12,
-    //           rescaled_BSSN_rfm_basis.hDD00, rescaled_BSSN_rfm_basis.hDD11, rescaled_BSSN_rfm_basis.hDD22);        
-    // }
   } // END LOOP over all gridpoints on given grid
-
+  // for(int i = 0; i < NUM_EVOL_GFS; ++i)
+  //   print_var(gridfuncs->y_n_gfs, IDX4(i, 34, 10, 10));
+  // printf("**************************_ID\n");
   // Now we've set all but lambda^i, which will be computed via a finite-difference of hDD.
   //    However, hDD is not correctly set in inner boundary points so we apply inner bcs first.
 
@@ -572,9 +602,13 @@ void initial_data_reader__convert_ADM_Cartesian_to_BSSN__rfm__Spherical(
   //    to the grid interior. It therefore does not account for parity conditions across
   //    symmetry boundaries being correct.
   apply_bcs_inner_only(commondata, params, bcstruct, gridfuncs->y_n_gfs);
-
+  // for(int i = 0; i < NUM_EVOL_GFS; ++i)
+  //   print_var(gridfuncs->y_n_gfs, IDX4(i, 34, 10, 10));
+  // printf("**************************_ID_inner\n");
   initial_data_lambdaU_grid_interior(commondata, params, xx, gridfuncs->y_n_gfs);
-  
+  // for(int i = 0; i < NUM_EVOL_GFS; ++i)
+  //   print_var(gridfuncs->y_n_gfs, IDX4(i, 34, 10, 10));
+  // printf("**************************_ID_lambda\n");
   int idx3 = IDX3(Nxx_plus_2NGHOSTS0/2, Nxx_plus_2NGHOSTS1/2, Nxx_plus_2NGHOSTS2/2);
   // printf("center: \n");
   // print_gfs(params, gridfuncs, idx3);

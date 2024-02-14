@@ -1144,6 +1144,6 @@ void Ricci_eval__rfm__Spherical(const commondata_struct *restrict commondata, co
   }     // END LOOP: for (int i2 = NGHOSTS; i2 < NGHOSTS+Nxx2; i2++)
   // printf("dxx0: %f - dxx1: %f - dxx2: %f\n", params->dxx0, params->dxx1, params->dxx2);
   // for(int i = 0; i < NUM_AUXEVOL_GFS; ++i)
-  //   print_var(auxevol_gfs, IDX4(i, 17, 18 , 18));
-  // printf("**************************\n");
+  //   print_var(auxevol_gfs, IDX4(i, 34, 10 , 10));
+  // printf("**************************_ricci\n");
 }

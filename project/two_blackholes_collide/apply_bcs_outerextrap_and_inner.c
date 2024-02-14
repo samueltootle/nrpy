@@ -62,6 +62,9 @@ void apply_bcs_outerextrap_and_inner(const commondata_struct *restrict commondat
         }
       }
   }
+  // for(int i = 0; i < NUM_EVOL_GFS; ++i)
+  //   print_var(gfs, IDX4(i, 34, 10, 10));
+  // printf("**************************_extr_pure\n");
 
   ///////////////////////////////////////////////////////
   // STEP 2 of 2: Apply BCs to inner boundary points.
@@ -71,5 +74,8 @@ void apply_bcs_outerextrap_and_inner(const commondata_struct *restrict commondat
   //              that map to outer require that outer be
   //              populated first; hence this being
   //              STEP 2 OF 2.
-  apply_bcs_inner_only(commondata, params, bcstruct, gfs);
+  // apply_bcs_inner_only(commondata, params, bcstruct, gfs);
+  //   for(int i = 0; i < NUM_EVOL_GFS; ++i)
+  //   print_var(gfs, IDX4(i, 34, 10, 10));
+  // printf("**************************_extr_inner\n");
 }

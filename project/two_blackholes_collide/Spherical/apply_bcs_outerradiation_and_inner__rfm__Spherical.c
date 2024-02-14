@@ -186,7 +186,7 @@ void apply_bcs_outerradiation_and_inner__rfm__Spherical(const commondata_struct 
       }
   }
   // for(int i = 0; i < NUM_EVOL_GFS; ++i)
-  //   print_var(gfs, IDX4(i, 34, 18 , 18));
+  //   print_var(gfs, IDX4(i, 34, 10, 10));
   // printf("**************************_pure\n");
 
   ///////////////////////////////////////////////////////
@@ -199,6 +199,6 @@ void apply_bcs_outerradiation_and_inner__rfm__Spherical(const commondata_struct 
   //              STEP 2 OF 2.
   apply_bcs_inner_only(commondata, params, bcstruct, rhs_gfs); // <- apply inner BCs to RHS gfs only
   // for(int i = 0; i < NUM_EVOL_GFS; ++i)
-  //   print_var(gfs, IDX4(i, 34, 18 , 18));
+  //   print_var(gfs, IDX4(i, 34, 10 , 10));
   // printf("**************************_inner_only\n");
 }

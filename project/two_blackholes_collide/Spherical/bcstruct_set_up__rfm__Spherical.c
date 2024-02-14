@@ -112,7 +112,8 @@ static void EigenCoord_set_x0x1x2_inbounds__i0i1i2_inbounds_single_pt(const comm
   // Next compute xxmin[i]. By definition,
   //    xx[i][j] = xxmin[i] + ((REAL)(j-NGHOSTS) + (1.0/2.0))*dxxi;
   // -> xxmin[i] = xx[i][0] - ((REAL)(0-NGHOSTS) + (1.0/2.0))*dxxi
-  const REAL xxmin[3] = {xx[0][0] - ((REAL)(0 - NGHOSTS) + (1.0 / 2.0)) * dxx0, xx[1][0] - ((REAL)(0 - NGHOSTS) + (1.0 / 2.0)) * dxx1,
+  const REAL xxmin[3] = {xx[0][0] - ((REAL)(0 - NGHOSTS) + (1.0 / 2.0)) * dxx0, 
+                         xx[1][0] - ((REAL)(0 - NGHOSTS) + (1.0 / 2.0)) * dxx1,
                          xx[2][0] - ((REAL)(0 - NGHOSTS) + (1.0 / 2.0)) * dxx2};
 
   // Finally compute i{0,1,2}_inbounds (add 0.5 to account for rounding down)
@@ -360,6 +361,7 @@ void bcstruct_set_up__rfm__Spherical(const commondata_struct *restrict commondat
     }
     // Store num_inner to bc_info:
     bcstruct->bc_info.num_inner_boundary_points = num_inner;
+    // printf("INNER: %d\n", num_inner);
 
     // Next allocate memory for inner_boundary_points:
     bcstruct->inner_bc_array = (innerpt_bc_struct *restrict)malloc(sizeof(innerpt_bc_struct) * num_inner);
@@ -417,7 +419,9 @@ void bcstruct_set_up__rfm__Spherical(const commondata_struct *restrict commondat
     //                   Also, note that face/2 --v   offsets this factor of 2 ------------------------------------------v
     bcstruct->pure_outer_bc_array[3 * which_gz + face / 2] = (outerpt_bc_struct *restrict)malloc(
         sizeof(outerpt_bc_struct) * 2 *
-        ((x0min_face_range[1] - x0min_face_range[0]) * (x0min_face_range[3] - x0min_face_range[2]) * (x0min_face_range[5] - x0min_face_range[4])));
+        ((x0min_face_range[1] - x0min_face_range[0]) * 
+        (x0min_face_range[3] - x0min_face_range[2]) * 
+        (x0min_face_range[5] - x0min_face_range[4])));
     // x0min face: Can't set bc_info->bc_loop_bounds[which_gz][face] = { i0min,i0max, ... } since it's not const :(
     for (int i = 0; i < 6; i++) {
       bcstruct->bc_info.bc_loop_bounds[which_gz][face][i] = x0min_face_range[i];
@@ -436,7 +440,9 @@ void bcstruct_set_up__rfm__Spherical(const commondata_struct *restrict commondat
     //                   Also, note that face/2 --v   offsets this factor of 2 ------------------------------------------v
     bcstruct->pure_outer_bc_array[3 * which_gz + face / 2] = (outerpt_bc_struct *restrict)malloc(
         sizeof(outerpt_bc_struct) * 2 *
-        ((x1min_face_range[1] - x1min_face_range[0]) * (x1min_face_range[3] - x1min_face_range[2]) * (x1min_face_range[5] - x1min_face_range[4])));
+        ((x1min_face_range[1] - x1min_face_range[0]) * 
+        (x1min_face_range[3] - x1min_face_range[2]) * 
+        (x1min_face_range[5] - x1min_face_range[4])));
     // x1min face: Can't set bc_info->bc_loop_bounds[which_gz][face] = { i0min,i0max, ... } since it's not const :(
     for (int i = 0; i < 6; i++) {
       bcstruct->bc_info.bc_loop_bounds[which_gz][face][i] = x1min_face_range[i];
