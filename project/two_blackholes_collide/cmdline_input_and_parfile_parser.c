@@ -2,6 +2,7 @@
 #include <ctype.h>
 #include <errno.h>
 #include <string.h>
+#include "trusted_data_dump/trusted_data_dump_prototypes.h"
 #define NUM_PARAMETERS 15 // Define the number of parameters
 #define LINE_SIZE 1024    // Define the max size of a line
 #define PARAM_SIZE 128    // Define the max param string size
@@ -278,4 +279,5 @@ void cmdline_input_and_parfile_parser(commondata_struct *restrict commondata, in
     // For options 3 and 4, we extract the last three arguments as steerable parameters
     read_double(argv[argc - number_of_steerable_parameters + 0], &commondata->convergence_factor, "convergence_factor");
   }
+  dump_common_data(commondata, "input_args");
 }
