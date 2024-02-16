@@ -11,6 +11,7 @@ void numerical_grids_and_timestep(commondata_struct *restrict commondata, gridda
   // Step 1.b: Set Nxx & Nxx_plus_2NGHOSTS, as well as dxx, invdxx, & xx based on grid_physical_size
   for (int grid = 0; grid < commondata->NUMGRIDS; grid++) {
     numerical_grid_params_Nxx_dxx_xx(commondata, &griddata[grid].params, griddata[grid].xx);
+    dump_param_struct(grid, &griddata[grid].params, "setup");
   }
 
   // Step 1.c: Allocate memory for and define reference-metric precomputation lookup tables
