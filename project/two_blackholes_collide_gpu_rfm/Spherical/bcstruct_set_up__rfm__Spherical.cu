@@ -376,6 +376,7 @@ void count_ib_points(uint * n_ib, REAL *restrict _xx0, REAL *restrict _xx1, REAL
         }
         if(tid == 0) {
             atomicAdd(n_ib, local_ib_points);
+            // printf("%d", local_ib_points);
         }
     }
 }
@@ -409,7 +410,7 @@ __host__
 }
 
 __global__
-void set_pure_outer_bc_array_gpu(int const which_gz, uint * idx2d, 
+void set_pure_outer_bc_array_gpu(int const which_gz, int * idx2d, 
   outerpt_bc_struct *  pure_outer_bc_array,
     REAL *restrict _xx0, REAL *restrict _xx1, REAL *restrict _xx2,
       int i0min, int i0max, int i1min, int i1max, int i2min, int i2max,
@@ -459,13 +460,13 @@ void set_pure_outer_bc_array_gpu(int const which_gz, uint * idx2d,
 
 __host__
 void set_pure_outer_bc_array(REAL * xx[3], bc_struct *restrict bcstruct) {
-  uint* idx2d_gpu;
-  cudaMalloc(&idx2d_gpu, sizeof(uint));
+  int* idx2d_gpu;
+  cudaMalloc(&idx2d_gpu, 1 * sizeof(int));
   cudaCheckErrors(countMalloc, "memory failure")
   for (int which_gz = 0; which_gz < NGHOSTS; which_gz++) {
     for (int dirn = 0; dirn < 3; dirn++) {
       int idx2d = 0;
-      cudaMemcpy(idx2d_gpu, &idx2d, sizeof(uint), cudaMemcpyHostToDevice);
+      cudaMemcpy(idx2d_gpu, &idx2d, sizeof(int), cudaMemcpyHostToDevice);
       cudaCheckErrors(cpy, "memory failure")
 
       {
@@ -489,7 +490,7 @@ void set_pure_outer_bc_array(REAL * xx[3], bc_struct *restrict bcstruct) {
             face);
         cudaCheckErrors(set_pure_outer_bc_array_gpu, "kernel failure")
       }
-      cudaMemcpy(&idx2d, idx2d_gpu, sizeof(uint), cudaMemcpyDeviceToHost);
+      cudaMemcpy(&idx2d, idx2d_gpu, sizeof(int), cudaMemcpyDeviceToHost);
       cudaCheckErrors(cudaMemcpy, "copy failure")
       bcstruct->bc_info.num_pure_outer_boundary_points[which_gz][dirn] = idx2d;
       // printf("pure pts: %d\n", idx2d);
@@ -499,7 +500,7 @@ void set_pure_outer_bc_array(REAL * xx[3], bc_struct *restrict bcstruct) {
 }
 
 __global__
-void set_inner_bc_array(innerpt_bc_struct *restrict inner_bc_array, REAL *restrict _xx0, REAL *restrict _xx1, REAL *restrict _xx2){
+void set_inner_bc_array(innerpt_bc_struct *restrict inner_bc_array, REAL *restrict _xx0, REAL *restrict _xx1, REAL *restrict _xx2, const int num_inner){
 
     int const & Nxx_plus_2NGHOSTS0 = d_params.Nxx_plus_2NGHOSTS0;
     int const & Nxx_plus_2NGHOSTS1 = d_params.Nxx_plus_2NGHOSTS1;
@@ -534,6 +535,9 @@ void set_inner_bc_array(innerpt_bc_struct *restrict inner_bc_array, REAL *restri
               (i1 == i0i1i2_inbounds[1]) && \
               (i2 == i0i1i2_inbounds[2]);
             if(!pure_boundary_point) {
+              if(which_inner >= num_inner) {
+                printf("PROBLEM\n");
+              }
               inner_bc_array[which_inner].dstpt = IDX3(i0, i1, i2);
               inner_bc_array[which_inner].srcpt = IDX3(i0i1i2_inbounds[0], i0i1i2_inbounds[1], i0i1i2_inbounds[2]);
               set_parity_for_inner_boundary_single_pt(_xx0[i0], _xx1[i1], _xx2[i2], x0x1x2_inbounds, which_inner, inner_bc_array);
@@ -618,8 +622,9 @@ void bcstruct_set_up__rfm__Spherical(const commondata_struct *restrict commondat
     bcstruct->bc_info.num_inner_boundary_points = num_inner;
     cudaMalloc(&bcstruct->inner_bc_array, sizeof(innerpt_bc_struct) * num_inner);
     cudaCheckErrors(cudaMalloc, "memory failure")
+    
     // Fill inner_bc_array mapping
-    set_inner_bc_array<<<1,1>>>(bcstruct->inner_bc_array,xx[0], xx[1], xx[2]);
+    set_inner_bc_array<<<1,1>>>(bcstruct->inner_bc_array,xx[0], xx[1], xx[2], num_inner);
     cudaCheckErrors(set_inner_bc_array, "kernel failure")
   }
   ////////////////////////////////////////
