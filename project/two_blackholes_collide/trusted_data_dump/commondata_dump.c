@@ -3,9 +3,7 @@
 #include "trusted_data_dump_prototypes.h"
 void dump_common_data(commondata_struct *restrict commondata, const char* suffix) {
   char fname[100] = "trusted_data_dump/dumps/commondata_";
-  char ext[4] = ".txt";
-  strcat(fname, suffix);
-  strcat(fname, ".txt");
+  sprintf(fname, "trusted_data_dump/dumps/commondata_%s.txt", suffix);
   // printf("TEST: %s\n", fname);
   FILE* fp = fopen(fname, "w");
   fprintf(fp, "%+1.15f\n", commondata->BH1_mass);
