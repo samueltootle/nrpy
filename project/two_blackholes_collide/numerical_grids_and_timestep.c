@@ -1,5 +1,6 @@
 #include "BHaH_defines.h"
 #include "BHaH_function_prototypes.h"
+#include "trusted_data_dump/trusted_data_dump_prototypes.h"
 /*
  * Set up a cell-centered grids of size grid_physical_size.
  */
@@ -37,5 +38,6 @@ void numerical_grids_and_timestep(commondata_struct *restrict commondata, gridda
     commondata->nn_0 = 0;
     commondata->t_0 = 0.0;
     commondata->time = 0.0;
+    dump_common_data(commondata, "first_time");
   }
 }
