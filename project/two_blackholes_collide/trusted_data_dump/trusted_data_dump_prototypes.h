@@ -1,0 +1,1 @@
+void dump_common_data(commondata_struct *restrict commondata, const char* fname);
