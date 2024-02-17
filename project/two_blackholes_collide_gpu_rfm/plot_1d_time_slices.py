@@ -14,7 +14,7 @@ cpu_dict = {
     #                   'ls' : '-',
     #                   'alpha' : 1,
     #                   'lw' : 3},
-    "NOSIMD_PRE"   : {'folder' : "../two_blackholes_collide/",
+    "NOSIMD_PRE"   : {'folder' : "../two_blackholes_collide/O0/",
                       'ls' : '--',
                       'alpha' : 0.7,
                       'lw' : 3},
@@ -31,7 +31,7 @@ cpu_dict = {
     #                    'alpha' : 0.7,
     #                    'lw' : 3},
 }
-CPU = False
+CPU = True
 def plot(direction,f, directory=None):
     def get_time():
         start = f.find("-t")+2
@@ -41,7 +41,7 @@ def plot(direction,f, directory=None):
     direction_file = f if directory == None else f.replace(directory,"")
     
     if CPU:
-        gpu_output=f"../two_blackholes_collide_nosimd_rfm/{direction_file}"
+        gpu_output=f"../two_blackholes_collide/{direction_file}"
     else:
         gpu_output=f"./{f}"
     g_xx, g_log10HL, g_log10sqrtM2L, g_cfL, g_alphaL, g_trKL =np.loadtxt(gpu_output, delimiter=' ',unpack=True)
@@ -69,7 +69,7 @@ def plot(direction,f, directory=None):
         alpha=details['alpha']
         lw = details['lw']
         
-        # print(f)
+        print(gpu_output, f)
         c_xx, c_log10HL, c_log10sqrtM2L, c_cfL, c_alphaL, c_trKL = np.loadtxt(f, delimiter=' ',unpack=True)
         axs['BottomLeft'].scatter(g_xx, 
                 # np.fabs(1. - g_log10HL/c_log10HL), 
