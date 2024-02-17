@@ -69,7 +69,6 @@ int main(int argc, const char *argv[]) {
     // for(int i =0; i < 10; ++i) {
     // Step 5.a: Main loop, part 1: Output diagnostics
     diagnostics(&commondata, griddata);
-//    abort();
 
     // Step 5.b: Main loop, part 2 (pre_MoL_step_forward_in_time): Prepare to step forward in time
     // (nothing here; specify by setting pre_MoL_step_forward_in_time string in register_CFunction_main_c().)
@@ -81,7 +80,7 @@ int main(int argc, const char *argv[]) {
 
     // Step 5.d: Main loop, part 4 (post_MoL_step_forward_in_time): Finish up step in time
     // (nothing here; specify by setting post_MoL_step_forward_in_time string in register_CFunction_main_c().)
-
+break;
  } // End main loop to progress forward in time.
 
   // Step 5: Free all allocated memory
