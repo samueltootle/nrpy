@@ -11,6 +11,8 @@ void initial_data(commondata_struct *restrict commondata, griddata_struct *restr
     params_struct *restrict params = &griddata[grid].params;
     initial_data_reader__convert_ADM_Cartesian_to_BSSN(commondata, params, griddata[grid].xx, &griddata[grid].bcstruct, &griddata[grid].gridfuncs,
                                                        &ID_persist, BrillLindquist);
+    dump_gf_array(grid, params, griddata[grid].gridfuncs.y_n_gfs, "post-initial", "evolv", NUM_EVOL_GFS);
     apply_bcs_outerextrap_and_inner(commondata, params, &griddata[grid].bcstruct, griddata[grid].gridfuncs.y_n_gfs);
+    dump_gf_array(grid, params, griddata[grid].gridfuncs.y_n_gfs, "post-initial-bcs", "evolv", NUM_EVOL_GFS);
   }
 }

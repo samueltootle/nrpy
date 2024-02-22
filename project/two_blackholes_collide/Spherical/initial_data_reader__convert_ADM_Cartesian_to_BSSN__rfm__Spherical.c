@@ -1,5 +1,6 @@
 #include "../BHaH_defines.h"
 #include "../BHaH_function_prototypes.h"
+#include "../trusted_data_dump/trusted_data_dump_prototypes.h"s
 
 // ADM variables in the Cartesian basis:
 typedef struct __ADM_Cart_basis_struct__ {
@@ -591,6 +592,7 @@ void initial_data_reader__convert_ADM_Cartesian_to_BSSN__rfm__Spherical(
     gridfuncs->y_n_gfs[IDX4pt(LAMBDAU1GF, idx3)] = 0.0;
     gridfuncs->y_n_gfs[IDX4pt(LAMBDAU2GF, idx3)] = 0.0;
   } // END LOOP over all gridpoints on given grid
+  dump_gf_array(-1, params, gridfuncs->y_n_gfs, "post-initial-convert", "evolv", NUM_EVOL_GFS);
   // for(int i = 0; i < NUM_EVOL_GFS; ++i)
   //   print_var(gridfuncs->y_n_gfs, IDX4(i, 34, 10, 10));
   // printf("**************************_ID\n");
@@ -602,6 +604,7 @@ void initial_data_reader__convert_ADM_Cartesian_to_BSSN__rfm__Spherical(
   //    to the grid interior. It therefore does not account for parity conditions across
   //    symmetry boundaries being correct.
   apply_bcs_inner_only(commondata, params, bcstruct, gridfuncs->y_n_gfs);
+  dump_gf_array(-1, params, gridfuncs->y_n_gfs, "post-initial-innerbcs", "evolv", NUM_EVOL_GFS);
   // for(int i = 0; i < NUM_EVOL_GFS; ++i)
   //   print_var(gridfuncs->y_n_gfs, IDX4(i, 34, 10, 10));
   // printf("**************************_ID_inner\n");
