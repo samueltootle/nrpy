@@ -1,7 +1,7 @@
 #include<stdio.h>
 #include "../BHaH_defines.h"
 #include "trusted_data_dump_prototypes.h"
-void dump_param_struct(const int grid, params_struct *restrict params, const char* suffix){
+void dump_param_struct(const int grid, const params_struct *restrict params, const char* suffix){
   char fname[100];
   sprintf(fname, "trusted_data_dump/dumps/params_grid_%d_%s.txt", grid, suffix);
   printf("TEST: %s\n", fname);
@@ -49,4 +49,5 @@ void dump_param_struct(const int grid, params_struct *restrict params, const cha
   fprintf(fp, "%+d\n", params->Nxx_plus_2NGHOSTS1);
   fprintf(fp, "%+d\n", params->Nxx_plus_2NGHOSTS2);
   fprintf(fp, "%s\n", params-> CoordSystemName);
+  fclose(fp);
 }

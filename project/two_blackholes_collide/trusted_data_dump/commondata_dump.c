@@ -1,7 +1,7 @@
 #include<stdio.h>
 #include "../BHaH_defines.h"
 #include "trusted_data_dump_prototypes.h"
-void dump_common_data(commondata_struct *restrict commondata, const char* suffix) {
+void dump_common_data(const commondata_struct *restrict commondata, const char* suffix) {
   char fname[100] = "trusted_data_dump/dumps/commondata_";
   sprintf(fname, "trusted_data_dump/dumps/commondata_%s.txt", suffix);
   // printf("TEST: %s\n", fname);
@@ -26,4 +26,5 @@ void dump_common_data(commondata_struct *restrict commondata, const char* suffix
   fprintf(fp, "%+d\n", commondata->nn);
   fprintf(fp, "%+d\n", commondata->nn_0);
   fprintf(fp, "%s\n", commondata->outer_bc_type);
+  fclose(fp);
 }
