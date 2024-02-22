@@ -1,5 +1,6 @@
 #include "BHaH_defines.h"
 #include "BHaH_function_prototypes.h"
+#include "trusted_data_dump/trusted_data_dump_prototypes.h"
 /*
  * Set initial data.
  */
