@@ -1,5 +1,6 @@
 #include<stdio.h>
 #include "../BHaH_defines.h"
+#ifdef GPU_TESTS
 #include "trusted_data_dump_prototypes.h"
 void dump_common_data(const commondata_struct *restrict commondata, const char* suffix) {
   char fname[100] = "trusted_data_dump/dumps/commondata_";
@@ -28,3 +29,4 @@ void dump_common_data(const commondata_struct *restrict commondata, const char* 
   fprintf(fp, "%s\n", commondata->outer_bc_type);
   fclose(fp);
 }
+#endif

@@ -80,7 +80,10 @@ int main(int argc, const char *argv[]) {
 
     // Step 5.d: Main loop, part 4 (post_MoL_step_forward_in_time): Finish up step in time
     // (nothing here; specify by setting post_MoL_step_forward_in_time string in register_CFunction_main_c().)
-break;
+    #ifdef GPU_TESTS
+    // Only want to dump the first timestep
+    break;
+    #endif
  } // End main loop to progress forward in time.
 
   // Step 5: Free all allocated memory

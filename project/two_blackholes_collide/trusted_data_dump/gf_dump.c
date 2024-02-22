@@ -1,5 +1,6 @@
 #include<stdio.h>
 #include "../BHaH_defines.h"
+#ifdef GPU_TESTS
 #include "trusted_data_dump_prototypes.h"
 // PREFIX: e.g. auxvars, evolvars
 // SUFFIX: e.g. post_initial, post_rk1
@@ -23,3 +24,4 @@ void dump_gf_array(const int grid,const params_struct *restrict params, const RE
   }
   fclose(fp);
 }
+#endif

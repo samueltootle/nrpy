@@ -1,6 +1,8 @@
 #include "BHaH_defines.h"
 #include "BHaH_function_prototypes.h"
+#ifdef GPU_TESTS
 #include "trusted_data_dump/trusted_data_dump_prototypes.h"
+#endif
 /*
  * Set initial data.
  */
@@ -12,8 +14,12 @@ void initial_data(commondata_struct *restrict commondata, griddata_struct *restr
     params_struct *restrict params = &griddata[grid].params;
     initial_data_reader__convert_ADM_Cartesian_to_BSSN(commondata, params, griddata[grid].xx, &griddata[grid].bcstruct, &griddata[grid].gridfuncs,
                                                        &ID_persist, BrillLindquist);
+    #ifdef GPU_TESTS
     dump_gf_array(grid, params, griddata[grid].gridfuncs.y_n_gfs, "post-initial", "evolv", NUM_EVOL_GFS);
+    #endif
     apply_bcs_outerextrap_and_inner(commondata, params, &griddata[grid].bcstruct, griddata[grid].gridfuncs.y_n_gfs);
+    #ifdef GPU_TESTS
     dump_gf_array(grid, params, griddata[grid].gridfuncs.y_n_gfs, "post-initial-bcs", "evolv", NUM_EVOL_GFS);
+    #endif
   }
 }

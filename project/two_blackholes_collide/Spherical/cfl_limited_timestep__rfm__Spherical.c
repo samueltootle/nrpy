@@ -1,6 +1,8 @@
 #include "../BHaH_defines.h"
 #include "../BHaH_function_prototypes.h"
+#ifdef GPU_TESTS
 #include "../trusted_data_dump/trusted_data_dump_prototypes.h"
+#endif
 /*
  * Output minimum gridspacing ds_min on a Spherical numerical grid.
  */
@@ -26,5 +28,7 @@ void cfl_limited_timestep__rfm__Spherical(commondata_struct *restrict commondata
     ds_min = MIN(ds_min, MIN(dsmin0, MIN(dsmin1, dsmin2)));
   }
   commondata->dt = MIN(commondata->dt, ds_min * commondata->CFL_FACTOR);
+  #ifdef GPU_TESTS
   dump_common_data(commondata, "cfl");
+  #endif
 }

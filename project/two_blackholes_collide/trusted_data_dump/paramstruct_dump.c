@@ -1,5 +1,6 @@
 #include<stdio.h>
 #include "../BHaH_defines.h"
+#ifdef GPU_TESTS
 #include "trusted_data_dump_prototypes.h"
 void dump_param_struct(const int grid, const params_struct *restrict params, const char* suffix){
   char fname[100];
@@ -51,3 +52,4 @@ void dump_param_struct(const int grid, const params_struct *restrict params, con
   fprintf(fp, "%s\n", params-> CoordSystemName);
   fclose(fp);
 }
+#endif
