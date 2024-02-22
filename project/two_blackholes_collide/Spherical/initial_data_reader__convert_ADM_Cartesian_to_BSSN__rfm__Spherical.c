@@ -1,6 +1,6 @@
 #include "../BHaH_defines.h"
 #include "../BHaH_function_prototypes.h"
-#include "../trusted_data_dump/trusted_data_dump_prototypes.h"s
+#include "../trusted_data_dump/trusted_data_dump_prototypes.h"
 
 // ADM variables in the Cartesian basis:
 typedef struct __ADM_Cart_basis_struct__ {

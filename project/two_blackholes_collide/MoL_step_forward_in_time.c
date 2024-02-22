@@ -1,5 +1,6 @@
 #include "BHaH_defines.h"
 #include "BHaH_function_prototypes.h"
+#include "trusted_data_dump/trusted_data_dump_prototypes.h"
 /*
  * Method of Lines (MoL) for "RK4" method: Step forward one full timestep.
  *
@@ -29,7 +30,9 @@ void MoL_step_forward_in_time(commondata_struct *restrict commondata, griddata_s
     const int Nxx_plus_2NGHOSTS2 = griddata[grid].params.Nxx_plus_2NGHOSTS2;
 
     Ricci_eval(commondata, params, rfmstruct, y_n_gfs, auxevol_gfs);
+    dump_gf_array(grid, params, auxevol_gfs, "auxgfs", "post-ricci-rk1", NUM_AUXEVOL_GFS);
     rhs_eval(commondata, params, rfmstruct, auxevol_gfs, y_n_gfs, k_odd_gfs);
+    dump_gf_array(grid, params, k_odd_gfs, "kodd", "rhs-rk1", NUM_EVOL_GFS);
     // return;
     
     if (strncmp(commondata->outer_bc_type, "radiation", 50) == 0)
@@ -45,6 +48,9 @@ void MoL_step_forward_in_time(commondata_struct *restrict commondata, griddata_s
       // if(i == IDX4(VETU2GF, 34, 18 , 18))
       //   printf("RK1: %1.15e - %1.15e - %1.15e\n", k_odd_gfsL, y_nplus1_running_total_gfs[i], k_odd_gfs[i]);
     }
+    dump_gf_array(grid, params, k_odd_gfs, "kodd", "post-rk1", NUM_EVOL_GFS);
+    dump_gf_array(grid, params, y_nplus1_running_total_gfs, "ynp1", "post-rk1", NUM_EVOL_GFS);
+    
     // for(int i = 0; i < NUM_EVOL_GFS; ++i)
     //   print_var(k_odd_gfs, IDX4(i, 34, 18 , 18));
     // printf("**************************_rk1\n");
@@ -52,7 +58,9 @@ void MoL_step_forward_in_time(commondata_struct *restrict commondata, griddata_s
     if (strncmp(commondata->outer_bc_type, "extrapolation", 50) == 0) {
       apply_bcs_outerextrap_and_inner(commondata, params, bcstruct, k_odd_gfs);
     }
+    dump_gf_array(grid, params, k_odd_gfs, "kodd", "post-rk1-bcs", NUM_EVOL_GFS);
     enforce_detgammabar_equals_detgammahat(commondata, params, rfmstruct, k_odd_gfs);
+    dump_gf_array(grid, params, k_odd_gfs, "kodd", "post-rk1-enforce", NUM_EVOL_GFS);
   }
   // return;
   // -={ END k1 substep }=-
@@ -76,7 +84,9 @@ void MoL_step_forward_in_time(commondata_struct *restrict commondata, griddata_s
     const int Nxx_plus_2NGHOSTS2 = griddata[grid].params.Nxx_plus_2NGHOSTS2;
 
     Ricci_eval(commondata, params, rfmstruct, k_odd_gfs, auxevol_gfs);
+    dump_gf_array(grid, params, auxevol_gfs, "auxgfs", "post-ricci-rk2", NUM_AUXEVOL_GFS);
     rhs_eval(commondata, params, rfmstruct, auxevol_gfs, k_odd_gfs, k_even_gfs);
+    dump_gf_array(grid, params, k_even_gfs, "keven", "rhs-rk2", NUM_EVOL_GFS);
     if (strncmp(commondata->outer_bc_type, "radiation", 50) == 0)
       apply_bcs_outerradiation_and_inner(commondata, params, bcstruct, griddata[grid].xx, gridfunctions_wavespeed, gridfunctions_f_infinity,
                                          k_odd_gfs, k_even_gfs);
@@ -87,13 +97,18 @@ void MoL_step_forward_in_time(commondata_struct *restrict commondata, griddata_s
       y_nplus1_running_total_gfs[i] = (1.0 / 3.0) * commondata->dt * k_even_gfsL + y_nplus1_running_total_gfsL;
       k_even_gfs[i] = (1.0 / 2.0) * commondata->dt * k_even_gfsL + y_n_gfsL;
     }
+    dump_gf_array(grid, params, k_even_gfs, "keven", "post-rk2", NUM_EVOL_GFS);
+    dump_gf_array(grid, params, y_nplus1_running_total_gfs, "ynp1", "post-rk2", NUM_EVOL_GFS);
     // for(int i = 0; i < NUM_EVOL_GFS; ++i)
       // print_var(k_even_gfs, IDX4(i, 34, 18 , 18));
     // printf("**************************_rk2\n");
     
-    if (strncmp(commondata->outer_bc_type, "extrapolation", 50) == 0)
+    if (strncmp(commondata->outer_bc_type, "extrapolation", 50) == 0) {
       apply_bcs_outerextrap_and_inner(commondata, params, bcstruct, k_even_gfs);
+    }
+    dump_gf_array(grid, params, k_even_gfs, "keven", "post-rk2-bcs", NUM_EVOL_GFS);
     enforce_detgammabar_equals_detgammahat(commondata, params, rfmstruct, k_even_gfs);
+    dump_gf_array(grid, params, k_even_gfs, "keven", "post-rk2-enforce", NUM_EVOL_GFS);
   }
   // return;
   // -={ END k2 substep }=-
@@ -117,7 +132,9 @@ void MoL_step_forward_in_time(commondata_struct *restrict commondata, griddata_s
     const int Nxx_plus_2NGHOSTS2 = griddata[grid].params.Nxx_plus_2NGHOSTS2;
 
     Ricci_eval(commondata, params, rfmstruct, k_even_gfs, auxevol_gfs);
+    dump_gf_array(grid, params, auxevol_gfs, "auxgfs", "post-ricci-rk2", NUM_AUXEVOL_GFS);
     rhs_eval(commondata, params, rfmstruct, auxevol_gfs, k_even_gfs, k_odd_gfs);
+    dump_gf_array(grid, params, k_odd_gfs, "kodd", "rhs-rk3", NUM_EVOL_GFS);
     if (strncmp(commondata->outer_bc_type, "radiation", 50) == 0)
       apply_bcs_outerradiation_and_inner(commondata, params, bcstruct, griddata[grid].xx, gridfunctions_wavespeed, gridfunctions_f_infinity,
                                          k_even_gfs, k_odd_gfs);
@@ -128,9 +145,13 @@ void MoL_step_forward_in_time(commondata_struct *restrict commondata, griddata_s
       y_nplus1_running_total_gfs[i] = (1.0 / 3.0) * commondata->dt * k_odd_gfsL + y_nplus1_running_total_gfsL;
       k_odd_gfs[i] = commondata->dt * k_odd_gfsL + y_n_gfsL;
     }
+    dump_gf_array(grid, params, k_odd_gfs, "kodd", "post-rk3", NUM_EVOL_GFS);
+    dump_gf_array(grid, params, y_nplus1_running_total_gfs, "ynp1", "post-rk3", NUM_EVOL_GFS);
     if (strncmp(commondata->outer_bc_type, "extrapolation", 50) == 0)
       apply_bcs_outerextrap_and_inner(commondata, params, bcstruct, k_odd_gfs);
+    dump_gf_array(grid, params, k_odd_gfs, "kodd", "post-rk3-bcs", NUM_EVOL_GFS);
     enforce_detgammabar_equals_detgammahat(commondata, params, rfmstruct, k_odd_gfs);
+    dump_gf_array(grid, params, k_odd_gfs, "kodd", "post-rk3-enforce", NUM_EVOL_GFS);
   }
   // -={ END k3 substep }=-
 
@@ -153,7 +174,9 @@ void MoL_step_forward_in_time(commondata_struct *restrict commondata, griddata_s
     const int Nxx_plus_2NGHOSTS2 = griddata[grid].params.Nxx_plus_2NGHOSTS2;
 
     Ricci_eval(commondata, params, rfmstruct, k_odd_gfs, auxevol_gfs);
+    dump_gf_array(grid, params, auxevol_gfs, "auxgfs", "post-ricci-rk2", NUM_AUXEVOL_GFS);
     rhs_eval(commondata, params, rfmstruct, auxevol_gfs, k_odd_gfs, k_even_gfs);
+    dump_gf_array(grid, params, k_even_gfs, "keven", "rhs-rk4", NUM_EVOL_GFS);
     if (strncmp(commondata->outer_bc_type, "radiation", 50) == 0)
       apply_bcs_outerradiation_and_inner(commondata, params, bcstruct, griddata[grid].xx, gridfunctions_wavespeed, gridfunctions_f_infinity,
                                          k_odd_gfs, k_even_gfs);
@@ -163,9 +186,12 @@ void MoL_step_forward_in_time(commondata_struct *restrict commondata, griddata_s
       const REAL y_nplus1_running_total_gfsL = y_nplus1_running_total_gfs[i];
       y_n_gfs[i] = (1.0 / 6.0) * commondata->dt * k_even_gfsL + y_n_gfsL + y_nplus1_running_total_gfsL;
     }
+    dump_gf_array(grid, params, y_n_gfs, "yn", "post-rk4", NUM_EVOL_GFS);
     if (strncmp(commondata->outer_bc_type, "extrapolation", 50) == 0)
       apply_bcs_outerextrap_and_inner(commondata, params, bcstruct, y_n_gfs);
+    dump_gf_array(grid, params, y_n_gfs, "yn", "post-rk4-bcs", NUM_EVOL_GFS);
     enforce_detgammabar_equals_detgammahat(commondata, params, rfmstruct, y_n_gfs);
+    dump_gf_array(grid, params, y_n_gfs, "yn", "post-rk4-enforce", NUM_EVOL_GFS);
   }
   // -={ END k4 substep }=-
 
