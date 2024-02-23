@@ -14,7 +14,7 @@ void numerical_grids_and_timestep(commondata_struct *restrict commondata, gridda
   for (int grid = 0; grid < commondata->NUMGRIDS; grid++) {
     numerical_grid_params_Nxx_dxx_xx(commondata, &griddata[grid].params, griddata[grid].xx);
     #ifdef GPU_TESTS
-    // dump_param_struct(grid, &griddata[grid].params, "setup");
+    TEST_param_struct(grid, &griddata[grid].params, "setup");
     #endif
   }
 
