@@ -1,4 +1,5 @@
 #include "BHaH_defines.h"
+#include "TESTS/TEST_prototypes.h"
 /*
  * Set commondata_struct to default values specified within NRPy+.
  */
@@ -20,4 +21,7 @@ void commondata_struct_set_to_default(commondata_struct *restrict commondata) {
   commondata->eta = 1.0;                       // nrpy.equations.general_relativity.BSSN_gauge_RHSs::eta
   commondata->t_final = 7.5;                   // nrpy.infrastructures.BHaH.MoLtimestepping.MoL::t_final
   snprintf(commondata->outer_bc_type, 50, "radiation"); // nrpy.infrastructures.BHaH.CurviBoundaryConditions.CurviBoundaryConditions::outer_bc_type
+  // #ifdef GPU_TESTS
+  // TEST_commondata(commondata, "defaults");
+  // #endif
 }

@@ -39,6 +39,7 @@ CU_OBJ_FILES += Spherical/apply_bcs_outerradiation_and_inner__rfm__Spherical.o M
 CU_OBJ_FILES += apply_bcs_outerextrap_and_inner.o Spherical/enforce_detgammabar_equals_detgammahat__rfm__Spherical.o
 CU_OBJ_FILES += Spherical/diagnostics_nearest_1d_y_axis__rfm__Spherical.o Spherical/diagnostics_nearest_1d_z_axis__rfm__Spherical.o
 CU_OBJ_FILES += Spherical/rhs_eval__rfm__Spherical_reimagine.o
+CU_OBJ_FILES += TESTS/commondata_test.o
 
 all: two_blackholes_collide_nosimd_rfm
 
@@ -53,4 +54,4 @@ $(OBJ_FILES) : %.o: %.cpp $(COMMON_HEADERS)
 
 # Use $(RM) to be cross-platform compatible.
 clean:
-	$(RM) *.o */*.o *~ */*~ ./#* *.txt *.dat *.avi *.png two_blackholes_collide_nosimd_rfm
+	$(RM) *.o */*.o *~ */*~ ./TESTS/reldiff/* #* *.txt *.dat *.avi *.png two_blackholes_collide_nosimd_rfm
