@@ -59,7 +59,7 @@ void TEST_commondata(const commondata_struct *restrict commondata, const char* s
     if(std::fabs(a) < 1e-15 && std::fabs(b) < 1e-15)
       reldiff = 0;
     else
-      reldiff = std::fabs(1. - (double)a / (double)b);
+      reldiff = std::fabs(1. - (double)b / (double)a);
     fprintf(fp, "%+1.15f\n", reldiff);
   };
   fprint_reldiff(ref.BH1_mass, commondata->BH1_mass);
@@ -73,7 +73,6 @@ void TEST_commondata(const commondata_struct *restrict commondata, const char* s
   fprint_reldiff(ref.CFL_FACTOR, commondata->CFL_FACTOR);
   fprint_reldiff(ref.convergence_factor, commondata->convergence_factor);
   fprint_reldiff(ref.diagnostics_output_every, commondata->diagnostics_output_every);
-  printf("nn: %+1.15f - %+1.15f\n", ref.dt, commondata->dt);
   fprint_reldiff(ref.dt, commondata->dt);
   fprint_reldiff(ref.eta, commondata->eta);
   fprint_reldiff(ref.t_0, commondata->t_0);
@@ -81,10 +80,11 @@ void TEST_commondata(const commondata_struct *restrict commondata, const char* s
   fprint_reldiff(ref.time, commondata->time);
   fprint_reldiff(ref.NUMGRIDS, commondata->NUMGRIDS);
   fprint_reldiff(ref.nn, commondata->nn);
-  printf("nn: %d - %d\n", ref.nn, commondata->nn);
   fprint_reldiff(ref.nn_0, commondata->nn_0);
-  printf("nn: %d - %d\n", ref.nn_0, commondata->nn_0);
 
+  printf("dt: %+1.15f - %+1.15f\n", ref.dt, commondata->dt);
+  // printf("nn: %d - %d\n", ref.nn, commondata->nn);
+  // printf("nn0: %d - %d\n", ref.nn_0, commondata->nn_0);
   fclose(fp);
 }
 #endif
