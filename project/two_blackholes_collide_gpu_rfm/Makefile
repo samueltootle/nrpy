@@ -2,7 +2,7 @@ CC = nvcc  # assigns the value CC to gcc only if environment variable CC is not 
 # CFLAGS = -O2 -march=native -g -Wall -Wno-unused-variable -std=gnu99
 #CFLAGS = -O3 -funroll-loops -march=native -g -Wall -Wno-unused-variable -std=gnu99 -std=gnu99
 #CFLAGS = -O2 -g -Wall -Wno-unused-variable -Wno-unknown-pragmas -std=gnu99
-CFLAGS = -Xcompiler -g -O0 -arch=native -O0 -Xcompiler=-march=native -Xcompiler -Wall --forward-unknown-to-host-compiler --Werror cross-execution-space-call --relocatable-device-code=true -allow-unsupported-compiler
+CFLAGS = -Xcompiler -g -O2 -arch=native -O2 -Xcompiler=-march=native -Xcompiler -Wall --forward-unknown-to-host-compiler --Werror cross-execution-space-call --relocatable-device-code=true -allow-unsupported-compiler
 
 INCLUDEDIRS =
 LDFLAGS = -lm
@@ -39,7 +39,7 @@ CU_OBJ_FILES += Spherical/apply_bcs_outerradiation_and_inner__rfm__Spherical.o M
 CU_OBJ_FILES += apply_bcs_outerextrap_and_inner.o Spherical/enforce_detgammabar_equals_detgammahat__rfm__Spherical.o
 CU_OBJ_FILES += Spherical/diagnostics_nearest_1d_y_axis__rfm__Spherical.o Spherical/diagnostics_nearest_1d_z_axis__rfm__Spherical.o
 CU_OBJ_FILES += Spherical/rhs_eval__rfm__Spherical_reimagine.o
-CU_OBJ_FILES += TESTS/commondata_test.o TESTS/paramstruct_test.o
+CU_OBJ_FILES += TESTS/commondata_test.o TESTS/paramstruct_test.o TESTS/coord_direction_test.o
 
 all: two_blackholes_collide_nosimd_rfm
 

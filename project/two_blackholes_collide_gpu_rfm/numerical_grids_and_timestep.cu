@@ -15,6 +15,12 @@ void numerical_grids_and_timestep(commondata_struct *restrict commondata, gridda
     numerical_grid_params_Nxx_dxx_xx(commondata, &griddata[grid].params, griddata[grid].xx);
     #ifdef GPU_TESTS
     TEST_param_struct(grid, &griddata[grid].params, "setup");
+    TEST_coord_direction(grid, griddata[grid].xx[0], "xx0", griddata[grid].params.Nxx_plus_2NGHOSTS0);
+    TEST_coord_direction(grid, griddata[grid].xx[1], "xx1", griddata[grid].params.Nxx_plus_2NGHOSTS1);
+    TEST_coord_direction(grid, griddata[grid].xx[2], "xx2", griddata[grid].params.Nxx_plus_2NGHOSTS2);
+    // TEST_coord_direction(grid, griddata[grid].rfmstruct.f1_of_xx1, "rfm_f1_of_xx1", griddata[grid].params.Nxx_plus_2NGHOSTS1);
+    // dump_coord_direction(grid, griddata[grid].rfmstruct.f1_of_xx1__D1, "rfm_f1_of_xx1__D1", griddata[grid].params.Nxx_plus_2NGHOSTS1);
+    // dump_coord_direction(grid, griddata[grid].rfmstruct.f1_of_xx1__DD11, "rfm_f1_of_xx1__DD11", griddata[grid].params.Nxx_plus_2NGHOSTS1);
     #endif
   }
 
