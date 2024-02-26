@@ -15,6 +15,9 @@ void numerical_grids_and_timestep(commondata_struct *restrict commondata, gridda
     numerical_grid_params_Nxx_dxx_xx(commondata, &griddata[grid].params, griddata[grid].xx);
     #ifdef GPU_TESTS
     dump_param_struct(grid, &griddata[grid].params, "setup");
+    dump_coord_direction(grid, griddata[grid].xx[0], "xx0", griddata[grid].params.Nxx_plus_2NGHOSTS0);
+    dump_coord_direction(grid, griddata[grid].xx[1], "xx1", griddata[grid].params.Nxx_plus_2NGHOSTS1);
+    dump_coord_direction(grid, griddata[grid].xx[2], "xx2", griddata[grid].params.Nxx_plus_2NGHOSTS2);
     #endif
   }
 
@@ -23,6 +26,12 @@ void numerical_grids_and_timestep(commondata_struct *restrict commondata, gridda
   for (int grid = 0; grid < commondata->NUMGRIDS; grid++) {
     rfm_precompute_malloc(commondata, &griddata[grid].params, &griddata[grid].rfmstruct);
     rfm_precompute_defines(commondata, &griddata[grid].params, &griddata[grid].rfmstruct, griddata[grid].xx);
+    #ifdef GPU_TESTS
+    dump_coord_direction(grid, griddata[grid].rfmstruct.f0_of_xx0, "rfm_f0_of_xx0", griddata[grid].params.Nxx_plus_2NGHOSTS0);
+    dump_coord_direction(grid, griddata[grid].rfmstruct.f1_of_xx1, "rfm_f1_of_xx1", griddata[grid].params.Nxx_plus_2NGHOSTS1);
+    dump_coord_direction(grid, griddata[grid].rfmstruct.f1_of_xx1__D1, "rfm_f1_of_xx1__D1", griddata[grid].params.Nxx_plus_2NGHOSTS1);
+    dump_coord_direction(grid, griddata[grid].rfmstruct.f1_of_xx1__DD11, "rfm_f1_of_xx1__DD11", griddata[grid].params.Nxx_plus_2NGHOSTS1);
+    #endif
   }
 
   // Step 1.d: Set up curvilinear boundary condition struct (bcstruct)
