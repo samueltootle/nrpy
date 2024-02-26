@@ -3,9 +3,9 @@
 #ifdef GPU_TESTS
 #include "trusted_data_dump_prototypes.h"
 void dump_common_data(const commondata_struct *restrict commondata, const char* suffix) {
-  char fname[100] = "trusted_data_dump/dumps/commondata_";
+  char fname[100];
   sprintf(fname, "trusted_data_dump/dumps/commondata_%s.txt", suffix);
-  printf("TEST commondata: %s\n", fname);
+  // printf("TEST commondata: %s\n", fname);
   FILE* fp = fopen(fname, "w");
   fprintf(fp, "%+1.15f\n", commondata->BH1_mass);
   fprintf(fp, "%+1.15f\n", commondata->BH1_posn_x);
@@ -28,7 +28,5 @@ void dump_common_data(const commondata_struct *restrict commondata, const char* 
   fprintf(fp, "%+d\n", commondata->nn_0);
   fprintf(fp, "%s\n", commondata->outer_bc_type);
   fclose(fp);
-  printf("nn: %d\n", commondata->nn);
-  printf("nn_0: %d\n", commondata->nn_0);
 }
 #endif
