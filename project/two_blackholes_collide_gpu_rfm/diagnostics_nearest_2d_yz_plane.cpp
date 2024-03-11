@@ -3,7 +3,7 @@
 /*
  * Output diagnostic quantities at gridpoints closest to yz plane.
  */
-void diagnostics_nearest_2d_yz_plane(commondata_struct *restrict commondata, const params_struct *restrict params, REAL *restrict xx[3],
+void diagnostics_nearest_2d_yz_plane(commondata_struct *restrict commondata, const params_struct *restrict params, REAL * xx[3],
                                      MoL_gridfunctions_struct *restrict gridfuncs) {
   switch (params->CoordSystem_hash) {
   case SPHERICAL:

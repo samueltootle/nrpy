@@ -42,8 +42,8 @@ void diagnostics(commondata_struct *restrict commondata, griddata_struct *restri
       diagnostics_nearest_1d_z_axis(commondata, params, griddata[grid].xx, &griddata[grid].gridfuncs);
 
       // // 2D output
-      // diagnostics_nearest_2d_xy_plane(commondata, params, xx, &griddata[grid].gridfuncs);
-      // diagnostics_nearest_2d_yz_plane(commondata, params, xx, &griddata[grid].gridfuncs);
+      diagnostics_nearest_2d_xy_plane(commondata, params, griddata[grid].xx, &griddata[grid].gridfuncs);
+      diagnostics_nearest_2d_yz_plane(commondata, params, griddata[grid].xx, &griddata[grid].gridfuncs);
     }
   }
   progress_indicator(commondata, griddata);
