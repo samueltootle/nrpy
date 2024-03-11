@@ -30,7 +30,6 @@ void diagnostics_nearest_1d_y_axis__rfm__Spherical(commondata_struct *restrict c
   __attribute_maybe_unused__ const REAL *restrict y_n_gfs = gridfuncs->y_n_gfs;
   __attribute_maybe_unused__ const REAL *restrict auxevol_gfs = gridfuncs->auxevol_gfs;
   __attribute_maybe_unused__ const REAL *restrict diagnostic_output_gfs = gridfuncs->diagnostic_output_gfs;
-  __attribute_maybe_unused__ const REAL *restrict k_odd_gfs = gridfuncs->k_odd_gfs;
 
   // 1D output
   char filename[256];
@@ -79,53 +78,6 @@ void diagnostics_nearest_1d_y_axis__rfm__Spherical(commondata_struct *restrict c
       const REAL xx2 = get_diagnostics(i2, xx[2]);
       xx_to_cart(xx0, xx1, xx2, xCart);
     }
-
-    // {
-    // //   // ADD22GF is 1e-8
-    //   // LAMBDAU2GF is 1e-8
-    //   int idx = ADD22GF;
-    //   data_point_1d_struct dp1d;
-    //   dp1d.xCart_axis = xCart[1];
-    //   const REAL GF1 = get_diagnostics(IDX4pt(idx, idx3), k_odd_gfs);
-    //   dp1d.log10HL = GF1;
-    //   const REAL GF2 = get_diagnostics(IDX4pt(idx+1, idx3), k_odd_gfs);
-    //   dp1d.log10sqrtM2L = GF2;
-    //   dp1d.cfL = get_diagnostics(IDX4pt(idx+2, idx3), k_odd_gfs);
-    //   dp1d.alphaL = get_diagnostics(IDX4pt(idx+3, idx3), k_odd_gfs);
-    //   dp1d.trKL = get_diagnostics(IDX4pt(idx+4, idx3), k_odd_gfs);
-    //   data_points[data_index] = dp1d;
-    //   data_index++;
-    // }
-    
-    // {
-    //   int idx = ADD22GF;
-    //   data_point_1d_struct dp1d;
-    //   dp1d.xCart_axis = xCart[1];
-    //   const REAL GF1 = get_diagnostics(IDX4pt(idx, idx3), y_n_gfs);
-    //   dp1d.log10HL = GF1;
-    //   const REAL GF2 = get_diagnostics(IDX4pt(idx+1, idx3), y_n_gfs);
-    //   dp1d.log10sqrtM2L = GF2;
-    //   dp1d.cfL = get_diagnostics(IDX4pt(idx+2, idx3), y_n_gfs);
-    //   dp1d.alphaL = get_diagnostics(IDX4pt(idx+3, idx3), y_n_gfs);
-    //   dp1d.trKL = get_diagnostics(IDX4pt(idx+4, idx3), y_n_gfs);
-    //   data_points[data_index] = dp1d;
-    //   data_index++;
-    // }
-
-    // {
-    //   int idx = RBARDD01GF;
-    //   data_point_1d_struct dp1d;
-    //   dp1d.xCart_axis = xCart[1];
-    //   const REAL GF1 = get_diagnostics(IDX4pt(idx, idx3), auxevol_gfs);
-    //   dp1d.log10HL = GF1;
-    //   const REAL GF2 = get_diagnostics(IDX4pt(idx+1, idx3), auxevol_gfs);
-    //   dp1d.log10sqrtM2L = GF2;
-    //   dp1d.cfL = get_diagnostics(IDX4pt(idx+2, idx3), auxevol_gfs);
-    //   dp1d.alphaL = get_diagnostics(IDX4pt(idx+3, idx3), auxevol_gfs);
-    //   dp1d.trKL = get_diagnostics(IDX4pt(idx+4, idx3), auxevol_gfs);
-    //   data_points[data_index] = dp1d;
-    //   data_index++;
-    // }
 
     {
       data_point_1d_struct dp1d;
