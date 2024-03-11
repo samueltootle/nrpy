@@ -54,4 +54,4 @@ $(OBJ_FILES) : %.o: %.cpp $(COMMON_HEADERS)
 
 # Use $(RM) to be cross-platform compatible.
 clean:
-	$(RM) *.o */*.o *~ */*~ ./TESTS/reldiff/* #* *.txt *.dat *.avi *.png two_blackholes_collide_nosimd_rfm
+	$(RM) *.o */*.o *~ */*~ ./TESTS/reldiff/* *.txt #* *.txt *.dat *.avi *.png two_blackholes_collide_nosimd_rfm

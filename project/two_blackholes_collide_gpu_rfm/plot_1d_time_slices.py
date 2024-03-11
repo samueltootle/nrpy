@@ -14,7 +14,7 @@ cpu_dict = {
     #                   'ls' : '-',
     #                   'alpha' : 1,
     #                   'lw' : 3},
-    "NOSIMD_PRE"   : {'folder' : "../two_blackholes_collide/O0/",
+    "NOSIMD_PRE"   : {'folder' : "../two_blackholes_collide_nosimd_rfm_clean/",
                       'ls' : '--',
                       'alpha' : 0.7,
                       'lw' : 3},
@@ -31,7 +31,7 @@ cpu_dict = {
     #                    'alpha' : 0.7,
     #                    'lw' : 3},
 }
-CPU = True
+CPU = False
 def plot(direction,f, directory=None):
     def get_time():
         start = f.find("-t")+2
@@ -99,7 +99,7 @@ for direction in ['y','z']:
     for i, f in enumerate(sorted(glob.glob(f"{out1d_files[direction]}*.*"))):
         plt.close('all')
         plot(direction, f, directory="")
-        fnout = f"out-CPU/{direction}-{i:02d}.png" if CPU else f"out-O0/{direction}-{i:02d}.png"
+        fnout = f"out-CPU/{direction}-{i:02d}.png" if CPU else f"out-new/{direction}-{i:02d}.png"
         # plt.legend()
         # plt.ylim(-7, -2)
         plt.savefig(fnout)
