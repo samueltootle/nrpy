@@ -15,4 +15,5 @@ __constant__ REAL FDPart1_Rational_5_2;
 __constant__ REAL FDPart1_Rational_5_6;
 REAL* d_gridfunctions_wavespeed;
 REAL* d_gridfunctions_f_infinity;
-cudaStream_t stream1, stream2, stream3;
+
+cudaStream_t streams[nstreams];

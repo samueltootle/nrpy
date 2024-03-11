@@ -14,7 +14,8 @@ extern __constant__ REAL FDPart1_Rational_5_2;
 extern __constant__ REAL FDPart1_Rational_5_6;
 extern REAL* d_gridfunctions_wavespeed;
 extern REAL* d_gridfunctions_f_infinity;
-extern cudaStream_t stream1, stream2, stream3;
+#define nstreams 3
+extern cudaStream_t streams[nstreams];
 
 
 typedef void (*ID_pfunc)(const commondata_struct *restrict commondata, const REAL xCart[3],

@@ -23,9 +23,9 @@
  * Step 6: Free all allocated memory.
  */
 int main(int argc, const char *argv[]) {
-  cudaStreamCreate(&stream1);
-  cudaStreamCreate(&stream2);
-  cudaStreamCreate(&stream3);
+  for(int i = 0; i < nstreams; ++i) {
+    cudaStreamCreate(&streams[i]);
+  }
   cudaMemcpyToSymbol(d_evol_gf_parity, evol_gf_parity, 24 * sizeof(int8_t));
   cudaMalloc(&d_gridfunctions_wavespeed, NUM_EVOL_GFS * sizeof(REAL));
   cudaMemcpy(d_gridfunctions_wavespeed, gridfunctions_wavespeed, NUM_EVOL_GFS * sizeof(REAL), cudaMemcpyHostToDevice);
@@ -34,6 +34,7 @@ int main(int argc, const char *argv[]) {
 
   commondata_struct commondata;       // commondata contains parameters common to all grids.
   griddata_struct *restrict griddata; // griddata contains data specific to an individual grid.
+  griddata_struct *restrict griddata_host; // stores only the host data needed for diagnostics
 
   // Step 1.a: Set each commondata CodeParameter to default.
   commondata_struct_set_to_default(&commondata);
@@ -43,6 +44,7 @@ int main(int argc, const char *argv[]) {
 
   // Step 1.c: Allocate NUMGRIDS griddata arrays, each containing data specific to an individual grid.
   griddata = (griddata_struct *)malloc(sizeof(griddata_struct) * commondata.NUMGRIDS);
+  griddata_host = (griddata_struct *)malloc(sizeof(griddata_struct) * commondata.NUMGRIDS);
 
   // Step 1.d: Set each CodeParameter in griddata.params to default.
   params_struct_set_to_default(&commondata, griddata);
@@ -53,26 +55,13 @@ int main(int argc, const char *argv[]) {
     // if calling_for_first_time, then initialize commondata time=nn=t_0=nn_0 = 0
     const bool calling_for_first_time = true;
     numerical_grids_and_timestep(&commondata, griddata, calling_for_first_time);
+    cpyDevicetoHost__grid(&commondata, griddata_host, griddata);
   }
-  // for(int grid = 0; grid < commondata.NUMGRIDS; ++grid)
-    // arbitrary point idx = 3315
-    // print_idx(&griddata[0].params, 
-    //   griddata[0].params.Nxx_plus_2NGHOSTS0/2, 
-    //   griddata[0].params.Nxx_plus_2NGHOSTS1/3, 
-    //   griddata[0].params.Nxx_plus_2NGHOSTS2/4);
-    // edge idx = 8265
-    // print_idx(&griddata[0].params, 
-    //   griddata[0].params.Nxx_plus_2NGHOSTS0 - NGHOSTS, 
-    //   griddata[0].params.Nxx_plus_2NGHOSTS1 - NGHOSTS, 
-    //   griddata[0].params.Nxx_plus_2NGHOSTS2 - NGHOSTS);
-    // center idx = 6321
-    // print_idx(&griddata[0].params, NGHOSTS, 
-    //   griddata[0].params.Nxx_plus_2NGHOSTS1/2, 
-    //   griddata[0].params.Nxx_plus_2NGHOSTS2/2);
 
   for (int grid = 0; grid < commondata.NUMGRIDS; grid++) {
     // Step 2: Initial data are set on y_n_gfs gridfunctions. Allocate storage for them first.
     MoL_malloc_y_n_gfs(&commondata, &griddata[grid].params, &griddata[grid].gridfuncs);
+    // MoL_malloc_y_n_gfs__host(&commondata, &griddata[grid].params, &griddata_host[grid].gridfuncs);
   }
 
   // Step 3: Finalize initialization: set up initial data, etc.
@@ -100,14 +89,14 @@ int main(int argc, const char *argv[]) {
 
     // Step 5.d: Main loop, part 4 (post_MoL_step_forward_in_time): Finish up step in time
     // (nothing here; specify by setting post_MoL_step_forward_in_time string in register_CFunction_main_c().)
-    #ifdef GPU_TESTS
+    // #ifdef GPU_TESTS
     break;
-    #endif
+    // #endif
   } // End main loop to progress forward in time.
   cudaDeviceSynchronize();
-  cudaStreamDestroy(stream1);
-  cudaStreamDestroy(stream2);
-  cudaStreamDestroy(stream3);
+  for(int i = 0; i < nstreams; ++i) {
+    cudaStreamDestroy(streams[i]);
+  }
   // Step 5: Free all allocated memory
   for (int grid = 0; grid < commondata.NUMGRIDS; grid++) {
     MoL_free_memory_y_n_gfs(&griddata[grid].gridfuncs);

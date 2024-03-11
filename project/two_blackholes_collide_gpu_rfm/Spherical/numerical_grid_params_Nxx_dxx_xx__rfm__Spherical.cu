@@ -129,15 +129,15 @@ void numerical_grid_params_Nxx_dxx_xx__rfm__Spherical(commondata_struct *restric
   };
   
   set_grid_block(Nxx_plus_2NGHOSTS0);
-  initialize_grid_xx0_gpu<<<grid_blocks, block_threads, 0, stream1>>>(xx[0]);
+  initialize_grid_xx0_gpu<<<grid_blocks, block_threads, 0, streams[0]>>>(xx[0]);
   cudaCheckErrors(initialize_grid_xx0_gpu, "kernel failed");
 
   set_grid_block(Nxx_plus_2NGHOSTS1);
-  initialize_grid_xx1_gpu<<<grid_blocks, block_threads, 0, stream2>>>(xx[1]);
+  initialize_grid_xx1_gpu<<<grid_blocks, block_threads, 0, streams[1]>>>(xx[1]);
   cudaCheckErrors(initialize_grid_xx1_gpu, "kernel failed");
 
   set_grid_block(Nxx_plus_2NGHOSTS2);
-  initialize_grid_xx2_gpu<<<grid_blocks, block_threads, 0, stream3>>>(xx[2]);
+  initialize_grid_xx2_gpu<<<grid_blocks, block_threads, 0, streams[2]>>>(xx[2]);
   cudaCheckErrors(initialize_grid_xx2_gpu, "kernel failed");
   
 //   printf("xx0:\n");
