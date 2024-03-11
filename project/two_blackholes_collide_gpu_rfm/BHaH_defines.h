@@ -212,6 +212,11 @@ typedef struct __MoL_gridfunctions_struct__ {
 #define VETU1GF 22
 #define VETU2GF 23
 
+// Number of EVOL variables that are printed to file during diagnostics
+// Needed to copy data from GPU to Host
+#define NUM_DIAG_YN 3
+
+
 // SET gridfunctions_f_infinity[i] = evolved gridfunction i's value in the limit r->infinity:
 static const REAL gridfunctions_f_infinity[NUM_EVOL_GFS] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0,
                                                             0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
