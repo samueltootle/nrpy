@@ -40,7 +40,7 @@ CU_OBJ_FILES += Spherical/apply_bcs_outerradiation_and_inner__rfm__Spherical.o M
 CU_OBJ_FILES += apply_bcs_outerextrap_and_inner.o Spherical/enforce_detgammabar_equals_detgammahat__rfm__Spherical.o
 CU_OBJ_FILES += Spherical/diagnostics_nearest_1d_y_axis__rfm__Spherical.o Spherical/diagnostics_nearest_1d_z_axis__rfm__Spherical.o
 CU_OBJ_FILES += Spherical/rhs_eval__rfm__Spherical_reimagine.o Spherical/diagnostics_nearest_2d_xy_plane__rfm__Spherical.o Spherical/diagnostics_nearest_2d_yz_plane__rfm__Spherical.o
-CU_OBJ_FILES += TESTS/commondata_test.o TESTS/paramstruct_test.o TESTS/coord_direction_test.o
+CU_OBJ_FILES += TESTS/commondata_test.o TESTS/paramstruct_test.o TESTS/coord_direction_test.o cpyDevicetoHost_griddata.o
 
 all: two_blackholes_collide_nosimd_rfm
 

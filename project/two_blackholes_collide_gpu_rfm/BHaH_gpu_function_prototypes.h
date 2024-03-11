@@ -163,3 +163,17 @@ void rk_substep4(params_struct *restrict params,
                 REAL *restrict k_odd_gfs,
                 REAL *restrict k_even_gfs,
                 REAL *restrict auxevol_gfs, REAL const dt) ;
+
+__host__
+void cpyDevicetoHost__grid(const commondata_struct *restrict commondata, 
+                          griddata_struct *restrict gd_host,
+                          const griddata_struct *restrict gd_gpu);
+__host__
+void cpyDevicetoHost__gf(const commondata_struct *restrict commondata,
+                        const params_struct *restrict params,
+                        REAL *restrict gf_host,
+                        const REAL *restrict gf_gpu,
+                        const int GF_IDX);
+// __host__
+// void MoL_malloc_y_n_gfs__host(const commondata_struct *restrict commondata, const params_struct *restrict params,
+//                         MoL_gridfunctions_struct *restrict gf_host);                          
