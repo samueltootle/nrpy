@@ -26,7 +26,7 @@ void cmdline_input_and_parfile_parser(commondata_struct *restrict commondata, in
 void commondata_struct_set_to_default(commondata_struct *restrict commondata);
 void constraints_eval(const commondata_struct *restrict commondata, const params_struct *restrict params, const rfm_struct *restrict rfmstruct, const REAL *restrict in_gfs, const REAL *restrict auxevol_gfs, REAL *restrict diagnostic_output_gfs);
 void constraints_eval__rfm__Spherical(const commondata_struct *restrict commondata, const params_struct *restrict params, const rfm_struct *restrict rfmstruct, const REAL *restrict in_gfs, const REAL *restrict auxevol_gfs, REAL *restrict diagnostic_output_gfs);
-void diagnostics(commondata_struct *restrict commondata, griddata_struct *restrict griddata);
+void diagnostics(commondata_struct *restrict commondata, griddata_struct *restrict griddata, griddata_struct *restrict griddata_host);
 void diagnostics_nearest_1d_y_axis(commondata_struct *restrict commondata, const params_struct *restrict params, REAL *xx[3], MoL_gridfunctions_struct *restrict gridfuncs);
 void diagnostics_nearest_1d_y_axis__rfm__Spherical(commondata_struct *restrict commondata, const params_struct *restrict params, REAL *xx[3], MoL_gridfunctions_struct *restrict gridfuncs);
 void diagnostics_nearest_1d_z_axis(commondata_struct *restrict commondata, const params_struct *restrict params, REAL *xx[3], MoL_gridfunctions_struct *restrict gridfuncs);

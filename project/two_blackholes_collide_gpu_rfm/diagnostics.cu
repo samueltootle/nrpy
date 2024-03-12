@@ -5,7 +5,7 @@
 /*
  * Diagnostics.
  */
-void diagnostics(commondata_struct *restrict commondata, griddata_struct *restrict griddata) {
+void diagnostics(commondata_struct *restrict commondata, griddata_struct *restrict griddata, griddata_struct *restrict griddata_host) {
 
   const REAL currtime = commondata->time, currdt = commondata->dt, outevery = commondata->diagnostics_output_every;
   // Explanation of the if() below:

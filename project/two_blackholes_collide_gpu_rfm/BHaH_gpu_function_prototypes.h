@@ -174,6 +174,18 @@ void cpyDevicetoHost__gf(const commondata_struct *restrict commondata,
                         REAL *restrict gf_host,
                         const REAL *restrict gf_gpu,
                         const int GF_IDX);
-// __host__
-// void MoL_malloc_y_n_gfs__host(const commondata_struct *restrict commondata, const params_struct *restrict params,
-//                         MoL_gridfunctions_struct *restrict gf_host);                          
+
+void cpyDevicetoHost__malloc_y_n_gfs(const commondata_struct *restrict commondata,
+                        const params_struct *restrict params,
+                        MoL_gridfunctions_struct *restrict gridfuncs);
+
+__host__
+void cpyDevicetoHost__malloc_diag_gfs(const commondata_struct *restrict commondata,
+                        const params_struct *restrict params,
+                        MoL_gridfunctions_struct *restrict gridfuncs);
+
+__host__
+void cpyDevicetoHost__free_gfs(MoL_gridfunctions_struct *restrict gfs_host);
+
+__host__
+void freeHostgrid(griddata_struct *restrict gd_host);

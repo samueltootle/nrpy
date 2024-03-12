@@ -61,7 +61,7 @@ int main(int argc, const char *argv[]) {
   for (int grid = 0; grid < commondata.NUMGRIDS; grid++) {
     // Step 2: Initial data are set on y_n_gfs gridfunctions. Allocate storage for them first.
     MoL_malloc_y_n_gfs(&commondata, &griddata[grid].params, &griddata[grid].gridfuncs);
-    // MoL_malloc_y_n_gfs__host(&commondata, &griddata[grid].params, &griddata_host[grid].gridfuncs);
+    cpyDevicetoHost__malloc_y_n_gfs(&commondata, &griddata[grid].params, &griddata_host[grid].gridfuncs);
   }
 
   // Step 3: Finalize initialization: set up initial data, etc.
@@ -76,7 +76,7 @@ int main(int argc, const char *argv[]) {
   while (commondata.time < commondata.t_final) { // Main loop to progress forward in time.
   // for(int i =0; i < 10; ++i) {
     // Step 5.a: Main loop, part 1: Output diagnostics
-    diagnostics(&commondata, griddata);
+    diagnostics(&commondata, griddata, griddata_host);
     // abort();
 
     // Step 5.b: Main loop, part 2 (pre_MoL_step_forward_in_time): Prepare to step forward in time
@@ -108,9 +108,14 @@ int main(int argc, const char *argv[]) {
 
     for (int i = 0; i < 3; i++)
       cudaFree(griddata[grid].xx[i]);
+    
+    freeHostgrid(&griddata_host[grid]);
+    cpyDevicetoHost__free_gfs(&griddata_host[grid].gridfuncs);
   }
   cudaFree(d_gridfunctions_f_infinity);
   cudaFree(d_gridfunctions_wavespeed);
+  
   free(griddata);
+  free(griddata_host);
   return 0;
 }
