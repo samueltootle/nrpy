@@ -38,6 +38,18 @@ void cpyDevicetoHost__grid(const commondata_struct *restrict commondata,
 }
 
 __host__
+void cpyDevicetoHost__malloc_y_n_gfs(const commondata_struct *restrict commondata,
+                        const params_struct *restrict params,
+                        REAL * y_n_gfs) {
+  int const& Nxx_plus_2NGHOSTS0 = params->Nxx_plus_2NGHOSTS0;
+  int const& Nxx_plus_2NGHOSTS1 = params->Nxx_plus_2NGHOSTS1;
+  int const& Nxx_plus_2NGHOSTS2 = params->Nxx_plus_2NGHOSTS2;
+  const int Nxx_plus_2NGHOSTS_tot = Nxx_plus_2NGHOSTS0 * Nxx_plus_2NGHOSTS1 * Nxx_plus_2NGHOSTS2;
+
+  cudaMallocHost(&y_n_gfs, sizeof(REAL) * Nxx_plus_2NGHOSTS_tot * NUM_DIAG_YN);
+}
+
+__host__
 void cpyDevicetoHost__gf(const commondata_struct *restrict commondata,
                         const params_struct *restrict params,
                         REAL *restrict gf_host,
