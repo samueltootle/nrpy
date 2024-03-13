@@ -45,8 +45,9 @@ void cpyDevicetoHost__malloc_y_n_gfs(const commondata_struct *restrict commondat
   int const& Nxx_plus_2NGHOSTS1 = params->Nxx_plus_2NGHOSTS1;
   int const& Nxx_plus_2NGHOSTS2 = params->Nxx_plus_2NGHOSTS2;
   const int Nxx_plus_2NGHOSTS_tot = Nxx_plus_2NGHOSTS0 * Nxx_plus_2NGHOSTS1 * Nxx_plus_2NGHOSTS2;
-  REAL * y_n_gfs = gridfuncs->y_n_gfs;
-  cudaMallocHost(&y_n_gfs, sizeof(REAL) * Nxx_plus_2NGHOSTS_tot * NUM_DIAG_YN);
+  cudaMallocHost((void**)&gridfuncs->y_n_gfs, sizeof(REAL) * Nxx_plus_2NGHOSTS_tot * NUM_DIAG_YN);
+  cudaCheckErrors(cudaMallocHost, "Malloc y_n diagnostic GFs failed.")
+  // printf("%p - %u\n", (void*)gridfuncs->y_n_gfs, sizeof(REAL) * Nxx_plus_2NGHOSTS_tot * NUM_DIAG_YN);
 }
 
 __host__
@@ -57,16 +58,17 @@ void cpyDevicetoHost__malloc_diag_gfs(const commondata_struct *restrict commonda
   int const& Nxx_plus_2NGHOSTS1 = params->Nxx_plus_2NGHOSTS1;
   int const& Nxx_plus_2NGHOSTS2 = params->Nxx_plus_2NGHOSTS2;
   const int Nxx_plus_2NGHOSTS_tot = Nxx_plus_2NGHOSTS0 * Nxx_plus_2NGHOSTS1 * Nxx_plus_2NGHOSTS2;
-  REAL * diagnostic_output_gfs = gridfuncs->diagnostic_output_gfs;
-  cudaMallocHost(&diagnostic_output_gfs, sizeof(REAL) * Nxx_plus_2NGHOSTS_tot * NUM_AUX_GFS);
+  cudaMallocHost((void**)&gridfuncs->diagnostic_output_gfs, sizeof(REAL) * Nxx_plus_2NGHOSTS_tot * NUM_AUX_GFS);
+  // printf("%p - %u\n", (void*)diagnostic_output_gfs, sizeof(REAL) * Nxx_plus_2NGHOSTS_tot * NUM_AUX_GFS);  
+  cudaCheckErrors(cudaMallocHost, "Malloc diagnostic GFs failed.")
 }
 
 __host__
 void cpyDevicetoHost__gf(const commondata_struct *restrict commondata,
                         const params_struct *restrict params,
-                        REAL *restrict gf_host,
-                        const REAL *restrict gf_gpu,
-                        // const int host_GF_IDX,
+                        REAL * gf_host,
+                        const REAL * gf_gpu,
+                        const int host_GF_IDX,
                         const int gpu_GF_IDX) {
   int const& Nxx_plus_2NGHOSTS0 = params->Nxx_plus_2NGHOSTS0;
   int const& Nxx_plus_2NGHOSTS1 = params->Nxx_plus_2NGHOSTS1;
@@ -74,8 +76,15 @@ void cpyDevicetoHost__gf(const commondata_struct *restrict commondata,
   const int Nxx_plus_2NGHOSTS_tot = Nxx_plus_2NGHOSTS0 * Nxx_plus_2NGHOSTS1 * Nxx_plus_2NGHOSTS2;
   
   int streamid = (gpu_GF_IDX < nstreams) ? gpu_GF_IDX : int(gpu_GF_IDX / nstreams) - 1;
-  int offset = Nxx_plus_2NGHOSTS_tot * gpu_GF_IDX;
-  cudaMemcpyAsync(gf_host, &gf_gpu[offset], sizeof(REAL) * Nxx_plus_2NGHOSTS_tot, cudaMemcpyDeviceToHost, streams[gpu_GF_IDX]);
+  int offset_gpu  = Nxx_plus_2NGHOSTS_tot * gpu_GF_IDX;
+  int offset_host = Nxx_plus_2NGHOSTS_tot * host_GF_IDX;
+  // printf("streamid : %d, offste_gpu: %d, offset_host: %d\n", streamid, offset_gpu, offset_host);
+  // printf("%p - %u\n", (void*)gf_host, sizeof(REAL) * Nxx_plus_2NGHOSTS_tot);
+  cudaMemcpyAsync(&gf_host[offset_host], 
+                  &gf_gpu[offset_gpu], 
+                  sizeof(REAL) * Nxx_plus_2NGHOSTS_tot, 
+                  cudaMemcpyDeviceToHost, streams[streamid]);
+  cudaCheckErrors(cudaMemcpyAsync, "Copy of gf data failed")
 }
 
 __host__

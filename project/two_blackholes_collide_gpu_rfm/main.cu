@@ -70,6 +70,7 @@ int main(int argc, const char *argv[]) {
   // Step 4: Allocate storage for non-y_n gridfunctions, needed for the Runge-Kutta-like timestepping
   for (int grid = 0; grid < commondata.NUMGRIDS; grid++) {
     MoL_malloc_non_y_n_gfs(&commondata, &griddata[grid].params, &griddata[grid].gridfuncs);
+    cpyDevicetoHost__malloc_diag_gfs(&commondata, &griddata[grid].params, &griddata_host[grid].gridfuncs);
   }
 
   // Step 5: MAIN SIMULATION LOOP

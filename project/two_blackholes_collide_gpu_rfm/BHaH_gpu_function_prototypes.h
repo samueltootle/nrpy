@@ -171,9 +171,10 @@ void cpyDevicetoHost__grid(const commondata_struct *restrict commondata,
 __host__
 void cpyDevicetoHost__gf(const commondata_struct *restrict commondata,
                         const params_struct *restrict params,
-                        REAL *restrict gf_host,
-                        const REAL *restrict gf_gpu,
-                        const int GF_IDX);
+                        REAL * gf_host,
+                        const REAL *gf_gpu,
+                        const int host_GF_IDX,
+                        const int gpu_GF_IDX);
 
 void cpyDevicetoHost__malloc_y_n_gfs(const commondata_struct *restrict commondata,
                         const params_struct *restrict params,
