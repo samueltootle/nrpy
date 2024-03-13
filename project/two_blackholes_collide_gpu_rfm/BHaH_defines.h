@@ -215,6 +215,9 @@ typedef struct __MoL_gridfunctions_struct__ {
 // Number of EVOL variables that are printed to file during diagnostics
 // Needed to copy data from GPU to Host
 #define NUM_DIAG_YN 3
+#define DIAG_ALPHAGF 0
+#define DIAG_CFGF 1
+#define DIAG_TRKGF 2
 
 
 // SET gridfunctions_f_infinity[i] = evolved gridfunction i's value in the limit r->infinity:
