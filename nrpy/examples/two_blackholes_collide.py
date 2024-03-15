@@ -36,7 +36,7 @@ import nrpy.infrastructures.BHaH.xx_tofrom_Cart as xxCartxx
 par.set_parval_from_str("Infrastructure", "BHaH")
 
 # Code-generation-time parameters:
-project_name = "two_blackholes_collide"
+project_name = "two_blackholes_collide_nosimd_rfm_clean"
 CoordSystem = "Spherical"
 IDtype = "BrillLindquist"
 IDCoordSystem = "Cartesian"
@@ -47,7 +47,7 @@ grid_physical_size = 7.5
 diagnostics_output_every = 0.25
 t_final = 1.0 * grid_physical_size
 Nxx_dict = {
-    "Spherical": [72, 12, 2],
+    "Spherical": [64, 16, 16],
     "SinhSpherical": [72, 12, 2],
     "Cartesian": [64, 64, 64],
 }
