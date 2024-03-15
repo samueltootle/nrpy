@@ -38,6 +38,9 @@ void numerical_grids_and_timestep(commondata_struct *restrict commondata, gridda
 
   for (int grid = 0; grid < commondata->NUMGRIDS; grid++) {
     bcstruct_set_up(commondata, &griddata[grid].params, griddata[grid].xx, &griddata[grid].bcstruct);
+    #ifdef GPU_TESTS
+    dump_bcstruct(&griddata[grid].bcstruct, "setup");
+    #endif
   }
 
   // Step 1.e: Set timestep based on minimum spacing between neighboring gridpoints.
