@@ -47,7 +47,6 @@ void cpyDevicetoHost__malloc_y_n_gfs(const commondata_struct *restrict commondat
   const int Nxx_plus_2NGHOSTS_tot = Nxx_plus_2NGHOSTS0 * Nxx_plus_2NGHOSTS1 * Nxx_plus_2NGHOSTS2;
   cudaMallocHost((void**)&gridfuncs->y_n_gfs, sizeof(REAL) * Nxx_plus_2NGHOSTS_tot * NUM_DIAG_YN);
   cudaCheckErrors(cudaMallocHost, "Malloc y_n diagnostic GFs failed.")
-  // printf("%p - %u\n", (void*)gridfuncs->y_n_gfs, sizeof(REAL) * Nxx_plus_2NGHOSTS_tot * NUM_DIAG_YN);
 }
 
 __host__
@@ -59,7 +58,6 @@ void cpyDevicetoHost__malloc_diag_gfs(const commondata_struct *restrict commonda
   int const& Nxx_plus_2NGHOSTS2 = params->Nxx_plus_2NGHOSTS2;
   const int Nxx_plus_2NGHOSTS_tot = Nxx_plus_2NGHOSTS0 * Nxx_plus_2NGHOSTS1 * Nxx_plus_2NGHOSTS2;
   cudaMallocHost((void**)&gridfuncs->diagnostic_output_gfs, sizeof(REAL) * Nxx_plus_2NGHOSTS_tot * NUM_AUX_GFS);
-  // printf("%p - %u\n", (void*)diagnostic_output_gfs, sizeof(REAL) * Nxx_plus_2NGHOSTS_tot * NUM_AUX_GFS);  
   cudaCheckErrors(cudaMallocHost, "Malloc diagnostic GFs failed.")
 }
 
@@ -78,8 +76,6 @@ void cpyDevicetoHost__gf(const commondata_struct *restrict commondata,
   int streamid = (gpu_GF_IDX < nstreams) ? gpu_GF_IDX : int(gpu_GF_IDX / nstreams) - 1;
   int offset_gpu  = Nxx_plus_2NGHOSTS_tot * gpu_GF_IDX;
   int offset_host = Nxx_plus_2NGHOSTS_tot * host_GF_IDX;
-  // printf("streamid : %d, offste_gpu: %d, offset_host: %d\n", streamid, offset_gpu, offset_host);
-  // printf("%p - %u\n", (void*)gf_host, sizeof(REAL) * Nxx_plus_2NGHOSTS_tot);
   cudaMemcpyAsync(&gf_host[offset_host], 
                   &gf_gpu[offset_gpu], 
                   sizeof(REAL) * Nxx_plus_2NGHOSTS_tot, 
@@ -99,16 +95,3 @@ void freeHostgrid(griddata_struct *restrict gd_host) {
   free(gd_host->xx[1]);
   free(gd_host->xx[2]);
 }
-
-// __host__
-// void MoL_malloc_y_n_gfs__host(const commondata_struct *restrict commondata, const params_struct *restrict params,
-//                         MoL_gridfunctions_struct *restrict gf_host) {
-// #include "set_CodeParameters.h"
-//   const int Nxx_plus_2NGHOSTS_tot = Nxx_plus_2NGHOSTS0 * Nxx_plus_2NGHOSTS1 * Nxx_plus_2NGHOSTS2;
-//   const int NUM_DIAG_OUT
-//   cudaMallocHost(&gf_host->y_n_gfs, sizeof(REAL) * Nxx_plus_2NGHOSTS_tot * )
-//   // cudaMalloc(&gridfuncs->y_n_gfs, sizeof(REAL) * NUM_EVOL_GFS * Nxx_plus_2NGHOSTS_tot);
-
-//   // gridfuncs->diagnostic_output_gfs = gridfuncs->y_nplus1_running_total_gfs;
-//   // gridfuncs->diagnostic_output_gfs2 = gridfuncs->k_odd_gfs;
-// }

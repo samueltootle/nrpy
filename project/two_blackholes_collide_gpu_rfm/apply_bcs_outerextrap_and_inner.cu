@@ -33,7 +33,6 @@ void apply_bcs_outerextrap_and_inner_only_gpu(const int num_pure_outer_boundary_
           + 3.0 * gfs[IDX4pt(which_gf, idx_offset1)] 
           - 3.0 * gfs[IDX4pt(which_gf, idx_offset2)] 
           + 1.0 * gfs[IDX4pt(which_gf, idx_offset3)];
-          // printf("%d: %f\n", idx_offset0, gfs[IDX4pt(which_gf, idx_offset0)]);
     }
   }
 }
@@ -49,7 +48,6 @@ void apply_bcs_outerextrap_and_inner_only(const bc_struct *restrict bcstruct, RE
         size_t grid_blocks = (num_pure + block_threadsx -1) / block_threadsx;
         size_t gz_idx = dirn + (3 * which_gz);
         apply_bcs_outerextrap_and_inner_only_gpu<<<grid_blocks, block_threadsx>>>(
-        // apply_bcs_outerextrap_and_inner_only_gpu<<<1,1>>>(  
           num_pure, which_gz, dirn, bcstruct->pure_outer_bc_array[gz_idx], gfs);
       }
     }
@@ -82,11 +80,6 @@ void apply_bcs_outerextrap_and_inner(const commondata_struct *restrict commondat
   //              filling in the edges as we go.
   // Spawn N OpenMP threads, either across all cores, or according to e.g., taskset.
   apply_bcs_outerextrap_and_inner_only(bcstruct, gfs);
-  cudaDeviceSynchronize();
-  // for(int i = 0; i < NUM_EVOL_GFS; ++i)
-  //     print_var<<<1,1>>>(gfs, IDX4(i, 34, 10 , 10));
-  // cudaDeviceSynchronize();
-  // printf("**************************_extr_pure\n");
   
   ///////////////////////////////////////////////////////
   // STEP 2 of 2: Apply BCs to inner boundary points.
@@ -97,9 +90,4 @@ void apply_bcs_outerextrap_and_inner(const commondata_struct *restrict commondat
   //              populated first; hence this being
   //              STEP 2 OF 2.
   apply_bcs_inner_only(commondata, params, bcstruct, gfs);
-  cudaDeviceSynchronize();
-  // for(int i = 0; i < NUM_EVOL_GFS; ++i)
-  //     print_var<<<1,1>>>(gfs, IDX4(i, 34, 10, 10));
-  // cudaDeviceSynchronize();
-  // printf("**************************_extr_inner\n");
 }

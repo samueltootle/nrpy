@@ -22,7 +22,6 @@ void apply_bcs_inner_only_gpu(int const which_gf, int const num_inner_boundary_p
       const int dstpt = inner_bc_array[pt].dstpt;
       const int srcpt = inner_bc_array[pt].srcpt;
       gfs[IDX4pt(which_gf, dstpt)] = inner_bc_array[pt].parity[d_evol_gf_parity[which_gf]] * gfs[IDX4pt(which_gf, srcpt)];
-      // printf("INNER: %d: %f\n", dstpt, gfs[IDX4pt(which_gf, dstpt)]);
   } // END for(int pt=0;pt<num_inner_pts;pt++)
 }
 
@@ -35,7 +34,6 @@ void apply_bcs_inner_only(const commondata_struct *restrict commondata, const pa
   for (int which_gf = 0; which_gf < NUM_EVOL_GFS; which_gf++) {
     size_t block_threads = MIN(1024,(num_inner_bp/32U) * 32U);
     size_t grid_blocks = (num_inner_bp + block_threads -1) / block_threads;
-    // apply_bcs_inner_only_gpu<<<1,1>>>(which_gf, num_inner_bp, bcstruct->inner_bc_array, gfs);
     apply_bcs_inner_only_gpu<<<grid_blocks, block_threads>>>(which_gf, num_inner_bp, bcstruct->inner_bc_array, gfs);
   }
 }
