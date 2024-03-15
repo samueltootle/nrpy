@@ -28,4 +28,4 @@ two_blackholes_collide: $(OBJ_FILES)
 
 # Use $(RM) to be cross-platform compatible.
 clean:
-	$(RM) *.o */*.o *~ */*~ ./trusted_data_dump/dumps/* #* *.txt *.dat *.avi *.png two_blackholes_collide
+	$(RM) *.o */*.o *~ */*~ ./trusted_data_dump/dumps/* *.txt #*.dat *.avi *.png two_blackholes_collide
