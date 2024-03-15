@@ -28,9 +28,10 @@ void diagnostics_nearest_2d_xy_plane__rfm__Spherical(commondata_struct *restrict
   int i0_pts[numpts_i0], i1_pts[numpts_i1], i2_pts[numpts_i2];
   
   const auto get_diagnostics = [](auto index, const REAL *restrict g_data) {
-    REAL h_data;
-    cudaMemcpy(&h_data, &g_data[index], sizeof(REAL), cudaMemcpyDeviceToHost);
-    cudaCheckErrors(cudaMemcpy, "memory error");
+    // REAL h_data;
+    // cudaMemcpy(&h_data, &g_data[index], sizeof(REAL), cudaMemcpyDeviceToHost);
+    // cudaCheckErrors(cudaMemcpy, "memory error");
+    REAL h_data = g_data[index];
     return h_data;
   };
   const auto xx_to_cart = [&params] (auto const xx0, auto const xx1, auto const xx2, REAL * xCart) {
@@ -63,9 +64,9 @@ void diagnostics_nearest_2d_xy_plane__rfm__Spherical(commondata_struct *restrict
       const REAL log10HL = log10(fabs(HL + 1e-16));
       const REAL M2L = get_diagnostics(IDX4pt(MSQUAREDGF, idx3), diagnostic_output_gfs);
       const REAL log10sqrtM2L = log10(sqrt(M2L) + 1e-16);
-      const REAL cfL = get_diagnostics(IDX4pt(CFGF, idx3), y_n_gfs);
-      const REAL alphaL = get_diagnostics(IDX4pt(ALPHAGF, idx3), y_n_gfs);
-      const REAL trKL = get_diagnostics(IDX4pt(TRKGF, idx3), y_n_gfs);
+    const REAL cfL = get_diagnostics(IDX4pt(DIAG_CFGF, idx3), y_n_gfs);
+    const REAL alphaL = get_diagnostics(IDX4pt(DIAG_ALPHAGF, idx3), y_n_gfs);
+    const REAL trKL = get_diagnostics(IDX4pt(DIAG_TRKGF, idx3), y_n_gfs);
       fprintf(outfile, "%.15e %.15e %.15e %.15e %.15e %.15e %.15e\n", xCart[0], xCart[1], log10HL, log10sqrtM2L, cfL, alphaL, trKL);
     }
   }

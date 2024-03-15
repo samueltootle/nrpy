@@ -60,19 +60,20 @@ void diagnostics(commondata_struct *restrict commondata, griddata_struct *restri
       // printf("Copy TRKGF\n");
       cpyDevicetoHost__gf(commondata, params, host_diag_y_n_gfs, y_n_gfs, DIAG_TRKGF, TRKGF);
 
-      // cpyDevicetoHost__gf(commondata, params, diagnostics_gfs__host[HGF], diagnostic_output_gfs, HGF);
-      // cpyDevicetoHost__gf(commondata, params, diagnostics_gfs__host[MSQUAREDGF], diagnostic_output_gfs, MSQUAREDGF);
+      cpyDevicetoHost__gf(commondata, params, host_diagnostic_output_gfs, diagnostic_output_gfs, HGF, HGF);
+      cpyDevicetoHost__gf(commondata, params, host_diagnostic_output_gfs, diagnostic_output_gfs, MSQUAREDGF, MSQUAREDGF);
+      cudaDeviceSynchronize();
 
       // 0D output
-      diagnostics_nearest_grid_center(commondata, params, &griddata[grid].gridfuncs);
+      diagnostics_nearest_grid_center(commondata, params, &griddata_host[grid].gridfuncs);
 
       // 1D output
-      diagnostics_nearest_1d_y_axis(commondata, params, griddata[grid].xx, &griddata[grid].gridfuncs);
-      diagnostics_nearest_1d_z_axis(commondata, params, griddata[grid].xx, &griddata[grid].gridfuncs);
+      diagnostics_nearest_1d_y_axis(commondata, params, griddata_host[grid].xx, &griddata_host[grid].gridfuncs);
+      diagnostics_nearest_1d_z_axis(commondata, params, griddata_host[grid].xx, &griddata_host[grid].gridfuncs);
 
       // 2D output
-      diagnostics_nearest_2d_xy_plane(commondata, params, griddata[grid].xx, &griddata[grid].gridfuncs);
-      diagnostics_nearest_2d_yz_plane(commondata, params, griddata[grid].xx, &griddata[grid].gridfuncs);
+      diagnostics_nearest_2d_xy_plane(commondata, params, griddata_host[grid].xx, &griddata_host[grid].gridfuncs);
+      diagnostics_nearest_2d_yz_plane(commondata, params, griddata_host[grid].xx, &griddata_host[grid].gridfuncs);
       // for(int i = 0; i < NUM_DIAG_YN; ++i) {
       //   cudaFreeHost(y_n_gfs__host[i]); 
       // }

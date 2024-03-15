@@ -49,9 +49,10 @@ void diagnostics_nearest_1d_z_axis__rfm__Spherical(commondata_struct *restrict c
   int data_index = 0;
 
   const auto get_diagnostics = [](auto index, const REAL *restrict g_data) {
-    REAL h_data;
-    cudaMemcpy(&h_data, &g_data[index], sizeof(REAL), cudaMemcpyDeviceToHost);
-    cudaCheckErrors(cudaMemcpy, "memory error");
+    // REAL h_data;
+    // cudaMemcpy(&h_data, &g_data[index], sizeof(REAL), cudaMemcpyDeviceToHost);
+    // cudaCheckErrors(cudaMemcpy, "memory error");
+    REAL h_data = g_data[index];
     return h_data;
   };
   const auto xx_to_cart = [&params] (auto const xx0, auto const xx1, auto const xx2, REAL * xCart) {
@@ -87,9 +88,9 @@ void diagnostics_nearest_1d_z_axis__rfm__Spherical(commondata_struct *restrict c
       dp1d.log10HL = log10(fabs(HL + 1e-16));
       const REAL M2L = get_diagnostics(IDX4pt(MSQUAREDGF, idx3), diagnostic_output_gfs);
       dp1d.log10sqrtM2L = log10(sqrt(M2L) + 1e-16);
-      dp1d.cfL = get_diagnostics(IDX4pt(CFGF, idx3), y_n_gfs);
-      dp1d.alphaL = get_diagnostics(IDX4pt(ALPHAGF, idx3), y_n_gfs);
-      dp1d.trKL = get_diagnostics(IDX4pt(TRKGF, idx3), y_n_gfs);
+      dp1d.cfL = get_diagnostics(IDX4pt(DIAG_CFGF, idx3), y_n_gfs);
+      dp1d.alphaL = get_diagnostics(IDX4pt(DIAG_ALPHAGF, idx3), y_n_gfs);
+      dp1d.trKL = get_diagnostics(IDX4pt(DIAG_TRKGF, idx3), y_n_gfs);
       data_points[data_index] = dp1d;
       data_index++;
     }
