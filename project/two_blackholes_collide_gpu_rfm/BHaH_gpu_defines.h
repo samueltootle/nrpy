@@ -32,6 +32,7 @@ typedef void (*ID_pfunc)(const commondata_struct *restrict commondata, const REA
 #define PENCIL_SIZEY 4
 
 // error checking macro
+#ifdef DEBUG
 #define cudaCheckErrors(v, msg) \
     do { \
         cudaError_t __err = cudaGetLastError(); \
@@ -43,5 +44,7 @@ typedef void (*ID_pfunc)(const commondata_struct *restrict commondata, const REA
             exit(1); \
         } \
     } while (0);
-
+#else
+#define cudaCheckErrors(v, msg)
+#endif
 #define _RHS_ORIGINAL_
