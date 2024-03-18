@@ -2,119 +2,185 @@
 #include "../BHaH_gpu_defines.h"
 #include "../BHaH_gpu_function_prototypes.h"
 /*
- * Finite difference function for operator dD0, with FD accuracy order 4.
+ * Finite difference function for operator dD0, with FD accuracy order 6.
  */
-static __device__ REAL fd_function_dD0_fdorder4(const REAL FDPROTO_i0m1, const REAL FDPROTO_i0m2, const REAL FDPROTO_i0p1, const REAL FDPROTO_i0p2,
-                                     const REAL invdxx0) {
-
-  const REAL FD_result = invdxx0 * (FDPart1_Rational_1_12 * (FDPROTO_i0m2 - FDPROTO_i0p2) + FDPart1_Rational_2_3 * (-FDPROTO_i0m1 + FDPROTO_i0p1));
+__device__ static REAL fd_function_dD0_fdorder6(const REAL FDPROTO_i0m1, const REAL FDPROTO_i0m2, const REAL FDPROTO_i0m3, const REAL FDPROTO_i0p1,
+                                     const REAL FDPROTO_i0p2, const REAL FDPROTO_i0p3, const REAL invdxx0) {
+  constexpr REAL FDPart1_Rational_3_4 = 3.0 / 4.0;
+  constexpr REAL FDPart1_Rational_3_20 = 3.0 / 20.0;
+  constexpr REAL FDPart1_Rational_1_60 = 1.0 / 60.0;
+  const REAL FD_result = invdxx0 * (FDPart1_Rational_1_60 * (-FDPROTO_i0m3 + FDPROTO_i0p3) + FDPart1_Rational_3_20 * (FDPROTO_i0m2 - FDPROTO_i0p2) +
+                                    FDPart1_Rational_3_4 * (-FDPROTO_i0m1 + FDPROTO_i0p1));
 
   return FD_result;
 }
 /*
- * Finite difference function for operator dD1, with FD accuracy order 4.
+ * Finite difference function for operator dD1, with FD accuracy order 6.
  */
-__device__ static REAL fd_function_dD1_fdorder4(const REAL FDPROTO_i1m1, const REAL FDPROTO_i1m2, const REAL FDPROTO_i1p1, const REAL FDPROTO_i1p2,
-                                     const REAL invdxx1) {
-
-  const REAL FD_result = invdxx1 * (FDPart1_Rational_1_12 * (FDPROTO_i1m2 - FDPROTO_i1p2) + FDPart1_Rational_2_3 * (-FDPROTO_i1m1 + FDPROTO_i1p1));
+__device__ static REAL fd_function_dD1_fdorder6(const REAL FDPROTO_i1m1, const REAL FDPROTO_i1m2, const REAL FDPROTO_i1m3, const REAL FDPROTO_i1p1,
+                                     const REAL FDPROTO_i1p2, const REAL FDPROTO_i1p3, const REAL invdxx1) {
+  constexpr REAL FDPart1_Rational_3_4 = 3.0 / 4.0;
+  constexpr REAL FDPart1_Rational_3_20 = 3.0 / 20.0;
+  constexpr REAL FDPart1_Rational_1_60 = 1.0 / 60.0;
+  const REAL FD_result = invdxx1 * (FDPart1_Rational_1_60 * (-FDPROTO_i1m3 + FDPROTO_i1p3) + FDPart1_Rational_3_20 * (FDPROTO_i1m2 - FDPROTO_i1p2) +
+                                    FDPart1_Rational_3_4 * (-FDPROTO_i1m1 + FDPROTO_i1p1));
 
   return FD_result;
 }
 /*
- * Finite difference function for operator dD2, with FD accuracy order 4.
+ * Finite difference function for operator dD2, with FD accuracy order 6.
  */
-__device__ static REAL fd_function_dD2_fdorder4(const REAL FDPROTO_i2m1, const REAL FDPROTO_i2m2, const REAL FDPROTO_i2p1, const REAL FDPROTO_i2p2,
-                                     const REAL invdxx2) {
-
-  const REAL FD_result = invdxx2 * (FDPart1_Rational_1_12 * (FDPROTO_i2m2 - FDPROTO_i2p2) + FDPart1_Rational_2_3 * (-FDPROTO_i2m1 + FDPROTO_i2p1));
+__device__ static REAL fd_function_dD2_fdorder6(const REAL FDPROTO_i2m1, const REAL FDPROTO_i2m2, const REAL FDPROTO_i2m3, const REAL FDPROTO_i2p1,
+                                     const REAL FDPROTO_i2p2, const REAL FDPROTO_i2p3, const REAL invdxx2) {
+  constexpr REAL FDPart1_Rational_3_4 = 3.0 / 4.0;
+  constexpr REAL FDPart1_Rational_3_20 = 3.0 / 20.0;
+  constexpr REAL FDPart1_Rational_1_60 = 1.0 / 60.0;
+  const REAL FD_result = invdxx2 * (FDPart1_Rational_1_60 * (-FDPROTO_i2m3 + FDPROTO_i2p3) + FDPart1_Rational_3_20 * (FDPROTO_i2m2 - FDPROTO_i2p2) +
+                                    FDPart1_Rational_3_4 * (-FDPROTO_i2m1 + FDPROTO_i2p1));
 
   return FD_result;
 }
 /*
- * Finite difference function for operator dDD00, with FD accuracy order 4.
+ * Finite difference function for operator dDD00, with FD accuracy order 6.
  */
-__device__ static REAL fd_function_dDD00_fdorder4(const REAL FDPROTO, const REAL FDPROTO_i0m1, const REAL FDPROTO_i0m2, const REAL FDPROTO_i0p1,
-                                       const REAL FDPROTO_i0p2, const REAL invdxx0) {
-
-  const REAL FD_result = ((invdxx0) * (invdxx0)) * (-FDPROTO * FDPart1_Rational_5_2 + FDPart1_Rational_1_12 * (-FDPROTO_i0m2 - FDPROTO_i0p2) +
-                                                    FDPart1_Rational_4_3 * (FDPROTO_i0m1 + FDPROTO_i0p1));
+__device__ static REAL fd_function_dDD00_fdorder6(const REAL FDPROTO, const REAL FDPROTO_i0m1, const REAL FDPROTO_i0m2, const REAL FDPROTO_i0m3,
+                                       const REAL FDPROTO_i0p1, const REAL FDPROTO_i0p2, const REAL FDPROTO_i0p3, const REAL invdxx0) {
+  constexpr REAL FDPart1_Rational_49_18 = 49.0 / 18.0;
+  constexpr REAL FDPart1_Rational_3_20 = 3.0 / 20.0;
+  constexpr REAL FDPart1_Rational_1_90 = 1.0 / 90.0;
+  constexpr REAL FDPart1_Rational_3_2 = 3.0 / 2.0;
+  const REAL FD_result =
+      ((invdxx0) * (invdxx0)) * (-FDPROTO * FDPart1_Rational_49_18 + FDPart1_Rational_1_90 * (FDPROTO_i0m3 + FDPROTO_i0p3) +
+                                 FDPart1_Rational_3_2 * (FDPROTO_i0m1 + FDPROTO_i0p1) + FDPart1_Rational_3_20 * (-FDPROTO_i0m2 - FDPROTO_i0p2));
 
   return FD_result;
 }
 /*
- * Finite difference function for operator dDD01, with FD accuracy order 4.
+ * Finite difference function for operator dDD01, with FD accuracy order 6.
  */
-__device__ static REAL fd_function_dDD01_fdorder4(const REAL FDPROTO_i0m1_i1m1, const REAL FDPROTO_i0m1_i1m2, const REAL FDPROTO_i0m1_i1p1,
-                                       const REAL FDPROTO_i0m1_i1p2, const REAL FDPROTO_i0m2_i1m1, const REAL FDPROTO_i0m2_i1m2,
-                                       const REAL FDPROTO_i0m2_i1p1, const REAL FDPROTO_i0m2_i1p2, const REAL FDPROTO_i0p1_i1m1,
-                                       const REAL FDPROTO_i0p1_i1m2, const REAL FDPROTO_i0p1_i1p1, const REAL FDPROTO_i0p1_i1p2,
-                                       const REAL FDPROTO_i0p2_i1m1, const REAL FDPROTO_i0p2_i1m2, const REAL FDPROTO_i0p2_i1p1,
-                                       const REAL FDPROTO_i0p2_i1p2, const REAL invdxx0, const REAL invdxx1) {
-
+__device__ static REAL
+fd_function_dDD01_fdorder6(const REAL FDPROTO_i0m1_i1m1, const REAL FDPROTO_i0m1_i1m2, const REAL FDPROTO_i0m1_i1m3, const REAL FDPROTO_i0m1_i1p1,
+                           const REAL FDPROTO_i0m1_i1p2, const REAL FDPROTO_i0m1_i1p3, const REAL FDPROTO_i0m2_i1m1, const REAL FDPROTO_i0m2_i1m2,
+                           const REAL FDPROTO_i0m2_i1m3, const REAL FDPROTO_i0m2_i1p1, const REAL FDPROTO_i0m2_i1p2, const REAL FDPROTO_i0m2_i1p3,
+                           const REAL FDPROTO_i0m3_i1m1, const REAL FDPROTO_i0m3_i1m2, const REAL FDPROTO_i0m3_i1m3, const REAL FDPROTO_i0m3_i1p1,
+                           const REAL FDPROTO_i0m3_i1p2, const REAL FDPROTO_i0m3_i1p3, const REAL FDPROTO_i0p1_i1m1, const REAL FDPROTO_i0p1_i1m2,
+                           const REAL FDPROTO_i0p1_i1m3, const REAL FDPROTO_i0p1_i1p1, const REAL FDPROTO_i0p1_i1p2, const REAL FDPROTO_i0p1_i1p3,
+                           const REAL FDPROTO_i0p2_i1m1, const REAL FDPROTO_i0p2_i1m2, const REAL FDPROTO_i0p2_i1m3, const REAL FDPROTO_i0p2_i1p1,
+                           const REAL FDPROTO_i0p2_i1p2, const REAL FDPROTO_i0p2_i1p3, const REAL FDPROTO_i0p3_i1m1, const REAL FDPROTO_i0p3_i1m2,
+                           const REAL FDPROTO_i0p3_i1m3, const REAL FDPROTO_i0p3_i1p1, const REAL FDPROTO_i0p3_i1p2, const REAL FDPROTO_i0p3_i1p3,
+                           const REAL invdxx0, const REAL invdxx1) {
+  constexpr REAL FDPart1_Rational_9_16 = 9.0 / 16.0;
+  constexpr REAL FDPart1_Rational_9_80 = 9.0 / 80.0;
+  constexpr REAL FDPart1_Rational_9_400 = 9.0 / 400.0;
+  constexpr REAL FDPart1_Rational_1_80 = 1.0 / 80.0;
+  constexpr REAL FDPart1_Rational_1_400 = 1.0 / 400.0;
+  constexpr REAL FDPart1_Rational_1_3600 = 1.0 / 3600.0;
   const REAL FD_result = invdxx0 * invdxx1 *
-                         (FDPart1_Rational_1_144 * (FDPROTO_i0m2_i1m2 - FDPROTO_i0m2_i1p2 - FDPROTO_i0p2_i1m2 + FDPROTO_i0p2_i1p2) +
-                          FDPart1_Rational_1_18 * (-FDPROTO_i0m1_i1m2 + FDPROTO_i0m1_i1p2 - FDPROTO_i0m2_i1m1 + FDPROTO_i0m2_i1p1 +
-                                                   FDPROTO_i0p1_i1m2 - FDPROTO_i0p1_i1p2 + FDPROTO_i0p2_i1m1 - FDPROTO_i0p2_i1p1) +
-                          FDPart1_Rational_4_9 * (FDPROTO_i0m1_i1m1 - FDPROTO_i0m1_i1p1 - FDPROTO_i0p1_i1m1 + FDPROTO_i0p1_i1p1));
+                         (FDPart1_Rational_1_3600 * (FDPROTO_i0m3_i1m3 - FDPROTO_i0m3_i1p3 - FDPROTO_i0p3_i1m3 + FDPROTO_i0p3_i1p3) +
+                          FDPart1_Rational_1_400 * (-FDPROTO_i0m2_i1m3 + FDPROTO_i0m2_i1p3 - FDPROTO_i0m3_i1m2 + FDPROTO_i0m3_i1p2 +
+                                                    FDPROTO_i0p2_i1m3 - FDPROTO_i0p2_i1p3 + FDPROTO_i0p3_i1m2 - FDPROTO_i0p3_i1p2) +
+                          FDPart1_Rational_1_80 * (FDPROTO_i0m1_i1m3 - FDPROTO_i0m1_i1p3 + FDPROTO_i0m3_i1m1 - FDPROTO_i0m3_i1p1 - FDPROTO_i0p1_i1m3 +
+                                                   FDPROTO_i0p1_i1p3 - FDPROTO_i0p3_i1m1 + FDPROTO_i0p3_i1p1) +
+                          FDPart1_Rational_9_16 * (FDPROTO_i0m1_i1m1 - FDPROTO_i0m1_i1p1 - FDPROTO_i0p1_i1m1 + FDPROTO_i0p1_i1p1) +
+                          FDPart1_Rational_9_400 * (FDPROTO_i0m2_i1m2 - FDPROTO_i0m2_i1p2 - FDPROTO_i0p2_i1m2 + FDPROTO_i0p2_i1p2) +
+                          FDPart1_Rational_9_80 * (-FDPROTO_i0m1_i1m2 + FDPROTO_i0m1_i1p2 - FDPROTO_i0m2_i1m1 + FDPROTO_i0m2_i1p1 +
+                                                   FDPROTO_i0p1_i1m2 - FDPROTO_i0p1_i1p2 + FDPROTO_i0p2_i1m1 - FDPROTO_i0p2_i1p1));
 
   return FD_result;
 }
 /*
- * Finite difference function for operator dDD02, with FD accuracy order 4.
+ * Finite difference function for operator dDD02, with FD accuracy order 6.
  */
-__device__ static REAL fd_function_dDD02_fdorder4(const REAL FDPROTO_i0m1_i2m1, const REAL FDPROTO_i0m1_i2m2, const REAL FDPROTO_i0m1_i2p1,
-                                       const REAL FDPROTO_i0m1_i2p2, const REAL FDPROTO_i0m2_i2m1, const REAL FDPROTO_i0m2_i2m2,
-                                       const REAL FDPROTO_i0m2_i2p1, const REAL FDPROTO_i0m2_i2p2, const REAL FDPROTO_i0p1_i2m1,
-                                       const REAL FDPROTO_i0p1_i2m2, const REAL FDPROTO_i0p1_i2p1, const REAL FDPROTO_i0p1_i2p2,
-                                       const REAL FDPROTO_i0p2_i2m1, const REAL FDPROTO_i0p2_i2m2, const REAL FDPROTO_i0p2_i2p1,
-                                       const REAL FDPROTO_i0p2_i2p2, const REAL invdxx0, const REAL invdxx2) {
-
+__device__ static REAL
+fd_function_dDD02_fdorder6(const REAL FDPROTO_i0m1_i2m1, const REAL FDPROTO_i0m1_i2m2, const REAL FDPROTO_i0m1_i2m3, const REAL FDPROTO_i0m1_i2p1,
+                           const REAL FDPROTO_i0m1_i2p2, const REAL FDPROTO_i0m1_i2p3, const REAL FDPROTO_i0m2_i2m1, const REAL FDPROTO_i0m2_i2m2,
+                           const REAL FDPROTO_i0m2_i2m3, const REAL FDPROTO_i0m2_i2p1, const REAL FDPROTO_i0m2_i2p2, const REAL FDPROTO_i0m2_i2p3,
+                           const REAL FDPROTO_i0m3_i2m1, const REAL FDPROTO_i0m3_i2m2, const REAL FDPROTO_i0m3_i2m3, const REAL FDPROTO_i0m3_i2p1,
+                           const REAL FDPROTO_i0m3_i2p2, const REAL FDPROTO_i0m3_i2p3, const REAL FDPROTO_i0p1_i2m1, const REAL FDPROTO_i0p1_i2m2,
+                           const REAL FDPROTO_i0p1_i2m3, const REAL FDPROTO_i0p1_i2p1, const REAL FDPROTO_i0p1_i2p2, const REAL FDPROTO_i0p1_i2p3,
+                           const REAL FDPROTO_i0p2_i2m1, const REAL FDPROTO_i0p2_i2m2, const REAL FDPROTO_i0p2_i2m3, const REAL FDPROTO_i0p2_i2p1,
+                           const REAL FDPROTO_i0p2_i2p2, const REAL FDPROTO_i0p2_i2p3, const REAL FDPROTO_i0p3_i2m1, const REAL FDPROTO_i0p3_i2m2,
+                           const REAL FDPROTO_i0p3_i2m3, const REAL FDPROTO_i0p3_i2p1, const REAL FDPROTO_i0p3_i2p2, const REAL FDPROTO_i0p3_i2p3,
+                           const REAL invdxx0, const REAL invdxx2) {
+  constexpr REAL FDPart1_Rational_9_16 = 9.0 / 16.0;
+  constexpr REAL FDPart1_Rational_9_80 = 9.0 / 80.0;
+  constexpr REAL FDPart1_Rational_9_400 = 9.0 / 400.0;
+  constexpr REAL FDPart1_Rational_1_80 = 1.0 / 80.0;
+  constexpr REAL FDPart1_Rational_1_400 = 1.0 / 400.0;
+  constexpr REAL FDPart1_Rational_1_3600 = 1.0 / 3600.0;
   const REAL FD_result = invdxx0 * invdxx2 *
-                         (FDPart1_Rational_1_144 * (FDPROTO_i0m2_i2m2 - FDPROTO_i0m2_i2p2 - FDPROTO_i0p2_i2m2 + FDPROTO_i0p2_i2p2) +
-                          FDPart1_Rational_1_18 * (-FDPROTO_i0m1_i2m2 + FDPROTO_i0m1_i2p2 - FDPROTO_i0m2_i2m1 + FDPROTO_i0m2_i2p1 +
-                                                   FDPROTO_i0p1_i2m2 - FDPROTO_i0p1_i2p2 + FDPROTO_i0p2_i2m1 - FDPROTO_i0p2_i2p1) +
-                          FDPart1_Rational_4_9 * (FDPROTO_i0m1_i2m1 - FDPROTO_i0m1_i2p1 - FDPROTO_i0p1_i2m1 + FDPROTO_i0p1_i2p1));
+                         (FDPart1_Rational_1_3600 * (FDPROTO_i0m3_i2m3 - FDPROTO_i0m3_i2p3 - FDPROTO_i0p3_i2m3 + FDPROTO_i0p3_i2p3) +
+                          FDPart1_Rational_1_400 * (-FDPROTO_i0m2_i2m3 + FDPROTO_i0m2_i2p3 - FDPROTO_i0m3_i2m2 + FDPROTO_i0m3_i2p2 +
+                                                    FDPROTO_i0p2_i2m3 - FDPROTO_i0p2_i2p3 + FDPROTO_i0p3_i2m2 - FDPROTO_i0p3_i2p2) +
+                          FDPart1_Rational_1_80 * (FDPROTO_i0m1_i2m3 - FDPROTO_i0m1_i2p3 + FDPROTO_i0m3_i2m1 - FDPROTO_i0m3_i2p1 - FDPROTO_i0p1_i2m3 +
+                                                   FDPROTO_i0p1_i2p3 - FDPROTO_i0p3_i2m1 + FDPROTO_i0p3_i2p1) +
+                          FDPart1_Rational_9_16 * (FDPROTO_i0m1_i2m1 - FDPROTO_i0m1_i2p1 - FDPROTO_i0p1_i2m1 + FDPROTO_i0p1_i2p1) +
+                          FDPart1_Rational_9_400 * (FDPROTO_i0m2_i2m2 - FDPROTO_i0m2_i2p2 - FDPROTO_i0p2_i2m2 + FDPROTO_i0p2_i2p2) +
+                          FDPart1_Rational_9_80 * (-FDPROTO_i0m1_i2m2 + FDPROTO_i0m1_i2p2 - FDPROTO_i0m2_i2m1 + FDPROTO_i0m2_i2p1 +
+                                                   FDPROTO_i0p1_i2m2 - FDPROTO_i0p1_i2p2 + FDPROTO_i0p2_i2m1 - FDPROTO_i0p2_i2p1));
 
   return FD_result;
 }
 /*
- * Finite difference function for operator dDD11, with FD accuracy order 4.
+ * Finite difference function for operator dDD11, with FD accuracy order 6.
  */
-__device__ static REAL fd_function_dDD11_fdorder4(const REAL FDPROTO, const REAL FDPROTO_i1m1, const REAL FDPROTO_i1m2, const REAL FDPROTO_i1p1,
-                                       const REAL FDPROTO_i1p2, const REAL invdxx1) {
-
-  const REAL FD_result = ((invdxx1) * (invdxx1)) * (-FDPROTO * FDPart1_Rational_5_2 + FDPart1_Rational_1_12 * (-FDPROTO_i1m2 - FDPROTO_i1p2) +
-                                                    FDPart1_Rational_4_3 * (FDPROTO_i1m1 + FDPROTO_i1p1));
+__device__ static REAL fd_function_dDD11_fdorder6(const REAL FDPROTO, const REAL FDPROTO_i1m1, const REAL FDPROTO_i1m2, const REAL FDPROTO_i1m3,
+                                       const REAL FDPROTO_i1p1, const REAL FDPROTO_i1p2, const REAL FDPROTO_i1p3, const REAL invdxx1) {
+  constexpr REAL FDPart1_Rational_49_18 = 49.0 / 18.0;
+  constexpr REAL FDPart1_Rational_3_20 = 3.0 / 20.0;
+  constexpr REAL FDPart1_Rational_1_90 = 1.0 / 90.0;
+  constexpr REAL FDPart1_Rational_3_2 = 3.0 / 2.0;
+  const REAL FD_result =
+      ((invdxx1) * (invdxx1)) * (-FDPROTO * FDPart1_Rational_49_18 + FDPart1_Rational_1_90 * (FDPROTO_i1m3 + FDPROTO_i1p3) +
+                                 FDPart1_Rational_3_2 * (FDPROTO_i1m1 + FDPROTO_i1p1) + FDPart1_Rational_3_20 * (-FDPROTO_i1m2 - FDPROTO_i1p2));
 
   return FD_result;
 }
 /*
- * Finite difference function for operator dDD12, with FD accuracy order 4.
+ * Finite difference function for operator dDD12, with FD accuracy order 6.
  */
-__device__ static REAL fd_function_dDD12_fdorder4(const REAL FDPROTO_i1m1_i2m1, const REAL FDPROTO_i1m1_i2m2, const REAL FDPROTO_i1m1_i2p1,
-                                       const REAL FDPROTO_i1m1_i2p2, const REAL FDPROTO_i1m2_i2m1, const REAL FDPROTO_i1m2_i2m2,
-                                       const REAL FDPROTO_i1m2_i2p1, const REAL FDPROTO_i1m2_i2p2, const REAL FDPROTO_i1p1_i2m1,
-                                       const REAL FDPROTO_i1p1_i2m2, const REAL FDPROTO_i1p1_i2p1, const REAL FDPROTO_i1p1_i2p2,
-                                       const REAL FDPROTO_i1p2_i2m1, const REAL FDPROTO_i1p2_i2m2, const REAL FDPROTO_i1p2_i2p1,
-                                       const REAL FDPROTO_i1p2_i2p2, const REAL invdxx1, const REAL invdxx2) {
-
+__device__ static REAL
+fd_function_dDD12_fdorder6(const REAL FDPROTO_i1m1_i2m1, const REAL FDPROTO_i1m1_i2m2, const REAL FDPROTO_i1m1_i2m3, const REAL FDPROTO_i1m1_i2p1,
+                           const REAL FDPROTO_i1m1_i2p2, const REAL FDPROTO_i1m1_i2p3, const REAL FDPROTO_i1m2_i2m1, const REAL FDPROTO_i1m2_i2m2,
+                           const REAL FDPROTO_i1m2_i2m3, const REAL FDPROTO_i1m2_i2p1, const REAL FDPROTO_i1m2_i2p2, const REAL FDPROTO_i1m2_i2p3,
+                           const REAL FDPROTO_i1m3_i2m1, const REAL FDPROTO_i1m3_i2m2, const REAL FDPROTO_i1m3_i2m3, const REAL FDPROTO_i1m3_i2p1,
+                           const REAL FDPROTO_i1m3_i2p2, const REAL FDPROTO_i1m3_i2p3, const REAL FDPROTO_i1p1_i2m1, const REAL FDPROTO_i1p1_i2m2,
+                           const REAL FDPROTO_i1p1_i2m3, const REAL FDPROTO_i1p1_i2p1, const REAL FDPROTO_i1p1_i2p2, const REAL FDPROTO_i1p1_i2p3,
+                           const REAL FDPROTO_i1p2_i2m1, const REAL FDPROTO_i1p2_i2m2, const REAL FDPROTO_i1p2_i2m3, const REAL FDPROTO_i1p2_i2p1,
+                           const REAL FDPROTO_i1p2_i2p2, const REAL FDPROTO_i1p2_i2p3, const REAL FDPROTO_i1p3_i2m1, const REAL FDPROTO_i1p3_i2m2,
+                           const REAL FDPROTO_i1p3_i2m3, const REAL FDPROTO_i1p3_i2p1, const REAL FDPROTO_i1p3_i2p2, const REAL FDPROTO_i1p3_i2p3,
+                           const REAL invdxx1, const REAL invdxx2) {
+  constexpr REAL FDPart1_Rational_9_16 = 9.0 / 16.0;
+  constexpr REAL FDPart1_Rational_9_80 = 9.0 / 80.0;
+  constexpr REAL FDPart1_Rational_9_400 = 9.0 / 400.0;
+  constexpr REAL FDPart1_Rational_1_80 = 1.0 / 80.0;
+  constexpr REAL FDPart1_Rational_1_400 = 1.0 / 400.0;
+  constexpr REAL FDPart1_Rational_1_3600 = 1.0 / 3600.0;
   const REAL FD_result = invdxx1 * invdxx2 *
-                         (FDPart1_Rational_1_144 * (FDPROTO_i1m2_i2m2 - FDPROTO_i1m2_i2p2 - FDPROTO_i1p2_i2m2 + FDPROTO_i1p2_i2p2) +
-                          FDPart1_Rational_1_18 * (-FDPROTO_i1m1_i2m2 + FDPROTO_i1m1_i2p2 - FDPROTO_i1m2_i2m1 + FDPROTO_i1m2_i2p1 +
-                                                   FDPROTO_i1p1_i2m2 - FDPROTO_i1p1_i2p2 + FDPROTO_i1p2_i2m1 - FDPROTO_i1p2_i2p1) +
-                          FDPart1_Rational_4_9 * (FDPROTO_i1m1_i2m1 - FDPROTO_i1m1_i2p1 - FDPROTO_i1p1_i2m1 + FDPROTO_i1p1_i2p1));
+                         (FDPart1_Rational_1_3600 * (FDPROTO_i1m3_i2m3 - FDPROTO_i1m3_i2p3 - FDPROTO_i1p3_i2m3 + FDPROTO_i1p3_i2p3) +
+                          FDPart1_Rational_1_400 * (-FDPROTO_i1m2_i2m3 + FDPROTO_i1m2_i2p3 - FDPROTO_i1m3_i2m2 + FDPROTO_i1m3_i2p2 +
+                                                    FDPROTO_i1p2_i2m3 - FDPROTO_i1p2_i2p3 + FDPROTO_i1p3_i2m2 - FDPROTO_i1p3_i2p2) +
+                          FDPart1_Rational_1_80 * (FDPROTO_i1m1_i2m3 - FDPROTO_i1m1_i2p3 + FDPROTO_i1m3_i2m1 - FDPROTO_i1m3_i2p1 - FDPROTO_i1p1_i2m3 +
+                                                   FDPROTO_i1p1_i2p3 - FDPROTO_i1p3_i2m1 + FDPROTO_i1p3_i2p1) +
+                          FDPart1_Rational_9_16 * (FDPROTO_i1m1_i2m1 - FDPROTO_i1m1_i2p1 - FDPROTO_i1p1_i2m1 + FDPROTO_i1p1_i2p1) +
+                          FDPart1_Rational_9_400 * (FDPROTO_i1m2_i2m2 - FDPROTO_i1m2_i2p2 - FDPROTO_i1p2_i2m2 + FDPROTO_i1p2_i2p2) +
+                          FDPart1_Rational_9_80 * (-FDPROTO_i1m1_i2m2 + FDPROTO_i1m1_i2p2 - FDPROTO_i1m2_i2m1 + FDPROTO_i1m2_i2p1 +
+                                                   FDPROTO_i1p1_i2m2 - FDPROTO_i1p1_i2p2 + FDPROTO_i1p2_i2m1 - FDPROTO_i1p2_i2p1));
 
   return FD_result;
 }
 /*
- * Finite difference function for operator dDD22, with FD accuracy order 4.
+ * Finite difference function for operator dDD22, with FD accuracy order 6.
  */
-__device__ static REAL fd_function_dDD22_fdorder4(const REAL FDPROTO, const REAL FDPROTO_i2m1, const REAL FDPROTO_i2m2, const REAL FDPROTO_i2p1,
-                                       const REAL FDPROTO_i2p2, const REAL invdxx2) {
-
-  const REAL FD_result = ((invdxx2) * (invdxx2)) * (-FDPROTO * FDPart1_Rational_5_2 + FDPart1_Rational_1_12 * (-FDPROTO_i2m2 - FDPROTO_i2p2) +
-                                                    FDPart1_Rational_4_3 * (FDPROTO_i2m1 + FDPROTO_i2p1));
+__device__ static REAL fd_function_dDD22_fdorder6(const REAL FDPROTO, const REAL FDPROTO_i2m1, const REAL FDPROTO_i2m2, const REAL FDPROTO_i2m3,
+                                       const REAL FDPROTO_i2p1, const REAL FDPROTO_i2p2, const REAL FDPROTO_i2p3, const REAL invdxx2) {
+  constexpr REAL FDPart1_Rational_49_18 = 49.0 / 18.0;
+  constexpr REAL FDPart1_Rational_3_20 = 3.0 / 20.0;
+  constexpr REAL FDPart1_Rational_1_90 = 1.0 / 90.0;
+  constexpr REAL FDPart1_Rational_3_2 = 3.0 / 2.0;
+  const REAL FD_result =
+      ((invdxx2) * (invdxx2)) * (-FDPROTO * FDPart1_Rational_49_18 + FDPart1_Rational_1_90 * (FDPROTO_i2m3 + FDPROTO_i2p3) +
+                                 FDPart1_Rational_3_2 * (FDPROTO_i2m1 + FDPROTO_i2p1) + FDPart1_Rational_3_20 * (-FDPROTO_i2m2 - FDPROTO_i2p2));
 
   return FD_result;
 }
@@ -158,528 +224,987 @@ void Ricci_eval__rfm__Spherical_gpu(const REAL *restrict _f0_of_xx0, const REAL 
          * NRPy+-Generated GF Access/FD Code, Step 1 of 2:
          * Read gridfunction(s) from main memory and compute FD stencils as needed.
          */
+        const REAL hDD00_i1m3_i2m3 = in_gfs[IDX4(HDD00GF, i0, i1 - 3, i2 - 3)];
+        const REAL hDD00_i1m2_i2m3 = in_gfs[IDX4(HDD00GF, i0, i1 - 2, i2 - 3)];
+        const REAL hDD00_i1m1_i2m3 = in_gfs[IDX4(HDD00GF, i0, i1 - 1, i2 - 3)];
+        const REAL hDD00_i0m3_i2m3 = in_gfs[IDX4(HDD00GF, i0 - 3, i1, i2 - 3)];
+        const REAL hDD00_i0m2_i2m3 = in_gfs[IDX4(HDD00GF, i0 - 2, i1, i2 - 3)];
+        const REAL hDD00_i0m1_i2m3 = in_gfs[IDX4(HDD00GF, i0 - 1, i1, i2 - 3)];
+        const REAL hDD00_i2m3 = in_gfs[IDX4(HDD00GF, i0, i1, i2 - 3)];
+        const REAL hDD00_i0p1_i2m3 = in_gfs[IDX4(HDD00GF, i0 + 1, i1, i2 - 3)];
+        const REAL hDD00_i0p2_i2m3 = in_gfs[IDX4(HDD00GF, i0 + 2, i1, i2 - 3)];
+        const REAL hDD00_i0p3_i2m3 = in_gfs[IDX4(HDD00GF, i0 + 3, i1, i2 - 3)];
+        const REAL hDD00_i1p1_i2m3 = in_gfs[IDX4(HDD00GF, i0, i1 + 1, i2 - 3)];
+        const REAL hDD00_i1p2_i2m3 = in_gfs[IDX4(HDD00GF, i0, i1 + 2, i2 - 3)];
+        const REAL hDD00_i1p3_i2m3 = in_gfs[IDX4(HDD00GF, i0, i1 + 3, i2 - 3)];
+        const REAL hDD00_i1m3_i2m2 = in_gfs[IDX4(HDD00GF, i0, i1 - 3, i2 - 2)];
         const REAL hDD00_i1m2_i2m2 = in_gfs[IDX4(HDD00GF, i0, i1 - 2, i2 - 2)];
         const REAL hDD00_i1m1_i2m2 = in_gfs[IDX4(HDD00GF, i0, i1 - 1, i2 - 2)];
+        const REAL hDD00_i0m3_i2m2 = in_gfs[IDX4(HDD00GF, i0 - 3, i1, i2 - 2)];
         const REAL hDD00_i0m2_i2m2 = in_gfs[IDX4(HDD00GF, i0 - 2, i1, i2 - 2)];
         const REAL hDD00_i0m1_i2m2 = in_gfs[IDX4(HDD00GF, i0 - 1, i1, i2 - 2)];
         const REAL hDD00_i2m2 = in_gfs[IDX4(HDD00GF, i0, i1, i2 - 2)];
         const REAL hDD00_i0p1_i2m2 = in_gfs[IDX4(HDD00GF, i0 + 1, i1, i2 - 2)];
         const REAL hDD00_i0p2_i2m2 = in_gfs[IDX4(HDD00GF, i0 + 2, i1, i2 - 2)];
+        const REAL hDD00_i0p3_i2m2 = in_gfs[IDX4(HDD00GF, i0 + 3, i1, i2 - 2)];
         const REAL hDD00_i1p1_i2m2 = in_gfs[IDX4(HDD00GF, i0, i1 + 1, i2 - 2)];
         const REAL hDD00_i1p2_i2m2 = in_gfs[IDX4(HDD00GF, i0, i1 + 2, i2 - 2)];
+        const REAL hDD00_i1p3_i2m2 = in_gfs[IDX4(HDD00GF, i0, i1 + 3, i2 - 2)];
+        const REAL hDD00_i1m3_i2m1 = in_gfs[IDX4(HDD00GF, i0, i1 - 3, i2 - 1)];
         const REAL hDD00_i1m2_i2m1 = in_gfs[IDX4(HDD00GF, i0, i1 - 2, i2 - 1)];
         const REAL hDD00_i1m1_i2m1 = in_gfs[IDX4(HDD00GF, i0, i1 - 1, i2 - 1)];
+        const REAL hDD00_i0m3_i2m1 = in_gfs[IDX4(HDD00GF, i0 - 3, i1, i2 - 1)];
         const REAL hDD00_i0m2_i2m1 = in_gfs[IDX4(HDD00GF, i0 - 2, i1, i2 - 1)];
         const REAL hDD00_i0m1_i2m1 = in_gfs[IDX4(HDD00GF, i0 - 1, i1, i2 - 1)];
         const REAL hDD00_i2m1 = in_gfs[IDX4(HDD00GF, i0, i1, i2 - 1)];
         const REAL hDD00_i0p1_i2m1 = in_gfs[IDX4(HDD00GF, i0 + 1, i1, i2 - 1)];
         const REAL hDD00_i0p2_i2m1 = in_gfs[IDX4(HDD00GF, i0 + 2, i1, i2 - 1)];
+        const REAL hDD00_i0p3_i2m1 = in_gfs[IDX4(HDD00GF, i0 + 3, i1, i2 - 1)];
         const REAL hDD00_i1p1_i2m1 = in_gfs[IDX4(HDD00GF, i0, i1 + 1, i2 - 1)];
         const REAL hDD00_i1p2_i2m1 = in_gfs[IDX4(HDD00GF, i0, i1 + 2, i2 - 1)];
+        const REAL hDD00_i1p3_i2m1 = in_gfs[IDX4(HDD00GF, i0, i1 + 3, i2 - 1)];
+        const REAL hDD00_i0m3_i1m3 = in_gfs[IDX4(HDD00GF, i0 - 3, i1 - 3, i2)];
+        const REAL hDD00_i0m2_i1m3 = in_gfs[IDX4(HDD00GF, i0 - 2, i1 - 3, i2)];
+        const REAL hDD00_i0m1_i1m3 = in_gfs[IDX4(HDD00GF, i0 - 1, i1 - 3, i2)];
+        const REAL hDD00_i1m3 = in_gfs[IDX4(HDD00GF, i0, i1 - 3, i2)];
+        const REAL hDD00_i0p1_i1m3 = in_gfs[IDX4(HDD00GF, i0 + 1, i1 - 3, i2)];
+        const REAL hDD00_i0p2_i1m3 = in_gfs[IDX4(HDD00GF, i0 + 2, i1 - 3, i2)];
+        const REAL hDD00_i0p3_i1m3 = in_gfs[IDX4(HDD00GF, i0 + 3, i1 - 3, i2)];
+        const REAL hDD00_i0m3_i1m2 = in_gfs[IDX4(HDD00GF, i0 - 3, i1 - 2, i2)];
         const REAL hDD00_i0m2_i1m2 = in_gfs[IDX4(HDD00GF, i0 - 2, i1 - 2, i2)];
         const REAL hDD00_i0m1_i1m2 = in_gfs[IDX4(HDD00GF, i0 - 1, i1 - 2, i2)];
         const REAL hDD00_i1m2 = in_gfs[IDX4(HDD00GF, i0, i1 - 2, i2)];
         const REAL hDD00_i0p1_i1m2 = in_gfs[IDX4(HDD00GF, i0 + 1, i1 - 2, i2)];
         const REAL hDD00_i0p2_i1m2 = in_gfs[IDX4(HDD00GF, i0 + 2, i1 - 2, i2)];
+        const REAL hDD00_i0p3_i1m2 = in_gfs[IDX4(HDD00GF, i0 + 3, i1 - 2, i2)];
+        const REAL hDD00_i0m3_i1m1 = in_gfs[IDX4(HDD00GF, i0 - 3, i1 - 1, i2)];
         const REAL hDD00_i0m2_i1m1 = in_gfs[IDX4(HDD00GF, i0 - 2, i1 - 1, i2)];
         const REAL hDD00_i0m1_i1m1 = in_gfs[IDX4(HDD00GF, i0 - 1, i1 - 1, i2)];
         const REAL hDD00_i1m1 = in_gfs[IDX4(HDD00GF, i0, i1 - 1, i2)];
         const REAL hDD00_i0p1_i1m1 = in_gfs[IDX4(HDD00GF, i0 + 1, i1 - 1, i2)];
         const REAL hDD00_i0p2_i1m1 = in_gfs[IDX4(HDD00GF, i0 + 2, i1 - 1, i2)];
+        const REAL hDD00_i0p3_i1m1 = in_gfs[IDX4(HDD00GF, i0 + 3, i1 - 1, i2)];
+        const REAL hDD00_i0m3 = in_gfs[IDX4(HDD00GF, i0 - 3, i1, i2)];
         const REAL hDD00_i0m2 = in_gfs[IDX4(HDD00GF, i0 - 2, i1, i2)];
         const REAL hDD00_i0m1 = in_gfs[IDX4(HDD00GF, i0 - 1, i1, i2)];
         const REAL hDD00 = in_gfs[IDX4(HDD00GF, i0, i1, i2)];
         const REAL hDD00_i0p1 = in_gfs[IDX4(HDD00GF, i0 + 1, i1, i2)];
         const REAL hDD00_i0p2 = in_gfs[IDX4(HDD00GF, i0 + 2, i1, i2)];
+        const REAL hDD00_i0p3 = in_gfs[IDX4(HDD00GF, i0 + 3, i1, i2)];
+        const REAL hDD00_i0m3_i1p1 = in_gfs[IDX4(HDD00GF, i0 - 3, i1 + 1, i2)];
         const REAL hDD00_i0m2_i1p1 = in_gfs[IDX4(HDD00GF, i0 - 2, i1 + 1, i2)];
         const REAL hDD00_i0m1_i1p1 = in_gfs[IDX4(HDD00GF, i0 - 1, i1 + 1, i2)];
         const REAL hDD00_i1p1 = in_gfs[IDX4(HDD00GF, i0, i1 + 1, i2)];
         const REAL hDD00_i0p1_i1p1 = in_gfs[IDX4(HDD00GF, i0 + 1, i1 + 1, i2)];
         const REAL hDD00_i0p2_i1p1 = in_gfs[IDX4(HDD00GF, i0 + 2, i1 + 1, i2)];
+        const REAL hDD00_i0p3_i1p1 = in_gfs[IDX4(HDD00GF, i0 + 3, i1 + 1, i2)];
+        const REAL hDD00_i0m3_i1p2 = in_gfs[IDX4(HDD00GF, i0 - 3, i1 + 2, i2)];
         const REAL hDD00_i0m2_i1p2 = in_gfs[IDX4(HDD00GF, i0 - 2, i1 + 2, i2)];
         const REAL hDD00_i0m1_i1p2 = in_gfs[IDX4(HDD00GF, i0 - 1, i1 + 2, i2)];
         const REAL hDD00_i1p2 = in_gfs[IDX4(HDD00GF, i0, i1 + 2, i2)];
         const REAL hDD00_i0p1_i1p2 = in_gfs[IDX4(HDD00GF, i0 + 1, i1 + 2, i2)];
         const REAL hDD00_i0p2_i1p2 = in_gfs[IDX4(HDD00GF, i0 + 2, i1 + 2, i2)];
+        const REAL hDD00_i0p3_i1p2 = in_gfs[IDX4(HDD00GF, i0 + 3, i1 + 2, i2)];
+        const REAL hDD00_i0m3_i1p3 = in_gfs[IDX4(HDD00GF, i0 - 3, i1 + 3, i2)];
+        const REAL hDD00_i0m2_i1p3 = in_gfs[IDX4(HDD00GF, i0 - 2, i1 + 3, i2)];
+        const REAL hDD00_i0m1_i1p3 = in_gfs[IDX4(HDD00GF, i0 - 1, i1 + 3, i2)];
+        const REAL hDD00_i1p3 = in_gfs[IDX4(HDD00GF, i0, i1 + 3, i2)];
+        const REAL hDD00_i0p1_i1p3 = in_gfs[IDX4(HDD00GF, i0 + 1, i1 + 3, i2)];
+        const REAL hDD00_i0p2_i1p3 = in_gfs[IDX4(HDD00GF, i0 + 2, i1 + 3, i2)];
+        const REAL hDD00_i0p3_i1p3 = in_gfs[IDX4(HDD00GF, i0 + 3, i1 + 3, i2)];
+        const REAL hDD00_i1m3_i2p1 = in_gfs[IDX4(HDD00GF, i0, i1 - 3, i2 + 1)];
         const REAL hDD00_i1m2_i2p1 = in_gfs[IDX4(HDD00GF, i0, i1 - 2, i2 + 1)];
         const REAL hDD00_i1m1_i2p1 = in_gfs[IDX4(HDD00GF, i0, i1 - 1, i2 + 1)];
+        const REAL hDD00_i0m3_i2p1 = in_gfs[IDX4(HDD00GF, i0 - 3, i1, i2 + 1)];
         const REAL hDD00_i0m2_i2p1 = in_gfs[IDX4(HDD00GF, i0 - 2, i1, i2 + 1)];
         const REAL hDD00_i0m1_i2p1 = in_gfs[IDX4(HDD00GF, i0 - 1, i1, i2 + 1)];
         const REAL hDD00_i2p1 = in_gfs[IDX4(HDD00GF, i0, i1, i2 + 1)];
         const REAL hDD00_i0p1_i2p1 = in_gfs[IDX4(HDD00GF, i0 + 1, i1, i2 + 1)];
         const REAL hDD00_i0p2_i2p1 = in_gfs[IDX4(HDD00GF, i0 + 2, i1, i2 + 1)];
+        const REAL hDD00_i0p3_i2p1 = in_gfs[IDX4(HDD00GF, i0 + 3, i1, i2 + 1)];
         const REAL hDD00_i1p1_i2p1 = in_gfs[IDX4(HDD00GF, i0, i1 + 1, i2 + 1)];
         const REAL hDD00_i1p2_i2p1 = in_gfs[IDX4(HDD00GF, i0, i1 + 2, i2 + 1)];
+        const REAL hDD00_i1p3_i2p1 = in_gfs[IDX4(HDD00GF, i0, i1 + 3, i2 + 1)];
+        const REAL hDD00_i1m3_i2p2 = in_gfs[IDX4(HDD00GF, i0, i1 - 3, i2 + 2)];
         const REAL hDD00_i1m2_i2p2 = in_gfs[IDX4(HDD00GF, i0, i1 - 2, i2 + 2)];
         const REAL hDD00_i1m1_i2p2 = in_gfs[IDX4(HDD00GF, i0, i1 - 1, i2 + 2)];
+        const REAL hDD00_i0m3_i2p2 = in_gfs[IDX4(HDD00GF, i0 - 3, i1, i2 + 2)];
         const REAL hDD00_i0m2_i2p2 = in_gfs[IDX4(HDD00GF, i0 - 2, i1, i2 + 2)];
         const REAL hDD00_i0m1_i2p2 = in_gfs[IDX4(HDD00GF, i0 - 1, i1, i2 + 2)];
         const REAL hDD00_i2p2 = in_gfs[IDX4(HDD00GF, i0, i1, i2 + 2)];
         const REAL hDD00_i0p1_i2p2 = in_gfs[IDX4(HDD00GF, i0 + 1, i1, i2 + 2)];
         const REAL hDD00_i0p2_i2p2 = in_gfs[IDX4(HDD00GF, i0 + 2, i1, i2 + 2)];
+        const REAL hDD00_i0p3_i2p2 = in_gfs[IDX4(HDD00GF, i0 + 3, i1, i2 + 2)];
         const REAL hDD00_i1p1_i2p2 = in_gfs[IDX4(HDD00GF, i0, i1 + 1, i2 + 2)];
         const REAL hDD00_i1p2_i2p2 = in_gfs[IDX4(HDD00GF, i0, i1 + 2, i2 + 2)];
+        const REAL hDD00_i1p3_i2p2 = in_gfs[IDX4(HDD00GF, i0, i1 + 3, i2 + 2)];
+        const REAL hDD00_i1m3_i2p3 = in_gfs[IDX4(HDD00GF, i0, i1 - 3, i2 + 3)];
+        const REAL hDD00_i1m2_i2p3 = in_gfs[IDX4(HDD00GF, i0, i1 - 2, i2 + 3)];
+        const REAL hDD00_i1m1_i2p3 = in_gfs[IDX4(HDD00GF, i0, i1 - 1, i2 + 3)];
+        const REAL hDD00_i0m3_i2p3 = in_gfs[IDX4(HDD00GF, i0 - 3, i1, i2 + 3)];
+        const REAL hDD00_i0m2_i2p3 = in_gfs[IDX4(HDD00GF, i0 - 2, i1, i2 + 3)];
+        const REAL hDD00_i0m1_i2p3 = in_gfs[IDX4(HDD00GF, i0 - 1, i1, i2 + 3)];
+        const REAL hDD00_i2p3 = in_gfs[IDX4(HDD00GF, i0, i1, i2 + 3)];
+        const REAL hDD00_i0p1_i2p3 = in_gfs[IDX4(HDD00GF, i0 + 1, i1, i2 + 3)];
+        const REAL hDD00_i0p2_i2p3 = in_gfs[IDX4(HDD00GF, i0 + 2, i1, i2 + 3)];
+        const REAL hDD00_i0p3_i2p3 = in_gfs[IDX4(HDD00GF, i0 + 3, i1, i2 + 3)];
+        const REAL hDD00_i1p1_i2p3 = in_gfs[IDX4(HDD00GF, i0, i1 + 1, i2 + 3)];
+        const REAL hDD00_i1p2_i2p3 = in_gfs[IDX4(HDD00GF, i0, i1 + 2, i2 + 3)];
+        const REAL hDD00_i1p3_i2p3 = in_gfs[IDX4(HDD00GF, i0, i1 + 3, i2 + 3)];
+        const REAL hDD01_i1m3_i2m3 = in_gfs[IDX4(HDD01GF, i0, i1 - 3, i2 - 3)];
+        const REAL hDD01_i1m2_i2m3 = in_gfs[IDX4(HDD01GF, i0, i1 - 2, i2 - 3)];
+        const REAL hDD01_i1m1_i2m3 = in_gfs[IDX4(HDD01GF, i0, i1 - 1, i2 - 3)];
+        const REAL hDD01_i0m3_i2m3 = in_gfs[IDX4(HDD01GF, i0 - 3, i1, i2 - 3)];
+        const REAL hDD01_i0m2_i2m3 = in_gfs[IDX4(HDD01GF, i0 - 2, i1, i2 - 3)];
+        const REAL hDD01_i0m1_i2m3 = in_gfs[IDX4(HDD01GF, i0 - 1, i1, i2 - 3)];
+        const REAL hDD01_i2m3 = in_gfs[IDX4(HDD01GF, i0, i1, i2 - 3)];
+        const REAL hDD01_i0p1_i2m3 = in_gfs[IDX4(HDD01GF, i0 + 1, i1, i2 - 3)];
+        const REAL hDD01_i0p2_i2m3 = in_gfs[IDX4(HDD01GF, i0 + 2, i1, i2 - 3)];
+        const REAL hDD01_i0p3_i2m3 = in_gfs[IDX4(HDD01GF, i0 + 3, i1, i2 - 3)];
+        const REAL hDD01_i1p1_i2m3 = in_gfs[IDX4(HDD01GF, i0, i1 + 1, i2 - 3)];
+        const REAL hDD01_i1p2_i2m3 = in_gfs[IDX4(HDD01GF, i0, i1 + 2, i2 - 3)];
+        const REAL hDD01_i1p3_i2m3 = in_gfs[IDX4(HDD01GF, i0, i1 + 3, i2 - 3)];
+        const REAL hDD01_i1m3_i2m2 = in_gfs[IDX4(HDD01GF, i0, i1 - 3, i2 - 2)];
         const REAL hDD01_i1m2_i2m2 = in_gfs[IDX4(HDD01GF, i0, i1 - 2, i2 - 2)];
         const REAL hDD01_i1m1_i2m2 = in_gfs[IDX4(HDD01GF, i0, i1 - 1, i2 - 2)];
+        const REAL hDD01_i0m3_i2m2 = in_gfs[IDX4(HDD01GF, i0 - 3, i1, i2 - 2)];
         const REAL hDD01_i0m2_i2m2 = in_gfs[IDX4(HDD01GF, i0 - 2, i1, i2 - 2)];
         const REAL hDD01_i0m1_i2m2 = in_gfs[IDX4(HDD01GF, i0 - 1, i1, i2 - 2)];
         const REAL hDD01_i2m2 = in_gfs[IDX4(HDD01GF, i0, i1, i2 - 2)];
         const REAL hDD01_i0p1_i2m2 = in_gfs[IDX4(HDD01GF, i0 + 1, i1, i2 - 2)];
         const REAL hDD01_i0p2_i2m2 = in_gfs[IDX4(HDD01GF, i0 + 2, i1, i2 - 2)];
+        const REAL hDD01_i0p3_i2m2 = in_gfs[IDX4(HDD01GF, i0 + 3, i1, i2 - 2)];
         const REAL hDD01_i1p1_i2m2 = in_gfs[IDX4(HDD01GF, i0, i1 + 1, i2 - 2)];
         const REAL hDD01_i1p2_i2m2 = in_gfs[IDX4(HDD01GF, i0, i1 + 2, i2 - 2)];
+        const REAL hDD01_i1p3_i2m2 = in_gfs[IDX4(HDD01GF, i0, i1 + 3, i2 - 2)];
+        const REAL hDD01_i1m3_i2m1 = in_gfs[IDX4(HDD01GF, i0, i1 - 3, i2 - 1)];
         const REAL hDD01_i1m2_i2m1 = in_gfs[IDX4(HDD01GF, i0, i1 - 2, i2 - 1)];
         const REAL hDD01_i1m1_i2m1 = in_gfs[IDX4(HDD01GF, i0, i1 - 1, i2 - 1)];
+        const REAL hDD01_i0m3_i2m1 = in_gfs[IDX4(HDD01GF, i0 - 3, i1, i2 - 1)];
         const REAL hDD01_i0m2_i2m1 = in_gfs[IDX4(HDD01GF, i0 - 2, i1, i2 - 1)];
         const REAL hDD01_i0m1_i2m1 = in_gfs[IDX4(HDD01GF, i0 - 1, i1, i2 - 1)];
         const REAL hDD01_i2m1 = in_gfs[IDX4(HDD01GF, i0, i1, i2 - 1)];
         const REAL hDD01_i0p1_i2m1 = in_gfs[IDX4(HDD01GF, i0 + 1, i1, i2 - 1)];
         const REAL hDD01_i0p2_i2m1 = in_gfs[IDX4(HDD01GF, i0 + 2, i1, i2 - 1)];
+        const REAL hDD01_i0p3_i2m1 = in_gfs[IDX4(HDD01GF, i0 + 3, i1, i2 - 1)];
         const REAL hDD01_i1p1_i2m1 = in_gfs[IDX4(HDD01GF, i0, i1 + 1, i2 - 1)];
         const REAL hDD01_i1p2_i2m1 = in_gfs[IDX4(HDD01GF, i0, i1 + 2, i2 - 1)];
+        const REAL hDD01_i1p3_i2m1 = in_gfs[IDX4(HDD01GF, i0, i1 + 3, i2 - 1)];
+        const REAL hDD01_i0m3_i1m3 = in_gfs[IDX4(HDD01GF, i0 - 3, i1 - 3, i2)];
+        const REAL hDD01_i0m2_i1m3 = in_gfs[IDX4(HDD01GF, i0 - 2, i1 - 3, i2)];
+        const REAL hDD01_i0m1_i1m3 = in_gfs[IDX4(HDD01GF, i0 - 1, i1 - 3, i2)];
+        const REAL hDD01_i1m3 = in_gfs[IDX4(HDD01GF, i0, i1 - 3, i2)];
+        const REAL hDD01_i0p1_i1m3 = in_gfs[IDX4(HDD01GF, i0 + 1, i1 - 3, i2)];
+        const REAL hDD01_i0p2_i1m3 = in_gfs[IDX4(HDD01GF, i0 + 2, i1 - 3, i2)];
+        const REAL hDD01_i0p3_i1m3 = in_gfs[IDX4(HDD01GF, i0 + 3, i1 - 3, i2)];
+        const REAL hDD01_i0m3_i1m2 = in_gfs[IDX4(HDD01GF, i0 - 3, i1 - 2, i2)];
         const REAL hDD01_i0m2_i1m2 = in_gfs[IDX4(HDD01GF, i0 - 2, i1 - 2, i2)];
         const REAL hDD01_i0m1_i1m2 = in_gfs[IDX4(HDD01GF, i0 - 1, i1 - 2, i2)];
         const REAL hDD01_i1m2 = in_gfs[IDX4(HDD01GF, i0, i1 - 2, i2)];
         const REAL hDD01_i0p1_i1m2 = in_gfs[IDX4(HDD01GF, i0 + 1, i1 - 2, i2)];
         const REAL hDD01_i0p2_i1m2 = in_gfs[IDX4(HDD01GF, i0 + 2, i1 - 2, i2)];
+        const REAL hDD01_i0p3_i1m2 = in_gfs[IDX4(HDD01GF, i0 + 3, i1 - 2, i2)];
+        const REAL hDD01_i0m3_i1m1 = in_gfs[IDX4(HDD01GF, i0 - 3, i1 - 1, i2)];
         const REAL hDD01_i0m2_i1m1 = in_gfs[IDX4(HDD01GF, i0 - 2, i1 - 1, i2)];
         const REAL hDD01_i0m1_i1m1 = in_gfs[IDX4(HDD01GF, i0 - 1, i1 - 1, i2)];
         const REAL hDD01_i1m1 = in_gfs[IDX4(HDD01GF, i0, i1 - 1, i2)];
         const REAL hDD01_i0p1_i1m1 = in_gfs[IDX4(HDD01GF, i0 + 1, i1 - 1, i2)];
         const REAL hDD01_i0p2_i1m1 = in_gfs[IDX4(HDD01GF, i0 + 2, i1 - 1, i2)];
+        const REAL hDD01_i0p3_i1m1 = in_gfs[IDX4(HDD01GF, i0 + 3, i1 - 1, i2)];
+        const REAL hDD01_i0m3 = in_gfs[IDX4(HDD01GF, i0 - 3, i1, i2)];
         const REAL hDD01_i0m2 = in_gfs[IDX4(HDD01GF, i0 - 2, i1, i2)];
         const REAL hDD01_i0m1 = in_gfs[IDX4(HDD01GF, i0 - 1, i1, i2)];
         const REAL hDD01 = in_gfs[IDX4(HDD01GF, i0, i1, i2)];
         const REAL hDD01_i0p1 = in_gfs[IDX4(HDD01GF, i0 + 1, i1, i2)];
         const REAL hDD01_i0p2 = in_gfs[IDX4(HDD01GF, i0 + 2, i1, i2)];
+        const REAL hDD01_i0p3 = in_gfs[IDX4(HDD01GF, i0 + 3, i1, i2)];
+        const REAL hDD01_i0m3_i1p1 = in_gfs[IDX4(HDD01GF, i0 - 3, i1 + 1, i2)];
         const REAL hDD01_i0m2_i1p1 = in_gfs[IDX4(HDD01GF, i0 - 2, i1 + 1, i2)];
         const REAL hDD01_i0m1_i1p1 = in_gfs[IDX4(HDD01GF, i0 - 1, i1 + 1, i2)];
         const REAL hDD01_i1p1 = in_gfs[IDX4(HDD01GF, i0, i1 + 1, i2)];
         const REAL hDD01_i0p1_i1p1 = in_gfs[IDX4(HDD01GF, i0 + 1, i1 + 1, i2)];
         const REAL hDD01_i0p2_i1p1 = in_gfs[IDX4(HDD01GF, i0 + 2, i1 + 1, i2)];
+        const REAL hDD01_i0p3_i1p1 = in_gfs[IDX4(HDD01GF, i0 + 3, i1 + 1, i2)];
+        const REAL hDD01_i0m3_i1p2 = in_gfs[IDX4(HDD01GF, i0 - 3, i1 + 2, i2)];
         const REAL hDD01_i0m2_i1p2 = in_gfs[IDX4(HDD01GF, i0 - 2, i1 + 2, i2)];
         const REAL hDD01_i0m1_i1p2 = in_gfs[IDX4(HDD01GF, i0 - 1, i1 + 2, i2)];
         const REAL hDD01_i1p2 = in_gfs[IDX4(HDD01GF, i0, i1 + 2, i2)];
         const REAL hDD01_i0p1_i1p2 = in_gfs[IDX4(HDD01GF, i0 + 1, i1 + 2, i2)];
         const REAL hDD01_i0p2_i1p2 = in_gfs[IDX4(HDD01GF, i0 + 2, i1 + 2, i2)];
+        const REAL hDD01_i0p3_i1p2 = in_gfs[IDX4(HDD01GF, i0 + 3, i1 + 2, i2)];
+        const REAL hDD01_i0m3_i1p3 = in_gfs[IDX4(HDD01GF, i0 - 3, i1 + 3, i2)];
+        const REAL hDD01_i0m2_i1p3 = in_gfs[IDX4(HDD01GF, i0 - 2, i1 + 3, i2)];
+        const REAL hDD01_i0m1_i1p3 = in_gfs[IDX4(HDD01GF, i0 - 1, i1 + 3, i2)];
+        const REAL hDD01_i1p3 = in_gfs[IDX4(HDD01GF, i0, i1 + 3, i2)];
+        const REAL hDD01_i0p1_i1p3 = in_gfs[IDX4(HDD01GF, i0 + 1, i1 + 3, i2)];
+        const REAL hDD01_i0p2_i1p3 = in_gfs[IDX4(HDD01GF, i0 + 2, i1 + 3, i2)];
+        const REAL hDD01_i0p3_i1p3 = in_gfs[IDX4(HDD01GF, i0 + 3, i1 + 3, i2)];
+        const REAL hDD01_i1m3_i2p1 = in_gfs[IDX4(HDD01GF, i0, i1 - 3, i2 + 1)];
         const REAL hDD01_i1m2_i2p1 = in_gfs[IDX4(HDD01GF, i0, i1 - 2, i2 + 1)];
         const REAL hDD01_i1m1_i2p1 = in_gfs[IDX4(HDD01GF, i0, i1 - 1, i2 + 1)];
+        const REAL hDD01_i0m3_i2p1 = in_gfs[IDX4(HDD01GF, i0 - 3, i1, i2 + 1)];
         const REAL hDD01_i0m2_i2p1 = in_gfs[IDX4(HDD01GF, i0 - 2, i1, i2 + 1)];
         const REAL hDD01_i0m1_i2p1 = in_gfs[IDX4(HDD01GF, i0 - 1, i1, i2 + 1)];
         const REAL hDD01_i2p1 = in_gfs[IDX4(HDD01GF, i0, i1, i2 + 1)];
         const REAL hDD01_i0p1_i2p1 = in_gfs[IDX4(HDD01GF, i0 + 1, i1, i2 + 1)];
         const REAL hDD01_i0p2_i2p1 = in_gfs[IDX4(HDD01GF, i0 + 2, i1, i2 + 1)];
+        const REAL hDD01_i0p3_i2p1 = in_gfs[IDX4(HDD01GF, i0 + 3, i1, i2 + 1)];
         const REAL hDD01_i1p1_i2p1 = in_gfs[IDX4(HDD01GF, i0, i1 + 1, i2 + 1)];
         const REAL hDD01_i1p2_i2p1 = in_gfs[IDX4(HDD01GF, i0, i1 + 2, i2 + 1)];
+        const REAL hDD01_i1p3_i2p1 = in_gfs[IDX4(HDD01GF, i0, i1 + 3, i2 + 1)];
+        const REAL hDD01_i1m3_i2p2 = in_gfs[IDX4(HDD01GF, i0, i1 - 3, i2 + 2)];
         const REAL hDD01_i1m2_i2p2 = in_gfs[IDX4(HDD01GF, i0, i1 - 2, i2 + 2)];
         const REAL hDD01_i1m1_i2p2 = in_gfs[IDX4(HDD01GF, i0, i1 - 1, i2 + 2)];
+        const REAL hDD01_i0m3_i2p2 = in_gfs[IDX4(HDD01GF, i0 - 3, i1, i2 + 2)];
         const REAL hDD01_i0m2_i2p2 = in_gfs[IDX4(HDD01GF, i0 - 2, i1, i2 + 2)];
         const REAL hDD01_i0m1_i2p2 = in_gfs[IDX4(HDD01GF, i0 - 1, i1, i2 + 2)];
         const REAL hDD01_i2p2 = in_gfs[IDX4(HDD01GF, i0, i1, i2 + 2)];
         const REAL hDD01_i0p1_i2p2 = in_gfs[IDX4(HDD01GF, i0 + 1, i1, i2 + 2)];
         const REAL hDD01_i0p2_i2p2 = in_gfs[IDX4(HDD01GF, i0 + 2, i1, i2 + 2)];
+        const REAL hDD01_i0p3_i2p2 = in_gfs[IDX4(HDD01GF, i0 + 3, i1, i2 + 2)];
         const REAL hDD01_i1p1_i2p2 = in_gfs[IDX4(HDD01GF, i0, i1 + 1, i2 + 2)];
         const REAL hDD01_i1p2_i2p2 = in_gfs[IDX4(HDD01GF, i0, i1 + 2, i2 + 2)];
+        const REAL hDD01_i1p3_i2p2 = in_gfs[IDX4(HDD01GF, i0, i1 + 3, i2 + 2)];
+        const REAL hDD01_i1m3_i2p3 = in_gfs[IDX4(HDD01GF, i0, i1 - 3, i2 + 3)];
+        const REAL hDD01_i1m2_i2p3 = in_gfs[IDX4(HDD01GF, i0, i1 - 2, i2 + 3)];
+        const REAL hDD01_i1m1_i2p3 = in_gfs[IDX4(HDD01GF, i0, i1 - 1, i2 + 3)];
+        const REAL hDD01_i0m3_i2p3 = in_gfs[IDX4(HDD01GF, i0 - 3, i1, i2 + 3)];
+        const REAL hDD01_i0m2_i2p3 = in_gfs[IDX4(HDD01GF, i0 - 2, i1, i2 + 3)];
+        const REAL hDD01_i0m1_i2p3 = in_gfs[IDX4(HDD01GF, i0 - 1, i1, i2 + 3)];
+        const REAL hDD01_i2p3 = in_gfs[IDX4(HDD01GF, i0, i1, i2 + 3)];
+        const REAL hDD01_i0p1_i2p3 = in_gfs[IDX4(HDD01GF, i0 + 1, i1, i2 + 3)];
+        const REAL hDD01_i0p2_i2p3 = in_gfs[IDX4(HDD01GF, i0 + 2, i1, i2 + 3)];
+        const REAL hDD01_i0p3_i2p3 = in_gfs[IDX4(HDD01GF, i0 + 3, i1, i2 + 3)];
+        const REAL hDD01_i1p1_i2p3 = in_gfs[IDX4(HDD01GF, i0, i1 + 1, i2 + 3)];
+        const REAL hDD01_i1p2_i2p3 = in_gfs[IDX4(HDD01GF, i0, i1 + 2, i2 + 3)];
+        const REAL hDD01_i1p3_i2p3 = in_gfs[IDX4(HDD01GF, i0, i1 + 3, i2 + 3)];
+        const REAL hDD02_i1m3_i2m3 = in_gfs[IDX4(HDD02GF, i0, i1 - 3, i2 - 3)];
+        const REAL hDD02_i1m2_i2m3 = in_gfs[IDX4(HDD02GF, i0, i1 - 2, i2 - 3)];
+        const REAL hDD02_i1m1_i2m3 = in_gfs[IDX4(HDD02GF, i0, i1 - 1, i2 - 3)];
+        const REAL hDD02_i0m3_i2m3 = in_gfs[IDX4(HDD02GF, i0 - 3, i1, i2 - 3)];
+        const REAL hDD02_i0m2_i2m3 = in_gfs[IDX4(HDD02GF, i0 - 2, i1, i2 - 3)];
+        const REAL hDD02_i0m1_i2m3 = in_gfs[IDX4(HDD02GF, i0 - 1, i1, i2 - 3)];
+        const REAL hDD02_i2m3 = in_gfs[IDX4(HDD02GF, i0, i1, i2 - 3)];
+        const REAL hDD02_i0p1_i2m3 = in_gfs[IDX4(HDD02GF, i0 + 1, i1, i2 - 3)];
+        const REAL hDD02_i0p2_i2m3 = in_gfs[IDX4(HDD02GF, i0 + 2, i1, i2 - 3)];
+        const REAL hDD02_i0p3_i2m3 = in_gfs[IDX4(HDD02GF, i0 + 3, i1, i2 - 3)];
+        const REAL hDD02_i1p1_i2m3 = in_gfs[IDX4(HDD02GF, i0, i1 + 1, i2 - 3)];
+        const REAL hDD02_i1p2_i2m3 = in_gfs[IDX4(HDD02GF, i0, i1 + 2, i2 - 3)];
+        const REAL hDD02_i1p3_i2m3 = in_gfs[IDX4(HDD02GF, i0, i1 + 3, i2 - 3)];
+        const REAL hDD02_i1m3_i2m2 = in_gfs[IDX4(HDD02GF, i0, i1 - 3, i2 - 2)];
         const REAL hDD02_i1m2_i2m2 = in_gfs[IDX4(HDD02GF, i0, i1 - 2, i2 - 2)];
         const REAL hDD02_i1m1_i2m2 = in_gfs[IDX4(HDD02GF, i0, i1 - 1, i2 - 2)];
+        const REAL hDD02_i0m3_i2m2 = in_gfs[IDX4(HDD02GF, i0 - 3, i1, i2 - 2)];
         const REAL hDD02_i0m2_i2m2 = in_gfs[IDX4(HDD02GF, i0 - 2, i1, i2 - 2)];
         const REAL hDD02_i0m1_i2m2 = in_gfs[IDX4(HDD02GF, i0 - 1, i1, i2 - 2)];
         const REAL hDD02_i2m2 = in_gfs[IDX4(HDD02GF, i0, i1, i2 - 2)];
         const REAL hDD02_i0p1_i2m2 = in_gfs[IDX4(HDD02GF, i0 + 1, i1, i2 - 2)];
         const REAL hDD02_i0p2_i2m2 = in_gfs[IDX4(HDD02GF, i0 + 2, i1, i2 - 2)];
+        const REAL hDD02_i0p3_i2m2 = in_gfs[IDX4(HDD02GF, i0 + 3, i1, i2 - 2)];
         const REAL hDD02_i1p1_i2m2 = in_gfs[IDX4(HDD02GF, i0, i1 + 1, i2 - 2)];
         const REAL hDD02_i1p2_i2m2 = in_gfs[IDX4(HDD02GF, i0, i1 + 2, i2 - 2)];
+        const REAL hDD02_i1p3_i2m2 = in_gfs[IDX4(HDD02GF, i0, i1 + 3, i2 - 2)];
+        const REAL hDD02_i1m3_i2m1 = in_gfs[IDX4(HDD02GF, i0, i1 - 3, i2 - 1)];
         const REAL hDD02_i1m2_i2m1 = in_gfs[IDX4(HDD02GF, i0, i1 - 2, i2 - 1)];
         const REAL hDD02_i1m1_i2m1 = in_gfs[IDX4(HDD02GF, i0, i1 - 1, i2 - 1)];
+        const REAL hDD02_i0m3_i2m1 = in_gfs[IDX4(HDD02GF, i0 - 3, i1, i2 - 1)];
         const REAL hDD02_i0m2_i2m1 = in_gfs[IDX4(HDD02GF, i0 - 2, i1, i2 - 1)];
         const REAL hDD02_i0m1_i2m1 = in_gfs[IDX4(HDD02GF, i0 - 1, i1, i2 - 1)];
         const REAL hDD02_i2m1 = in_gfs[IDX4(HDD02GF, i0, i1, i2 - 1)];
         const REAL hDD02_i0p1_i2m1 = in_gfs[IDX4(HDD02GF, i0 + 1, i1, i2 - 1)];
         const REAL hDD02_i0p2_i2m1 = in_gfs[IDX4(HDD02GF, i0 + 2, i1, i2 - 1)];
+        const REAL hDD02_i0p3_i2m1 = in_gfs[IDX4(HDD02GF, i0 + 3, i1, i2 - 1)];
         const REAL hDD02_i1p1_i2m1 = in_gfs[IDX4(HDD02GF, i0, i1 + 1, i2 - 1)];
         const REAL hDD02_i1p2_i2m1 = in_gfs[IDX4(HDD02GF, i0, i1 + 2, i2 - 1)];
+        const REAL hDD02_i1p3_i2m1 = in_gfs[IDX4(HDD02GF, i0, i1 + 3, i2 - 1)];
+        const REAL hDD02_i0m3_i1m3 = in_gfs[IDX4(HDD02GF, i0 - 3, i1 - 3, i2)];
+        const REAL hDD02_i0m2_i1m3 = in_gfs[IDX4(HDD02GF, i0 - 2, i1 - 3, i2)];
+        const REAL hDD02_i0m1_i1m3 = in_gfs[IDX4(HDD02GF, i0 - 1, i1 - 3, i2)];
+        const REAL hDD02_i1m3 = in_gfs[IDX4(HDD02GF, i0, i1 - 3, i2)];
+        const REAL hDD02_i0p1_i1m3 = in_gfs[IDX4(HDD02GF, i0 + 1, i1 - 3, i2)];
+        const REAL hDD02_i0p2_i1m3 = in_gfs[IDX4(HDD02GF, i0 + 2, i1 - 3, i2)];
+        const REAL hDD02_i0p3_i1m3 = in_gfs[IDX4(HDD02GF, i0 + 3, i1 - 3, i2)];
+        const REAL hDD02_i0m3_i1m2 = in_gfs[IDX4(HDD02GF, i0 - 3, i1 - 2, i2)];
         const REAL hDD02_i0m2_i1m2 = in_gfs[IDX4(HDD02GF, i0 - 2, i1 - 2, i2)];
         const REAL hDD02_i0m1_i1m2 = in_gfs[IDX4(HDD02GF, i0 - 1, i1 - 2, i2)];
         const REAL hDD02_i1m2 = in_gfs[IDX4(HDD02GF, i0, i1 - 2, i2)];
         const REAL hDD02_i0p1_i1m2 = in_gfs[IDX4(HDD02GF, i0 + 1, i1 - 2, i2)];
         const REAL hDD02_i0p2_i1m2 = in_gfs[IDX4(HDD02GF, i0 + 2, i1 - 2, i2)];
+        const REAL hDD02_i0p3_i1m2 = in_gfs[IDX4(HDD02GF, i0 + 3, i1 - 2, i2)];
+        const REAL hDD02_i0m3_i1m1 = in_gfs[IDX4(HDD02GF, i0 - 3, i1 - 1, i2)];
         const REAL hDD02_i0m2_i1m1 = in_gfs[IDX4(HDD02GF, i0 - 2, i1 - 1, i2)];
         const REAL hDD02_i0m1_i1m1 = in_gfs[IDX4(HDD02GF, i0 - 1, i1 - 1, i2)];
         const REAL hDD02_i1m1 = in_gfs[IDX4(HDD02GF, i0, i1 - 1, i2)];
         const REAL hDD02_i0p1_i1m1 = in_gfs[IDX4(HDD02GF, i0 + 1, i1 - 1, i2)];
         const REAL hDD02_i0p2_i1m1 = in_gfs[IDX4(HDD02GF, i0 + 2, i1 - 1, i2)];
+        const REAL hDD02_i0p3_i1m1 = in_gfs[IDX4(HDD02GF, i0 + 3, i1 - 1, i2)];
+        const REAL hDD02_i0m3 = in_gfs[IDX4(HDD02GF, i0 - 3, i1, i2)];
         const REAL hDD02_i0m2 = in_gfs[IDX4(HDD02GF, i0 - 2, i1, i2)];
         const REAL hDD02_i0m1 = in_gfs[IDX4(HDD02GF, i0 - 1, i1, i2)];
         const REAL hDD02 = in_gfs[IDX4(HDD02GF, i0, i1, i2)];
         const REAL hDD02_i0p1 = in_gfs[IDX4(HDD02GF, i0 + 1, i1, i2)];
         const REAL hDD02_i0p2 = in_gfs[IDX4(HDD02GF, i0 + 2, i1, i2)];
+        const REAL hDD02_i0p3 = in_gfs[IDX4(HDD02GF, i0 + 3, i1, i2)];
+        const REAL hDD02_i0m3_i1p1 = in_gfs[IDX4(HDD02GF, i0 - 3, i1 + 1, i2)];
         const REAL hDD02_i0m2_i1p1 = in_gfs[IDX4(HDD02GF, i0 - 2, i1 + 1, i2)];
         const REAL hDD02_i0m1_i1p1 = in_gfs[IDX4(HDD02GF, i0 - 1, i1 + 1, i2)];
         const REAL hDD02_i1p1 = in_gfs[IDX4(HDD02GF, i0, i1 + 1, i2)];
         const REAL hDD02_i0p1_i1p1 = in_gfs[IDX4(HDD02GF, i0 + 1, i1 + 1, i2)];
         const REAL hDD02_i0p2_i1p1 = in_gfs[IDX4(HDD02GF, i0 + 2, i1 + 1, i2)];
+        const REAL hDD02_i0p3_i1p1 = in_gfs[IDX4(HDD02GF, i0 + 3, i1 + 1, i2)];
+        const REAL hDD02_i0m3_i1p2 = in_gfs[IDX4(HDD02GF, i0 - 3, i1 + 2, i2)];
         const REAL hDD02_i0m2_i1p2 = in_gfs[IDX4(HDD02GF, i0 - 2, i1 + 2, i2)];
         const REAL hDD02_i0m1_i1p2 = in_gfs[IDX4(HDD02GF, i0 - 1, i1 + 2, i2)];
         const REAL hDD02_i1p2 = in_gfs[IDX4(HDD02GF, i0, i1 + 2, i2)];
         const REAL hDD02_i0p1_i1p2 = in_gfs[IDX4(HDD02GF, i0 + 1, i1 + 2, i2)];
         const REAL hDD02_i0p2_i1p2 = in_gfs[IDX4(HDD02GF, i0 + 2, i1 + 2, i2)];
+        const REAL hDD02_i0p3_i1p2 = in_gfs[IDX4(HDD02GF, i0 + 3, i1 + 2, i2)];
+        const REAL hDD02_i0m3_i1p3 = in_gfs[IDX4(HDD02GF, i0 - 3, i1 + 3, i2)];
+        const REAL hDD02_i0m2_i1p3 = in_gfs[IDX4(HDD02GF, i0 - 2, i1 + 3, i2)];
+        const REAL hDD02_i0m1_i1p3 = in_gfs[IDX4(HDD02GF, i0 - 1, i1 + 3, i2)];
+        const REAL hDD02_i1p3 = in_gfs[IDX4(HDD02GF, i0, i1 + 3, i2)];
+        const REAL hDD02_i0p1_i1p3 = in_gfs[IDX4(HDD02GF, i0 + 1, i1 + 3, i2)];
+        const REAL hDD02_i0p2_i1p3 = in_gfs[IDX4(HDD02GF, i0 + 2, i1 + 3, i2)];
+        const REAL hDD02_i0p3_i1p3 = in_gfs[IDX4(HDD02GF, i0 + 3, i1 + 3, i2)];
+        const REAL hDD02_i1m3_i2p1 = in_gfs[IDX4(HDD02GF, i0, i1 - 3, i2 + 1)];
         const REAL hDD02_i1m2_i2p1 = in_gfs[IDX4(HDD02GF, i0, i1 - 2, i2 + 1)];
         const REAL hDD02_i1m1_i2p1 = in_gfs[IDX4(HDD02GF, i0, i1 - 1, i2 + 1)];
+        const REAL hDD02_i0m3_i2p1 = in_gfs[IDX4(HDD02GF, i0 - 3, i1, i2 + 1)];
         const REAL hDD02_i0m2_i2p1 = in_gfs[IDX4(HDD02GF, i0 - 2, i1, i2 + 1)];
         const REAL hDD02_i0m1_i2p1 = in_gfs[IDX4(HDD02GF, i0 - 1, i1, i2 + 1)];
         const REAL hDD02_i2p1 = in_gfs[IDX4(HDD02GF, i0, i1, i2 + 1)];
         const REAL hDD02_i0p1_i2p1 = in_gfs[IDX4(HDD02GF, i0 + 1, i1, i2 + 1)];
         const REAL hDD02_i0p2_i2p1 = in_gfs[IDX4(HDD02GF, i0 + 2, i1, i2 + 1)];
+        const REAL hDD02_i0p3_i2p1 = in_gfs[IDX4(HDD02GF, i0 + 3, i1, i2 + 1)];
         const REAL hDD02_i1p1_i2p1 = in_gfs[IDX4(HDD02GF, i0, i1 + 1, i2 + 1)];
         const REAL hDD02_i1p2_i2p1 = in_gfs[IDX4(HDD02GF, i0, i1 + 2, i2 + 1)];
+        const REAL hDD02_i1p3_i2p1 = in_gfs[IDX4(HDD02GF, i0, i1 + 3, i2 + 1)];
+        const REAL hDD02_i1m3_i2p2 = in_gfs[IDX4(HDD02GF, i0, i1 - 3, i2 + 2)];
         const REAL hDD02_i1m2_i2p2 = in_gfs[IDX4(HDD02GF, i0, i1 - 2, i2 + 2)];
         const REAL hDD02_i1m1_i2p2 = in_gfs[IDX4(HDD02GF, i0, i1 - 1, i2 + 2)];
+        const REAL hDD02_i0m3_i2p2 = in_gfs[IDX4(HDD02GF, i0 - 3, i1, i2 + 2)];
         const REAL hDD02_i0m2_i2p2 = in_gfs[IDX4(HDD02GF, i0 - 2, i1, i2 + 2)];
         const REAL hDD02_i0m1_i2p2 = in_gfs[IDX4(HDD02GF, i0 - 1, i1, i2 + 2)];
         const REAL hDD02_i2p2 = in_gfs[IDX4(HDD02GF, i0, i1, i2 + 2)];
         const REAL hDD02_i0p1_i2p2 = in_gfs[IDX4(HDD02GF, i0 + 1, i1, i2 + 2)];
         const REAL hDD02_i0p2_i2p2 = in_gfs[IDX4(HDD02GF, i0 + 2, i1, i2 + 2)];
+        const REAL hDD02_i0p3_i2p2 = in_gfs[IDX4(HDD02GF, i0 + 3, i1, i2 + 2)];
         const REAL hDD02_i1p1_i2p2 = in_gfs[IDX4(HDD02GF, i0, i1 + 1, i2 + 2)];
         const REAL hDD02_i1p2_i2p2 = in_gfs[IDX4(HDD02GF, i0, i1 + 2, i2 + 2)];
+        const REAL hDD02_i1p3_i2p2 = in_gfs[IDX4(HDD02GF, i0, i1 + 3, i2 + 2)];
+        const REAL hDD02_i1m3_i2p3 = in_gfs[IDX4(HDD02GF, i0, i1 - 3, i2 + 3)];
+        const REAL hDD02_i1m2_i2p3 = in_gfs[IDX4(HDD02GF, i0, i1 - 2, i2 + 3)];
+        const REAL hDD02_i1m1_i2p3 = in_gfs[IDX4(HDD02GF, i0, i1 - 1, i2 + 3)];
+        const REAL hDD02_i0m3_i2p3 = in_gfs[IDX4(HDD02GF, i0 - 3, i1, i2 + 3)];
+        const REAL hDD02_i0m2_i2p3 = in_gfs[IDX4(HDD02GF, i0 - 2, i1, i2 + 3)];
+        const REAL hDD02_i0m1_i2p3 = in_gfs[IDX4(HDD02GF, i0 - 1, i1, i2 + 3)];
+        const REAL hDD02_i2p3 = in_gfs[IDX4(HDD02GF, i0, i1, i2 + 3)];
+        const REAL hDD02_i0p1_i2p3 = in_gfs[IDX4(HDD02GF, i0 + 1, i1, i2 + 3)];
+        const REAL hDD02_i0p2_i2p3 = in_gfs[IDX4(HDD02GF, i0 + 2, i1, i2 + 3)];
+        const REAL hDD02_i0p3_i2p3 = in_gfs[IDX4(HDD02GF, i0 + 3, i1, i2 + 3)];
+        const REAL hDD02_i1p1_i2p3 = in_gfs[IDX4(HDD02GF, i0, i1 + 1, i2 + 3)];
+        const REAL hDD02_i1p2_i2p3 = in_gfs[IDX4(HDD02GF, i0, i1 + 2, i2 + 3)];
+        const REAL hDD02_i1p3_i2p3 = in_gfs[IDX4(HDD02GF, i0, i1 + 3, i2 + 3)];
+        const REAL hDD11_i1m3_i2m3 = in_gfs[IDX4(HDD11GF, i0, i1 - 3, i2 - 3)];
+        const REAL hDD11_i1m2_i2m3 = in_gfs[IDX4(HDD11GF, i0, i1 - 2, i2 - 3)];
+        const REAL hDD11_i1m1_i2m3 = in_gfs[IDX4(HDD11GF, i0, i1 - 1, i2 - 3)];
+        const REAL hDD11_i0m3_i2m3 = in_gfs[IDX4(HDD11GF, i0 - 3, i1, i2 - 3)];
+        const REAL hDD11_i0m2_i2m3 = in_gfs[IDX4(HDD11GF, i0 - 2, i1, i2 - 3)];
+        const REAL hDD11_i0m1_i2m3 = in_gfs[IDX4(HDD11GF, i0 - 1, i1, i2 - 3)];
+        const REAL hDD11_i2m3 = in_gfs[IDX4(HDD11GF, i0, i1, i2 - 3)];
+        const REAL hDD11_i0p1_i2m3 = in_gfs[IDX4(HDD11GF, i0 + 1, i1, i2 - 3)];
+        const REAL hDD11_i0p2_i2m3 = in_gfs[IDX4(HDD11GF, i0 + 2, i1, i2 - 3)];
+        const REAL hDD11_i0p3_i2m3 = in_gfs[IDX4(HDD11GF, i0 + 3, i1, i2 - 3)];
+        const REAL hDD11_i1p1_i2m3 = in_gfs[IDX4(HDD11GF, i0, i1 + 1, i2 - 3)];
+        const REAL hDD11_i1p2_i2m3 = in_gfs[IDX4(HDD11GF, i0, i1 + 2, i2 - 3)];
+        const REAL hDD11_i1p3_i2m3 = in_gfs[IDX4(HDD11GF, i0, i1 + 3, i2 - 3)];
+        const REAL hDD11_i1m3_i2m2 = in_gfs[IDX4(HDD11GF, i0, i1 - 3, i2 - 2)];
         const REAL hDD11_i1m2_i2m2 = in_gfs[IDX4(HDD11GF, i0, i1 - 2, i2 - 2)];
         const REAL hDD11_i1m1_i2m2 = in_gfs[IDX4(HDD11GF, i0, i1 - 1, i2 - 2)];
+        const REAL hDD11_i0m3_i2m2 = in_gfs[IDX4(HDD11GF, i0 - 3, i1, i2 - 2)];
         const REAL hDD11_i0m2_i2m2 = in_gfs[IDX4(HDD11GF, i0 - 2, i1, i2 - 2)];
         const REAL hDD11_i0m1_i2m2 = in_gfs[IDX4(HDD11GF, i0 - 1, i1, i2 - 2)];
         const REAL hDD11_i2m2 = in_gfs[IDX4(HDD11GF, i0, i1, i2 - 2)];
         const REAL hDD11_i0p1_i2m2 = in_gfs[IDX4(HDD11GF, i0 + 1, i1, i2 - 2)];
         const REAL hDD11_i0p2_i2m2 = in_gfs[IDX4(HDD11GF, i0 + 2, i1, i2 - 2)];
+        const REAL hDD11_i0p3_i2m2 = in_gfs[IDX4(HDD11GF, i0 + 3, i1, i2 - 2)];
         const REAL hDD11_i1p1_i2m2 = in_gfs[IDX4(HDD11GF, i0, i1 + 1, i2 - 2)];
         const REAL hDD11_i1p2_i2m2 = in_gfs[IDX4(HDD11GF, i0, i1 + 2, i2 - 2)];
+        const REAL hDD11_i1p3_i2m2 = in_gfs[IDX4(HDD11GF, i0, i1 + 3, i2 - 2)];
+        const REAL hDD11_i1m3_i2m1 = in_gfs[IDX4(HDD11GF, i0, i1 - 3, i2 - 1)];
         const REAL hDD11_i1m2_i2m1 = in_gfs[IDX4(HDD11GF, i0, i1 - 2, i2 - 1)];
         const REAL hDD11_i1m1_i2m1 = in_gfs[IDX4(HDD11GF, i0, i1 - 1, i2 - 1)];
+        const REAL hDD11_i0m3_i2m1 = in_gfs[IDX4(HDD11GF, i0 - 3, i1, i2 - 1)];
         const REAL hDD11_i0m2_i2m1 = in_gfs[IDX4(HDD11GF, i0 - 2, i1, i2 - 1)];
         const REAL hDD11_i0m1_i2m1 = in_gfs[IDX4(HDD11GF, i0 - 1, i1, i2 - 1)];
         const REAL hDD11_i2m1 = in_gfs[IDX4(HDD11GF, i0, i1, i2 - 1)];
         const REAL hDD11_i0p1_i2m1 = in_gfs[IDX4(HDD11GF, i0 + 1, i1, i2 - 1)];
         const REAL hDD11_i0p2_i2m1 = in_gfs[IDX4(HDD11GF, i0 + 2, i1, i2 - 1)];
+        const REAL hDD11_i0p3_i2m1 = in_gfs[IDX4(HDD11GF, i0 + 3, i1, i2 - 1)];
         const REAL hDD11_i1p1_i2m1 = in_gfs[IDX4(HDD11GF, i0, i1 + 1, i2 - 1)];
         const REAL hDD11_i1p2_i2m1 = in_gfs[IDX4(HDD11GF, i0, i1 + 2, i2 - 1)];
+        const REAL hDD11_i1p3_i2m1 = in_gfs[IDX4(HDD11GF, i0, i1 + 3, i2 - 1)];
+        const REAL hDD11_i0m3_i1m3 = in_gfs[IDX4(HDD11GF, i0 - 3, i1 - 3, i2)];
+        const REAL hDD11_i0m2_i1m3 = in_gfs[IDX4(HDD11GF, i0 - 2, i1 - 3, i2)];
+        const REAL hDD11_i0m1_i1m3 = in_gfs[IDX4(HDD11GF, i0 - 1, i1 - 3, i2)];
+        const REAL hDD11_i1m3 = in_gfs[IDX4(HDD11GF, i0, i1 - 3, i2)];
+        const REAL hDD11_i0p1_i1m3 = in_gfs[IDX4(HDD11GF, i0 + 1, i1 - 3, i2)];
+        const REAL hDD11_i0p2_i1m3 = in_gfs[IDX4(HDD11GF, i0 + 2, i1 - 3, i2)];
+        const REAL hDD11_i0p3_i1m3 = in_gfs[IDX4(HDD11GF, i0 + 3, i1 - 3, i2)];
+        const REAL hDD11_i0m3_i1m2 = in_gfs[IDX4(HDD11GF, i0 - 3, i1 - 2, i2)];
         const REAL hDD11_i0m2_i1m2 = in_gfs[IDX4(HDD11GF, i0 - 2, i1 - 2, i2)];
         const REAL hDD11_i0m1_i1m2 = in_gfs[IDX4(HDD11GF, i0 - 1, i1 - 2, i2)];
         const REAL hDD11_i1m2 = in_gfs[IDX4(HDD11GF, i0, i1 - 2, i2)];
         const REAL hDD11_i0p1_i1m2 = in_gfs[IDX4(HDD11GF, i0 + 1, i1 - 2, i2)];
         const REAL hDD11_i0p2_i1m2 = in_gfs[IDX4(HDD11GF, i0 + 2, i1 - 2, i2)];
+        const REAL hDD11_i0p3_i1m2 = in_gfs[IDX4(HDD11GF, i0 + 3, i1 - 2, i2)];
+        const REAL hDD11_i0m3_i1m1 = in_gfs[IDX4(HDD11GF, i0 - 3, i1 - 1, i2)];
         const REAL hDD11_i0m2_i1m1 = in_gfs[IDX4(HDD11GF, i0 - 2, i1 - 1, i2)];
         const REAL hDD11_i0m1_i1m1 = in_gfs[IDX4(HDD11GF, i0 - 1, i1 - 1, i2)];
         const REAL hDD11_i1m1 = in_gfs[IDX4(HDD11GF, i0, i1 - 1, i2)];
         const REAL hDD11_i0p1_i1m1 = in_gfs[IDX4(HDD11GF, i0 + 1, i1 - 1, i2)];
         const REAL hDD11_i0p2_i1m1 = in_gfs[IDX4(HDD11GF, i0 + 2, i1 - 1, i2)];
+        const REAL hDD11_i0p3_i1m1 = in_gfs[IDX4(HDD11GF, i0 + 3, i1 - 1, i2)];
+        const REAL hDD11_i0m3 = in_gfs[IDX4(HDD11GF, i0 - 3, i1, i2)];
         const REAL hDD11_i0m2 = in_gfs[IDX4(HDD11GF, i0 - 2, i1, i2)];
         const REAL hDD11_i0m1 = in_gfs[IDX4(HDD11GF, i0 - 1, i1, i2)];
         const REAL hDD11 = in_gfs[IDX4(HDD11GF, i0, i1, i2)];
         const REAL hDD11_i0p1 = in_gfs[IDX4(HDD11GF, i0 + 1, i1, i2)];
         const REAL hDD11_i0p2 = in_gfs[IDX4(HDD11GF, i0 + 2, i1, i2)];
+        const REAL hDD11_i0p3 = in_gfs[IDX4(HDD11GF, i0 + 3, i1, i2)];
+        const REAL hDD11_i0m3_i1p1 = in_gfs[IDX4(HDD11GF, i0 - 3, i1 + 1, i2)];
         const REAL hDD11_i0m2_i1p1 = in_gfs[IDX4(HDD11GF, i0 - 2, i1 + 1, i2)];
         const REAL hDD11_i0m1_i1p1 = in_gfs[IDX4(HDD11GF, i0 - 1, i1 + 1, i2)];
         const REAL hDD11_i1p1 = in_gfs[IDX4(HDD11GF, i0, i1 + 1, i2)];
         const REAL hDD11_i0p1_i1p1 = in_gfs[IDX4(HDD11GF, i0 + 1, i1 + 1, i2)];
         const REAL hDD11_i0p2_i1p1 = in_gfs[IDX4(HDD11GF, i0 + 2, i1 + 1, i2)];
+        const REAL hDD11_i0p3_i1p1 = in_gfs[IDX4(HDD11GF, i0 + 3, i1 + 1, i2)];
+        const REAL hDD11_i0m3_i1p2 = in_gfs[IDX4(HDD11GF, i0 - 3, i1 + 2, i2)];
         const REAL hDD11_i0m2_i1p2 = in_gfs[IDX4(HDD11GF, i0 - 2, i1 + 2, i2)];
         const REAL hDD11_i0m1_i1p2 = in_gfs[IDX4(HDD11GF, i0 - 1, i1 + 2, i2)];
         const REAL hDD11_i1p2 = in_gfs[IDX4(HDD11GF, i0, i1 + 2, i2)];
         const REAL hDD11_i0p1_i1p2 = in_gfs[IDX4(HDD11GF, i0 + 1, i1 + 2, i2)];
         const REAL hDD11_i0p2_i1p2 = in_gfs[IDX4(HDD11GF, i0 + 2, i1 + 2, i2)];
+        const REAL hDD11_i0p3_i1p2 = in_gfs[IDX4(HDD11GF, i0 + 3, i1 + 2, i2)];
+        const REAL hDD11_i0m3_i1p3 = in_gfs[IDX4(HDD11GF, i0 - 3, i1 + 3, i2)];
+        const REAL hDD11_i0m2_i1p3 = in_gfs[IDX4(HDD11GF, i0 - 2, i1 + 3, i2)];
+        const REAL hDD11_i0m1_i1p3 = in_gfs[IDX4(HDD11GF, i0 - 1, i1 + 3, i2)];
+        const REAL hDD11_i1p3 = in_gfs[IDX4(HDD11GF, i0, i1 + 3, i2)];
+        const REAL hDD11_i0p1_i1p3 = in_gfs[IDX4(HDD11GF, i0 + 1, i1 + 3, i2)];
+        const REAL hDD11_i0p2_i1p3 = in_gfs[IDX4(HDD11GF, i0 + 2, i1 + 3, i2)];
+        const REAL hDD11_i0p3_i1p3 = in_gfs[IDX4(HDD11GF, i0 + 3, i1 + 3, i2)];
+        const REAL hDD11_i1m3_i2p1 = in_gfs[IDX4(HDD11GF, i0, i1 - 3, i2 + 1)];
         const REAL hDD11_i1m2_i2p1 = in_gfs[IDX4(HDD11GF, i0, i1 - 2, i2 + 1)];
         const REAL hDD11_i1m1_i2p1 = in_gfs[IDX4(HDD11GF, i0, i1 - 1, i2 + 1)];
+        const REAL hDD11_i0m3_i2p1 = in_gfs[IDX4(HDD11GF, i0 - 3, i1, i2 + 1)];
         const REAL hDD11_i0m2_i2p1 = in_gfs[IDX4(HDD11GF, i0 - 2, i1, i2 + 1)];
         const REAL hDD11_i0m1_i2p1 = in_gfs[IDX4(HDD11GF, i0 - 1, i1, i2 + 1)];
         const REAL hDD11_i2p1 = in_gfs[IDX4(HDD11GF, i0, i1, i2 + 1)];
         const REAL hDD11_i0p1_i2p1 = in_gfs[IDX4(HDD11GF, i0 + 1, i1, i2 + 1)];
         const REAL hDD11_i0p2_i2p1 = in_gfs[IDX4(HDD11GF, i0 + 2, i1, i2 + 1)];
+        const REAL hDD11_i0p3_i2p1 = in_gfs[IDX4(HDD11GF, i0 + 3, i1, i2 + 1)];
         const REAL hDD11_i1p1_i2p1 = in_gfs[IDX4(HDD11GF, i0, i1 + 1, i2 + 1)];
         const REAL hDD11_i1p2_i2p1 = in_gfs[IDX4(HDD11GF, i0, i1 + 2, i2 + 1)];
+        const REAL hDD11_i1p3_i2p1 = in_gfs[IDX4(HDD11GF, i0, i1 + 3, i2 + 1)];
+        const REAL hDD11_i1m3_i2p2 = in_gfs[IDX4(HDD11GF, i0, i1 - 3, i2 + 2)];
         const REAL hDD11_i1m2_i2p2 = in_gfs[IDX4(HDD11GF, i0, i1 - 2, i2 + 2)];
         const REAL hDD11_i1m1_i2p2 = in_gfs[IDX4(HDD11GF, i0, i1 - 1, i2 + 2)];
+        const REAL hDD11_i0m3_i2p2 = in_gfs[IDX4(HDD11GF, i0 - 3, i1, i2 + 2)];
         const REAL hDD11_i0m2_i2p2 = in_gfs[IDX4(HDD11GF, i0 - 2, i1, i2 + 2)];
         const REAL hDD11_i0m1_i2p2 = in_gfs[IDX4(HDD11GF, i0 - 1, i1, i2 + 2)];
         const REAL hDD11_i2p2 = in_gfs[IDX4(HDD11GF, i0, i1, i2 + 2)];
         const REAL hDD11_i0p1_i2p2 = in_gfs[IDX4(HDD11GF, i0 + 1, i1, i2 + 2)];
         const REAL hDD11_i0p2_i2p2 = in_gfs[IDX4(HDD11GF, i0 + 2, i1, i2 + 2)];
+        const REAL hDD11_i0p3_i2p2 = in_gfs[IDX4(HDD11GF, i0 + 3, i1, i2 + 2)];
         const REAL hDD11_i1p1_i2p2 = in_gfs[IDX4(HDD11GF, i0, i1 + 1, i2 + 2)];
         const REAL hDD11_i1p2_i2p2 = in_gfs[IDX4(HDD11GF, i0, i1 + 2, i2 + 2)];
+        const REAL hDD11_i1p3_i2p2 = in_gfs[IDX4(HDD11GF, i0, i1 + 3, i2 + 2)];
+        const REAL hDD11_i1m3_i2p3 = in_gfs[IDX4(HDD11GF, i0, i1 - 3, i2 + 3)];
+        const REAL hDD11_i1m2_i2p3 = in_gfs[IDX4(HDD11GF, i0, i1 - 2, i2 + 3)];
+        const REAL hDD11_i1m1_i2p3 = in_gfs[IDX4(HDD11GF, i0, i1 - 1, i2 + 3)];
+        const REAL hDD11_i0m3_i2p3 = in_gfs[IDX4(HDD11GF, i0 - 3, i1, i2 + 3)];
+        const REAL hDD11_i0m2_i2p3 = in_gfs[IDX4(HDD11GF, i0 - 2, i1, i2 + 3)];
+        const REAL hDD11_i0m1_i2p3 = in_gfs[IDX4(HDD11GF, i0 - 1, i1, i2 + 3)];
+        const REAL hDD11_i2p3 = in_gfs[IDX4(HDD11GF, i0, i1, i2 + 3)];
+        const REAL hDD11_i0p1_i2p3 = in_gfs[IDX4(HDD11GF, i0 + 1, i1, i2 + 3)];
+        const REAL hDD11_i0p2_i2p3 = in_gfs[IDX4(HDD11GF, i0 + 2, i1, i2 + 3)];
+        const REAL hDD11_i0p3_i2p3 = in_gfs[IDX4(HDD11GF, i0 + 3, i1, i2 + 3)];
+        const REAL hDD11_i1p1_i2p3 = in_gfs[IDX4(HDD11GF, i0, i1 + 1, i2 + 3)];
+        const REAL hDD11_i1p2_i2p3 = in_gfs[IDX4(HDD11GF, i0, i1 + 2, i2 + 3)];
+        const REAL hDD11_i1p3_i2p3 = in_gfs[IDX4(HDD11GF, i0, i1 + 3, i2 + 3)];
+        const REAL hDD12_i1m3_i2m3 = in_gfs[IDX4(HDD12GF, i0, i1 - 3, i2 - 3)];
+        const REAL hDD12_i1m2_i2m3 = in_gfs[IDX4(HDD12GF, i0, i1 - 2, i2 - 3)];
+        const REAL hDD12_i1m1_i2m3 = in_gfs[IDX4(HDD12GF, i0, i1 - 1, i2 - 3)];
+        const REAL hDD12_i0m3_i2m3 = in_gfs[IDX4(HDD12GF, i0 - 3, i1, i2 - 3)];
+        const REAL hDD12_i0m2_i2m3 = in_gfs[IDX4(HDD12GF, i0 - 2, i1, i2 - 3)];
+        const REAL hDD12_i0m1_i2m3 = in_gfs[IDX4(HDD12GF, i0 - 1, i1, i2 - 3)];
+        const REAL hDD12_i2m3 = in_gfs[IDX4(HDD12GF, i0, i1, i2 - 3)];
+        const REAL hDD12_i0p1_i2m3 = in_gfs[IDX4(HDD12GF, i0 + 1, i1, i2 - 3)];
+        const REAL hDD12_i0p2_i2m3 = in_gfs[IDX4(HDD12GF, i0 + 2, i1, i2 - 3)];
+        const REAL hDD12_i0p3_i2m3 = in_gfs[IDX4(HDD12GF, i0 + 3, i1, i2 - 3)];
+        const REAL hDD12_i1p1_i2m3 = in_gfs[IDX4(HDD12GF, i0, i1 + 1, i2 - 3)];
+        const REAL hDD12_i1p2_i2m3 = in_gfs[IDX4(HDD12GF, i0, i1 + 2, i2 - 3)];
+        const REAL hDD12_i1p3_i2m3 = in_gfs[IDX4(HDD12GF, i0, i1 + 3, i2 - 3)];
+        const REAL hDD12_i1m3_i2m2 = in_gfs[IDX4(HDD12GF, i0, i1 - 3, i2 - 2)];
         const REAL hDD12_i1m2_i2m2 = in_gfs[IDX4(HDD12GF, i0, i1 - 2, i2 - 2)];
         const REAL hDD12_i1m1_i2m2 = in_gfs[IDX4(HDD12GF, i0, i1 - 1, i2 - 2)];
+        const REAL hDD12_i0m3_i2m2 = in_gfs[IDX4(HDD12GF, i0 - 3, i1, i2 - 2)];
         const REAL hDD12_i0m2_i2m2 = in_gfs[IDX4(HDD12GF, i0 - 2, i1, i2 - 2)];
         const REAL hDD12_i0m1_i2m2 = in_gfs[IDX4(HDD12GF, i0 - 1, i1, i2 - 2)];
         const REAL hDD12_i2m2 = in_gfs[IDX4(HDD12GF, i0, i1, i2 - 2)];
         const REAL hDD12_i0p1_i2m2 = in_gfs[IDX4(HDD12GF, i0 + 1, i1, i2 - 2)];
         const REAL hDD12_i0p2_i2m2 = in_gfs[IDX4(HDD12GF, i0 + 2, i1, i2 - 2)];
+        const REAL hDD12_i0p3_i2m2 = in_gfs[IDX4(HDD12GF, i0 + 3, i1, i2 - 2)];
         const REAL hDD12_i1p1_i2m2 = in_gfs[IDX4(HDD12GF, i0, i1 + 1, i2 - 2)];
         const REAL hDD12_i1p2_i2m2 = in_gfs[IDX4(HDD12GF, i0, i1 + 2, i2 - 2)];
+        const REAL hDD12_i1p3_i2m2 = in_gfs[IDX4(HDD12GF, i0, i1 + 3, i2 - 2)];
+        const REAL hDD12_i1m3_i2m1 = in_gfs[IDX4(HDD12GF, i0, i1 - 3, i2 - 1)];
         const REAL hDD12_i1m2_i2m1 = in_gfs[IDX4(HDD12GF, i0, i1 - 2, i2 - 1)];
         const REAL hDD12_i1m1_i2m1 = in_gfs[IDX4(HDD12GF, i0, i1 - 1, i2 - 1)];
+        const REAL hDD12_i0m3_i2m1 = in_gfs[IDX4(HDD12GF, i0 - 3, i1, i2 - 1)];
         const REAL hDD12_i0m2_i2m1 = in_gfs[IDX4(HDD12GF, i0 - 2, i1, i2 - 1)];
         const REAL hDD12_i0m1_i2m1 = in_gfs[IDX4(HDD12GF, i0 - 1, i1, i2 - 1)];
         const REAL hDD12_i2m1 = in_gfs[IDX4(HDD12GF, i0, i1, i2 - 1)];
         const REAL hDD12_i0p1_i2m1 = in_gfs[IDX4(HDD12GF, i0 + 1, i1, i2 - 1)];
         const REAL hDD12_i0p2_i2m1 = in_gfs[IDX4(HDD12GF, i0 + 2, i1, i2 - 1)];
+        const REAL hDD12_i0p3_i2m1 = in_gfs[IDX4(HDD12GF, i0 + 3, i1, i2 - 1)];
         const REAL hDD12_i1p1_i2m1 = in_gfs[IDX4(HDD12GF, i0, i1 + 1, i2 - 1)];
         const REAL hDD12_i1p2_i2m1 = in_gfs[IDX4(HDD12GF, i0, i1 + 2, i2 - 1)];
+        const REAL hDD12_i1p3_i2m1 = in_gfs[IDX4(HDD12GF, i0, i1 + 3, i2 - 1)];
+        const REAL hDD12_i0m3_i1m3 = in_gfs[IDX4(HDD12GF, i0 - 3, i1 - 3, i2)];
+        const REAL hDD12_i0m2_i1m3 = in_gfs[IDX4(HDD12GF, i0 - 2, i1 - 3, i2)];
+        const REAL hDD12_i0m1_i1m3 = in_gfs[IDX4(HDD12GF, i0 - 1, i1 - 3, i2)];
+        const REAL hDD12_i1m3 = in_gfs[IDX4(HDD12GF, i0, i1 - 3, i2)];
+        const REAL hDD12_i0p1_i1m3 = in_gfs[IDX4(HDD12GF, i0 + 1, i1 - 3, i2)];
+        const REAL hDD12_i0p2_i1m3 = in_gfs[IDX4(HDD12GF, i0 + 2, i1 - 3, i2)];
+        const REAL hDD12_i0p3_i1m3 = in_gfs[IDX4(HDD12GF, i0 + 3, i1 - 3, i2)];
+        const REAL hDD12_i0m3_i1m2 = in_gfs[IDX4(HDD12GF, i0 - 3, i1 - 2, i2)];
         const REAL hDD12_i0m2_i1m2 = in_gfs[IDX4(HDD12GF, i0 - 2, i1 - 2, i2)];
         const REAL hDD12_i0m1_i1m2 = in_gfs[IDX4(HDD12GF, i0 - 1, i1 - 2, i2)];
         const REAL hDD12_i1m2 = in_gfs[IDX4(HDD12GF, i0, i1 - 2, i2)];
         const REAL hDD12_i0p1_i1m2 = in_gfs[IDX4(HDD12GF, i0 + 1, i1 - 2, i2)];
         const REAL hDD12_i0p2_i1m2 = in_gfs[IDX4(HDD12GF, i0 + 2, i1 - 2, i2)];
+        const REAL hDD12_i0p3_i1m2 = in_gfs[IDX4(HDD12GF, i0 + 3, i1 - 2, i2)];
+        const REAL hDD12_i0m3_i1m1 = in_gfs[IDX4(HDD12GF, i0 - 3, i1 - 1, i2)];
         const REAL hDD12_i0m2_i1m1 = in_gfs[IDX4(HDD12GF, i0 - 2, i1 - 1, i2)];
         const REAL hDD12_i0m1_i1m1 = in_gfs[IDX4(HDD12GF, i0 - 1, i1 - 1, i2)];
         const REAL hDD12_i1m1 = in_gfs[IDX4(HDD12GF, i0, i1 - 1, i2)];
         const REAL hDD12_i0p1_i1m1 = in_gfs[IDX4(HDD12GF, i0 + 1, i1 - 1, i2)];
         const REAL hDD12_i0p2_i1m1 = in_gfs[IDX4(HDD12GF, i0 + 2, i1 - 1, i2)];
+        const REAL hDD12_i0p3_i1m1 = in_gfs[IDX4(HDD12GF, i0 + 3, i1 - 1, i2)];
+        const REAL hDD12_i0m3 = in_gfs[IDX4(HDD12GF, i0 - 3, i1, i2)];
         const REAL hDD12_i0m2 = in_gfs[IDX4(HDD12GF, i0 - 2, i1, i2)];
         const REAL hDD12_i0m1 = in_gfs[IDX4(HDD12GF, i0 - 1, i1, i2)];
         const REAL hDD12 = in_gfs[IDX4(HDD12GF, i0, i1, i2)];
         const REAL hDD12_i0p1 = in_gfs[IDX4(HDD12GF, i0 + 1, i1, i2)];
         const REAL hDD12_i0p2 = in_gfs[IDX4(HDD12GF, i0 + 2, i1, i2)];
+        const REAL hDD12_i0p3 = in_gfs[IDX4(HDD12GF, i0 + 3, i1, i2)];
+        const REAL hDD12_i0m3_i1p1 = in_gfs[IDX4(HDD12GF, i0 - 3, i1 + 1, i2)];
         const REAL hDD12_i0m2_i1p1 = in_gfs[IDX4(HDD12GF, i0 - 2, i1 + 1, i2)];
         const REAL hDD12_i0m1_i1p1 = in_gfs[IDX4(HDD12GF, i0 - 1, i1 + 1, i2)];
         const REAL hDD12_i1p1 = in_gfs[IDX4(HDD12GF, i0, i1 + 1, i2)];
         const REAL hDD12_i0p1_i1p1 = in_gfs[IDX4(HDD12GF, i0 + 1, i1 + 1, i2)];
         const REAL hDD12_i0p2_i1p1 = in_gfs[IDX4(HDD12GF, i0 + 2, i1 + 1, i2)];
+        const REAL hDD12_i0p3_i1p1 = in_gfs[IDX4(HDD12GF, i0 + 3, i1 + 1, i2)];
+        const REAL hDD12_i0m3_i1p2 = in_gfs[IDX4(HDD12GF, i0 - 3, i1 + 2, i2)];
         const REAL hDD12_i0m2_i1p2 = in_gfs[IDX4(HDD12GF, i0 - 2, i1 + 2, i2)];
         const REAL hDD12_i0m1_i1p2 = in_gfs[IDX4(HDD12GF, i0 - 1, i1 + 2, i2)];
         const REAL hDD12_i1p2 = in_gfs[IDX4(HDD12GF, i0, i1 + 2, i2)];
         const REAL hDD12_i0p1_i1p2 = in_gfs[IDX4(HDD12GF, i0 + 1, i1 + 2, i2)];
         const REAL hDD12_i0p2_i1p2 = in_gfs[IDX4(HDD12GF, i0 + 2, i1 + 2, i2)];
+        const REAL hDD12_i0p3_i1p2 = in_gfs[IDX4(HDD12GF, i0 + 3, i1 + 2, i2)];
+        const REAL hDD12_i0m3_i1p3 = in_gfs[IDX4(HDD12GF, i0 - 3, i1 + 3, i2)];
+        const REAL hDD12_i0m2_i1p3 = in_gfs[IDX4(HDD12GF, i0 - 2, i1 + 3, i2)];
+        const REAL hDD12_i0m1_i1p3 = in_gfs[IDX4(HDD12GF, i0 - 1, i1 + 3, i2)];
+        const REAL hDD12_i1p3 = in_gfs[IDX4(HDD12GF, i0, i1 + 3, i2)];
+        const REAL hDD12_i0p1_i1p3 = in_gfs[IDX4(HDD12GF, i0 + 1, i1 + 3, i2)];
+        const REAL hDD12_i0p2_i1p3 = in_gfs[IDX4(HDD12GF, i0 + 2, i1 + 3, i2)];
+        const REAL hDD12_i0p3_i1p3 = in_gfs[IDX4(HDD12GF, i0 + 3, i1 + 3, i2)];
+        const REAL hDD12_i1m3_i2p1 = in_gfs[IDX4(HDD12GF, i0, i1 - 3, i2 + 1)];
         const REAL hDD12_i1m2_i2p1 = in_gfs[IDX4(HDD12GF, i0, i1 - 2, i2 + 1)];
         const REAL hDD12_i1m1_i2p1 = in_gfs[IDX4(HDD12GF, i0, i1 - 1, i2 + 1)];
+        const REAL hDD12_i0m3_i2p1 = in_gfs[IDX4(HDD12GF, i0 - 3, i1, i2 + 1)];
         const REAL hDD12_i0m2_i2p1 = in_gfs[IDX4(HDD12GF, i0 - 2, i1, i2 + 1)];
         const REAL hDD12_i0m1_i2p1 = in_gfs[IDX4(HDD12GF, i0 - 1, i1, i2 + 1)];
         const REAL hDD12_i2p1 = in_gfs[IDX4(HDD12GF, i0, i1, i2 + 1)];
         const REAL hDD12_i0p1_i2p1 = in_gfs[IDX4(HDD12GF, i0 + 1, i1, i2 + 1)];
         const REAL hDD12_i0p2_i2p1 = in_gfs[IDX4(HDD12GF, i0 + 2, i1, i2 + 1)];
+        const REAL hDD12_i0p3_i2p1 = in_gfs[IDX4(HDD12GF, i0 + 3, i1, i2 + 1)];
         const REAL hDD12_i1p1_i2p1 = in_gfs[IDX4(HDD12GF, i0, i1 + 1, i2 + 1)];
         const REAL hDD12_i1p2_i2p1 = in_gfs[IDX4(HDD12GF, i0, i1 + 2, i2 + 1)];
+        const REAL hDD12_i1p3_i2p1 = in_gfs[IDX4(HDD12GF, i0, i1 + 3, i2 + 1)];
+        const REAL hDD12_i1m3_i2p2 = in_gfs[IDX4(HDD12GF, i0, i1 - 3, i2 + 2)];
         const REAL hDD12_i1m2_i2p2 = in_gfs[IDX4(HDD12GF, i0, i1 - 2, i2 + 2)];
         const REAL hDD12_i1m1_i2p2 = in_gfs[IDX4(HDD12GF, i0, i1 - 1, i2 + 2)];
+        const REAL hDD12_i0m3_i2p2 = in_gfs[IDX4(HDD12GF, i0 - 3, i1, i2 + 2)];
         const REAL hDD12_i0m2_i2p2 = in_gfs[IDX4(HDD12GF, i0 - 2, i1, i2 + 2)];
         const REAL hDD12_i0m1_i2p2 = in_gfs[IDX4(HDD12GF, i0 - 1, i1, i2 + 2)];
         const REAL hDD12_i2p2 = in_gfs[IDX4(HDD12GF, i0, i1, i2 + 2)];
         const REAL hDD12_i0p1_i2p2 = in_gfs[IDX4(HDD12GF, i0 + 1, i1, i2 + 2)];
         const REAL hDD12_i0p2_i2p2 = in_gfs[IDX4(HDD12GF, i0 + 2, i1, i2 + 2)];
+        const REAL hDD12_i0p3_i2p2 = in_gfs[IDX4(HDD12GF, i0 + 3, i1, i2 + 2)];
         const REAL hDD12_i1p1_i2p2 = in_gfs[IDX4(HDD12GF, i0, i1 + 1, i2 + 2)];
         const REAL hDD12_i1p2_i2p2 = in_gfs[IDX4(HDD12GF, i0, i1 + 2, i2 + 2)];
+        const REAL hDD12_i1p3_i2p2 = in_gfs[IDX4(HDD12GF, i0, i1 + 3, i2 + 2)];
+        const REAL hDD12_i1m3_i2p3 = in_gfs[IDX4(HDD12GF, i0, i1 - 3, i2 + 3)];
+        const REAL hDD12_i1m2_i2p3 = in_gfs[IDX4(HDD12GF, i0, i1 - 2, i2 + 3)];
+        const REAL hDD12_i1m1_i2p3 = in_gfs[IDX4(HDD12GF, i0, i1 - 1, i2 + 3)];
+        const REAL hDD12_i0m3_i2p3 = in_gfs[IDX4(HDD12GF, i0 - 3, i1, i2 + 3)];
+        const REAL hDD12_i0m2_i2p3 = in_gfs[IDX4(HDD12GF, i0 - 2, i1, i2 + 3)];
+        const REAL hDD12_i0m1_i2p3 = in_gfs[IDX4(HDD12GF, i0 - 1, i1, i2 + 3)];
+        const REAL hDD12_i2p3 = in_gfs[IDX4(HDD12GF, i0, i1, i2 + 3)];
+        const REAL hDD12_i0p1_i2p3 = in_gfs[IDX4(HDD12GF, i0 + 1, i1, i2 + 3)];
+        const REAL hDD12_i0p2_i2p3 = in_gfs[IDX4(HDD12GF, i0 + 2, i1, i2 + 3)];
+        const REAL hDD12_i0p3_i2p3 = in_gfs[IDX4(HDD12GF, i0 + 3, i1, i2 + 3)];
+        const REAL hDD12_i1p1_i2p3 = in_gfs[IDX4(HDD12GF, i0, i1 + 1, i2 + 3)];
+        const REAL hDD12_i1p2_i2p3 = in_gfs[IDX4(HDD12GF, i0, i1 + 2, i2 + 3)];
+        const REAL hDD12_i1p3_i2p3 = in_gfs[IDX4(HDD12GF, i0, i1 + 3, i2 + 3)];
+        const REAL hDD22_i1m3_i2m3 = in_gfs[IDX4(HDD22GF, i0, i1 - 3, i2 - 3)];
+        const REAL hDD22_i1m2_i2m3 = in_gfs[IDX4(HDD22GF, i0, i1 - 2, i2 - 3)];
+        const REAL hDD22_i1m1_i2m3 = in_gfs[IDX4(HDD22GF, i0, i1 - 1, i2 - 3)];
+        const REAL hDD22_i0m3_i2m3 = in_gfs[IDX4(HDD22GF, i0 - 3, i1, i2 - 3)];
+        const REAL hDD22_i0m2_i2m3 = in_gfs[IDX4(HDD22GF, i0 - 2, i1, i2 - 3)];
+        const REAL hDD22_i0m1_i2m3 = in_gfs[IDX4(HDD22GF, i0 - 1, i1, i2 - 3)];
+        const REAL hDD22_i2m3 = in_gfs[IDX4(HDD22GF, i0, i1, i2 - 3)];
+        const REAL hDD22_i0p1_i2m3 = in_gfs[IDX4(HDD22GF, i0 + 1, i1, i2 - 3)];
+        const REAL hDD22_i0p2_i2m3 = in_gfs[IDX4(HDD22GF, i0 + 2, i1, i2 - 3)];
+        const REAL hDD22_i0p3_i2m3 = in_gfs[IDX4(HDD22GF, i0 + 3, i1, i2 - 3)];
+        const REAL hDD22_i1p1_i2m3 = in_gfs[IDX4(HDD22GF, i0, i1 + 1, i2 - 3)];
+        const REAL hDD22_i1p2_i2m3 = in_gfs[IDX4(HDD22GF, i0, i1 + 2, i2 - 3)];
+        const REAL hDD22_i1p3_i2m3 = in_gfs[IDX4(HDD22GF, i0, i1 + 3, i2 - 3)];
+        const REAL hDD22_i1m3_i2m2 = in_gfs[IDX4(HDD22GF, i0, i1 - 3, i2 - 2)];
         const REAL hDD22_i1m2_i2m2 = in_gfs[IDX4(HDD22GF, i0, i1 - 2, i2 - 2)];
         const REAL hDD22_i1m1_i2m2 = in_gfs[IDX4(HDD22GF, i0, i1 - 1, i2 - 2)];
+        const REAL hDD22_i0m3_i2m2 = in_gfs[IDX4(HDD22GF, i0 - 3, i1, i2 - 2)];
         const REAL hDD22_i0m2_i2m2 = in_gfs[IDX4(HDD22GF, i0 - 2, i1, i2 - 2)];
         const REAL hDD22_i0m1_i2m2 = in_gfs[IDX4(HDD22GF, i0 - 1, i1, i2 - 2)];
         const REAL hDD22_i2m2 = in_gfs[IDX4(HDD22GF, i0, i1, i2 - 2)];
         const REAL hDD22_i0p1_i2m2 = in_gfs[IDX4(HDD22GF, i0 + 1, i1, i2 - 2)];
         const REAL hDD22_i0p2_i2m2 = in_gfs[IDX4(HDD22GF, i0 + 2, i1, i2 - 2)];
+        const REAL hDD22_i0p3_i2m2 = in_gfs[IDX4(HDD22GF, i0 + 3, i1, i2 - 2)];
         const REAL hDD22_i1p1_i2m2 = in_gfs[IDX4(HDD22GF, i0, i1 + 1, i2 - 2)];
         const REAL hDD22_i1p2_i2m2 = in_gfs[IDX4(HDD22GF, i0, i1 + 2, i2 - 2)];
+        const REAL hDD22_i1p3_i2m2 = in_gfs[IDX4(HDD22GF, i0, i1 + 3, i2 - 2)];
+        const REAL hDD22_i1m3_i2m1 = in_gfs[IDX4(HDD22GF, i0, i1 - 3, i2 - 1)];
         const REAL hDD22_i1m2_i2m1 = in_gfs[IDX4(HDD22GF, i0, i1 - 2, i2 - 1)];
         const REAL hDD22_i1m1_i2m1 = in_gfs[IDX4(HDD22GF, i0, i1 - 1, i2 - 1)];
+        const REAL hDD22_i0m3_i2m1 = in_gfs[IDX4(HDD22GF, i0 - 3, i1, i2 - 1)];
         const REAL hDD22_i0m2_i2m1 = in_gfs[IDX4(HDD22GF, i0 - 2, i1, i2 - 1)];
         const REAL hDD22_i0m1_i2m1 = in_gfs[IDX4(HDD22GF, i0 - 1, i1, i2 - 1)];
         const REAL hDD22_i2m1 = in_gfs[IDX4(HDD22GF, i0, i1, i2 - 1)];
         const REAL hDD22_i0p1_i2m1 = in_gfs[IDX4(HDD22GF, i0 + 1, i1, i2 - 1)];
         const REAL hDD22_i0p2_i2m1 = in_gfs[IDX4(HDD22GF, i0 + 2, i1, i2 - 1)];
+        const REAL hDD22_i0p3_i2m1 = in_gfs[IDX4(HDD22GF, i0 + 3, i1, i2 - 1)];
         const REAL hDD22_i1p1_i2m1 = in_gfs[IDX4(HDD22GF, i0, i1 + 1, i2 - 1)];
         const REAL hDD22_i1p2_i2m1 = in_gfs[IDX4(HDD22GF, i0, i1 + 2, i2 - 1)];
+        const REAL hDD22_i1p3_i2m1 = in_gfs[IDX4(HDD22GF, i0, i1 + 3, i2 - 1)];
+        const REAL hDD22_i0m3_i1m3 = in_gfs[IDX4(HDD22GF, i0 - 3, i1 - 3, i2)];
+        const REAL hDD22_i0m2_i1m3 = in_gfs[IDX4(HDD22GF, i0 - 2, i1 - 3, i2)];
+        const REAL hDD22_i0m1_i1m3 = in_gfs[IDX4(HDD22GF, i0 - 1, i1 - 3, i2)];
+        const REAL hDD22_i1m3 = in_gfs[IDX4(HDD22GF, i0, i1 - 3, i2)];
+        const REAL hDD22_i0p1_i1m3 = in_gfs[IDX4(HDD22GF, i0 + 1, i1 - 3, i2)];
+        const REAL hDD22_i0p2_i1m3 = in_gfs[IDX4(HDD22GF, i0 + 2, i1 - 3, i2)];
+        const REAL hDD22_i0p3_i1m3 = in_gfs[IDX4(HDD22GF, i0 + 3, i1 - 3, i2)];
+        const REAL hDD22_i0m3_i1m2 = in_gfs[IDX4(HDD22GF, i0 - 3, i1 - 2, i2)];
         const REAL hDD22_i0m2_i1m2 = in_gfs[IDX4(HDD22GF, i0 - 2, i1 - 2, i2)];
         const REAL hDD22_i0m1_i1m2 = in_gfs[IDX4(HDD22GF, i0 - 1, i1 - 2, i2)];
         const REAL hDD22_i1m2 = in_gfs[IDX4(HDD22GF, i0, i1 - 2, i2)];
         const REAL hDD22_i0p1_i1m2 = in_gfs[IDX4(HDD22GF, i0 + 1, i1 - 2, i2)];
         const REAL hDD22_i0p2_i1m2 = in_gfs[IDX4(HDD22GF, i0 + 2, i1 - 2, i2)];
+        const REAL hDD22_i0p3_i1m2 = in_gfs[IDX4(HDD22GF, i0 + 3, i1 - 2, i2)];
+        const REAL hDD22_i0m3_i1m1 = in_gfs[IDX4(HDD22GF, i0 - 3, i1 - 1, i2)];
         const REAL hDD22_i0m2_i1m1 = in_gfs[IDX4(HDD22GF, i0 - 2, i1 - 1, i2)];
         const REAL hDD22_i0m1_i1m1 = in_gfs[IDX4(HDD22GF, i0 - 1, i1 - 1, i2)];
         const REAL hDD22_i1m1 = in_gfs[IDX4(HDD22GF, i0, i1 - 1, i2)];
         const REAL hDD22_i0p1_i1m1 = in_gfs[IDX4(HDD22GF, i0 + 1, i1 - 1, i2)];
         const REAL hDD22_i0p2_i1m1 = in_gfs[IDX4(HDD22GF, i0 + 2, i1 - 1, i2)];
+        const REAL hDD22_i0p3_i1m1 = in_gfs[IDX4(HDD22GF, i0 + 3, i1 - 1, i2)];
+        const REAL hDD22_i0m3 = in_gfs[IDX4(HDD22GF, i0 - 3, i1, i2)];
         const REAL hDD22_i0m2 = in_gfs[IDX4(HDD22GF, i0 - 2, i1, i2)];
         const REAL hDD22_i0m1 = in_gfs[IDX4(HDD22GF, i0 - 1, i1, i2)];
         const REAL hDD22 = in_gfs[IDX4(HDD22GF, i0, i1, i2)];
         const REAL hDD22_i0p1 = in_gfs[IDX4(HDD22GF, i0 + 1, i1, i2)];
         const REAL hDD22_i0p2 = in_gfs[IDX4(HDD22GF, i0 + 2, i1, i2)];
+        const REAL hDD22_i0p3 = in_gfs[IDX4(HDD22GF, i0 + 3, i1, i2)];
+        const REAL hDD22_i0m3_i1p1 = in_gfs[IDX4(HDD22GF, i0 - 3, i1 + 1, i2)];
         const REAL hDD22_i0m2_i1p1 = in_gfs[IDX4(HDD22GF, i0 - 2, i1 + 1, i2)];
         const REAL hDD22_i0m1_i1p1 = in_gfs[IDX4(HDD22GF, i0 - 1, i1 + 1, i2)];
         const REAL hDD22_i1p1 = in_gfs[IDX4(HDD22GF, i0, i1 + 1, i2)];
         const REAL hDD22_i0p1_i1p1 = in_gfs[IDX4(HDD22GF, i0 + 1, i1 + 1, i2)];
         const REAL hDD22_i0p2_i1p1 = in_gfs[IDX4(HDD22GF, i0 + 2, i1 + 1, i2)];
+        const REAL hDD22_i0p3_i1p1 = in_gfs[IDX4(HDD22GF, i0 + 3, i1 + 1, i2)];
+        const REAL hDD22_i0m3_i1p2 = in_gfs[IDX4(HDD22GF, i0 - 3, i1 + 2, i2)];
         const REAL hDD22_i0m2_i1p2 = in_gfs[IDX4(HDD22GF, i0 - 2, i1 + 2, i2)];
         const REAL hDD22_i0m1_i1p2 = in_gfs[IDX4(HDD22GF, i0 - 1, i1 + 2, i2)];
         const REAL hDD22_i1p2 = in_gfs[IDX4(HDD22GF, i0, i1 + 2, i2)];
         const REAL hDD22_i0p1_i1p2 = in_gfs[IDX4(HDD22GF, i0 + 1, i1 + 2, i2)];
         const REAL hDD22_i0p2_i1p2 = in_gfs[IDX4(HDD22GF, i0 + 2, i1 + 2, i2)];
+        const REAL hDD22_i0p3_i1p2 = in_gfs[IDX4(HDD22GF, i0 + 3, i1 + 2, i2)];
+        const REAL hDD22_i0m3_i1p3 = in_gfs[IDX4(HDD22GF, i0 - 3, i1 + 3, i2)];
+        const REAL hDD22_i0m2_i1p3 = in_gfs[IDX4(HDD22GF, i0 - 2, i1 + 3, i2)];
+        const REAL hDD22_i0m1_i1p3 = in_gfs[IDX4(HDD22GF, i0 - 1, i1 + 3, i2)];
+        const REAL hDD22_i1p3 = in_gfs[IDX4(HDD22GF, i0, i1 + 3, i2)];
+        const REAL hDD22_i0p1_i1p3 = in_gfs[IDX4(HDD22GF, i0 + 1, i1 + 3, i2)];
+        const REAL hDD22_i0p2_i1p3 = in_gfs[IDX4(HDD22GF, i0 + 2, i1 + 3, i2)];
+        const REAL hDD22_i0p3_i1p3 = in_gfs[IDX4(HDD22GF, i0 + 3, i1 + 3, i2)];
+        const REAL hDD22_i1m3_i2p1 = in_gfs[IDX4(HDD22GF, i0, i1 - 3, i2 + 1)];
         const REAL hDD22_i1m2_i2p1 = in_gfs[IDX4(HDD22GF, i0, i1 - 2, i2 + 1)];
         const REAL hDD22_i1m1_i2p1 = in_gfs[IDX4(HDD22GF, i0, i1 - 1, i2 + 1)];
+        const REAL hDD22_i0m3_i2p1 = in_gfs[IDX4(HDD22GF, i0 - 3, i1, i2 + 1)];
         const REAL hDD22_i0m2_i2p1 = in_gfs[IDX4(HDD22GF, i0 - 2, i1, i2 + 1)];
         const REAL hDD22_i0m1_i2p1 = in_gfs[IDX4(HDD22GF, i0 - 1, i1, i2 + 1)];
         const REAL hDD22_i2p1 = in_gfs[IDX4(HDD22GF, i0, i1, i2 + 1)];
         const REAL hDD22_i0p1_i2p1 = in_gfs[IDX4(HDD22GF, i0 + 1, i1, i2 + 1)];
         const REAL hDD22_i0p2_i2p1 = in_gfs[IDX4(HDD22GF, i0 + 2, i1, i2 + 1)];
+        const REAL hDD22_i0p3_i2p1 = in_gfs[IDX4(HDD22GF, i0 + 3, i1, i2 + 1)];
         const REAL hDD22_i1p1_i2p1 = in_gfs[IDX4(HDD22GF, i0, i1 + 1, i2 + 1)];
         const REAL hDD22_i1p2_i2p1 = in_gfs[IDX4(HDD22GF, i0, i1 + 2, i2 + 1)];
+        const REAL hDD22_i1p3_i2p1 = in_gfs[IDX4(HDD22GF, i0, i1 + 3, i2 + 1)];
+        const REAL hDD22_i1m3_i2p2 = in_gfs[IDX4(HDD22GF, i0, i1 - 3, i2 + 2)];
         const REAL hDD22_i1m2_i2p2 = in_gfs[IDX4(HDD22GF, i0, i1 - 2, i2 + 2)];
         const REAL hDD22_i1m1_i2p2 = in_gfs[IDX4(HDD22GF, i0, i1 - 1, i2 + 2)];
+        const REAL hDD22_i0m3_i2p2 = in_gfs[IDX4(HDD22GF, i0 - 3, i1, i2 + 2)];
         const REAL hDD22_i0m2_i2p2 = in_gfs[IDX4(HDD22GF, i0 - 2, i1, i2 + 2)];
         const REAL hDD22_i0m1_i2p2 = in_gfs[IDX4(HDD22GF, i0 - 1, i1, i2 + 2)];
         const REAL hDD22_i2p2 = in_gfs[IDX4(HDD22GF, i0, i1, i2 + 2)];
         const REAL hDD22_i0p1_i2p2 = in_gfs[IDX4(HDD22GF, i0 + 1, i1, i2 + 2)];
         const REAL hDD22_i0p2_i2p2 = in_gfs[IDX4(HDD22GF, i0 + 2, i1, i2 + 2)];
+        const REAL hDD22_i0p3_i2p2 = in_gfs[IDX4(HDD22GF, i0 + 3, i1, i2 + 2)];
         const REAL hDD22_i1p1_i2p2 = in_gfs[IDX4(HDD22GF, i0, i1 + 1, i2 + 2)];
         const REAL hDD22_i1p2_i2p2 = in_gfs[IDX4(HDD22GF, i0, i1 + 2, i2 + 2)];
+        const REAL hDD22_i1p3_i2p2 = in_gfs[IDX4(HDD22GF, i0, i1 + 3, i2 + 2)];
+        const REAL hDD22_i1m3_i2p3 = in_gfs[IDX4(HDD22GF, i0, i1 - 3, i2 + 3)];
+        const REAL hDD22_i1m2_i2p3 = in_gfs[IDX4(HDD22GF, i0, i1 - 2, i2 + 3)];
+        const REAL hDD22_i1m1_i2p3 = in_gfs[IDX4(HDD22GF, i0, i1 - 1, i2 + 3)];
+        const REAL hDD22_i0m3_i2p3 = in_gfs[IDX4(HDD22GF, i0 - 3, i1, i2 + 3)];
+        const REAL hDD22_i0m2_i2p3 = in_gfs[IDX4(HDD22GF, i0 - 2, i1, i2 + 3)];
+        const REAL hDD22_i0m1_i2p3 = in_gfs[IDX4(HDD22GF, i0 - 1, i1, i2 + 3)];
+        const REAL hDD22_i2p3 = in_gfs[IDX4(HDD22GF, i0, i1, i2 + 3)];
+        const REAL hDD22_i0p1_i2p3 = in_gfs[IDX4(HDD22GF, i0 + 1, i1, i2 + 3)];
+        const REAL hDD22_i0p2_i2p3 = in_gfs[IDX4(HDD22GF, i0 + 2, i1, i2 + 3)];
+        const REAL hDD22_i0p3_i2p3 = in_gfs[IDX4(HDD22GF, i0 + 3, i1, i2 + 3)];
+        const REAL hDD22_i1p1_i2p3 = in_gfs[IDX4(HDD22GF, i0, i1 + 1, i2 + 3)];
+        const REAL hDD22_i1p2_i2p3 = in_gfs[IDX4(HDD22GF, i0, i1 + 2, i2 + 3)];
+        const REAL hDD22_i1p3_i2p3 = in_gfs[IDX4(HDD22GF, i0, i1 + 3, i2 + 3)];
+        const REAL lambdaU0_i2m3 = in_gfs[IDX4(LAMBDAU0GF, i0, i1, i2 - 3)];
         const REAL lambdaU0_i2m2 = in_gfs[IDX4(LAMBDAU0GF, i0, i1, i2 - 2)];
         const REAL lambdaU0_i2m1 = in_gfs[IDX4(LAMBDAU0GF, i0, i1, i2 - 1)];
+        const REAL lambdaU0_i1m3 = in_gfs[IDX4(LAMBDAU0GF, i0, i1 - 3, i2)];
         const REAL lambdaU0_i1m2 = in_gfs[IDX4(LAMBDAU0GF, i0, i1 - 2, i2)];
         const REAL lambdaU0_i1m1 = in_gfs[IDX4(LAMBDAU0GF, i0, i1 - 1, i2)];
+        const REAL lambdaU0_i0m3 = in_gfs[IDX4(LAMBDAU0GF, i0 - 3, i1, i2)];
         const REAL lambdaU0_i0m2 = in_gfs[IDX4(LAMBDAU0GF, i0 - 2, i1, i2)];
         const REAL lambdaU0_i0m1 = in_gfs[IDX4(LAMBDAU0GF, i0 - 1, i1, i2)];
         const REAL lambdaU0 = in_gfs[IDX4(LAMBDAU0GF, i0, i1, i2)];
         const REAL lambdaU0_i0p1 = in_gfs[IDX4(LAMBDAU0GF, i0 + 1, i1, i2)];
         const REAL lambdaU0_i0p2 = in_gfs[IDX4(LAMBDAU0GF, i0 + 2, i1, i2)];
+        const REAL lambdaU0_i0p3 = in_gfs[IDX4(LAMBDAU0GF, i0 + 3, i1, i2)];
         const REAL lambdaU0_i1p1 = in_gfs[IDX4(LAMBDAU0GF, i0, i1 + 1, i2)];
         const REAL lambdaU0_i1p2 = in_gfs[IDX4(LAMBDAU0GF, i0, i1 + 2, i2)];
+        const REAL lambdaU0_i1p3 = in_gfs[IDX4(LAMBDAU0GF, i0, i1 + 3, i2)];
         const REAL lambdaU0_i2p1 = in_gfs[IDX4(LAMBDAU0GF, i0, i1, i2 + 1)];
         const REAL lambdaU0_i2p2 = in_gfs[IDX4(LAMBDAU0GF, i0, i1, i2 + 2)];
+        const REAL lambdaU0_i2p3 = in_gfs[IDX4(LAMBDAU0GF, i0, i1, i2 + 3)];
+        const REAL lambdaU1_i2m3 = in_gfs[IDX4(LAMBDAU1GF, i0, i1, i2 - 3)];
         const REAL lambdaU1_i2m2 = in_gfs[IDX4(LAMBDAU1GF, i0, i1, i2 - 2)];
         const REAL lambdaU1_i2m1 = in_gfs[IDX4(LAMBDAU1GF, i0, i1, i2 - 1)];
+        const REAL lambdaU1_i1m3 = in_gfs[IDX4(LAMBDAU1GF, i0, i1 - 3, i2)];
         const REAL lambdaU1_i1m2 = in_gfs[IDX4(LAMBDAU1GF, i0, i1 - 2, i2)];
         const REAL lambdaU1_i1m1 = in_gfs[IDX4(LAMBDAU1GF, i0, i1 - 1, i2)];
+        const REAL lambdaU1_i0m3 = in_gfs[IDX4(LAMBDAU1GF, i0 - 3, i1, i2)];
         const REAL lambdaU1_i0m2 = in_gfs[IDX4(LAMBDAU1GF, i0 - 2, i1, i2)];
         const REAL lambdaU1_i0m1 = in_gfs[IDX4(LAMBDAU1GF, i0 - 1, i1, i2)];
         const REAL lambdaU1 = in_gfs[IDX4(LAMBDAU1GF, i0, i1, i2)];
         const REAL lambdaU1_i0p1 = in_gfs[IDX4(LAMBDAU1GF, i0 + 1, i1, i2)];
         const REAL lambdaU1_i0p2 = in_gfs[IDX4(LAMBDAU1GF, i0 + 2, i1, i2)];
+        const REAL lambdaU1_i0p3 = in_gfs[IDX4(LAMBDAU1GF, i0 + 3, i1, i2)];
         const REAL lambdaU1_i1p1 = in_gfs[IDX4(LAMBDAU1GF, i0, i1 + 1, i2)];
         const REAL lambdaU1_i1p2 = in_gfs[IDX4(LAMBDAU1GF, i0, i1 + 2, i2)];
+        const REAL lambdaU1_i1p3 = in_gfs[IDX4(LAMBDAU1GF, i0, i1 + 3, i2)];
         const REAL lambdaU1_i2p1 = in_gfs[IDX4(LAMBDAU1GF, i0, i1, i2 + 1)];
         const REAL lambdaU1_i2p2 = in_gfs[IDX4(LAMBDAU1GF, i0, i1, i2 + 2)];
+        const REAL lambdaU1_i2p3 = in_gfs[IDX4(LAMBDAU1GF, i0, i1, i2 + 3)];
+        const REAL lambdaU2_i2m3 = in_gfs[IDX4(LAMBDAU2GF, i0, i1, i2 - 3)];
         const REAL lambdaU2_i2m2 = in_gfs[IDX4(LAMBDAU2GF, i0, i1, i2 - 2)];
         const REAL lambdaU2_i2m1 = in_gfs[IDX4(LAMBDAU2GF, i0, i1, i2 - 1)];
+        const REAL lambdaU2_i1m3 = in_gfs[IDX4(LAMBDAU2GF, i0, i1 - 3, i2)];
         const REAL lambdaU2_i1m2 = in_gfs[IDX4(LAMBDAU2GF, i0, i1 - 2, i2)];
         const REAL lambdaU2_i1m1 = in_gfs[IDX4(LAMBDAU2GF, i0, i1 - 1, i2)];
+        const REAL lambdaU2_i0m3 = in_gfs[IDX4(LAMBDAU2GF, i0 - 3, i1, i2)];
         const REAL lambdaU2_i0m2 = in_gfs[IDX4(LAMBDAU2GF, i0 - 2, i1, i2)];
         const REAL lambdaU2_i0m1 = in_gfs[IDX4(LAMBDAU2GF, i0 - 1, i1, i2)];
         const REAL lambdaU2 = in_gfs[IDX4(LAMBDAU2GF, i0, i1, i2)];
         const REAL lambdaU2_i0p1 = in_gfs[IDX4(LAMBDAU2GF, i0 + 1, i1, i2)];
         const REAL lambdaU2_i0p2 = in_gfs[IDX4(LAMBDAU2GF, i0 + 2, i1, i2)];
+        const REAL lambdaU2_i0p3 = in_gfs[IDX4(LAMBDAU2GF, i0 + 3, i1, i2)];
         const REAL lambdaU2_i1p1 = in_gfs[IDX4(LAMBDAU2GF, i0, i1 + 1, i2)];
         const REAL lambdaU2_i1p2 = in_gfs[IDX4(LAMBDAU2GF, i0, i1 + 2, i2)];
+        const REAL lambdaU2_i1p3 = in_gfs[IDX4(LAMBDAU2GF, i0, i1 + 3, i2)];
         const REAL lambdaU2_i2p1 = in_gfs[IDX4(LAMBDAU2GF, i0, i1, i2 + 1)];
         const REAL lambdaU2_i2p2 = in_gfs[IDX4(LAMBDAU2GF, i0, i1, i2 + 2)];
-        const REAL hDD_dD000 = fd_function_dD0_fdorder4(hDD00_i0m1, hDD00_i0m2, hDD00_i0p1, hDD00_i0p2, invdxx0);
-        const REAL hDD_dD001 = fd_function_dD1_fdorder4(hDD00_i1m1, hDD00_i1m2, hDD00_i1p1, hDD00_i1p2, invdxx1);
-        const REAL hDD_dD002 = fd_function_dD2_fdorder4(hDD00_i2m1, hDD00_i2m2, hDD00_i2p1, hDD00_i2p2, invdxx2);
-        const REAL hDD_dD010 = fd_function_dD0_fdorder4(hDD01_i0m1, hDD01_i0m2, hDD01_i0p1, hDD01_i0p2, invdxx0);
-        const REAL hDD_dD011 = fd_function_dD1_fdorder4(hDD01_i1m1, hDD01_i1m2, hDD01_i1p1, hDD01_i1p2, invdxx1);
-        const REAL hDD_dD012 = fd_function_dD2_fdorder4(hDD01_i2m1, hDD01_i2m2, hDD01_i2p1, hDD01_i2p2, invdxx2);
-        const REAL hDD_dD020 = fd_function_dD0_fdorder4(hDD02_i0m1, hDD02_i0m2, hDD02_i0p1, hDD02_i0p2, invdxx0);
-        const REAL hDD_dD021 = fd_function_dD1_fdorder4(hDD02_i1m1, hDD02_i1m2, hDD02_i1p1, hDD02_i1p2, invdxx1);
-        const REAL hDD_dD022 = fd_function_dD2_fdorder4(hDD02_i2m1, hDD02_i2m2, hDD02_i2p1, hDD02_i2p2, invdxx2);
-        const REAL hDD_dD110 = fd_function_dD0_fdorder4(hDD11_i0m1, hDD11_i0m2, hDD11_i0p1, hDD11_i0p2, invdxx0);
-        const REAL hDD_dD111 = fd_function_dD1_fdorder4(hDD11_i1m1, hDD11_i1m2, hDD11_i1p1, hDD11_i1p2, invdxx1);
-        const REAL hDD_dD112 = fd_function_dD2_fdorder4(hDD11_i2m1, hDD11_i2m2, hDD11_i2p1, hDD11_i2p2, invdxx2);
-        const REAL hDD_dD120 = fd_function_dD0_fdorder4(hDD12_i0m1, hDD12_i0m2, hDD12_i0p1, hDD12_i0p2, invdxx0);
-        const REAL hDD_dD121 = fd_function_dD1_fdorder4(hDD12_i1m1, hDD12_i1m2, hDD12_i1p1, hDD12_i1p2, invdxx1);
-        const REAL hDD_dD122 = fd_function_dD2_fdorder4(hDD12_i2m1, hDD12_i2m2, hDD12_i2p1, hDD12_i2p2, invdxx2);
-        const REAL hDD_dD220 = fd_function_dD0_fdorder4(hDD22_i0m1, hDD22_i0m2, hDD22_i0p1, hDD22_i0p2, invdxx0);
-        const REAL hDD_dD221 = fd_function_dD1_fdorder4(hDD22_i1m1, hDD22_i1m2, hDD22_i1p1, hDD22_i1p2, invdxx1);
-        const REAL hDD_dD222 = fd_function_dD2_fdorder4(hDD22_i2m1, hDD22_i2m2, hDD22_i2p1, hDD22_i2p2, invdxx2);
-        const REAL hDD_dDD0000 = fd_function_dDD00_fdorder4(hDD00, hDD00_i0m1, hDD00_i0m2, hDD00_i0p1, hDD00_i0p2, invdxx0);
-        const REAL hDD_dDD0001 =
-            fd_function_dDD01_fdorder4(hDD00_i0m1_i1m1, hDD00_i0m1_i1m2, hDD00_i0m1_i1p1, hDD00_i0m1_i1p2, hDD00_i0m2_i1m1, hDD00_i0m2_i1m2,
-                                       hDD00_i0m2_i1p1, hDD00_i0m2_i1p2, hDD00_i0p1_i1m1, hDD00_i0p1_i1m2, hDD00_i0p1_i1p1, hDD00_i0p1_i1p2,
-                                       hDD00_i0p2_i1m1, hDD00_i0p2_i1m2, hDD00_i0p2_i1p1, hDD00_i0p2_i1p2, invdxx0, invdxx1);
-        const REAL hDD_dDD0002 =
-            fd_function_dDD02_fdorder4(hDD00_i0m1_i2m1, hDD00_i0m1_i2m2, hDD00_i0m1_i2p1, hDD00_i0m1_i2p2, hDD00_i0m2_i2m1, hDD00_i0m2_i2m2,
-                                       hDD00_i0m2_i2p1, hDD00_i0m2_i2p2, hDD00_i0p1_i2m1, hDD00_i0p1_i2m2, hDD00_i0p1_i2p1, hDD00_i0p1_i2p2,
-                                       hDD00_i0p2_i2m1, hDD00_i0p2_i2m2, hDD00_i0p2_i2p1, hDD00_i0p2_i2p2, invdxx0, invdxx2);
-        const REAL hDD_dDD0011 = fd_function_dDD11_fdorder4(hDD00, hDD00_i1m1, hDD00_i1m2, hDD00_i1p1, hDD00_i1p2, invdxx1);
-        const REAL hDD_dDD0012 =
-            fd_function_dDD12_fdorder4(hDD00_i1m1_i2m1, hDD00_i1m1_i2m2, hDD00_i1m1_i2p1, hDD00_i1m1_i2p2, hDD00_i1m2_i2m1, hDD00_i1m2_i2m2,
-                                       hDD00_i1m2_i2p1, hDD00_i1m2_i2p2, hDD00_i1p1_i2m1, hDD00_i1p1_i2m2, hDD00_i1p1_i2p1, hDD00_i1p1_i2p2,
-                                       hDD00_i1p2_i2m1, hDD00_i1p2_i2m2, hDD00_i1p2_i2p1, hDD00_i1p2_i2p2, invdxx1, invdxx2);
-        const REAL hDD_dDD0022 = fd_function_dDD22_fdorder4(hDD00, hDD00_i2m1, hDD00_i2m2, hDD00_i2p1, hDD00_i2p2, invdxx2);
-        const REAL hDD_dDD0100 = fd_function_dDD00_fdorder4(hDD01, hDD01_i0m1, hDD01_i0m2, hDD01_i0p1, hDD01_i0p2, invdxx0);
-        const REAL hDD_dDD0101 =
-            fd_function_dDD01_fdorder4(hDD01_i0m1_i1m1, hDD01_i0m1_i1m2, hDD01_i0m1_i1p1, hDD01_i0m1_i1p2, hDD01_i0m2_i1m1, hDD01_i0m2_i1m2,
-                                       hDD01_i0m2_i1p1, hDD01_i0m2_i1p2, hDD01_i0p1_i1m1, hDD01_i0p1_i1m2, hDD01_i0p1_i1p1, hDD01_i0p1_i1p2,
-                                       hDD01_i0p2_i1m1, hDD01_i0p2_i1m2, hDD01_i0p2_i1p1, hDD01_i0p2_i1p2, invdxx0, invdxx1);
-        const REAL hDD_dDD0102 =
-            fd_function_dDD02_fdorder4(hDD01_i0m1_i2m1, hDD01_i0m1_i2m2, hDD01_i0m1_i2p1, hDD01_i0m1_i2p2, hDD01_i0m2_i2m1, hDD01_i0m2_i2m2,
-                                       hDD01_i0m2_i2p1, hDD01_i0m2_i2p2, hDD01_i0p1_i2m1, hDD01_i0p1_i2m2, hDD01_i0p1_i2p1, hDD01_i0p1_i2p2,
-                                       hDD01_i0p2_i2m1, hDD01_i0p2_i2m2, hDD01_i0p2_i2p1, hDD01_i0p2_i2p2, invdxx0, invdxx2);
-        const REAL hDD_dDD0111 = fd_function_dDD11_fdorder4(hDD01, hDD01_i1m1, hDD01_i1m2, hDD01_i1p1, hDD01_i1p2, invdxx1);
-        const REAL hDD_dDD0112 =
-            fd_function_dDD12_fdorder4(hDD01_i1m1_i2m1, hDD01_i1m1_i2m2, hDD01_i1m1_i2p1, hDD01_i1m1_i2p2, hDD01_i1m2_i2m1, hDD01_i1m2_i2m2,
-                                       hDD01_i1m2_i2p1, hDD01_i1m2_i2p2, hDD01_i1p1_i2m1, hDD01_i1p1_i2m2, hDD01_i1p1_i2p1, hDD01_i1p1_i2p2,
-                                       hDD01_i1p2_i2m1, hDD01_i1p2_i2m2, hDD01_i1p2_i2p1, hDD01_i1p2_i2p2, invdxx1, invdxx2);
-        const REAL hDD_dDD0122 = fd_function_dDD22_fdorder4(hDD01, hDD01_i2m1, hDD01_i2m2, hDD01_i2p1, hDD01_i2p2, invdxx2);
-        const REAL hDD_dDD0200 = fd_function_dDD00_fdorder4(hDD02, hDD02_i0m1, hDD02_i0m2, hDD02_i0p1, hDD02_i0p2, invdxx0);
-        const REAL hDD_dDD0201 =
-            fd_function_dDD01_fdorder4(hDD02_i0m1_i1m1, hDD02_i0m1_i1m2, hDD02_i0m1_i1p1, hDD02_i0m1_i1p2, hDD02_i0m2_i1m1, hDD02_i0m2_i1m2,
-                                       hDD02_i0m2_i1p1, hDD02_i0m2_i1p2, hDD02_i0p1_i1m1, hDD02_i0p1_i1m2, hDD02_i0p1_i1p1, hDD02_i0p1_i1p2,
-                                       hDD02_i0p2_i1m1, hDD02_i0p2_i1m2, hDD02_i0p2_i1p1, hDD02_i0p2_i1p2, invdxx0, invdxx1);
-        const REAL hDD_dDD0202 =
-            fd_function_dDD02_fdorder4(hDD02_i0m1_i2m1, hDD02_i0m1_i2m2, hDD02_i0m1_i2p1, hDD02_i0m1_i2p2, hDD02_i0m2_i2m1, hDD02_i0m2_i2m2,
-                                       hDD02_i0m2_i2p1, hDD02_i0m2_i2p2, hDD02_i0p1_i2m1, hDD02_i0p1_i2m2, hDD02_i0p1_i2p1, hDD02_i0p1_i2p2,
-                                       hDD02_i0p2_i2m1, hDD02_i0p2_i2m2, hDD02_i0p2_i2p1, hDD02_i0p2_i2p2, invdxx0, invdxx2);
-        const REAL hDD_dDD0211 = fd_function_dDD11_fdorder4(hDD02, hDD02_i1m1, hDD02_i1m2, hDD02_i1p1, hDD02_i1p2, invdxx1);
-        const REAL hDD_dDD0212 =
-            fd_function_dDD12_fdorder4(hDD02_i1m1_i2m1, hDD02_i1m1_i2m2, hDD02_i1m1_i2p1, hDD02_i1m1_i2p2, hDD02_i1m2_i2m1, hDD02_i1m2_i2m2,
-                                       hDD02_i1m2_i2p1, hDD02_i1m2_i2p2, hDD02_i1p1_i2m1, hDD02_i1p1_i2m2, hDD02_i1p1_i2p1, hDD02_i1p1_i2p2,
-                                       hDD02_i1p2_i2m1, hDD02_i1p2_i2m2, hDD02_i1p2_i2p1, hDD02_i1p2_i2p2, invdxx1, invdxx2);
-        const REAL hDD_dDD0222 = fd_function_dDD22_fdorder4(hDD02, hDD02_i2m1, hDD02_i2m2, hDD02_i2p1, hDD02_i2p2, invdxx2);
-        const REAL hDD_dDD1100 = fd_function_dDD00_fdorder4(hDD11, hDD11_i0m1, hDD11_i0m2, hDD11_i0p1, hDD11_i0p2, invdxx0);
-        const REAL hDD_dDD1101 =
-            fd_function_dDD01_fdorder4(hDD11_i0m1_i1m1, hDD11_i0m1_i1m2, hDD11_i0m1_i1p1, hDD11_i0m1_i1p2, hDD11_i0m2_i1m1, hDD11_i0m2_i1m2,
-                                       hDD11_i0m2_i1p1, hDD11_i0m2_i1p2, hDD11_i0p1_i1m1, hDD11_i0p1_i1m2, hDD11_i0p1_i1p1, hDD11_i0p1_i1p2,
-                                       hDD11_i0p2_i1m1, hDD11_i0p2_i1m2, hDD11_i0p2_i1p1, hDD11_i0p2_i1p2, invdxx0, invdxx1);
-        const REAL hDD_dDD1102 =
-            fd_function_dDD02_fdorder4(hDD11_i0m1_i2m1, hDD11_i0m1_i2m2, hDD11_i0m1_i2p1, hDD11_i0m1_i2p2, hDD11_i0m2_i2m1, hDD11_i0m2_i2m2,
-                                       hDD11_i0m2_i2p1, hDD11_i0m2_i2p2, hDD11_i0p1_i2m1, hDD11_i0p1_i2m2, hDD11_i0p1_i2p1, hDD11_i0p1_i2p2,
-                                       hDD11_i0p2_i2m1, hDD11_i0p2_i2m2, hDD11_i0p2_i2p1, hDD11_i0p2_i2p2, invdxx0, invdxx2);
-        const REAL hDD_dDD1111 = fd_function_dDD11_fdorder4(hDD11, hDD11_i1m1, hDD11_i1m2, hDD11_i1p1, hDD11_i1p2, invdxx1);
-        const REAL hDD_dDD1112 =
-            fd_function_dDD12_fdorder4(hDD11_i1m1_i2m1, hDD11_i1m1_i2m2, hDD11_i1m1_i2p1, hDD11_i1m1_i2p2, hDD11_i1m2_i2m1, hDD11_i1m2_i2m2,
-                                       hDD11_i1m2_i2p1, hDD11_i1m2_i2p2, hDD11_i1p1_i2m1, hDD11_i1p1_i2m2, hDD11_i1p1_i2p1, hDD11_i1p1_i2p2,
-                                       hDD11_i1p2_i2m1, hDD11_i1p2_i2m2, hDD11_i1p2_i2p1, hDD11_i1p2_i2p2, invdxx1, invdxx2);
-        const REAL hDD_dDD1122 = fd_function_dDD22_fdorder4(hDD11, hDD11_i2m1, hDD11_i2m2, hDD11_i2p1, hDD11_i2p2, invdxx2);
-        const REAL hDD_dDD1200 = fd_function_dDD00_fdorder4(hDD12, hDD12_i0m1, hDD12_i0m2, hDD12_i0p1, hDD12_i0p2, invdxx0);
-        const REAL hDD_dDD1201 =
-            fd_function_dDD01_fdorder4(hDD12_i0m1_i1m1, hDD12_i0m1_i1m2, hDD12_i0m1_i1p1, hDD12_i0m1_i1p2, hDD12_i0m2_i1m1, hDD12_i0m2_i1m2,
-                                       hDD12_i0m2_i1p1, hDD12_i0m2_i1p2, hDD12_i0p1_i1m1, hDD12_i0p1_i1m2, hDD12_i0p1_i1p1, hDD12_i0p1_i1p2,
-                                       hDD12_i0p2_i1m1, hDD12_i0p2_i1m2, hDD12_i0p2_i1p1, hDD12_i0p2_i1p2, invdxx0, invdxx1);
-        const REAL hDD_dDD1202 =
-            fd_function_dDD02_fdorder4(hDD12_i0m1_i2m1, hDD12_i0m1_i2m2, hDD12_i0m1_i2p1, hDD12_i0m1_i2p2, hDD12_i0m2_i2m1, hDD12_i0m2_i2m2,
-                                       hDD12_i0m2_i2p1, hDD12_i0m2_i2p2, hDD12_i0p1_i2m1, hDD12_i0p1_i2m2, hDD12_i0p1_i2p1, hDD12_i0p1_i2p2,
-                                       hDD12_i0p2_i2m1, hDD12_i0p2_i2m2, hDD12_i0p2_i2p1, hDD12_i0p2_i2p2, invdxx0, invdxx2);
-        const REAL hDD_dDD1211 = fd_function_dDD11_fdorder4(hDD12, hDD12_i1m1, hDD12_i1m2, hDD12_i1p1, hDD12_i1p2, invdxx1);
-        const REAL hDD_dDD1212 =
-            fd_function_dDD12_fdorder4(hDD12_i1m1_i2m1, hDD12_i1m1_i2m2, hDD12_i1m1_i2p1, hDD12_i1m1_i2p2, hDD12_i1m2_i2m1, hDD12_i1m2_i2m2,
-                                       hDD12_i1m2_i2p1, hDD12_i1m2_i2p2, hDD12_i1p1_i2m1, hDD12_i1p1_i2m2, hDD12_i1p1_i2p1, hDD12_i1p1_i2p2,
-                                       hDD12_i1p2_i2m1, hDD12_i1p2_i2m2, hDD12_i1p2_i2p1, hDD12_i1p2_i2p2, invdxx1, invdxx2);
-        const REAL hDD_dDD1222 = fd_function_dDD22_fdorder4(hDD12, hDD12_i2m1, hDD12_i2m2, hDD12_i2p1, hDD12_i2p2, invdxx2);
-        const REAL hDD_dDD2200 = fd_function_dDD00_fdorder4(hDD22, hDD22_i0m1, hDD22_i0m2, hDD22_i0p1, hDD22_i0p2, invdxx0);
-        const REAL hDD_dDD2201 =
-            fd_function_dDD01_fdorder4(hDD22_i0m1_i1m1, hDD22_i0m1_i1m2, hDD22_i0m1_i1p1, hDD22_i0m1_i1p2, hDD22_i0m2_i1m1, hDD22_i0m2_i1m2,
-                                       hDD22_i0m2_i1p1, hDD22_i0m2_i1p2, hDD22_i0p1_i1m1, hDD22_i0p1_i1m2, hDD22_i0p1_i1p1, hDD22_i0p1_i1p2,
-                                       hDD22_i0p2_i1m1, hDD22_i0p2_i1m2, hDD22_i0p2_i1p1, hDD22_i0p2_i1p2, invdxx0, invdxx1);
-        const REAL hDD_dDD2202 =
-            fd_function_dDD02_fdorder4(hDD22_i0m1_i2m1, hDD22_i0m1_i2m2, hDD22_i0m1_i2p1, hDD22_i0m1_i2p2, hDD22_i0m2_i2m1, hDD22_i0m2_i2m2,
-                                       hDD22_i0m2_i2p1, hDD22_i0m2_i2p2, hDD22_i0p1_i2m1, hDD22_i0p1_i2m2, hDD22_i0p1_i2p1, hDD22_i0p1_i2p2,
-                                       hDD22_i0p2_i2m1, hDD22_i0p2_i2m2, hDD22_i0p2_i2p1, hDD22_i0p2_i2p2, invdxx0, invdxx2);
-        const REAL hDD_dDD2211 = fd_function_dDD11_fdorder4(hDD22, hDD22_i1m1, hDD22_i1m2, hDD22_i1p1, hDD22_i1p2, invdxx1);
-        const REAL hDD_dDD2212 =
-            fd_function_dDD12_fdorder4(hDD22_i1m1_i2m1, hDD22_i1m1_i2m2, hDD22_i1m1_i2p1, hDD22_i1m1_i2p2, hDD22_i1m2_i2m1, hDD22_i1m2_i2m2,
-                                       hDD22_i1m2_i2p1, hDD22_i1m2_i2p2, hDD22_i1p1_i2m1, hDD22_i1p1_i2m2, hDD22_i1p1_i2p1, hDD22_i1p1_i2p2,
-                                       hDD22_i1p2_i2m1, hDD22_i1p2_i2m2, hDD22_i1p2_i2p1, hDD22_i1p2_i2p2, invdxx1, invdxx2);
-        const REAL hDD_dDD2222 = fd_function_dDD22_fdorder4(hDD22, hDD22_i2m1, hDD22_i2m2, hDD22_i2p1, hDD22_i2p2, invdxx2);
-        const REAL lambdaU_dD00 = fd_function_dD0_fdorder4(lambdaU0_i0m1, lambdaU0_i0m2, lambdaU0_i0p1, lambdaU0_i0p2, invdxx0);
-        const REAL lambdaU_dD01 = fd_function_dD1_fdorder4(lambdaU0_i1m1, lambdaU0_i1m2, lambdaU0_i1p1, lambdaU0_i1p2, invdxx1);
-        const REAL lambdaU_dD02 = fd_function_dD2_fdorder4(lambdaU0_i2m1, lambdaU0_i2m2, lambdaU0_i2p1, lambdaU0_i2p2, invdxx2);
-        const REAL lambdaU_dD10 = fd_function_dD0_fdorder4(lambdaU1_i0m1, lambdaU1_i0m2, lambdaU1_i0p1, lambdaU1_i0p2, invdxx0);
-        const REAL lambdaU_dD11 = fd_function_dD1_fdorder4(lambdaU1_i1m1, lambdaU1_i1m2, lambdaU1_i1p1, lambdaU1_i1p2, invdxx1);
-        const REAL lambdaU_dD12 = fd_function_dD2_fdorder4(lambdaU1_i2m1, lambdaU1_i2m2, lambdaU1_i2p1, lambdaU1_i2p2, invdxx2);
-        const REAL lambdaU_dD20 = fd_function_dD0_fdorder4(lambdaU2_i0m1, lambdaU2_i0m2, lambdaU2_i0p1, lambdaU2_i0p2, invdxx0);
-        const REAL lambdaU_dD21 = fd_function_dD1_fdorder4(lambdaU2_i1m1, lambdaU2_i1m2, lambdaU2_i1p1, lambdaU2_i1p2, invdxx1);
-        const REAL lambdaU_dD22 = fd_function_dD2_fdorder4(lambdaU2_i2m1, lambdaU2_i2m2, lambdaU2_i2p1, lambdaU2_i2p2, invdxx2);
+        const REAL lambdaU2_i2p3 = in_gfs[IDX4(LAMBDAU2GF, i0, i1, i2 + 3)];
+        const REAL hDD_dD000 = fd_function_dD0_fdorder6(hDD00_i0m1, hDD00_i0m2, hDD00_i0m3, hDD00_i0p1, hDD00_i0p2, hDD00_i0p3, invdxx0);
+        const REAL hDD_dD001 = fd_function_dD1_fdorder6(hDD00_i1m1, hDD00_i1m2, hDD00_i1m3, hDD00_i1p1, hDD00_i1p2, hDD00_i1p3, invdxx1);
+        const REAL hDD_dD002 = fd_function_dD2_fdorder6(hDD00_i2m1, hDD00_i2m2, hDD00_i2m3, hDD00_i2p1, hDD00_i2p2, hDD00_i2p3, invdxx2);
+        const REAL hDD_dD010 = fd_function_dD0_fdorder6(hDD01_i0m1, hDD01_i0m2, hDD01_i0m3, hDD01_i0p1, hDD01_i0p2, hDD01_i0p3, invdxx0);
+        const REAL hDD_dD011 = fd_function_dD1_fdorder6(hDD01_i1m1, hDD01_i1m2, hDD01_i1m3, hDD01_i1p1, hDD01_i1p2, hDD01_i1p3, invdxx1);
+        const REAL hDD_dD012 = fd_function_dD2_fdorder6(hDD01_i2m1, hDD01_i2m2, hDD01_i2m3, hDD01_i2p1, hDD01_i2p2, hDD01_i2p3, invdxx2);
+        const REAL hDD_dD020 = fd_function_dD0_fdorder6(hDD02_i0m1, hDD02_i0m2, hDD02_i0m3, hDD02_i0p1, hDD02_i0p2, hDD02_i0p3, invdxx0);
+        const REAL hDD_dD021 = fd_function_dD1_fdorder6(hDD02_i1m1, hDD02_i1m2, hDD02_i1m3, hDD02_i1p1, hDD02_i1p2, hDD02_i1p3, invdxx1);
+        const REAL hDD_dD022 = fd_function_dD2_fdorder6(hDD02_i2m1, hDD02_i2m2, hDD02_i2m3, hDD02_i2p1, hDD02_i2p2, hDD02_i2p3, invdxx2);
+        const REAL hDD_dD110 = fd_function_dD0_fdorder6(hDD11_i0m1, hDD11_i0m2, hDD11_i0m3, hDD11_i0p1, hDD11_i0p2, hDD11_i0p3, invdxx0);
+        const REAL hDD_dD111 = fd_function_dD1_fdorder6(hDD11_i1m1, hDD11_i1m2, hDD11_i1m3, hDD11_i1p1, hDD11_i1p2, hDD11_i1p3, invdxx1);
+        const REAL hDD_dD112 = fd_function_dD2_fdorder6(hDD11_i2m1, hDD11_i2m2, hDD11_i2m3, hDD11_i2p1, hDD11_i2p2, hDD11_i2p3, invdxx2);
+        const REAL hDD_dD120 = fd_function_dD0_fdorder6(hDD12_i0m1, hDD12_i0m2, hDD12_i0m3, hDD12_i0p1, hDD12_i0p2, hDD12_i0p3, invdxx0);
+        const REAL hDD_dD121 = fd_function_dD1_fdorder6(hDD12_i1m1, hDD12_i1m2, hDD12_i1m3, hDD12_i1p1, hDD12_i1p2, hDD12_i1p3, invdxx1);
+        const REAL hDD_dD122 = fd_function_dD2_fdorder6(hDD12_i2m1, hDD12_i2m2, hDD12_i2m3, hDD12_i2p1, hDD12_i2p2, hDD12_i2p3, invdxx2);
+        const REAL hDD_dD220 = fd_function_dD0_fdorder6(hDD22_i0m1, hDD22_i0m2, hDD22_i0m3, hDD22_i0p1, hDD22_i0p2, hDD22_i0p3, invdxx0);
+        const REAL hDD_dD221 = fd_function_dD1_fdorder6(hDD22_i1m1, hDD22_i1m2, hDD22_i1m3, hDD22_i1p1, hDD22_i1p2, hDD22_i1p3, invdxx1);
+        const REAL hDD_dD222 = fd_function_dD2_fdorder6(hDD22_i2m1, hDD22_i2m2, hDD22_i2m3, hDD22_i2p1, hDD22_i2p2, hDD22_i2p3, invdxx2);
+        const REAL hDD_dDD0000 = fd_function_dDD00_fdorder6(hDD00, hDD00_i0m1, hDD00_i0m2, hDD00_i0m3, hDD00_i0p1, hDD00_i0p2, hDD00_i0p3, invdxx0);
+        const REAL hDD_dDD0001 = fd_function_dDD01_fdorder6(
+            hDD00_i0m1_i1m1, hDD00_i0m1_i1m2, hDD00_i0m1_i1m3, hDD00_i0m1_i1p1, hDD00_i0m1_i1p2, hDD00_i0m1_i1p3, hDD00_i0m2_i1m1, hDD00_i0m2_i1m2,
+            hDD00_i0m2_i1m3, hDD00_i0m2_i1p1, hDD00_i0m2_i1p2, hDD00_i0m2_i1p3, hDD00_i0m3_i1m1, hDD00_i0m3_i1m2, hDD00_i0m3_i1m3, hDD00_i0m3_i1p1,
+            hDD00_i0m3_i1p2, hDD00_i0m3_i1p3, hDD00_i0p1_i1m1, hDD00_i0p1_i1m2, hDD00_i0p1_i1m3, hDD00_i0p1_i1p1, hDD00_i0p1_i1p2, hDD00_i0p1_i1p3,
+            hDD00_i0p2_i1m1, hDD00_i0p2_i1m2, hDD00_i0p2_i1m3, hDD00_i0p2_i1p1, hDD00_i0p2_i1p2, hDD00_i0p2_i1p3, hDD00_i0p3_i1m1, hDD00_i0p3_i1m2,
+            hDD00_i0p3_i1m3, hDD00_i0p3_i1p1, hDD00_i0p3_i1p2, hDD00_i0p3_i1p3, invdxx0, invdxx1);
+        const REAL hDD_dDD0002 = fd_function_dDD02_fdorder6(
+            hDD00_i0m1_i2m1, hDD00_i0m1_i2m2, hDD00_i0m1_i2m3, hDD00_i0m1_i2p1, hDD00_i0m1_i2p2, hDD00_i0m1_i2p3, hDD00_i0m2_i2m1, hDD00_i0m2_i2m2,
+            hDD00_i0m2_i2m3, hDD00_i0m2_i2p1, hDD00_i0m2_i2p2, hDD00_i0m2_i2p3, hDD00_i0m3_i2m1, hDD00_i0m3_i2m2, hDD00_i0m3_i2m3, hDD00_i0m3_i2p1,
+            hDD00_i0m3_i2p2, hDD00_i0m3_i2p3, hDD00_i0p1_i2m1, hDD00_i0p1_i2m2, hDD00_i0p1_i2m3, hDD00_i0p1_i2p1, hDD00_i0p1_i2p2, hDD00_i0p1_i2p3,
+            hDD00_i0p2_i2m1, hDD00_i0p2_i2m2, hDD00_i0p2_i2m3, hDD00_i0p2_i2p1, hDD00_i0p2_i2p2, hDD00_i0p2_i2p3, hDD00_i0p3_i2m1, hDD00_i0p3_i2m2,
+            hDD00_i0p3_i2m3, hDD00_i0p3_i2p1, hDD00_i0p3_i2p2, hDD00_i0p3_i2p3, invdxx0, invdxx2);
+        const REAL hDD_dDD0011 = fd_function_dDD11_fdorder6(hDD00, hDD00_i1m1, hDD00_i1m2, hDD00_i1m3, hDD00_i1p1, hDD00_i1p2, hDD00_i1p3, invdxx1);
+        const REAL hDD_dDD0012 = fd_function_dDD12_fdorder6(
+            hDD00_i1m1_i2m1, hDD00_i1m1_i2m2, hDD00_i1m1_i2m3, hDD00_i1m1_i2p1, hDD00_i1m1_i2p2, hDD00_i1m1_i2p3, hDD00_i1m2_i2m1, hDD00_i1m2_i2m2,
+            hDD00_i1m2_i2m3, hDD00_i1m2_i2p1, hDD00_i1m2_i2p2, hDD00_i1m2_i2p3, hDD00_i1m3_i2m1, hDD00_i1m3_i2m2, hDD00_i1m3_i2m3, hDD00_i1m3_i2p1,
+            hDD00_i1m3_i2p2, hDD00_i1m3_i2p3, hDD00_i1p1_i2m1, hDD00_i1p1_i2m2, hDD00_i1p1_i2m3, hDD00_i1p1_i2p1, hDD00_i1p1_i2p2, hDD00_i1p1_i2p3,
+            hDD00_i1p2_i2m1, hDD00_i1p2_i2m2, hDD00_i1p2_i2m3, hDD00_i1p2_i2p1, hDD00_i1p2_i2p2, hDD00_i1p2_i2p3, hDD00_i1p3_i2m1, hDD00_i1p3_i2m2,
+            hDD00_i1p3_i2m3, hDD00_i1p3_i2p1, hDD00_i1p3_i2p2, hDD00_i1p3_i2p3, invdxx1, invdxx2);
+        const REAL hDD_dDD0022 = fd_function_dDD22_fdorder6(hDD00, hDD00_i2m1, hDD00_i2m2, hDD00_i2m3, hDD00_i2p1, hDD00_i2p2, hDD00_i2p3, invdxx2);
+        const REAL hDD_dDD0100 = fd_function_dDD00_fdorder6(hDD01, hDD01_i0m1, hDD01_i0m2, hDD01_i0m3, hDD01_i0p1, hDD01_i0p2, hDD01_i0p3, invdxx0);
+        const REAL hDD_dDD0101 = fd_function_dDD01_fdorder6(
+            hDD01_i0m1_i1m1, hDD01_i0m1_i1m2, hDD01_i0m1_i1m3, hDD01_i0m1_i1p1, hDD01_i0m1_i1p2, hDD01_i0m1_i1p3, hDD01_i0m2_i1m1, hDD01_i0m2_i1m2,
+            hDD01_i0m2_i1m3, hDD01_i0m2_i1p1, hDD01_i0m2_i1p2, hDD01_i0m2_i1p3, hDD01_i0m3_i1m1, hDD01_i0m3_i1m2, hDD01_i0m3_i1m3, hDD01_i0m3_i1p1,
+            hDD01_i0m3_i1p2, hDD01_i0m3_i1p3, hDD01_i0p1_i1m1, hDD01_i0p1_i1m2, hDD01_i0p1_i1m3, hDD01_i0p1_i1p1, hDD01_i0p1_i1p2, hDD01_i0p1_i1p3,
+            hDD01_i0p2_i1m1, hDD01_i0p2_i1m2, hDD01_i0p2_i1m3, hDD01_i0p2_i1p1, hDD01_i0p2_i1p2, hDD01_i0p2_i1p3, hDD01_i0p3_i1m1, hDD01_i0p3_i1m2,
+            hDD01_i0p3_i1m3, hDD01_i0p3_i1p1, hDD01_i0p3_i1p2, hDD01_i0p3_i1p3, invdxx0, invdxx1);
+        const REAL hDD_dDD0102 = fd_function_dDD02_fdorder6(
+            hDD01_i0m1_i2m1, hDD01_i0m1_i2m2, hDD01_i0m1_i2m3, hDD01_i0m1_i2p1, hDD01_i0m1_i2p2, hDD01_i0m1_i2p3, hDD01_i0m2_i2m1, hDD01_i0m2_i2m2,
+            hDD01_i0m2_i2m3, hDD01_i0m2_i2p1, hDD01_i0m2_i2p2, hDD01_i0m2_i2p3, hDD01_i0m3_i2m1, hDD01_i0m3_i2m2, hDD01_i0m3_i2m3, hDD01_i0m3_i2p1,
+            hDD01_i0m3_i2p2, hDD01_i0m3_i2p3, hDD01_i0p1_i2m1, hDD01_i0p1_i2m2, hDD01_i0p1_i2m3, hDD01_i0p1_i2p1, hDD01_i0p1_i2p2, hDD01_i0p1_i2p3,
+            hDD01_i0p2_i2m1, hDD01_i0p2_i2m2, hDD01_i0p2_i2m3, hDD01_i0p2_i2p1, hDD01_i0p2_i2p2, hDD01_i0p2_i2p3, hDD01_i0p3_i2m1, hDD01_i0p3_i2m2,
+            hDD01_i0p3_i2m3, hDD01_i0p3_i2p1, hDD01_i0p3_i2p2, hDD01_i0p3_i2p3, invdxx0, invdxx2);
+        const REAL hDD_dDD0111 = fd_function_dDD11_fdorder6(hDD01, hDD01_i1m1, hDD01_i1m2, hDD01_i1m3, hDD01_i1p1, hDD01_i1p2, hDD01_i1p3, invdxx1);
+        const REAL hDD_dDD0112 = fd_function_dDD12_fdorder6(
+            hDD01_i1m1_i2m1, hDD01_i1m1_i2m2, hDD01_i1m1_i2m3, hDD01_i1m1_i2p1, hDD01_i1m1_i2p2, hDD01_i1m1_i2p3, hDD01_i1m2_i2m1, hDD01_i1m2_i2m2,
+            hDD01_i1m2_i2m3, hDD01_i1m2_i2p1, hDD01_i1m2_i2p2, hDD01_i1m2_i2p3, hDD01_i1m3_i2m1, hDD01_i1m3_i2m2, hDD01_i1m3_i2m3, hDD01_i1m3_i2p1,
+            hDD01_i1m3_i2p2, hDD01_i1m3_i2p3, hDD01_i1p1_i2m1, hDD01_i1p1_i2m2, hDD01_i1p1_i2m3, hDD01_i1p1_i2p1, hDD01_i1p1_i2p2, hDD01_i1p1_i2p3,
+            hDD01_i1p2_i2m1, hDD01_i1p2_i2m2, hDD01_i1p2_i2m3, hDD01_i1p2_i2p1, hDD01_i1p2_i2p2, hDD01_i1p2_i2p3, hDD01_i1p3_i2m1, hDD01_i1p3_i2m2,
+            hDD01_i1p3_i2m3, hDD01_i1p3_i2p1, hDD01_i1p3_i2p2, hDD01_i1p3_i2p3, invdxx1, invdxx2);
+        const REAL hDD_dDD0122 = fd_function_dDD22_fdorder6(hDD01, hDD01_i2m1, hDD01_i2m2, hDD01_i2m3, hDD01_i2p1, hDD01_i2p2, hDD01_i2p3, invdxx2);
+        const REAL hDD_dDD0200 = fd_function_dDD00_fdorder6(hDD02, hDD02_i0m1, hDD02_i0m2, hDD02_i0m3, hDD02_i0p1, hDD02_i0p2, hDD02_i0p3, invdxx0);
+        const REAL hDD_dDD0201 = fd_function_dDD01_fdorder6(
+            hDD02_i0m1_i1m1, hDD02_i0m1_i1m2, hDD02_i0m1_i1m3, hDD02_i0m1_i1p1, hDD02_i0m1_i1p2, hDD02_i0m1_i1p3, hDD02_i0m2_i1m1, hDD02_i0m2_i1m2,
+            hDD02_i0m2_i1m3, hDD02_i0m2_i1p1, hDD02_i0m2_i1p2, hDD02_i0m2_i1p3, hDD02_i0m3_i1m1, hDD02_i0m3_i1m2, hDD02_i0m3_i1m3, hDD02_i0m3_i1p1,
+            hDD02_i0m3_i1p2, hDD02_i0m3_i1p3, hDD02_i0p1_i1m1, hDD02_i0p1_i1m2, hDD02_i0p1_i1m3, hDD02_i0p1_i1p1, hDD02_i0p1_i1p2, hDD02_i0p1_i1p3,
+            hDD02_i0p2_i1m1, hDD02_i0p2_i1m2, hDD02_i0p2_i1m3, hDD02_i0p2_i1p1, hDD02_i0p2_i1p2, hDD02_i0p2_i1p3, hDD02_i0p3_i1m1, hDD02_i0p3_i1m2,
+            hDD02_i0p3_i1m3, hDD02_i0p3_i1p1, hDD02_i0p3_i1p2, hDD02_i0p3_i1p3, invdxx0, invdxx1);
+        const REAL hDD_dDD0202 = fd_function_dDD02_fdorder6(
+            hDD02_i0m1_i2m1, hDD02_i0m1_i2m2, hDD02_i0m1_i2m3, hDD02_i0m1_i2p1, hDD02_i0m1_i2p2, hDD02_i0m1_i2p3, hDD02_i0m2_i2m1, hDD02_i0m2_i2m2,
+            hDD02_i0m2_i2m3, hDD02_i0m2_i2p1, hDD02_i0m2_i2p2, hDD02_i0m2_i2p3, hDD02_i0m3_i2m1, hDD02_i0m3_i2m2, hDD02_i0m3_i2m3, hDD02_i0m3_i2p1,
+            hDD02_i0m3_i2p2, hDD02_i0m3_i2p3, hDD02_i0p1_i2m1, hDD02_i0p1_i2m2, hDD02_i0p1_i2m3, hDD02_i0p1_i2p1, hDD02_i0p1_i2p2, hDD02_i0p1_i2p3,
+            hDD02_i0p2_i2m1, hDD02_i0p2_i2m2, hDD02_i0p2_i2m3, hDD02_i0p2_i2p1, hDD02_i0p2_i2p2, hDD02_i0p2_i2p3, hDD02_i0p3_i2m1, hDD02_i0p3_i2m2,
+            hDD02_i0p3_i2m3, hDD02_i0p3_i2p1, hDD02_i0p3_i2p2, hDD02_i0p3_i2p3, invdxx0, invdxx2);
+        const REAL hDD_dDD0211 = fd_function_dDD11_fdorder6(hDD02, hDD02_i1m1, hDD02_i1m2, hDD02_i1m3, hDD02_i1p1, hDD02_i1p2, hDD02_i1p3, invdxx1);
+        const REAL hDD_dDD0212 = fd_function_dDD12_fdorder6(
+            hDD02_i1m1_i2m1, hDD02_i1m1_i2m2, hDD02_i1m1_i2m3, hDD02_i1m1_i2p1, hDD02_i1m1_i2p2, hDD02_i1m1_i2p3, hDD02_i1m2_i2m1, hDD02_i1m2_i2m2,
+            hDD02_i1m2_i2m3, hDD02_i1m2_i2p1, hDD02_i1m2_i2p2, hDD02_i1m2_i2p3, hDD02_i1m3_i2m1, hDD02_i1m3_i2m2, hDD02_i1m3_i2m3, hDD02_i1m3_i2p1,
+            hDD02_i1m3_i2p2, hDD02_i1m3_i2p3, hDD02_i1p1_i2m1, hDD02_i1p1_i2m2, hDD02_i1p1_i2m3, hDD02_i1p1_i2p1, hDD02_i1p1_i2p2, hDD02_i1p1_i2p3,
+            hDD02_i1p2_i2m1, hDD02_i1p2_i2m2, hDD02_i1p2_i2m3, hDD02_i1p2_i2p1, hDD02_i1p2_i2p2, hDD02_i1p2_i2p3, hDD02_i1p3_i2m1, hDD02_i1p3_i2m2,
+            hDD02_i1p3_i2m3, hDD02_i1p3_i2p1, hDD02_i1p3_i2p2, hDD02_i1p3_i2p3, invdxx1, invdxx2);
+        const REAL hDD_dDD0222 = fd_function_dDD22_fdorder6(hDD02, hDD02_i2m1, hDD02_i2m2, hDD02_i2m3, hDD02_i2p1, hDD02_i2p2, hDD02_i2p3, invdxx2);
+        const REAL hDD_dDD1100 = fd_function_dDD00_fdorder6(hDD11, hDD11_i0m1, hDD11_i0m2, hDD11_i0m3, hDD11_i0p1, hDD11_i0p2, hDD11_i0p3, invdxx0);
+        const REAL hDD_dDD1101 = fd_function_dDD01_fdorder6(
+            hDD11_i0m1_i1m1, hDD11_i0m1_i1m2, hDD11_i0m1_i1m3, hDD11_i0m1_i1p1, hDD11_i0m1_i1p2, hDD11_i0m1_i1p3, hDD11_i0m2_i1m1, hDD11_i0m2_i1m2,
+            hDD11_i0m2_i1m3, hDD11_i0m2_i1p1, hDD11_i0m2_i1p2, hDD11_i0m2_i1p3, hDD11_i0m3_i1m1, hDD11_i0m3_i1m2, hDD11_i0m3_i1m3, hDD11_i0m3_i1p1,
+            hDD11_i0m3_i1p2, hDD11_i0m3_i1p3, hDD11_i0p1_i1m1, hDD11_i0p1_i1m2, hDD11_i0p1_i1m3, hDD11_i0p1_i1p1, hDD11_i0p1_i1p2, hDD11_i0p1_i1p3,
+            hDD11_i0p2_i1m1, hDD11_i0p2_i1m2, hDD11_i0p2_i1m3, hDD11_i0p2_i1p1, hDD11_i0p2_i1p2, hDD11_i0p2_i1p3, hDD11_i0p3_i1m1, hDD11_i0p3_i1m2,
+            hDD11_i0p3_i1m3, hDD11_i0p3_i1p1, hDD11_i0p3_i1p2, hDD11_i0p3_i1p3, invdxx0, invdxx1);
+        const REAL hDD_dDD1102 = fd_function_dDD02_fdorder6(
+            hDD11_i0m1_i2m1, hDD11_i0m1_i2m2, hDD11_i0m1_i2m3, hDD11_i0m1_i2p1, hDD11_i0m1_i2p2, hDD11_i0m1_i2p3, hDD11_i0m2_i2m1, hDD11_i0m2_i2m2,
+            hDD11_i0m2_i2m3, hDD11_i0m2_i2p1, hDD11_i0m2_i2p2, hDD11_i0m2_i2p3, hDD11_i0m3_i2m1, hDD11_i0m3_i2m2, hDD11_i0m3_i2m3, hDD11_i0m3_i2p1,
+            hDD11_i0m3_i2p2, hDD11_i0m3_i2p3, hDD11_i0p1_i2m1, hDD11_i0p1_i2m2, hDD11_i0p1_i2m3, hDD11_i0p1_i2p1, hDD11_i0p1_i2p2, hDD11_i0p1_i2p3,
+            hDD11_i0p2_i2m1, hDD11_i0p2_i2m2, hDD11_i0p2_i2m3, hDD11_i0p2_i2p1, hDD11_i0p2_i2p2, hDD11_i0p2_i2p3, hDD11_i0p3_i2m1, hDD11_i0p3_i2m2,
+            hDD11_i0p3_i2m3, hDD11_i0p3_i2p1, hDD11_i0p3_i2p2, hDD11_i0p3_i2p3, invdxx0, invdxx2);
+        const REAL hDD_dDD1111 = fd_function_dDD11_fdorder6(hDD11, hDD11_i1m1, hDD11_i1m2, hDD11_i1m3, hDD11_i1p1, hDD11_i1p2, hDD11_i1p3, invdxx1);
+        const REAL hDD_dDD1112 = fd_function_dDD12_fdorder6(
+            hDD11_i1m1_i2m1, hDD11_i1m1_i2m2, hDD11_i1m1_i2m3, hDD11_i1m1_i2p1, hDD11_i1m1_i2p2, hDD11_i1m1_i2p3, hDD11_i1m2_i2m1, hDD11_i1m2_i2m2,
+            hDD11_i1m2_i2m3, hDD11_i1m2_i2p1, hDD11_i1m2_i2p2, hDD11_i1m2_i2p3, hDD11_i1m3_i2m1, hDD11_i1m3_i2m2, hDD11_i1m3_i2m3, hDD11_i1m3_i2p1,
+            hDD11_i1m3_i2p2, hDD11_i1m3_i2p3, hDD11_i1p1_i2m1, hDD11_i1p1_i2m2, hDD11_i1p1_i2m3, hDD11_i1p1_i2p1, hDD11_i1p1_i2p2, hDD11_i1p1_i2p3,
+            hDD11_i1p2_i2m1, hDD11_i1p2_i2m2, hDD11_i1p2_i2m3, hDD11_i1p2_i2p1, hDD11_i1p2_i2p2, hDD11_i1p2_i2p3, hDD11_i1p3_i2m1, hDD11_i1p3_i2m2,
+            hDD11_i1p3_i2m3, hDD11_i1p3_i2p1, hDD11_i1p3_i2p2, hDD11_i1p3_i2p3, invdxx1, invdxx2);
+        const REAL hDD_dDD1122 = fd_function_dDD22_fdorder6(hDD11, hDD11_i2m1, hDD11_i2m2, hDD11_i2m3, hDD11_i2p1, hDD11_i2p2, hDD11_i2p3, invdxx2);
+        const REAL hDD_dDD1200 = fd_function_dDD00_fdorder6(hDD12, hDD12_i0m1, hDD12_i0m2, hDD12_i0m3, hDD12_i0p1, hDD12_i0p2, hDD12_i0p3, invdxx0);
+        const REAL hDD_dDD1201 = fd_function_dDD01_fdorder6(
+            hDD12_i0m1_i1m1, hDD12_i0m1_i1m2, hDD12_i0m1_i1m3, hDD12_i0m1_i1p1, hDD12_i0m1_i1p2, hDD12_i0m1_i1p3, hDD12_i0m2_i1m1, hDD12_i0m2_i1m2,
+            hDD12_i0m2_i1m3, hDD12_i0m2_i1p1, hDD12_i0m2_i1p2, hDD12_i0m2_i1p3, hDD12_i0m3_i1m1, hDD12_i0m3_i1m2, hDD12_i0m3_i1m3, hDD12_i0m3_i1p1,
+            hDD12_i0m3_i1p2, hDD12_i0m3_i1p3, hDD12_i0p1_i1m1, hDD12_i0p1_i1m2, hDD12_i0p1_i1m3, hDD12_i0p1_i1p1, hDD12_i0p1_i1p2, hDD12_i0p1_i1p3,
+            hDD12_i0p2_i1m1, hDD12_i0p2_i1m2, hDD12_i0p2_i1m3, hDD12_i0p2_i1p1, hDD12_i0p2_i1p2, hDD12_i0p2_i1p3, hDD12_i0p3_i1m1, hDD12_i0p3_i1m2,
+            hDD12_i0p3_i1m3, hDD12_i0p3_i1p1, hDD12_i0p3_i1p2, hDD12_i0p3_i1p3, invdxx0, invdxx1);
+        const REAL hDD_dDD1202 = fd_function_dDD02_fdorder6(
+            hDD12_i0m1_i2m1, hDD12_i0m1_i2m2, hDD12_i0m1_i2m3, hDD12_i0m1_i2p1, hDD12_i0m1_i2p2, hDD12_i0m1_i2p3, hDD12_i0m2_i2m1, hDD12_i0m2_i2m2,
+            hDD12_i0m2_i2m3, hDD12_i0m2_i2p1, hDD12_i0m2_i2p2, hDD12_i0m2_i2p3, hDD12_i0m3_i2m1, hDD12_i0m3_i2m2, hDD12_i0m3_i2m3, hDD12_i0m3_i2p1,
+            hDD12_i0m3_i2p2, hDD12_i0m3_i2p3, hDD12_i0p1_i2m1, hDD12_i0p1_i2m2, hDD12_i0p1_i2m3, hDD12_i0p1_i2p1, hDD12_i0p1_i2p2, hDD12_i0p1_i2p3,
+            hDD12_i0p2_i2m1, hDD12_i0p2_i2m2, hDD12_i0p2_i2m3, hDD12_i0p2_i2p1, hDD12_i0p2_i2p2, hDD12_i0p2_i2p3, hDD12_i0p3_i2m1, hDD12_i0p3_i2m2,
+            hDD12_i0p3_i2m3, hDD12_i0p3_i2p1, hDD12_i0p3_i2p2, hDD12_i0p3_i2p3, invdxx0, invdxx2);
+        const REAL hDD_dDD1211 = fd_function_dDD11_fdorder6(hDD12, hDD12_i1m1, hDD12_i1m2, hDD12_i1m3, hDD12_i1p1, hDD12_i1p2, hDD12_i1p3, invdxx1);
+        const REAL hDD_dDD1212 = fd_function_dDD12_fdorder6(
+            hDD12_i1m1_i2m1, hDD12_i1m1_i2m2, hDD12_i1m1_i2m3, hDD12_i1m1_i2p1, hDD12_i1m1_i2p2, hDD12_i1m1_i2p3, hDD12_i1m2_i2m1, hDD12_i1m2_i2m2,
+            hDD12_i1m2_i2m3, hDD12_i1m2_i2p1, hDD12_i1m2_i2p2, hDD12_i1m2_i2p3, hDD12_i1m3_i2m1, hDD12_i1m3_i2m2, hDD12_i1m3_i2m3, hDD12_i1m3_i2p1,
+            hDD12_i1m3_i2p2, hDD12_i1m3_i2p3, hDD12_i1p1_i2m1, hDD12_i1p1_i2m2, hDD12_i1p1_i2m3, hDD12_i1p1_i2p1, hDD12_i1p1_i2p2, hDD12_i1p1_i2p3,
+            hDD12_i1p2_i2m1, hDD12_i1p2_i2m2, hDD12_i1p2_i2m3, hDD12_i1p2_i2p1, hDD12_i1p2_i2p2, hDD12_i1p2_i2p3, hDD12_i1p3_i2m1, hDD12_i1p3_i2m2,
+            hDD12_i1p3_i2m3, hDD12_i1p3_i2p1, hDD12_i1p3_i2p2, hDD12_i1p3_i2p3, invdxx1, invdxx2);
+        const REAL hDD_dDD1222 = fd_function_dDD22_fdorder6(hDD12, hDD12_i2m1, hDD12_i2m2, hDD12_i2m3, hDD12_i2p1, hDD12_i2p2, hDD12_i2p3, invdxx2);
+        const REAL hDD_dDD2200 = fd_function_dDD00_fdorder6(hDD22, hDD22_i0m1, hDD22_i0m2, hDD22_i0m3, hDD22_i0p1, hDD22_i0p2, hDD22_i0p3, invdxx0);
+        const REAL hDD_dDD2201 = fd_function_dDD01_fdorder6(
+            hDD22_i0m1_i1m1, hDD22_i0m1_i1m2, hDD22_i0m1_i1m3, hDD22_i0m1_i1p1, hDD22_i0m1_i1p2, hDD22_i0m1_i1p3, hDD22_i0m2_i1m1, hDD22_i0m2_i1m2,
+            hDD22_i0m2_i1m3, hDD22_i0m2_i1p1, hDD22_i0m2_i1p2, hDD22_i0m2_i1p3, hDD22_i0m3_i1m1, hDD22_i0m3_i1m2, hDD22_i0m3_i1m3, hDD22_i0m3_i1p1,
+            hDD22_i0m3_i1p2, hDD22_i0m3_i1p3, hDD22_i0p1_i1m1, hDD22_i0p1_i1m2, hDD22_i0p1_i1m3, hDD22_i0p1_i1p1, hDD22_i0p1_i1p2, hDD22_i0p1_i1p3,
+            hDD22_i0p2_i1m1, hDD22_i0p2_i1m2, hDD22_i0p2_i1m3, hDD22_i0p2_i1p1, hDD22_i0p2_i1p2, hDD22_i0p2_i1p3, hDD22_i0p3_i1m1, hDD22_i0p3_i1m2,
+            hDD22_i0p3_i1m3, hDD22_i0p3_i1p1, hDD22_i0p3_i1p2, hDD22_i0p3_i1p3, invdxx0, invdxx1);
+        const REAL hDD_dDD2202 = fd_function_dDD02_fdorder6(
+            hDD22_i0m1_i2m1, hDD22_i0m1_i2m2, hDD22_i0m1_i2m3, hDD22_i0m1_i2p1, hDD22_i0m1_i2p2, hDD22_i0m1_i2p3, hDD22_i0m2_i2m1, hDD22_i0m2_i2m2,
+            hDD22_i0m2_i2m3, hDD22_i0m2_i2p1, hDD22_i0m2_i2p2, hDD22_i0m2_i2p3, hDD22_i0m3_i2m1, hDD22_i0m3_i2m2, hDD22_i0m3_i2m3, hDD22_i0m3_i2p1,
+            hDD22_i0m3_i2p2, hDD22_i0m3_i2p3, hDD22_i0p1_i2m1, hDD22_i0p1_i2m2, hDD22_i0p1_i2m3, hDD22_i0p1_i2p1, hDD22_i0p1_i2p2, hDD22_i0p1_i2p3,
+            hDD22_i0p2_i2m1, hDD22_i0p2_i2m2, hDD22_i0p2_i2m3, hDD22_i0p2_i2p1, hDD22_i0p2_i2p2, hDD22_i0p2_i2p3, hDD22_i0p3_i2m1, hDD22_i0p3_i2m2,
+            hDD22_i0p3_i2m3, hDD22_i0p3_i2p1, hDD22_i0p3_i2p2, hDD22_i0p3_i2p3, invdxx0, invdxx2);
+        const REAL hDD_dDD2211 = fd_function_dDD11_fdorder6(hDD22, hDD22_i1m1, hDD22_i1m2, hDD22_i1m3, hDD22_i1p1, hDD22_i1p2, hDD22_i1p3, invdxx1);
+        const REAL hDD_dDD2212 = fd_function_dDD12_fdorder6(
+            hDD22_i1m1_i2m1, hDD22_i1m1_i2m2, hDD22_i1m1_i2m3, hDD22_i1m1_i2p1, hDD22_i1m1_i2p2, hDD22_i1m1_i2p3, hDD22_i1m2_i2m1, hDD22_i1m2_i2m2,
+            hDD22_i1m2_i2m3, hDD22_i1m2_i2p1, hDD22_i1m2_i2p2, hDD22_i1m2_i2p3, hDD22_i1m3_i2m1, hDD22_i1m3_i2m2, hDD22_i1m3_i2m3, hDD22_i1m3_i2p1,
+            hDD22_i1m3_i2p2, hDD22_i1m3_i2p3, hDD22_i1p1_i2m1, hDD22_i1p1_i2m2, hDD22_i1p1_i2m3, hDD22_i1p1_i2p1, hDD22_i1p1_i2p2, hDD22_i1p1_i2p3,
+            hDD22_i1p2_i2m1, hDD22_i1p2_i2m2, hDD22_i1p2_i2m3, hDD22_i1p2_i2p1, hDD22_i1p2_i2p2, hDD22_i1p2_i2p3, hDD22_i1p3_i2m1, hDD22_i1p3_i2m2,
+            hDD22_i1p3_i2m3, hDD22_i1p3_i2p1, hDD22_i1p3_i2p2, hDD22_i1p3_i2p3, invdxx1, invdxx2);
+        const REAL hDD_dDD2222 = fd_function_dDD22_fdorder6(hDD22, hDD22_i2m1, hDD22_i2m2, hDD22_i2m3, hDD22_i2p1, hDD22_i2p2, hDD22_i2p3, invdxx2);
+        const REAL lambdaU_dD00 =
+            fd_function_dD0_fdorder6(lambdaU0_i0m1, lambdaU0_i0m2, lambdaU0_i0m3, lambdaU0_i0p1, lambdaU0_i0p2, lambdaU0_i0p3, invdxx0);
+        const REAL lambdaU_dD01 =
+            fd_function_dD1_fdorder6(lambdaU0_i1m1, lambdaU0_i1m2, lambdaU0_i1m3, lambdaU0_i1p1, lambdaU0_i1p2, lambdaU0_i1p3, invdxx1);
+        const REAL lambdaU_dD02 =
+            fd_function_dD2_fdorder6(lambdaU0_i2m1, lambdaU0_i2m2, lambdaU0_i2m3, lambdaU0_i2p1, lambdaU0_i2p2, lambdaU0_i2p3, invdxx2);
+        const REAL lambdaU_dD10 =
+            fd_function_dD0_fdorder6(lambdaU1_i0m1, lambdaU1_i0m2, lambdaU1_i0m3, lambdaU1_i0p1, lambdaU1_i0p2, lambdaU1_i0p3, invdxx0);
+        const REAL lambdaU_dD11 =
+            fd_function_dD1_fdorder6(lambdaU1_i1m1, lambdaU1_i1m2, lambdaU1_i1m3, lambdaU1_i1p1, lambdaU1_i1p2, lambdaU1_i1p3, invdxx1);
+        const REAL lambdaU_dD12 =
+            fd_function_dD2_fdorder6(lambdaU1_i2m1, lambdaU1_i2m2, lambdaU1_i2m3, lambdaU1_i2p1, lambdaU1_i2p2, lambdaU1_i2p3, invdxx2);
+        const REAL lambdaU_dD20 =
+            fd_function_dD0_fdorder6(lambdaU2_i0m1, lambdaU2_i0m2, lambdaU2_i0m3, lambdaU2_i0p1, lambdaU2_i0p2, lambdaU2_i0p3, invdxx0);
+        const REAL lambdaU_dD21 =
+            fd_function_dD1_fdorder6(lambdaU2_i1m1, lambdaU2_i1m2, lambdaU2_i1m3, lambdaU2_i1p1, lambdaU2_i1p2, lambdaU2_i1p3, invdxx1);
+        const REAL lambdaU_dD22 =
+            fd_function_dD2_fdorder6(lambdaU2_i2m1, lambdaU2_i2m2, lambdaU2_i2m3, lambdaU2_i2p1, lambdaU2_i2p2, lambdaU2_i2p3, invdxx2);
 
         /*
          * NRPy+-Generated GF Access/FD Code, Step 2 of 2:
@@ -702,7 +1227,7 @@ void Ricci_eval__rfm__Spherical_gpu(const REAL *restrict _f0_of_xx0, const REAL 
         const REAL FDPart3tmp72 = f1_of_xx1 * hDD_dD022;
         const REAL FDPart3tmp73 = f1_of_xx1 * f1_of_xx1__D1;
         const REAL FDPart3tmp81 = 2 * f0_of_xx0;
-        const REAL FDPart3tmp83 = (0.5) * hDD_dD000;
+        const REAL FDPart3tmp83 = (1.0 / 2.0) * hDD_dD000;
         const REAL FDPart3tmp202 = -lambdaU1 + lambdaU_dD01;
         const REAL FDPart3tmp207 = f0_of_xx0 * f1_of_xx1;
         const REAL FDPart3tmp227 = ((f1_of_xx1__D1) * (f1_of_xx1__D1));
@@ -731,7 +1256,7 @@ void Ricci_eval__rfm__Spherical_gpu(const REAL *restrict _f0_of_xx0, const REAL 
         const REAL FDPart3tmp153 = 2 * FDPart3tmp4;
         const REAL FDPart3tmp190 = FDPart3tmp17 * FDPart3tmp81;
         const REAL FDPart3tmp191 = FDPart3tmp28 * f0_of_xx0;
-        const REAL FDPart3tmp199 = (0.5) * FDPart3tmp32;
+        const REAL FDPart3tmp199 = (1.0 / 2.0) * FDPart3tmp32;
         const REAL FDPart3tmp210 = f0_of_xx0 * f1_of_xx1__D1 * hDD_dD020;
         const REAL FDPart3tmp228 = FDPart3tmp43 * f1_of_xx1__DD11 - FDPart3tmp227 / FDPart3tmp2;
         const REAL FDPart3tmp230 = FDPart3tmp4 * FDPart3tmp73;
@@ -749,7 +1274,7 @@ void Ricci_eval__rfm__Spherical_gpu(const REAL *restrict _f0_of_xx0, const REAL 
         const REAL FDPart3tmp65 = FDPart3tmp38 + FDPart3tmp64;
         const REAL FDPart3tmp69 = -FDPart3tmp36 - FDPart3tmp64 + FDPart3tmp67;
         const REAL FDPart3tmp75 = FDPart3tmp32 * FDPart3tmp73 + FDPart3tmp72 * f0_of_xx0 + FDPart3tmp74 * hDD00 - FDPart3tmp74 * hDD22;
-        const REAL FDPart3tmp84 = (0.5) * FDPart3tmp29 + (0.5) * FDPart3tmp81 * hDD_dD010;
+        const REAL FDPart3tmp84 = (1.0 / 2.0) * FDPart3tmp29 + (1.0 / 2.0) * FDPart3tmp81 * hDD_dD010;
         const REAL FDPart3tmp92 = FDPart3tmp4 * hDD_dD110 + FDPart3tmp81 * hDD11;
         const REAL FDPart3tmp104 = FDPart3tmp103 * FDPart3tmp81 + FDPart3tmp7 * hDD_dD220;
         const REAL FDPart3tmp141 = FDPart3tmp95 * hDD_dD121;
@@ -759,7 +1284,7 @@ void Ricci_eval__rfm__Spherical_gpu(const REAL *restrict _f0_of_xx0, const REAL 
         const REAL FDPart3tmp206 = FDPart3tmp16 * lambdaU0 + FDPart3tmp16 * lambdaU_dD11;
         const REAL FDPart3tmp214 = FDPart3tmp139 + FDPart3tmp28 * FDPart3tmp4;
         const REAL FDPart3tmp231 = -FDPart3tmp230 * hDD22 + FDPart3tmp5 * FDPart3tmp73 + FDPart3tmp7 * hDD01 + FDPart3tmp95 * hDD_dD122;
-        const REAL FDPart3tmp279 = (0.5) * FDPart3tmp24;
+        const REAL FDPart3tmp279 = (1.0 / 2.0) * FDPart3tmp24;
         const REAL FDPart3tmp284 = FDPart3tmp16 * FDPart3tmp43 * lambdaU_dD22 + FDPart3tmp16 * FDPart3tmp44 * lambdaU1 + FDPart3tmp16 * lambdaU0;
         const REAL FDPart3tmp286 = FDPart3tmp74 * hDD_dD221;
         const REAL FDPart3tmp292 = 2 * FDPart3tmp7 * f1_of_xx1__D1;
@@ -771,7 +1296,7 @@ void Ricci_eval__rfm__Spherical_gpu(const REAL *restrict _f0_of_xx0, const REAL 
         const REAL FDPart3tmp31 = -FDPart3tmp16 * FDPart3tmp29;
         const REAL FDPart3tmp40 = -FDPart3tmp36 + FDPart3tmp38;
         const REAL FDPart3tmp57 = -2 * FDPart3tmp16 * FDPart3tmp55 + f0_of_xx0 * hDD_dD000;
-        const REAL FDPart3tmp82 = (0.5) * FDPart3tmp15 * FDPart3tmp81 + (0.5) * FDPart3tmp19;
+        const REAL FDPart3tmp82 = (1.0 / 2.0) * FDPart3tmp15 * FDPart3tmp81 + (1.0 / 2.0) * FDPart3tmp19;
         const REAL FDPart3tmp93 = FDPart3tmp81 + FDPart3tmp92;
         const REAL FDPart3tmp97 = FDPart3tmp23 * FDPart3tmp81 + FDPart3tmp95 * hDD_dD120;
         const REAL FDPart3tmp105 = FDPart3tmp102 + FDPart3tmp104;
@@ -817,12 +1342,12 @@ void Ricci_eval__rfm__Spherical_gpu(const REAL *restrict _f0_of_xx0, const REAL 
         const REAL FDPart3tmp295 = -FDPart3tmp16 * FDPart3tmp293;
         const REAL FDPart3tmp327 = FDPart3tmp145 * FDPart3tmp44 + FDPart3tmp4 * hDD_dDD1112;
         const REAL FDPart3tmp362 = -FDPart3tmp293 * FDPart3tmp44;
-        const REAL FDPart3tmp14 = (0.5) * FDPart3tmp13;
-        const REAL FDPart3tmp26 = (0.5) * FDPart3tmp25;
-        const REAL FDPart3tmp34 = (0.5) * FDPart3tmp33;
-        const REAL FDPart3tmp49 = (0.5) * FDPart3tmp48;
-        const REAL FDPart3tmp59 = (0.5) * FDPart3tmp58;
-        const REAL FDPart3tmp80 = (0.5) * FDPart3tmp79;
+        const REAL FDPart3tmp14 = (1.0 / 2.0) * FDPart3tmp13;
+        const REAL FDPart3tmp26 = (1.0 / 2.0) * FDPart3tmp25;
+        const REAL FDPart3tmp34 = (1.0 / 2.0) * FDPart3tmp33;
+        const REAL FDPart3tmp49 = (1.0 / 2.0) * FDPart3tmp48;
+        const REAL FDPart3tmp59 = (1.0 / 2.0) * FDPart3tmp58;
+        const REAL FDPart3tmp80 = (1.0 / 2.0) * FDPart3tmp79;
         const REAL FDPart3tmp85 = FDPart3tmp13 * FDPart3tmp83 + FDPart3tmp25 * FDPart3tmp82 + FDPart3tmp33 * FDPart3tmp84;
         const REAL FDPart3tmp86 = FDPart3tmp25 * FDPart3tmp83 + FDPart3tmp48 * FDPart3tmp84 + FDPart3tmp79 * FDPart3tmp82;
         const REAL FDPart3tmp87 = FDPart3tmp33 * FDPart3tmp83 + FDPart3tmp48 * FDPart3tmp82 + FDPart3tmp58 * FDPart3tmp84;
@@ -936,11 +1461,11 @@ void Ricci_eval__rfm__Spherical_gpu(const REAL *restrict _f0_of_xx0, const REAL 
             FDPart3tmp80 * (-FDPart3tmp29 * FDPart3tmp73 - 2 * FDPart3tmp72 + FDPart3tmp78 + hDD_dDD0022) +
             FDPart3tmp85 * FDPart3tmp89 * FDPart3tmp90 + hDD01 * lambdaU_dD10 + hDD02 * lambdaU_dD20;
         auxevol_gfs[IDX4(RBARDD01GF, i0, i1, i2)] =
-            (0.5) * FDPart3tmp0 * FDPart3tmp202 + FDPart3tmp13 * (FDPart3tmp112 * FDPart3tmp114 + 2 * FDPart3tmp137 * FDPart3tmp87) +
+            (1.0 / 2.0) * FDPart3tmp0 * FDPart3tmp202 + FDPart3tmp13 * (FDPart3tmp112 * FDPart3tmp114 + 2 * FDPart3tmp137 * FDPart3tmp87) +
             FDPart3tmp13 * (FDPart3tmp110 * FDPart3tmp123 + FDPart3tmp151 * FDPart3tmp86 + FDPart3tmp170 * FDPart3tmp86) +
             FDPart3tmp13 * (FDPart3tmp114 * FDPart3tmp85 + FDPart3tmp128 * FDPart3tmp85 + FDPart3tmp89 * FDPart3tmp99) -
             FDPart3tmp14 * (-FDPart3tmp16 * FDPart3tmp61 + FDPart3tmp16 * hDD01 + f0_of_xx0 * hDD_dDD0100 + hDD_dD010) +
-            (0.5) * FDPart3tmp16 * FDPart3tmp6 * lambdaU_dD10 + FDPart3tmp194 * (FDPart3tmp161 + FDPart3tmp170) +
+            (1.0 / 2.0) * FDPart3tmp16 * FDPart3tmp6 * lambdaU_dD10 + FDPart3tmp194 * (FDPart3tmp161 + FDPart3tmp170) +
             FDPart3tmp196 * (FDPart3tmp137 + FDPart3tmp150) + FDPart3tmp197 * (FDPart3tmp114 + FDPart3tmp128) + FDPart3tmp199 * FDPart3tmp206 +
             FDPart3tmp199 * lambdaU_dD00 + FDPart3tmp25 * (FDPart3tmp112 * FDPart3tmp161 + 2 * FDPart3tmp242 * FDPart3tmp87) +
             FDPart3tmp25 * (FDPart3tmp114 * FDPart3tmp159 + 2 * FDPart3tmp164) +
@@ -975,9 +1500,9 @@ void Ricci_eval__rfm__Spherical_gpu(const REAL *restrict _f0_of_xx0, const REAL 
             FDPart3tmp79 * (FDPart3tmp107 * FDPart3tmp170 + FDPart3tmp271 + FDPart3tmp273) +
             FDPart3tmp79 * (FDPart3tmp120 * FDPart3tmp270 + FDPart3tmp158 * FDPart3tmp181 + FDPart3tmp276) -
             FDPart3tmp80 * (FDPart3tmp2 * FDPart3tmp4 * hDD_dD010 - FDPart3tmp232 - FDPart3tmp233 - FDPart3tmp235 + f0_of_xx0 * hDD_dDD0122) +
-            (0.5) * f0_of_xx0 * hDD12 * lambdaU_dD20 + (0.5) * hDD02 * lambdaU_dD21;
+            (1.0 / 2.0) * f0_of_xx0 * hDD12 * lambdaU_dD20 + (1.0 / 2.0) * hDD02 * lambdaU_dD21;
         auxevol_gfs[IDX4(RBARDD02GF, i0, i1, i2)] =
-            (0.5) * FDPart3tmp0 * FDPart3tmp280 + FDPart3tmp13 * (FDPart3tmp120 * FDPart3tmp123 + 2 * FDPart3tmp173 * FDPart3tmp86) +
+            (1.0 / 2.0) * FDPart3tmp0 * FDPart3tmp280 + FDPart3tmp13 * (FDPart3tmp120 * FDPart3tmp123 + 2 * FDPart3tmp173 * FDPart3tmp86) +
             FDPart3tmp13 * (FDPart3tmp107 * FDPart3tmp89 + FDPart3tmp123 * FDPart3tmp85 + FDPart3tmp130 * FDPart3tmp85) +
             FDPart3tmp13 * (FDPart3tmp114 * FDPart3tmp121 + FDPart3tmp151 * FDPart3tmp87 + FDPart3tmp170 * FDPart3tmp87) -
             FDPart3tmp14 * (FDPart3tmp15 + FDPart3tmp16 * FDPart3tmp17 - FDPart3tmp16 * FDPart3tmp50 + FDPart3tmp207 * hDD_dDD0200) +
@@ -993,7 +1518,7 @@ void Ricci_eval__rfm__Spherical_gpu(const REAL *restrict _f0_of_xx0, const REAL 
                             FDPart3tmp74 * hDD_dD000 - FDPart3tmp74 * hDD_dD220) -
             FDPart3tmp26 * (FDPart3tmp103 - FDPart3tmp104 * FDPart3tmp16 + FDPart3tmp2 * hDD00 + FDPart3tmp207 * hDD_dDD0202 +
                             FDPart3tmp61 * FDPart3tmp73 + FDPart3tmp72 + FDPart3tmp78) +
-            FDPart3tmp279 * FDPart3tmp284 + FDPart3tmp279 * lambdaU_dD00 + (0.5) * FDPart3tmp283 * lambdaU_dD20 +
+            FDPart3tmp279 * FDPart3tmp284 + FDPart3tmp279 * lambdaU_dD00 + (1.0 / 2.0) * FDPart3tmp283 * lambdaU_dD20 +
             FDPart3tmp33 * (FDPart3tmp114 * FDPart3tmp159 + FDPart3tmp309) +
             FDPart3tmp33 * (FDPart3tmp120 * FDPart3tmp161 + 2 * FDPart3tmp268 * FDPart3tmp86) +
             FDPart3tmp33 * (FDPart3tmp123 * FDPart3tmp158 + FDPart3tmp301) + FDPart3tmp33 * (FDPart3tmp160 * FDPart3tmp89 + FDPart3tmp307) +
@@ -1002,7 +1527,7 @@ void Ricci_eval__rfm__Spherical_gpu(const REAL *restrict _f0_of_xx0, const REAL 
             FDPart3tmp34 * (-FDPart3tmp16 * FDPart3tmp40 - FDPart3tmp16 * FDPart3tmp65 - FDPart3tmp207 * hDD_dD120 +
                             f0_of_xx0 * f1_of_xx1 * hDD_dDD0201 + f1_of_xx1 * hDD_dD021 + f1_of_xx1__D1 * hDD02) -
             FDPart3tmp34 * (FDPart3tmp207 * hDD_dDD0201 + FDPart3tmp210 + FDPart3tmp218 - FDPart3tmp42 + FDPart3tmp63 + f1_of_xx1 * hDD_dD021) +
-            (0.5) * FDPart3tmp36 * lambdaU_dD10 + FDPart3tmp48 * (FDPart3tmp271 + FDPart3tmp315) +
+            (1.0 / 2.0) * FDPart3tmp36 * lambdaU_dD10 + FDPart3tmp48 * (FDPart3tmp271 + FDPart3tmp315) +
             FDPart3tmp48 * (FDPart3tmp110 * FDPart3tmp305 + FDPart3tmp158 * FDPart3tmp181) +
             FDPart3tmp48 * (FDPart3tmp159 * FDPart3tmp161 + FDPart3tmp316) + FDPart3tmp48 * (FDPart3tmp161 * FDPart3tmp178 + 2 * FDPart3tmp276) +
             FDPart3tmp48 * (FDPart3tmp107 * FDPart3tmp151 + FDPart3tmp114 * FDPart3tmp180 + FDPart3tmp273) +
@@ -1064,7 +1589,7 @@ void Ricci_eval__rfm__Spherical_gpu(const REAL *restrict _f0_of_xx0, const REAL 
             FDPart3tmp14 * (-2 * FDPart3tmp16 * FDPart3tmp97 + 4 * FDPart3tmp23 + FDPart3tmp354 * hDD_dD120 + FDPart3tmp95 * hDD_dDD1200) +
             FDPart3tmp194 * (FDPart3tmp268 + FDPart3tmp270) + FDPart3tmp196 * (FDPart3tmp242 + FDPart3tmp251) +
             FDPart3tmp197 * (FDPart3tmp151 + FDPart3tmp170) + FDPart3tmp199 * FDPart3tmp280 + FDPart3tmp202 * FDPart3tmp279 +
-            (0.5) * FDPart3tmp206 * FDPart3tmp47 + FDPart3tmp25 * (FDPart3tmp246 + FDPart3tmp316) +
+            (1.0 / 2.0) * FDPart3tmp206 * FDPart3tmp47 + FDPart3tmp25 * (FDPart3tmp246 + FDPart3tmp316) +
             FDPart3tmp25 * (FDPart3tmp107 * FDPart3tmp170 + FDPart3tmp315) +
             FDPart3tmp25 * (FDPart3tmp110 * FDPart3tmp305 + FDPart3tmp120 * FDPart3tmp270) +
             FDPart3tmp25 * (2 * FDPart3tmp158 * FDPart3tmp173 + FDPart3tmp170 * FDPart3tmp178) +
@@ -1074,7 +1599,7 @@ void Ricci_eval__rfm__Spherical_gpu(const REAL *restrict _f0_of_xx0, const REAL 
                             FDPart3tmp95 * hDD_dDD1202) -
             FDPart3tmp26 * (-FDPart3tmp104 * FDPart3tmp44 - 3 * FDPart3tmp232 + FDPart3tmp354 * hDD_dD122 + FDPart3tmp61 * FDPart3tmp74 +
                             FDPart3tmp73 * FDPart3tmp92 + FDPart3tmp74 * hDD01 + FDPart3tmp95 * hDD_dDD1202) +
-            (0.5) * FDPart3tmp281 * FDPart3tmp6 + (0.5) * FDPart3tmp283 * lambdaU_dD21 + (0.5) * FDPart3tmp284 * FDPart3tmp47 +
+            (1.0 / 2.0) * FDPart3tmp281 * FDPart3tmp6 + (1.0 / 2.0) * FDPart3tmp283 * lambdaU_dD21 + (1.0 / 2.0) * FDPart3tmp284 * FDPart3tmp47 +
             FDPart3tmp33 * (FDPart3tmp107 * FDPart3tmp137 + FDPart3tmp311) + FDPart3tmp33 * (FDPart3tmp120 * FDPart3tmp242 + 2 * FDPart3tmp274) +
             FDPart3tmp33 * (FDPart3tmp121 * FDPart3tmp237 + FDPart3tmp312) +
             FDPart3tmp33 * (FDPart3tmp158 * FDPart3tmp170 + FDPart3tmp173 * FDPart3tmp342) +

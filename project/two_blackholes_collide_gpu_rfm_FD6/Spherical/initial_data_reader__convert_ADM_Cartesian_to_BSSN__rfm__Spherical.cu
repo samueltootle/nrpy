@@ -30,7 +30,7 @@ typedef struct __rescaled_BSSN_rfm_basis_struct__ {
 /*
  * Convert ADM variables from the spherical or Cartesian basis to the Cartesian basis
  */
-__device__
+__device__ static
 void ADM_SphorCart_to_Cart(const commondata_struct *restrict commondata, const REAL xCart[3],
                                   const initial_data_struct *restrict initial_data, ADM_Cart_basis_struct *restrict ADM_Cart_basis) {
 
@@ -80,7 +80,7 @@ void ADM_SphorCart_to_Cart(const commondata_struct *restrict commondata, const R
 /*
  * Convert ADM variables in the Cartesian basis to BSSN variables in the Cartesian basis
  */
-__device__ void ADM_Cart_to_BSSN_Cart(const commondata_struct *restrict commondata, const REAL xCart[3],
+__device__ static void ADM_Cart_to_BSSN_Cart(const commondata_struct *restrict commondata, const REAL xCart[3],
                                   const ADM_Cart_basis_struct *restrict ADM_Cart_basis, BSSN_Cart_basis_struct *restrict BSSN_Cart_basis) {
 
   // *In the Cartesian basis*, convert ADM quantities gammaDD & KDD
@@ -135,7 +135,7 @@ __device__ void ADM_Cart_to_BSSN_Cart(const commondata_struct *restrict commonda
  * Cartesian -> Spherical basis transformation of BSSN vectors/tensors *except* lambda^i.
  * After the basis transform, all BSSN quantities are rescaled.
  */
-__device__ 
+__device__ static
 void BSSN_Cart_to_rescaled_BSSN_rfm(const commondata_struct *restrict commondata, const REAL xCart[3],
                                            const BSSN_Cart_basis_struct *restrict BSSN_Cart_basis,
                                            rescaled_BSSN_rfm_basis_struct *restrict rescaled_BSSN_rfm_basis) {

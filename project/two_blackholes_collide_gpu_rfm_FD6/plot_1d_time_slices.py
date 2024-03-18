@@ -14,7 +14,7 @@ cpu_dict = {
     #                   'ls' : '-',
     #                   'alpha' : 1,
     #                   'lw' : 3},
-    "NOSIMD_PRE"   : {'folder' : "../two_blackholes_collide_nosimd_rfm_clean/",
+    "NOSIMD_PRE"   : {'folder' : "../two_blackholes_collide_nosimd_rfm_FD6/",
                       'ls' : '--',
                       'alpha' : 0.7,
                       'lw' : 3},
