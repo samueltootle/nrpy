@@ -23,13 +23,9 @@ void rk_substep1_gpu(const REAL *restrict y_n_gfs,
 
     for(int i=index;i<N;i+=stride) {
         const REAL k_odd_gfsL = k_odd_gfs[i];
-        // const REAL y_nplus1_running_total_gfsL = y_nplus1_running_total_gfs[i];
         const REAL y_n_gfsL = y_n_gfs[i];
         y_nplus1_running_total_gfs[i] = rk_weight * dt * k_odd_gfsL;
         k_odd_gfs[i] = dt_step_factor *dt * k_odd_gfsL + y_n_gfsL;
-        
-        // if(i == IDX4(VETU2GF, 34, 6 , 6))
-            // printf("RK1: %1.15e - %1.15e - %1.15e\n", k_odd_gfsL, y_nplus1_running_total_gfs[i], k_odd_gfs[i]);
     }
 }
 
@@ -52,14 +48,12 @@ void rk_substep1(params_struct *restrict params,
     int grid_blocks = (N + block_threads - 1) / block_threads;
 
     rk_substep1_gpu<<<grid_blocks, block_threads>>>(y_n_gfs,
-    // rk_substep1_gpu<<<1,1>>>(y_n_gfs,
                                                    y_nplus1_running_total_gfs,
                                                    k_odd_gfs,
                                                    k_even_gfs,
                                                    auxevol_gfs,
                                                    dt, N);
     cudaCheckErrors(rhs_substep1_gpu, "kernel failed")
-    // testcpy(y_n_gfs);
 }
 
 __global__
@@ -107,7 +101,6 @@ void rk_substep2(params_struct *restrict params,
     int grid_blocks = (N + block_threads - 1) / block_threads;
 
     rk_substep2_gpu<<<grid_blocks, block_threads>>>(params, 
-    // rk_substep2_gpu<<<1,1>>>(params, 
                                                    y_n_gfs,
                                                    y_nplus1_running_total_gfs,
                                                    k_odd_gfs,
@@ -164,7 +157,6 @@ void rk_substep3(params_struct *restrict params,
     int grid_blocks = (N + block_threads - 1) / block_threads;
 
     rk_substep3_gpu<<<grid_blocks, block_threads>>>(params, 
-    // rk_substep3_gpu<<<1,1>>>(params, 
                                                    y_n_gfs,
                                                    y_nplus1_running_total_gfs,
                                                    k_odd_gfs,
@@ -217,7 +209,6 @@ void rk_substep4(params_struct *restrict params,
     int grid_blocks = (N + block_threads - 1) / block_threads;
 
     rk_substep4_gpu<<<grid_blocks, block_threads>>>(params, 
-    // rk_substep4_gpu<<<1,1>>>(params, 
                                                    y_n_gfs,
                                                    y_nplus1_running_total_gfs,
                                                    k_odd_gfs,

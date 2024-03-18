@@ -35,7 +35,6 @@ void find_min_cu(T * data, unsigned long long int * min, uint const data_length)
     uint lane = threadIdx.x % warpSize;
     // warpID = which warp am I in the block
     uint warpID = threadIdx.x / warpSize;
-    // printf("sub Minimum: %d\n", lane);
 
     // Stride through data for each thread
     while(idx < data_length) {
@@ -137,7 +136,6 @@ void reduction_sum_gpu(T * data, T * sum, uint const data_length) {
 
     // local thread minimum - set to something large
     T local_sum = (T)0.0;
-    // printf("init: %f\n", *address_as_ull);
 
     // warp mask - says all threads are involved in shuffle
     // 0xFFFFFFFFU in binary is 32 1's.
@@ -147,7 +145,6 @@ void reduction_sum_gpu(T * data, T * sum, uint const data_length) {
     uint lane = threadIdx.x % warpSize;
     // warpID = which warp am I in the block
     uint warpID = threadIdx.x / warpSize;
-    // printf("sub Minimum: %d\n", lane);
 
     // Stride through data for each thread
     while(idx < data_length) {
@@ -164,7 +161,6 @@ void reduction_sum_gpu(T * data, T * sum, uint const data_length) {
     // Shuffle results in lane 0 have the shuffle result
     if(lane == 0) {
         shared_data[warpID] = local_sum;
-        // printf("warp %u : %1.15e\n", warpID, local_sum);
     }
     
     // Make sure all warps in the block are syncronized
@@ -195,7 +191,6 @@ REAL reduction_sum(REAL * data, uint const data_length) {
     // This can be tested up to 1024
     uint threadCount = SHARED_SIZE_LIMIT / 2;
     
-    // print_data<<<1,1>>>(data, data_length);
     // Number of blocks of 1024U threads
     uint blockCount = (data_length + threadCount - 1) / SHARED_SIZE_LIMIT;
     if(blockCount < 1) 
@@ -232,7 +227,6 @@ REAL reduction_sum(REAL * data, uint const data_length) {
 
 __host__
 uint reduction_sum(uint * data, uint const data_length) {
-    // print_data<<<1,1>>>(data, data_length);
     // Number of blocks of 1024U threads
     uint blockCount = data_length / SHARED_SIZE_LIMIT;
     if(blockCount < 1) 
