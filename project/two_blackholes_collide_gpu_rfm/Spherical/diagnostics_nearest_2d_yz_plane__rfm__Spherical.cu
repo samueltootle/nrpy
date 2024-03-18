@@ -27,13 +27,6 @@ void diagnostics_nearest_2d_yz_plane__rfm__Spherical(commondata_struct *restrict
   const int numpts_i0 = Nxx0, numpts_i1 = Nxx1, numpts_i2 = 2;
   int i0_pts[numpts_i0], i1_pts[numpts_i1], i2_pts[numpts_i2];
 
-  const auto xx_to_cart = [&params] (auto const xx0, auto const xx1, auto const xx2, REAL * xCart) {
-    const REAL tmp0 = xx0 * sin(xx1);
-    xCart[0] = params->Cart_originx + tmp0 * cos(xx2);
-    xCart[1] = params->Cart_originy + tmp0 * sin(xx2);
-    xCart[2] = params->Cart_originz + xx0 * cos(xx1);
-    return xCart;
-  };
 #pragma omp parallel for
   for (int i0 = NGHOSTS; i0 < Nxx0 + NGHOSTS; i0++)
     i0_pts[i0 - NGHOSTS] = i0;
@@ -47,12 +40,7 @@ void diagnostics_nearest_2d_yz_plane__rfm__Spherical(commondata_struct *restrict
     const int i0 = i0_pts[i0_pt], i1 = i1_pts[i1_pt], i2 = i2_pts[i2_pt];
     const int idx3 = IDX3(i0, i1, i2);
     REAL xCart[3];
-    {
-      const REAL xx0 = xx[0][i0];
-      const REAL xx1 = xx[1][i1];
-      const REAL xx2 = xx[2][i2];
-      xx_to_cart(xx0, xx1, xx2, xCart);
-    }
+    xx_to_Cart__rfm__Spherical(xx, i0, i1, i2, xCart);
     {
       const REAL HL = diagnostic_output_gfs[IDX4pt(HGF, idx3)];
       const REAL log10HL = log10(fabs(HL + 1e-16));

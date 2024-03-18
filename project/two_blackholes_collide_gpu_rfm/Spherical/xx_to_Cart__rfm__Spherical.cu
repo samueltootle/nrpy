@@ -3,7 +3,7 @@
 /*
  * Compute Cartesian coordinates given local grid coordinate (xx0,xx1,xx2),   accounting for the origin of this grid being possibly off-center.
  */
-__device__
+__device__ __host__
 void xx_to_Cart__rfm__Spherical(REAL * xx[3],
                                 const int i0, const int i1, const int i2, REAL xCart[3]) {
 [[maybe_unused]] const REAL Cart_originx = d_params.Cart_originx;                 // nrpy.grid::Cart_originx
