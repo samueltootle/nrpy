@@ -5,7 +5,7 @@
 /*
  * Finite difference function for operator dD0, with FD accuracy order 4.
  */
-__device__ REAL fd_function_dD0_fdorder4(const REAL FDPROTO_i0m1, const REAL FDPROTO_i0m2, const REAL FDPROTO_i0p1, const REAL FDPROTO_i0p2,
+static __device__ REAL fd_function_dD0_fdorder4(const REAL FDPROTO_i0m1, const REAL FDPROTO_i0m2, const REAL FDPROTO_i0p1, const REAL FDPROTO_i0p2,
                                      const REAL invdxx0) {
 
   const REAL FD_result = invdxx0 * (FDPart1_Rational_1_12 * (FDPROTO_i0m2 - FDPROTO_i0p2) + FDPart1_Rational_2_3 * (-FDPROTO_i0m1 + FDPROTO_i0p1));
@@ -15,7 +15,7 @@ __device__ REAL fd_function_dD0_fdorder4(const REAL FDPROTO_i0m1, const REAL FDP
 /*
  * Finite difference function for operator dD1, with FD accuracy order 4.
  */
-__device__ REAL fd_function_dD1_fdorder4(const REAL FDPROTO_i1m1, const REAL FDPROTO_i1m2, const REAL FDPROTO_i1p1, const REAL FDPROTO_i1p2,
+__device__ static REAL fd_function_dD1_fdorder4(const REAL FDPROTO_i1m1, const REAL FDPROTO_i1m2, const REAL FDPROTO_i1p1, const REAL FDPROTO_i1p2,
                                      const REAL invdxx1) {
 
   const REAL FD_result = invdxx1 * (FDPart1_Rational_1_12 * (FDPROTO_i1m2 - FDPROTO_i1p2) + FDPart1_Rational_2_3 * (-FDPROTO_i1m1 + FDPROTO_i1p1));
@@ -25,7 +25,7 @@ __device__ REAL fd_function_dD1_fdorder4(const REAL FDPROTO_i1m1, const REAL FDP
 /*
  * Finite difference function for operator dD2, with FD accuracy order 4.
  */
-__device__ REAL fd_function_dD2_fdorder4(const REAL FDPROTO_i2m1, const REAL FDPROTO_i2m2, const REAL FDPROTO_i2p1, const REAL FDPROTO_i2p2,
+__device__ static REAL fd_function_dD2_fdorder4(const REAL FDPROTO_i2m1, const REAL FDPROTO_i2m2, const REAL FDPROTO_i2p1, const REAL FDPROTO_i2p2,
                                      const REAL invdxx2) {
 
   const REAL FD_result = invdxx2 * (FDPart1_Rational_1_12 * (FDPROTO_i2m2 - FDPROTO_i2p2) + FDPart1_Rational_2_3 * (-FDPROTO_i2m1 + FDPROTO_i2p1));
@@ -35,7 +35,7 @@ __device__ REAL fd_function_dD2_fdorder4(const REAL FDPROTO_i2m1, const REAL FDP
 /*
  * Finite difference function for operator dDD00, with FD accuracy order 4.
  */
-__device__ REAL fd_function_dDD00_fdorder4(const REAL FDPROTO, const REAL FDPROTO_i0m1, const REAL FDPROTO_i0m2, const REAL FDPROTO_i0p1,
+__device__ static REAL fd_function_dDD00_fdorder4(const REAL FDPROTO, const REAL FDPROTO_i0m1, const REAL FDPROTO_i0m2, const REAL FDPROTO_i0p1,
                                        const REAL FDPROTO_i0p2, const REAL invdxx0) {
 
   const REAL FD_result = ((invdxx0) * (invdxx0)) * (-FDPROTO * FDPart1_Rational_5_2 + FDPart1_Rational_1_12 * (-FDPROTO_i0m2 - FDPROTO_i0p2) +
@@ -46,7 +46,7 @@ __device__ REAL fd_function_dDD00_fdorder4(const REAL FDPROTO, const REAL FDPROT
 /*
  * Finite difference function for operator dDD01, with FD accuracy order 4.
  */
-__device__ REAL fd_function_dDD01_fdorder4(const REAL FDPROTO_i0m1_i1m1, const REAL FDPROTO_i0m1_i1m2, const REAL FDPROTO_i0m1_i1p1,
+__device__ static REAL fd_function_dDD01_fdorder4(const REAL FDPROTO_i0m1_i1m1, const REAL FDPROTO_i0m1_i1m2, const REAL FDPROTO_i0m1_i1p1,
                                        const REAL FDPROTO_i0m1_i1p2, const REAL FDPROTO_i0m2_i1m1, const REAL FDPROTO_i0m2_i1m2,
                                        const REAL FDPROTO_i0m2_i1p1, const REAL FDPROTO_i0m2_i1p2, const REAL FDPROTO_i0p1_i1m1,
                                        const REAL FDPROTO_i0p1_i1m2, const REAL FDPROTO_i0p1_i1p1, const REAL FDPROTO_i0p1_i1p2,
@@ -64,7 +64,7 @@ __device__ REAL fd_function_dDD01_fdorder4(const REAL FDPROTO_i0m1_i1m1, const R
 /*
  * Finite difference function for operator dDD02, with FD accuracy order 4.
  */
-__device__ REAL fd_function_dDD02_fdorder4(const REAL FDPROTO_i0m1_i2m1, const REAL FDPROTO_i0m1_i2m2, const REAL FDPROTO_i0m1_i2p1,
+__device__ static REAL fd_function_dDD02_fdorder4(const REAL FDPROTO_i0m1_i2m1, const REAL FDPROTO_i0m1_i2m2, const REAL FDPROTO_i0m1_i2p1,
                                        const REAL FDPROTO_i0m1_i2p2, const REAL FDPROTO_i0m2_i2m1, const REAL FDPROTO_i0m2_i2m2,
                                        const REAL FDPROTO_i0m2_i2p1, const REAL FDPROTO_i0m2_i2p2, const REAL FDPROTO_i0p1_i2m1,
                                        const REAL FDPROTO_i0p1_i2m2, const REAL FDPROTO_i0p1_i2p1, const REAL FDPROTO_i0p1_i2p2,
@@ -82,7 +82,7 @@ __device__ REAL fd_function_dDD02_fdorder4(const REAL FDPROTO_i0m1_i2m1, const R
 /*
  * Finite difference function for operator dDD11, with FD accuracy order 4.
  */
-__device__ REAL fd_function_dDD11_fdorder4(const REAL FDPROTO, const REAL FDPROTO_i1m1, const REAL FDPROTO_i1m2, const REAL FDPROTO_i1p1,
+__device__ static REAL fd_function_dDD11_fdorder4(const REAL FDPROTO, const REAL FDPROTO_i1m1, const REAL FDPROTO_i1m2, const REAL FDPROTO_i1p1,
                                        const REAL FDPROTO_i1p2, const REAL invdxx1) {
 
   const REAL FD_result = ((invdxx1) * (invdxx1)) * (-FDPROTO * FDPart1_Rational_5_2 + FDPart1_Rational_1_12 * (-FDPROTO_i1m2 - FDPROTO_i1p2) +
@@ -93,7 +93,7 @@ __device__ REAL fd_function_dDD11_fdorder4(const REAL FDPROTO, const REAL FDPROT
 /*
  * Finite difference function for operator dDD12, with FD accuracy order 4.
  */
-__device__ REAL fd_function_dDD12_fdorder4(const REAL FDPROTO_i1m1_i2m1, const REAL FDPROTO_i1m1_i2m2, const REAL FDPROTO_i1m1_i2p1,
+__device__ static REAL fd_function_dDD12_fdorder4(const REAL FDPROTO_i1m1_i2m1, const REAL FDPROTO_i1m1_i2m2, const REAL FDPROTO_i1m1_i2p1,
                                        const REAL FDPROTO_i1m1_i2p2, const REAL FDPROTO_i1m2_i2m1, const REAL FDPROTO_i1m2_i2m2,
                                        const REAL FDPROTO_i1m2_i2p1, const REAL FDPROTO_i1m2_i2p2, const REAL FDPROTO_i1p1_i2m1,
                                        const REAL FDPROTO_i1p1_i2m2, const REAL FDPROTO_i1p1_i2p1, const REAL FDPROTO_i1p1_i2p2,
@@ -111,7 +111,7 @@ __device__ REAL fd_function_dDD12_fdorder4(const REAL FDPROTO_i1m1_i2m1, const R
 /*
  * Finite difference function for operator dDD22, with FD accuracy order 4.
  */
-__device__ REAL fd_function_dDD22_fdorder4(const REAL FDPROTO, const REAL FDPROTO_i2m1, const REAL FDPROTO_i2m2, const REAL FDPROTO_i2p1,
+__device__ static REAL fd_function_dDD22_fdorder4(const REAL FDPROTO, const REAL FDPROTO_i2m1, const REAL FDPROTO_i2m2, const REAL FDPROTO_i2p1,
                                        const REAL FDPROTO_i2p2, const REAL invdxx2) {
 
   const REAL FD_result = ((invdxx2) * (invdxx2)) * (-FDPROTO * FDPart1_Rational_5_2 + FDPart1_Rational_1_12 * (-FDPROTO_i2m2 - FDPROTO_i2p2) +
@@ -122,7 +122,7 @@ __device__ REAL fd_function_dDD22_fdorder4(const REAL FDPROTO, const REAL FDPROT
 /*
  * Finite difference function for operator ddnD0, with FD accuracy order 4.
  */
-__device__ REAL fd_function_ddnD0_fdorder4(const REAL FDPROTO, const REAL FDPROTO_i0m1, const REAL FDPROTO_i0m2, const REAL FDPROTO_i0m3,
+__device__ static REAL fd_function_ddnD0_fdorder4(const REAL FDPROTO, const REAL FDPROTO_i0m1, const REAL FDPROTO_i0m2, const REAL FDPROTO_i0m3,
                                        const REAL FDPROTO_i0p1, const REAL invdxx0) {
 
   const REAL FD_result = invdxx0 * (FDPROTO * FDPart1_Rational_5_6 - FDPROTO_i0m1 * FDPart1_Rational_3_2 + FDPROTO_i0m2 * FDPart1_Rational_1_2 -
@@ -133,7 +133,7 @@ __device__ REAL fd_function_ddnD0_fdorder4(const REAL FDPROTO, const REAL FDPROT
 /*
  * Finite difference function for operator ddnD1, with FD accuracy order 4.
  */
-__device__ REAL fd_function_ddnD1_fdorder4(const REAL FDPROTO, const REAL FDPROTO_i1m1, const REAL FDPROTO_i1m2, const REAL FDPROTO_i1m3,
+__device__ static REAL fd_function_ddnD1_fdorder4(const REAL FDPROTO, const REAL FDPROTO_i1m1, const REAL FDPROTO_i1m2, const REAL FDPROTO_i1m3,
                                        const REAL FDPROTO_i1p1, const REAL invdxx1) {
 
   const REAL FD_result = invdxx1 * (FDPROTO * FDPart1_Rational_5_6 - FDPROTO_i1m1 * FDPart1_Rational_3_2 + FDPROTO_i1m2 * FDPart1_Rational_1_2 -
@@ -144,7 +144,7 @@ __device__ REAL fd_function_ddnD1_fdorder4(const REAL FDPROTO, const REAL FDPROT
 /*
  * Finite difference function for operator ddnD2, with FD accuracy order 4.
  */
-__device__ REAL fd_function_ddnD2_fdorder4(const REAL FDPROTO, const REAL FDPROTO_i2m1, const REAL FDPROTO_i2m2, const REAL FDPROTO_i2m3,
+__device__ static REAL fd_function_ddnD2_fdorder4(const REAL FDPROTO, const REAL FDPROTO_i2m1, const REAL FDPROTO_i2m2, const REAL FDPROTO_i2m3,
                                        const REAL FDPROTO_i2p1, const REAL invdxx2) {
 
   const REAL FD_result = invdxx2 * (FDPROTO * FDPart1_Rational_5_6 - FDPROTO_i2m1 * FDPart1_Rational_3_2 + FDPROTO_i2m2 * FDPart1_Rational_1_2 -
@@ -155,7 +155,7 @@ __device__ REAL fd_function_ddnD2_fdorder4(const REAL FDPROTO, const REAL FDPROT
 /*
  * Finite difference function for operator dupD0, with FD accuracy order 4.
  */
-__device__ REAL fd_function_dupD0_fdorder4(const REAL FDPROTO, const REAL FDPROTO_i0m1, const REAL FDPROTO_i0p1, const REAL FDPROTO_i0p2,
+__device__ static REAL fd_function_dupD0_fdorder4(const REAL FDPROTO, const REAL FDPROTO_i0m1, const REAL FDPROTO_i0p1, const REAL FDPROTO_i0p2,
                                        const REAL FDPROTO_i0p3, const REAL invdxx0) {
 
   const REAL FD_result = invdxx0 * (-FDPROTO * FDPart1_Rational_5_6 - FDPROTO_i0m1 * FDPart1_Rational_1_4 + FDPROTO_i0p1 * FDPart1_Rational_3_2 -
@@ -166,7 +166,7 @@ __device__ REAL fd_function_dupD0_fdorder4(const REAL FDPROTO, const REAL FDPROT
 /*
  * Finite difference function for operator dupD1, with FD accuracy order 4.
  */
-__device__ REAL fd_function_dupD1_fdorder4(const REAL FDPROTO, const REAL FDPROTO_i1m1, const REAL FDPROTO_i1p1, const REAL FDPROTO_i1p2,
+__device__ static REAL fd_function_dupD1_fdorder4(const REAL FDPROTO, const REAL FDPROTO_i1m1, const REAL FDPROTO_i1p1, const REAL FDPROTO_i1p2,
                                        const REAL FDPROTO_i1p3, const REAL invdxx1) {
   const REAL FD_result = invdxx1 * (-FDPROTO * FDPart1_Rational_5_6 - FDPROTO_i1m1 * FDPart1_Rational_1_4 + FDPROTO_i1p1 * FDPart1_Rational_3_2 -
                                     FDPROTO_i1p2 * FDPart1_Rational_1_2 + FDPROTO_i1p3 * FDPart1_Rational_1_12);
@@ -176,7 +176,7 @@ __device__ REAL fd_function_dupD1_fdorder4(const REAL FDPROTO, const REAL FDPROT
 /*
  * Finite difference function for operator dupD2, with FD accuracy order 4.
  */
-__device__ REAL fd_function_dupD2_fdorder4(const REAL FDPROTO, const REAL FDPROTO_i2m1, const REAL FDPROTO_i2p1, const REAL FDPROTO_i2p2,
+__device__ static REAL fd_function_dupD2_fdorder4(const REAL FDPROTO, const REAL FDPROTO_i2m1, const REAL FDPROTO_i2p1, const REAL FDPROTO_i2p2,
                                        const REAL FDPROTO_i2p3, const REAL invdxx2) {
   const REAL FD_result = invdxx2 * (-FDPROTO * FDPart1_Rational_5_6 - FDPROTO_i2m1 * FDPart1_Rational_1_4 + FDPROTO_i2p1 * FDPart1_Rational_3_2 -
                                     FDPROTO_i2p2 * FDPart1_Rational_1_2 + FDPROTO_i2p3 * FDPart1_Rational_1_12);
