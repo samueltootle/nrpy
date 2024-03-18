@@ -110,7 +110,7 @@ typedef struct __params_struct__ {
 
 // Set the number of ghost zones
 // Note that upwinding in e.g., BSSN requires that NGHOSTS = fd_order/2 + 1 <- Notice the +1.
-#define NGHOSTS 3
+#define NGHOSTS 4
 
 // When enable_simd = False, this is the UPWIND_ALG() macro:
 #define UPWIND_ALG(UpwindVecU) UpwindVecU > 0.0 ? 1.0 : 0.0
