@@ -624,7 +624,11 @@ void initial_data_reader__convert_ADM_Cartesian_to_BSSN__rfm__Spherical(
 
   // Setup our grid layout such that our tiles will iterate through the entire
   // numerical space
-  dim3 grid_blocks(params->Nxx1 / threads_in_y_dir, params->Nxx2, 1);
+  dim3 grid_blocks(
+    (Nxx_plus_2NGHOSTS0 + threads_in_x_dir - 1) / threads_in_x_dir,
+    (Nxx_plus_2NGHOSTS1 + threads_in_y_dir - 1) / threads_in_y_dir,
+    (Nxx_plus_2NGHOSTS2 + threads_in_z_dir - 1) / threads_in_z_dir
+  );
 
   initial_data_reader__convert_ADM_Cartesian_to_BSSN__rfm__Spherical_gpu<<<grid_blocks,block_threads>>>(
     commondata_gpu, xx[0], xx[1], xx[2], gridfuncs->y_n_gfs, ID_persist_gpu, host_function_ptr

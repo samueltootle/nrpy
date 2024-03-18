@@ -164,16 +164,10 @@ void apply_bcs_pure_only_gpu(const int num_pure_outer_boundary_points, const int
     const short FACEX2 = pure_outer_bc_array[idx2d].FACEX2;
     const int idx3 = IDX3(i0, i1, i2);
     REAL* xx[3] = {_xx0, _xx1, _xx2};
-    // printf("%f\n", custom_f_infinity[0]);
     for (int which_gf = 0; which_gf < NUM_EVOL_GFS; which_gf++) {
       // *** Apply radiation BCs to all outer boundary points. ***
       rhs_gfs[IDX4pt(which_gf, idx3)] = radiation_bcs(xx, gfs, rhs_gfs, which_gf, custom_wavespeed[which_gf],
                                                       custom_f_infinity[which_gf], i0, i1, i2, FACEX0, FACEX1, FACEX2);
-    // printf("%d: %f\n", idx3, rhs_gfs[IDX4pt(which_gf, idx3)]);
-        // if(idx3 == IDX3(34, 18 , 18)) {
-        //     printf("GF %d: %f\n", which_gf,
-        //     rhs_gfs[IDX4pt(which_gf, idx3)]);
-        // }
     }
   }
 }
@@ -190,7 +184,6 @@ void apply_bcs_pure_only(const bc_struct *restrict bcstruct,
         size_t grid_blocks = (num_pure + block_threadsx -1) / block_threadsx;
         size_t gz_idx = dirn + (3 * which_gz);
         apply_bcs_pure_only_gpu<<<grid_blocks, block_threadsx>>>(
-        // apply_bcs_pure_only_gpu<<<1,1>>>(
           num_pure, which_gz, dirn, bcstruct->pure_outer_bc_array[gz_idx], gfs, rhs_gfs, 
           xx[0], xx[1], xx[2], custom_wavespeed, custom_f_infinity
         );
@@ -216,12 +209,6 @@ void apply_bcs_outerradiation_and_inner__rfm__Spherical(const commondata_struct 
   //              filling in the edges as we go.
   // Spawn N OpenMP threads, either across all cores, or according to e.g., taskset.
   apply_bcs_pure_only(bcstruct, xx, custom_wavespeed, custom_f_infinity, gfs, rhs_gfs);
-  
-  cudaDeviceSynchronize();
-  // for(int i = 0; i < NUM_EVOL_GFS; ++i)
-  //     print_var<<<1,1>>>(gfs, IDX4(i, 34, 10 , 10));
-  // cudaDeviceSynchronize();
-  // printf("**************************_pure\n");
 
   ///////////////////////////////////////////////////////
   // STEP 2 of 2: Apply BCs to inner boundary points.
@@ -232,10 +219,4 @@ void apply_bcs_outerradiation_and_inner__rfm__Spherical(const commondata_struct 
   //              populated first; hence this being
   //              STEP 2 OF 2.
   apply_bcs_inner_only(commondata, params, bcstruct, rhs_gfs); // <- apply inner BCs to RHS gfs only
-  
-  cudaDeviceSynchronize();
-  // for(int i = 0; i < NUM_EVOL_GFS; ++i)
-  //     print_var<<<1,1>>>(gfs, IDX4(i, 34, 10, 10));
-  // cudaDeviceSynchronize();
-  // printf("**************************_inner_only\n");
 }

@@ -720,9 +720,4 @@ void bcstruct_set_up__rfm__Spherical(const commondata_struct *restrict commondat
     ////////////////////////
   }
   set_pure_outer_bc_array(xx, bcstruct);
-
-  // print_inner<<<1,1>>>(bcstruct->inner_bc_array, bcstruct->bc_info.num_inner_boundary_points);
-  // cudaDeviceSynchronize();
-  // print_data<<<1,1>>>(bcstruct->inner_bc_array, bcstruct->bc_info.num_inner_boundary_points);
-  // abort();
 }
