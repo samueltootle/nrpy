@@ -46,14 +46,7 @@ void diagnostics_nearest_1d_y_axis__rfm__Spherical(commondata_struct *restrict c
 
   data_point_1d_struct data_points[numpts_i0 * numpts_i1 * numpts_i2];
   int data_index = 0;
-  
-  const auto get_diagnostics = [](auto index, const REAL *restrict g_data) {
-    // REAL h_data;
-    // cudaMemcpy(&h_data, &g_data[index], sizeof(REAL), cudaMemcpyDeviceToHost);
-    // cudaCheckErrors(cudaMemcpy, "memory error");
-    REAL h_data = g_data[index];
-    return h_data;
-  };
+
   const auto xx_to_cart = [&params] (auto const xx0, auto const xx1, auto const xx2, REAL * xCart) {
     const REAL tmp0 = xx0 * sin(xx1);
     xCart[0] = params->Cart_originx + tmp0 * cos(xx2);
@@ -74,22 +67,24 @@ void diagnostics_nearest_1d_y_axis__rfm__Spherical(commondata_struct *restrict c
     const int idx3 = IDX3(i0, i1, i2);
     REAL xCart[3];
     {
-      const REAL xx0 = get_diagnostics(i0, xx[0]);
-      const REAL xx1 = get_diagnostics(i1, xx[1]);
-      const REAL xx2 = get_diagnostics(i2, xx[2]);
+      const REAL xx0 = xx[0][i0];
+      const REAL xx1 = xx[1][i1];
+      const REAL xx2 = xx[2][i2];
       xx_to_cart(xx0, xx1, xx2, xCart);
     }
 
     {
       data_point_1d_struct dp1d;
       dp1d.xCart_axis = xCart[1];
-      const REAL HL = get_diagnostics(IDX4pt(HGF, idx3), diagnostic_output_gfs);
+      const REAL HL = diagnostic_output_gfs[IDX4pt(HGF, idx3)];
       dp1d.log10HL = log10(fabs(HL + 1e-16));
-      const REAL M2L = get_diagnostics(IDX4pt(MSQUAREDGF, idx3), diagnostic_output_gfs);
+
+      const REAL M2L = diagnostic_output_gfs[IDX4pt(MSQUAREDGF, idx3)];
       dp1d.log10sqrtM2L = log10(sqrt(M2L) + 1e-16);
-      dp1d.cfL = get_diagnostics(IDX4pt(DIAG_CFGF, idx3), y_n_gfs);
-      dp1d.alphaL = get_diagnostics(IDX4pt(DIAG_ALPHAGF, idx3), y_n_gfs);
-      dp1d.trKL = get_diagnostics(IDX4pt(DIAG_TRKGF, idx3), y_n_gfs);
+
+      dp1d.cfL = y_n_gfs[IDX4pt(DIAG_CFGF, idx3)];
+      dp1d.alphaL = y_n_gfs[IDX4pt(DIAG_ALPHAGF, idx3)];
+      dp1d.trKL = y_n_gfs[IDX4pt(DIAG_TRKGF, idx3)];
       data_points[data_index] = dp1d;
       data_index++;
     }

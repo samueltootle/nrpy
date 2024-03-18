@@ -26,14 +26,7 @@ void diagnostics_nearest_2d_yz_plane__rfm__Spherical(commondata_struct *restrict
   // Output data in yz-plane in Spherical coordinates.
   const int numpts_i0 = Nxx0, numpts_i1 = Nxx1, numpts_i2 = 2;
   int i0_pts[numpts_i0], i1_pts[numpts_i1], i2_pts[numpts_i2];
-    
-  const auto get_diagnostics = [](auto index, const REAL *restrict g_data) {
-    // REAL h_data;
-    // cudaMemcpy(&h_data, &g_data[index], sizeof(REAL), cudaMemcpyDeviceToHost);
-    // cudaCheckErrors(cudaMemcpy, "memory error");
-    REAL h_data = g_data[index];
-    return h_data;
-  };
+
   const auto xx_to_cart = [&params] (auto const xx0, auto const xx1, auto const xx2, REAL * xCart) {
     const REAL tmp0 = xx0 * sin(xx1);
     xCart[0] = params->Cart_originx + tmp0 * cos(xx2);
@@ -55,19 +48,21 @@ void diagnostics_nearest_2d_yz_plane__rfm__Spherical(commondata_struct *restrict
     const int idx3 = IDX3(i0, i1, i2);
     REAL xCart[3];
     {
-      const REAL xx0 = get_diagnostics(i0, xx[0]);
-      const REAL xx1 = get_diagnostics(i1, xx[1]);
-      const REAL xx2 = get_diagnostics(i2, xx[2]);
+      const REAL xx0 = xx[0][i0];
+      const REAL xx1 = xx[1][i1];
+      const REAL xx2 = xx[2][i2];
       xx_to_cart(xx0, xx1, xx2, xCart);
     }
     {
-      const REAL HL = get_diagnostics(IDX4pt(HGF, idx3), diagnostic_output_gfs);
+      const REAL HL = diagnostic_output_gfs[IDX4pt(HGF, idx3)];
       const REAL log10HL = log10(fabs(HL + 1e-16));
-      const REAL M2L = get_diagnostics(IDX4pt(MSQUAREDGF, idx3), diagnostic_output_gfs);
+      
+      const REAL M2L = diagnostic_output_gfs[IDX4pt(MSQUAREDGF, idx3)];
       const REAL log10sqrtM2L = log10(sqrt(M2L) + 1e-16);
-    const REAL cfL = get_diagnostics(IDX4pt(DIAG_CFGF, idx3), y_n_gfs);
-    const REAL alphaL = get_diagnostics(IDX4pt(DIAG_ALPHAGF, idx3), y_n_gfs);
-    const REAL trKL = get_diagnostics(IDX4pt(DIAG_TRKGF, idx3), y_n_gfs);
+      
+      const REAL cfL = y_n_gfs[IDX4pt(DIAG_CFGF, idx3)];
+      const REAL alphaL = y_n_gfs[IDX4pt(DIAG_ALPHAGF, idx3)];
+      const REAL trKL = y_n_gfs[IDX4pt(DIAG_TRKGF, idx3)];
       fprintf(outfile, "%.15e %.15e %.15e %.15e %.15e %.15e %.15e\n", xCart[0], xCart[1], log10HL, log10sqrtM2L, cfL, alphaL, trKL);
     }
   }
