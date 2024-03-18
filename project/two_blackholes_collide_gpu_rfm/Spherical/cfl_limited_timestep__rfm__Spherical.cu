@@ -50,8 +50,6 @@ void find_local_ds_min_gpu(REAL *restrict _xx0, REAL *restrict _xx1, REAL *restr
       } // END LOOP: for (int i0 = NGHOSTS; i0 < NGHOSTS+Nxx0; i0++)
     } // END LOOP: for (int i1 = NGHOSTS; i1 < NGHOSTS+Nxx1; i1++)
   } // END LOOP: for (int i2 = NGHOSTS; i2 < NGHOSTS+Nxx2; i2++)
-
-  // *dt = dsmin*CFL_FACTOR/wavespeed;
 }
 
 __global__
@@ -102,17 +100,7 @@ void compute_ds2(REAL *restrict _xx0, REAL *restrict _xx1, REAL *restrict _xx2, 
       } // END LOOP: for (int i0 = NGHOSTS; i0 < NGHOSTS+Nxx0; i0++)
     } // END LOOP: for (int i1 = NGHOSTS; i1 < NGHOSTS+Nxx1; i1++)
   } // END LOOP: for (int i2 = NGHOSTS; i2 < NGHOSTS+Nxx2; i2++)
-
-  // *dt = dsmin*CFL_FACTOR/wavespeed;
 }
-
-// __global__
-// void ds2info(REAL *restrict _xx0, REAL *restrict _xx1, REAL *restrict _xx2, REAL *ds2) {
-//   int const& Nxx0 = d_params.Nxx0;
-//   int const& Nxx1 = d_params.Nxx1;
-//   int const& Nxx2 = d_params.Nxx2;
-//   printf("%1.15f - %1.15f - %1.15f\n", dxx2, xx0[Nxx0-1], sin(xx1[Nxx1-1]));
-// }
 
 void cfl_limited_timestep__rfm__Spherical(commondata_struct *restrict commondata, params_struct *restrict params, REAL * xx[3],
                                           bc_struct *restrict bcstruct) {
@@ -135,10 +123,9 @@ void cfl_limited_timestep__rfm__Spherical(commondata_struct *restrict commondata
   cudaCheckErrors(find_local_ds_min_gpu, "cudaKernel find_timestep_gpu failure"); // error checking
 
   // testing only
-  seq_min_gpu<<<1,1>>>(ds_gpu, Nxx_tot);
+  // seq_min_gpu<<<1,1>>>(ds_gpu, Nxx_tot);
   REAL ds_min = find_min(ds_gpu, Nxx_tot);
 
   commondata->dt = MIN(commondata->dt, ds_min * commondata->CFL_FACTOR);
-  // printf("%1.15f\n", commondata->dt);
   cudaFree(ds_gpu);
 }

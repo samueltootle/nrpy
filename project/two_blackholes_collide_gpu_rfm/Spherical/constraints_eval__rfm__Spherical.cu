@@ -600,11 +600,6 @@ void constraints_eval__rfm__Spherical_gpu(const REAL *restrict _f0_of_xx0, const
                                                               FDPart3tmp177 * ((FDPart3tmp222) * (FDPart3tmp222)) * FDPart3tmp6 +
                                                               FDPart3tmp177 * FDPart3tmp222 * FDPart3tmp224 * FDPart3tmp28 * hDD01 +
                                                               FDPart3tmp177 * ((FDPart3tmp224) * (FDPart3tmp224)) * FDPart3tmp4;
-        // already a difference from CPU at 13th digit
-        // index = 6321 is ~mid point
-        // if(IDX3(i0,i1,i2) == 6321) {
-        //   printf("%1.15e - %1.15e - %1.15e - %1.15e\n", cf_dD0, cf_dD1, cf_dD2, cf_dDD00);
-        // }
       } // END LOOP: for (int i0 = NGHOSTS; i0 < NGHOSTS+Nxx0; i0++)
     }   // END LOOP: for (int i1 = NGHOSTS; i1 < NGHOSTS+Nxx1; i1++)
   }     // END LOOP: for (int i2 = NGHOSTS; i2 < NGHOSTS+Nxx2; i2++)
@@ -619,10 +614,7 @@ void constraints_eval__rfm__Spherical(const commondata_struct *restrict commonda
   int threads_in_z_dir = 1;
   dim3 block_threads(threads_in_x_dir, threads_in_y_dir, threads_in_z_dir);
 
-  // Assumes the grids are small enough such that Nxx0 < 1024, therefore we only
-  // need tiles to cover y and z
   dim3 grid_blocks(params->Nxx1 / threads_in_y_dir, params->Nxx2, 1);
   constraints_eval__rfm__Spherical_gpu<<<grid_blocks, block_threads>>>(rfmstruct->f0_of_xx0, rfmstruct->f1_of_xx1, 
-  // constraints_eval__rfm__Spherical_gpu<<<1,1>>>(rfmstruct->f0_of_xx0, rfmstruct->f1_of_xx1, 
     rfmstruct->f1_of_xx1__D1, rfmstruct->f1_of_xx1__DD11, in_gfs, auxevol_gfs, diagnostic_output_gfs);
 }
