@@ -26,7 +26,7 @@ outer_bc_type = radiation        # (type: char[50])
 ###########################
 ### Module: nrpy.infrastructures.BHaH.MoLtimestepping.MoL
 CFL_FACTOR = 0.5                 # (type: REAL)
-t_final = 10                    # (type: REAL)
+t_final = 7.5                    # (type: REAL)
 ###########################
 ###########################
 ### Module: nrpy.infrastructures.BHaH.general_relativity.BSSN_C_codegen_library
