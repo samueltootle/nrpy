@@ -1,6 +1,5 @@
 *.sqlite
 *.nsys-rep
-Makefile
 __pycache__
 *.o
 project/two_blackholes_collide_nosimd*
