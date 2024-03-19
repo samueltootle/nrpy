@@ -5,13 +5,13 @@
 /*
  * Finite difference function for operator dD0, with FD accuracy order 6.
  */
-static REAL fd_function_dD0_fdorder8(const REAL FDPROTO_i0m1, const REAL FDPROTO_i0m2, const REAL FDPROTO_i0m3, const REAL FDPROTO_i0m4,
+__device__ static REAL fd_function_dD0_fdorder8(const REAL FDPROTO_i0m1, const REAL FDPROTO_i0m2, const REAL FDPROTO_i0m3, const REAL FDPROTO_i0m4,
                                      const REAL FDPROTO_i0p1, const REAL FDPROTO_i0p2, const REAL FDPROTO_i0p3, const REAL FDPROTO_i0p4,
                                      const REAL invdxx0) {
-  const REAL FDPart1_Rational_4_5 = 4.0 / 5.0;
-  const REAL FDPart1_Rational_4_105 = 4.0 / 105.0;
-  const REAL FDPart1_Rational_1_5 = 1.0 / 5.0;
-  const REAL FDPart1_Rational_1_280 = 1.0 / 280.0;
+  constexpr REAL FDPart1_Rational_4_5 = 4.0 / 5.0;
+  constexpr REAL FDPart1_Rational_4_105 = 4.0 / 105.0;
+  constexpr REAL FDPart1_Rational_1_5 = 1.0 / 5.0;
+  constexpr REAL FDPart1_Rational_1_280 = 1.0 / 280.0;
   const REAL FD_result = invdxx0 * (FDPart1_Rational_1_280 * (FDPROTO_i0m4 - FDPROTO_i0p4) + FDPart1_Rational_1_5 * (FDPROTO_i0m2 - FDPROTO_i0p2) +
                                     FDPart1_Rational_4_105 * (-FDPROTO_i0m3 + FDPROTO_i0p3) + FDPart1_Rational_4_5 * (-FDPROTO_i0m1 + FDPROTO_i0p1));
 
@@ -20,13 +20,13 @@ static REAL fd_function_dD0_fdorder8(const REAL FDPROTO_i0m1, const REAL FDPROTO
 /*
  * Finite difference function for operator dD1, with FD accuracy order 8.
  */
-static REAL fd_function_dD1_fdorder8(const REAL FDPROTO_i1m1, const REAL FDPROTO_i1m2, const REAL FDPROTO_i1m3, const REAL FDPROTO_i1m4,
+__device__ static REAL fd_function_dD1_fdorder8(const REAL FDPROTO_i1m1, const REAL FDPROTO_i1m2, const REAL FDPROTO_i1m3, const REAL FDPROTO_i1m4,
                                      const REAL FDPROTO_i1p1, const REAL FDPROTO_i1p2, const REAL FDPROTO_i1p3, const REAL FDPROTO_i1p4,
                                      const REAL invdxx1) {
-  const REAL FDPart1_Rational_4_5 = 4.0 / 5.0;
-  const REAL FDPart1_Rational_4_105 = 4.0 / 105.0;
-  const REAL FDPart1_Rational_1_5 = 1.0 / 5.0;
-  const REAL FDPart1_Rational_1_280 = 1.0 / 280.0;
+  constexpr REAL FDPart1_Rational_4_5 = 4.0 / 5.0;
+  constexpr REAL FDPart1_Rational_4_105 = 4.0 / 105.0;
+  constexpr REAL FDPart1_Rational_1_5 = 1.0 / 5.0;
+  constexpr REAL FDPart1_Rational_1_280 = 1.0 / 280.0;
   const REAL FD_result = invdxx1 * (FDPart1_Rational_1_280 * (FDPROTO_i1m4 - FDPROTO_i1p4) + FDPart1_Rational_1_5 * (FDPROTO_i1m2 - FDPROTO_i1p2) +
                                     FDPart1_Rational_4_105 * (-FDPROTO_i1m3 + FDPROTO_i1p3) + FDPart1_Rational_4_5 * (-FDPROTO_i1m1 + FDPROTO_i1p1));
 
@@ -35,13 +35,13 @@ static REAL fd_function_dD1_fdorder8(const REAL FDPROTO_i1m1, const REAL FDPROTO
 /*
  * Finite difference function for operator dD2, with FD accuracy order 8.
  */
-static REAL fd_function_dD2_fdorder8(const REAL FDPROTO_i2m1, const REAL FDPROTO_i2m2, const REAL FDPROTO_i2m3, const REAL FDPROTO_i2m4,
+__device__ static REAL fd_function_dD2_fdorder8(const REAL FDPROTO_i2m1, const REAL FDPROTO_i2m2, const REAL FDPROTO_i2m3, const REAL FDPROTO_i2m4,
                                      const REAL FDPROTO_i2p1, const REAL FDPROTO_i2p2, const REAL FDPROTO_i2p3, const REAL FDPROTO_i2p4,
                                      const REAL invdxx2) {
-  const REAL FDPart1_Rational_4_5 = 4.0 / 5.0;
-  const REAL FDPart1_Rational_4_105 = 4.0 / 105.0;
-  const REAL FDPart1_Rational_1_5 = 1.0 / 5.0;
-  const REAL FDPart1_Rational_1_280 = 1.0 / 280.0;
+  constexpr REAL FDPart1_Rational_4_5 = 4.0 / 5.0;
+  constexpr REAL FDPart1_Rational_4_105 = 4.0 / 105.0;
+  constexpr REAL FDPart1_Rational_1_5 = 1.0 / 5.0;
+  constexpr REAL FDPart1_Rational_1_280 = 1.0 / 280.0;
   const REAL FD_result = invdxx2 * (FDPart1_Rational_1_280 * (FDPROTO_i2m4 - FDPROTO_i2p4) + FDPart1_Rational_1_5 * (FDPROTO_i2m2 - FDPROTO_i2p2) +
                                     FDPart1_Rational_4_105 * (-FDPROTO_i2m3 + FDPROTO_i2p3) + FDPart1_Rational_4_5 * (-FDPROTO_i2m1 + FDPROTO_i2p1));
 
@@ -50,14 +50,14 @@ static REAL fd_function_dD2_fdorder8(const REAL FDPROTO_i2m1, const REAL FDPROTO
 /*
  * Finite difference function for operator dDD00, with FD accuracy order 8.
  */
-static REAL fd_function_dDD00_fdorder8(const REAL FDPROTO, const REAL FDPROTO_i0m1, const REAL FDPROTO_i0m2, const REAL FDPROTO_i0m3,
+__device__ static REAL fd_function_dDD00_fdorder8(const REAL FDPROTO, const REAL FDPROTO_i0m1, const REAL FDPROTO_i0m2, const REAL FDPROTO_i0m3,
                                        const REAL FDPROTO_i0m4, const REAL FDPROTO_i0p1, const REAL FDPROTO_i0p2, const REAL FDPROTO_i0p3,
                                        const REAL FDPROTO_i0p4, const REAL invdxx0) {
-  const REAL FDPart1_Rational_205_72 = 205.0 / 72.0;
-  const REAL FDPart1_Rational_1_5 = 1.0 / 5.0;
-  const REAL FDPart1_Rational_1_560 = 1.0 / 560.0;
-  const REAL FDPart1_Rational_8_5 = 8.0 / 5.0;
-  const REAL FDPart1_Rational_8_315 = 8.0 / 315.0;
+  constexpr REAL FDPart1_Rational_205_72 = 205.0 / 72.0;
+  constexpr REAL FDPart1_Rational_1_5 = 1.0 / 5.0;
+  constexpr REAL FDPart1_Rational_1_560 = 1.0 / 560.0;
+  constexpr REAL FDPart1_Rational_8_5 = 8.0 / 5.0;
+  constexpr REAL FDPart1_Rational_8_315 = 8.0 / 315.0;
   const REAL FD_result =
       ((invdxx0) * (invdxx0)) * (-FDPROTO * FDPart1_Rational_205_72 + FDPart1_Rational_1_5 * (-FDPROTO_i0m2 - FDPROTO_i0p2) +
                                  FDPart1_Rational_1_560 * (-FDPROTO_i0m4 - FDPROTO_i0p4) + FDPart1_Rational_8_315 * (FDPROTO_i0m3 + FDPROTO_i0p3) +
@@ -68,7 +68,7 @@ static REAL fd_function_dDD00_fdorder8(const REAL FDPROTO, const REAL FDPROTO_i0
 /*
  * Finite difference function for operator dDD01, with FD accuracy order 8.
  */
-static REAL
+__device__ static REAL
 fd_function_dDD01_fdorder8(const REAL FDPROTO_i0m1_i1m1, const REAL FDPROTO_i0m1_i1m2, const REAL FDPROTO_i0m1_i1m3, const REAL FDPROTO_i0m1_i1m4,
                            const REAL FDPROTO_i0m1_i1p1, const REAL FDPROTO_i0m1_i1p2, const REAL FDPROTO_i0m1_i1p3, const REAL FDPROTO_i0m1_i1p4,
                            const REAL FDPROTO_i0m2_i1m1, const REAL FDPROTO_i0m2_i1m2, const REAL FDPROTO_i0m2_i1m3, const REAL FDPROTO_i0m2_i1m4,
@@ -86,16 +86,16 @@ fd_function_dDD01_fdorder8(const REAL FDPROTO_i0m1_i1m1, const REAL FDPROTO_i0m1
                            const REAL FDPROTO_i0p4_i1m1, const REAL FDPROTO_i0p4_i1m2, const REAL FDPROTO_i0p4_i1m3, const REAL FDPROTO_i0p4_i1m4,
                            const REAL FDPROTO_i0p4_i1p1, const REAL FDPROTO_i0p4_i1p2, const REAL FDPROTO_i0p4_i1p3, const REAL FDPROTO_i0p4_i1p4,
                            const REAL invdxx0, const REAL invdxx1) {
-  const REAL FDPart1_Rational_16_25 = 16.0 / 25.0;
-  const REAL FDPart1_Rational_16_525 = 16.0 / 525.0;
-  const REAL FDPart1_Rational_16_11025 = 16.0 / 11025.0;
-  const REAL FDPart1_Rational_4_25 = 4.0 / 25.0;
-  const REAL FDPart1_Rational_4_525 = 4.0 / 525.0;
-  const REAL FDPart1_Rational_1_25 = 1.0 / 25.0;
-  const REAL FDPart1_Rational_1_350 = 1.0 / 350.0;
-  const REAL FDPart1_Rational_1_1400 = 1.0 / 1400.0;
-  const REAL FDPart1_Rational_1_7350 = 1.0 / 7350.0;
-  const REAL FDPart1_Rational_1_78400 = 1.0 / 78400.0;
+  constexpr REAL FDPart1_Rational_16_25 = 16.0 / 25.0;
+  constexpr REAL FDPart1_Rational_16_525 = 16.0 / 525.0;
+  constexpr REAL FDPart1_Rational_16_11025 = 16.0 / 11025.0;
+  constexpr REAL FDPart1_Rational_4_25 = 4.0 / 25.0;
+  constexpr REAL FDPart1_Rational_4_525 = 4.0 / 525.0;
+  constexpr REAL FDPart1_Rational_1_25 = 1.0 / 25.0;
+  constexpr REAL FDPart1_Rational_1_350 = 1.0 / 350.0;
+  constexpr REAL FDPart1_Rational_1_1400 = 1.0 / 1400.0;
+  constexpr REAL FDPart1_Rational_1_7350 = 1.0 / 7350.0;
+  constexpr REAL FDPart1_Rational_1_78400 = 1.0 / 78400.0;
   const REAL FD_result = invdxx0 * invdxx1 *
                          (FDPart1_Rational_16_11025 * (FDPROTO_i0m3_i1m3 - FDPROTO_i0m3_i1p3 - FDPROTO_i0p3_i1m3 + FDPROTO_i0p3_i1p3) +
                           FDPart1_Rational_16_25 * (FDPROTO_i0m1_i1m1 - FDPROTO_i0m1_i1p1 - FDPROTO_i0p1_i1m1 + FDPROTO_i0p1_i1p1) +
@@ -119,7 +119,7 @@ fd_function_dDD01_fdorder8(const REAL FDPROTO_i0m1_i1m1, const REAL FDPROTO_i0m1
 /*
  * Finite difference function for operator dDD02, with FD accuracy order 8.
  */
-static REAL
+__device__ static REAL
 fd_function_dDD02_fdorder8(const REAL FDPROTO_i0m1_i2m1, const REAL FDPROTO_i0m1_i2m2, const REAL FDPROTO_i0m1_i2m3, const REAL FDPROTO_i0m1_i2m4,
                            const REAL FDPROTO_i0m1_i2p1, const REAL FDPROTO_i0m1_i2p2, const REAL FDPROTO_i0m1_i2p3, const REAL FDPROTO_i0m1_i2p4,
                            const REAL FDPROTO_i0m2_i2m1, const REAL FDPROTO_i0m2_i2m2, const REAL FDPROTO_i0m2_i2m3, const REAL FDPROTO_i0m2_i2m4,
@@ -137,16 +137,16 @@ fd_function_dDD02_fdorder8(const REAL FDPROTO_i0m1_i2m1, const REAL FDPROTO_i0m1
                            const REAL FDPROTO_i0p4_i2m1, const REAL FDPROTO_i0p4_i2m2, const REAL FDPROTO_i0p4_i2m3, const REAL FDPROTO_i0p4_i2m4,
                            const REAL FDPROTO_i0p4_i2p1, const REAL FDPROTO_i0p4_i2p2, const REAL FDPROTO_i0p4_i2p3, const REAL FDPROTO_i0p4_i2p4,
                            const REAL invdxx0, const REAL invdxx2) {
-  const REAL FDPart1_Rational_16_25 = 16.0 / 25.0;
-  const REAL FDPart1_Rational_16_525 = 16.0 / 525.0;
-  const REAL FDPart1_Rational_16_11025 = 16.0 / 11025.0;
-  const REAL FDPart1_Rational_4_25 = 4.0 / 25.0;
-  const REAL FDPart1_Rational_4_525 = 4.0 / 525.0;
-  const REAL FDPart1_Rational_1_25 = 1.0 / 25.0;
-  const REAL FDPart1_Rational_1_350 = 1.0 / 350.0;
-  const REAL FDPart1_Rational_1_1400 = 1.0 / 1400.0;
-  const REAL FDPart1_Rational_1_7350 = 1.0 / 7350.0;
-  const REAL FDPart1_Rational_1_78400 = 1.0 / 78400.0;
+  constexpr REAL FDPart1_Rational_16_25 = 16.0 / 25.0;
+  constexpr REAL FDPart1_Rational_16_525 = 16.0 / 525.0;
+  constexpr REAL FDPart1_Rational_16_11025 = 16.0 / 11025.0;
+  constexpr REAL FDPart1_Rational_4_25 = 4.0 / 25.0;
+  constexpr REAL FDPart1_Rational_4_525 = 4.0 / 525.0;
+  constexpr REAL FDPart1_Rational_1_25 = 1.0 / 25.0;
+  constexpr REAL FDPart1_Rational_1_350 = 1.0 / 350.0;
+  constexpr REAL FDPart1_Rational_1_1400 = 1.0 / 1400.0;
+  constexpr REAL FDPart1_Rational_1_7350 = 1.0 / 7350.0;
+  constexpr REAL FDPart1_Rational_1_78400 = 1.0 / 78400.0;
   const REAL FD_result = invdxx0 * invdxx2 *
                          (FDPart1_Rational_16_11025 * (FDPROTO_i0m3_i2m3 - FDPROTO_i0m3_i2p3 - FDPROTO_i0p3_i2m3 + FDPROTO_i0p3_i2p3) +
                           FDPart1_Rational_16_25 * (FDPROTO_i0m1_i2m1 - FDPROTO_i0m1_i2p1 - FDPROTO_i0p1_i2m1 + FDPROTO_i0p1_i2p1) +
@@ -170,14 +170,14 @@ fd_function_dDD02_fdorder8(const REAL FDPROTO_i0m1_i2m1, const REAL FDPROTO_i0m1
 /*
  * Finite difference function for operator dDD11, with FD accuracy order 8.
  */
-static REAL fd_function_dDD11_fdorder8(const REAL FDPROTO, const REAL FDPROTO_i1m1, const REAL FDPROTO_i1m2, const REAL FDPROTO_i1m3,
+__device__ static REAL fd_function_dDD11_fdorder8(const REAL FDPROTO, const REAL FDPROTO_i1m1, const REAL FDPROTO_i1m2, const REAL FDPROTO_i1m3,
                                        const REAL FDPROTO_i1m4, const REAL FDPROTO_i1p1, const REAL FDPROTO_i1p2, const REAL FDPROTO_i1p3,
                                        const REAL FDPROTO_i1p4, const REAL invdxx1) {
-  const REAL FDPart1_Rational_205_72 = 205.0 / 72.0;
-  const REAL FDPart1_Rational_1_5 = 1.0 / 5.0;
-  const REAL FDPart1_Rational_1_560 = 1.0 / 560.0;
-  const REAL FDPart1_Rational_8_5 = 8.0 / 5.0;
-  const REAL FDPart1_Rational_8_315 = 8.0 / 315.0;
+  constexpr REAL FDPart1_Rational_205_72 = 205.0 / 72.0;
+  constexpr REAL FDPart1_Rational_1_5 = 1.0 / 5.0;
+  constexpr REAL FDPart1_Rational_1_560 = 1.0 / 560.0;
+  constexpr REAL FDPart1_Rational_8_5 = 8.0 / 5.0;
+  constexpr REAL FDPart1_Rational_8_315 = 8.0 / 315.0;
   const REAL FD_result =
       ((invdxx1) * (invdxx1)) * (-FDPROTO * FDPart1_Rational_205_72 + FDPart1_Rational_1_5 * (-FDPROTO_i1m2 - FDPROTO_i1p2) +
                                  FDPart1_Rational_1_560 * (-FDPROTO_i1m4 - FDPROTO_i1p4) + FDPart1_Rational_8_315 * (FDPROTO_i1m3 + FDPROTO_i1p3) +
@@ -188,7 +188,7 @@ static REAL fd_function_dDD11_fdorder8(const REAL FDPROTO, const REAL FDPROTO_i1
 /*
  * Finite difference function for operator dDD12, with FD accuracy order 8.
  */
-static REAL
+__device__ static REAL
 fd_function_dDD12_fdorder8(const REAL FDPROTO_i1m1_i2m1, const REAL FDPROTO_i1m1_i2m2, const REAL FDPROTO_i1m1_i2m3, const REAL FDPROTO_i1m1_i2m4,
                            const REAL FDPROTO_i1m1_i2p1, const REAL FDPROTO_i1m1_i2p2, const REAL FDPROTO_i1m1_i2p3, const REAL FDPROTO_i1m1_i2p4,
                            const REAL FDPROTO_i1m2_i2m1, const REAL FDPROTO_i1m2_i2m2, const REAL FDPROTO_i1m2_i2m3, const REAL FDPROTO_i1m2_i2m4,
@@ -206,16 +206,16 @@ fd_function_dDD12_fdorder8(const REAL FDPROTO_i1m1_i2m1, const REAL FDPROTO_i1m1
                            const REAL FDPROTO_i1p4_i2m1, const REAL FDPROTO_i1p4_i2m2, const REAL FDPROTO_i1p4_i2m3, const REAL FDPROTO_i1p4_i2m4,
                            const REAL FDPROTO_i1p4_i2p1, const REAL FDPROTO_i1p4_i2p2, const REAL FDPROTO_i1p4_i2p3, const REAL FDPROTO_i1p4_i2p4,
                            const REAL invdxx1, const REAL invdxx2) {
-  const REAL FDPart1_Rational_16_25 = 16.0 / 25.0;
-  const REAL FDPart1_Rational_16_525 = 16.0 / 525.0;
-  const REAL FDPart1_Rational_16_11025 = 16.0 / 11025.0;
-  const REAL FDPart1_Rational_4_25 = 4.0 / 25.0;
-  const REAL FDPart1_Rational_4_525 = 4.0 / 525.0;
-  const REAL FDPart1_Rational_1_25 = 1.0 / 25.0;
-  const REAL FDPart1_Rational_1_350 = 1.0 / 350.0;
-  const REAL FDPart1_Rational_1_1400 = 1.0 / 1400.0;
-  const REAL FDPart1_Rational_1_7350 = 1.0 / 7350.0;
-  const REAL FDPart1_Rational_1_78400 = 1.0 / 78400.0;
+  constexpr REAL FDPart1_Rational_16_25 = 16.0 / 25.0;
+  constexpr REAL FDPart1_Rational_16_525 = 16.0 / 525.0;
+  constexpr REAL FDPart1_Rational_16_11025 = 16.0 / 11025.0;
+  constexpr REAL FDPart1_Rational_4_25 = 4.0 / 25.0;
+  constexpr REAL FDPart1_Rational_4_525 = 4.0 / 525.0;
+  constexpr REAL FDPart1_Rational_1_25 = 1.0 / 25.0;
+  constexpr REAL FDPart1_Rational_1_350 = 1.0 / 350.0;
+  constexpr REAL FDPart1_Rational_1_1400 = 1.0 / 1400.0;
+  constexpr REAL FDPart1_Rational_1_7350 = 1.0 / 7350.0;
+  constexpr REAL FDPart1_Rational_1_78400 = 1.0 / 78400.0;
   const REAL FD_result = invdxx1 * invdxx2 *
                          (FDPart1_Rational_16_11025 * (FDPROTO_i1m3_i2m3 - FDPROTO_i1m3_i2p3 - FDPROTO_i1p3_i2m3 + FDPROTO_i1p3_i2p3) +
                           FDPart1_Rational_16_25 * (FDPROTO_i1m1_i2m1 - FDPROTO_i1m1_i2p1 - FDPROTO_i1p1_i2m1 + FDPROTO_i1p1_i2p1) +
@@ -239,14 +239,14 @@ fd_function_dDD12_fdorder8(const REAL FDPROTO_i1m1_i2m1, const REAL FDPROTO_i1m1
 /*
  * Finite difference function for operator dDD22, with FD accuracy order 8.
  */
-static REAL fd_function_dDD22_fdorder8(const REAL FDPROTO, const REAL FDPROTO_i2m1, const REAL FDPROTO_i2m2, const REAL FDPROTO_i2m3,
+__device__ static REAL fd_function_dDD22_fdorder8(const REAL FDPROTO, const REAL FDPROTO_i2m1, const REAL FDPROTO_i2m2, const REAL FDPROTO_i2m3,
                                        const REAL FDPROTO_i2m4, const REAL FDPROTO_i2p1, const REAL FDPROTO_i2p2, const REAL FDPROTO_i2p3,
                                        const REAL FDPROTO_i2p4, const REAL invdxx2) {
-  const REAL FDPart1_Rational_205_72 = 205.0 / 72.0;
-  const REAL FDPart1_Rational_1_5 = 1.0 / 5.0;
-  const REAL FDPart1_Rational_1_560 = 1.0 / 560.0;
-  const REAL FDPart1_Rational_8_5 = 8.0 / 5.0;
-  const REAL FDPart1_Rational_8_315 = 8.0 / 315.0;
+  constexpr REAL FDPart1_Rational_205_72 = 205.0 / 72.0;
+  constexpr REAL FDPart1_Rational_1_5 = 1.0 / 5.0;
+  constexpr REAL FDPart1_Rational_1_560 = 1.0 / 560.0;
+  constexpr REAL FDPart1_Rational_8_5 = 8.0 / 5.0;
+  constexpr REAL FDPart1_Rational_8_315 = 8.0 / 315.0;
   const REAL FD_result =
       ((invdxx2) * (invdxx2)) * (-FDPROTO * FDPart1_Rational_205_72 + FDPart1_Rational_1_5 * (-FDPROTO_i2m2 - FDPROTO_i2p2) +
                                  FDPart1_Rational_1_560 * (-FDPROTO_i2m4 - FDPROTO_i2p4) + FDPart1_Rational_8_315 * (FDPROTO_i2m3 + FDPROTO_i2p3) +
@@ -257,17 +257,17 @@ static REAL fd_function_dDD22_fdorder8(const REAL FDPROTO, const REAL FDPROTO_i2
 /*
  * Finite difference function for operator ddnD0, with FD accuracy order 8.
  */
-static REAL fd_function_ddnD0_fdorder8(const REAL FDPROTO, const REAL FDPROTO_i0m1, const REAL FDPROTO_i0m2, const REAL FDPROTO_i0m3,
+__device__ static REAL fd_function_ddnD0_fdorder8(const REAL FDPROTO, const REAL FDPROTO_i0m1, const REAL FDPROTO_i0m2, const REAL FDPROTO_i0m3,
                                        const REAL FDPROTO_i0m4, const REAL FDPROTO_i0m5, const REAL FDPROTO_i0p1, const REAL FDPROTO_i0p2,
                                        const REAL FDPROTO_i0p3, const REAL invdxx0) {
-  const REAL FDPart1_Rational_1_2 = 1.0 / 2.0;
-  const REAL FDPart1_Rational_5_4 = 5.0 / 4.0;
-  const REAL FDPart1_Rational_1_6 = 1.0 / 6.0;
-  const REAL FDPart1_Rational_1_14 = 1.0 / 14.0;
-  const REAL FDPart1_Rational_1_280 = 1.0 / 280.0;
-  const REAL FDPart1_Rational_1_28 = 1.0 / 28.0;
-  const REAL FDPart1_Rational_1_168 = 1.0 / 168.0;
-  const REAL FDPart1_Rational_9_20 = 9.0 / 20.0;
+  constexpr REAL FDPart1_Rational_1_2 = 1.0 / 2.0;
+  constexpr REAL FDPart1_Rational_5_4 = 5.0 / 4.0;
+  constexpr REAL FDPart1_Rational_1_6 = 1.0 / 6.0;
+  constexpr REAL FDPart1_Rational_1_14 = 1.0 / 14.0;
+  constexpr REAL FDPart1_Rational_1_280 = 1.0 / 280.0;
+  constexpr REAL FDPart1_Rational_1_28 = 1.0 / 28.0;
+  constexpr REAL FDPart1_Rational_1_168 = 1.0 / 168.0;
+  constexpr REAL FDPart1_Rational_9_20 = 9.0 / 20.0;
   const REAL FD_result =
       invdxx0 * (FDPROTO * FDPart1_Rational_9_20 - FDPROTO_i0m1 * FDPart1_Rational_5_4 - FDPROTO_i0m3 * FDPart1_Rational_1_6 +
                  FDPROTO_i0m4 * FDPart1_Rational_1_28 - FDPROTO_i0m5 * FDPart1_Rational_1_280 - FDPROTO_i0p2 * FDPart1_Rational_1_14 +
@@ -278,17 +278,17 @@ static REAL fd_function_ddnD0_fdorder8(const REAL FDPROTO, const REAL FDPROTO_i0
 /*
  * Finite difference function for operator ddnD1, with FD accuracy order 8.
  */
-static REAL fd_function_ddnD1_fdorder8(const REAL FDPROTO, const REAL FDPROTO_i1m1, const REAL FDPROTO_i1m2, const REAL FDPROTO_i1m3,
+__device__ static REAL fd_function_ddnD1_fdorder8(const REAL FDPROTO, const REAL FDPROTO_i1m1, const REAL FDPROTO_i1m2, const REAL FDPROTO_i1m3,
                                        const REAL FDPROTO_i1m4, const REAL FDPROTO_i1m5, const REAL FDPROTO_i1p1, const REAL FDPROTO_i1p2,
                                        const REAL FDPROTO_i1p3, const REAL invdxx1) {
-  const REAL FDPart1_Rational_1_2 = 1.0 / 2.0;
-  const REAL FDPart1_Rational_5_4 = 5.0 / 4.0;
-  const REAL FDPart1_Rational_1_6 = 1.0 / 6.0;
-  const REAL FDPart1_Rational_1_14 = 1.0 / 14.0;
-  const REAL FDPart1_Rational_1_280 = 1.0 / 280.0;
-  const REAL FDPart1_Rational_1_28 = 1.0 / 28.0;
-  const REAL FDPart1_Rational_1_168 = 1.0 / 168.0;
-  const REAL FDPart1_Rational_9_20 = 9.0 / 20.0;
+  constexpr REAL FDPart1_Rational_1_2 = 1.0 / 2.0;
+  constexpr REAL FDPart1_Rational_5_4 = 5.0 / 4.0;
+  constexpr REAL FDPart1_Rational_1_6 = 1.0 / 6.0;
+  constexpr REAL FDPart1_Rational_1_14 = 1.0 / 14.0;
+  constexpr REAL FDPart1_Rational_1_280 = 1.0 / 280.0;
+  constexpr REAL FDPart1_Rational_1_28 = 1.0 / 28.0;
+  constexpr REAL FDPart1_Rational_1_168 = 1.0 / 168.0;
+  constexpr REAL FDPart1_Rational_9_20 = 9.0 / 20.0;
   const REAL FD_result =
       invdxx1 * (FDPROTO * FDPart1_Rational_9_20 - FDPROTO_i1m1 * FDPart1_Rational_5_4 - FDPROTO_i1m3 * FDPart1_Rational_1_6 +
                  FDPROTO_i1m4 * FDPart1_Rational_1_28 - FDPROTO_i1m5 * FDPart1_Rational_1_280 - FDPROTO_i1p2 * FDPart1_Rational_1_14 +
@@ -299,17 +299,17 @@ static REAL fd_function_ddnD1_fdorder8(const REAL FDPROTO, const REAL FDPROTO_i1
 /*
  * Finite difference function for operator ddnD2, with FD accuracy order 8.
  */
-static REAL fd_function_ddnD2_fdorder8(const REAL FDPROTO, const REAL FDPROTO_i2m1, const REAL FDPROTO_i2m2, const REAL FDPROTO_i2m3,
+__device__ static REAL fd_function_ddnD2_fdorder8(const REAL FDPROTO, const REAL FDPROTO_i2m1, const REAL FDPROTO_i2m2, const REAL FDPROTO_i2m3,
                                        const REAL FDPROTO_i2m4, const REAL FDPROTO_i2m5, const REAL FDPROTO_i2p1, const REAL FDPROTO_i2p2,
                                        const REAL FDPROTO_i2p3, const REAL invdxx2) {
-  const REAL FDPart1_Rational_1_2 = 1.0 / 2.0;
-  const REAL FDPart1_Rational_5_4 = 5.0 / 4.0;
-  const REAL FDPart1_Rational_1_6 = 1.0 / 6.0;
-  const REAL FDPart1_Rational_1_14 = 1.0 / 14.0;
-  const REAL FDPart1_Rational_1_280 = 1.0 / 280.0;
-  const REAL FDPart1_Rational_1_28 = 1.0 / 28.0;
-  const REAL FDPart1_Rational_1_168 = 1.0 / 168.0;
-  const REAL FDPart1_Rational_9_20 = 9.0 / 20.0;
+  constexpr REAL FDPart1_Rational_1_2 = 1.0 / 2.0;
+  constexpr REAL FDPart1_Rational_5_4 = 5.0 / 4.0;
+  constexpr REAL FDPart1_Rational_1_6 = 1.0 / 6.0;
+  constexpr REAL FDPart1_Rational_1_14 = 1.0 / 14.0;
+  constexpr REAL FDPart1_Rational_1_280 = 1.0 / 280.0;
+  constexpr REAL FDPart1_Rational_1_28 = 1.0 / 28.0;
+  constexpr REAL FDPart1_Rational_1_168 = 1.0 / 168.0;
+  constexpr REAL FDPart1_Rational_9_20 = 9.0 / 20.0;
   const REAL FD_result =
       invdxx2 * (FDPROTO * FDPart1_Rational_9_20 - FDPROTO_i2m1 * FDPart1_Rational_5_4 - FDPROTO_i2m3 * FDPart1_Rational_1_6 +
                  FDPROTO_i2m4 * FDPart1_Rational_1_28 - FDPROTO_i2m5 * FDPart1_Rational_1_280 - FDPROTO_i2p2 * FDPart1_Rational_1_14 +
@@ -320,17 +320,17 @@ static REAL fd_function_ddnD2_fdorder8(const REAL FDPROTO, const REAL FDPROTO_i2
 /*
  * Finite difference function for operator dupD0, with FD accuracy order 8.
  */
-static REAL fd_function_dupD0_fdorder8(const REAL FDPROTO, const REAL FDPROTO_i0m1, const REAL FDPROTO_i0m2, const REAL FDPROTO_i0m3,
+__device__ static REAL fd_function_dupD0_fdorder8(const REAL FDPROTO, const REAL FDPROTO_i0m1, const REAL FDPROTO_i0m2, const REAL FDPROTO_i0m3,
                                        const REAL FDPROTO_i0p1, const REAL FDPROTO_i0p2, const REAL FDPROTO_i0p3, const REAL FDPROTO_i0p4,
                                        const REAL FDPROTO_i0p5, const REAL invdxx0) {
-  const REAL FDPart1_Rational_9_20 = 9.0 / 20.0;
-  const REAL FDPart1_Rational_1_2 = 1.0 / 2.0;
-  const REAL FDPart1_Rational_1_28 = 1.0 / 28.0;
-  const REAL FDPart1_Rational_1_168 = 1.0 / 168.0;
-  const REAL FDPart1_Rational_1_6 = 1.0 / 6.0;
-  const REAL FDPart1_Rational_1_14 = 1.0 / 14.0;
-  const REAL FDPart1_Rational_1_280 = 1.0 / 280.0;
-  const REAL FDPart1_Rational_5_4 = 5.0 / 4.0;
+  constexpr REAL FDPart1_Rational_9_20 = 9.0 / 20.0;
+  constexpr REAL FDPart1_Rational_1_2 = 1.0 / 2.0;
+  constexpr REAL FDPart1_Rational_1_28 = 1.0 / 28.0;
+  constexpr REAL FDPart1_Rational_1_168 = 1.0 / 168.0;
+  constexpr REAL FDPart1_Rational_1_6 = 1.0 / 6.0;
+  constexpr REAL FDPart1_Rational_1_14 = 1.0 / 14.0;
+  constexpr REAL FDPart1_Rational_1_280 = 1.0 / 280.0;
+  constexpr REAL FDPart1_Rational_5_4 = 5.0 / 4.0;
   const REAL FD_result = invdxx0 * (-FDPROTO * FDPart1_Rational_9_20 + FDPROTO_i0m2 * FDPart1_Rational_1_14 - FDPROTO_i0m3 * FDPart1_Rational_1_168 +
                                     FDPROTO_i0p1 * FDPart1_Rational_5_4 + FDPROTO_i0p3 * FDPart1_Rational_1_6 - FDPROTO_i0p4 * FDPart1_Rational_1_28 +
                                     FDPROTO_i0p5 * FDPart1_Rational_1_280 + FDPart1_Rational_1_2 * (-FDPROTO_i0m1 - FDPROTO_i0p2));
@@ -340,17 +340,17 @@ static REAL fd_function_dupD0_fdorder8(const REAL FDPROTO, const REAL FDPROTO_i0
 /*
  * Finite difference function for operator dupD1, with FD accuracy order 8.
  */
-static REAL fd_function_dupD1_fdorder8(const REAL FDPROTO, const REAL FDPROTO_i1m1, const REAL FDPROTO_i1m2, const REAL FDPROTO_i1m3,
+__device__ static REAL fd_function_dupD1_fdorder8(const REAL FDPROTO, const REAL FDPROTO_i1m1, const REAL FDPROTO_i1m2, const REAL FDPROTO_i1m3,
                                        const REAL FDPROTO_i1p1, const REAL FDPROTO_i1p2, const REAL FDPROTO_i1p3, const REAL FDPROTO_i1p4,
                                        const REAL FDPROTO_i1p5, const REAL invdxx1) {
-  const REAL FDPart1_Rational_9_20 = 9.0 / 20.0;
-  const REAL FDPart1_Rational_1_2 = 1.0 / 2.0;
-  const REAL FDPart1_Rational_1_28 = 1.0 / 28.0;
-  const REAL FDPart1_Rational_1_168 = 1.0 / 168.0;
-  const REAL FDPart1_Rational_1_6 = 1.0 / 6.0;
-  const REAL FDPart1_Rational_1_14 = 1.0 / 14.0;
-  const REAL FDPart1_Rational_1_280 = 1.0 / 280.0;
-  const REAL FDPart1_Rational_5_4 = 5.0 / 4.0;
+  constexpr REAL FDPart1_Rational_9_20 = 9.0 / 20.0;
+  constexpr REAL FDPart1_Rational_1_2 = 1.0 / 2.0;
+  constexpr REAL FDPart1_Rational_1_28 = 1.0 / 28.0;
+  constexpr REAL FDPart1_Rational_1_168 = 1.0 / 168.0;
+  constexpr REAL FDPart1_Rational_1_6 = 1.0 / 6.0;
+  constexpr REAL FDPart1_Rational_1_14 = 1.0 / 14.0;
+  constexpr REAL FDPart1_Rational_1_280 = 1.0 / 280.0;
+  constexpr REAL FDPart1_Rational_5_4 = 5.0 / 4.0;
   const REAL FD_result = invdxx1 * (-FDPROTO * FDPart1_Rational_9_20 + FDPROTO_i1m2 * FDPart1_Rational_1_14 - FDPROTO_i1m3 * FDPart1_Rational_1_168 +
                                     FDPROTO_i1p1 * FDPart1_Rational_5_4 + FDPROTO_i1p3 * FDPart1_Rational_1_6 - FDPROTO_i1p4 * FDPart1_Rational_1_28 +
                                     FDPROTO_i1p5 * FDPart1_Rational_1_280 + FDPart1_Rational_1_2 * (-FDPROTO_i1m1 - FDPROTO_i1p2));
@@ -360,17 +360,17 @@ static REAL fd_function_dupD1_fdorder8(const REAL FDPROTO, const REAL FDPROTO_i1
 /*
  * Finite difference function for operator dupD2, with FD accuracy order 8.
  */
-static REAL fd_function_dupD2_fdorder8(const REAL FDPROTO, const REAL FDPROTO_i2m1, const REAL FDPROTO_i2m2, const REAL FDPROTO_i2m3,
+__device__ static REAL fd_function_dupD2_fdorder8(const REAL FDPROTO, const REAL FDPROTO_i2m1, const REAL FDPROTO_i2m2, const REAL FDPROTO_i2m3,
                                        const REAL FDPROTO_i2p1, const REAL FDPROTO_i2p2, const REAL FDPROTO_i2p3, const REAL FDPROTO_i2p4,
                                        const REAL FDPROTO_i2p5, const REAL invdxx2) {
-  const REAL FDPart1_Rational_9_20 = 9.0 / 20.0;
-  const REAL FDPart1_Rational_1_2 = 1.0 / 2.0;
-  const REAL FDPart1_Rational_1_28 = 1.0 / 28.0;
-  const REAL FDPart1_Rational_1_168 = 1.0 / 168.0;
-  const REAL FDPart1_Rational_1_6 = 1.0 / 6.0;
-  const REAL FDPart1_Rational_1_14 = 1.0 / 14.0;
-  const REAL FDPart1_Rational_1_280 = 1.0 / 280.0;
-  const REAL FDPart1_Rational_5_4 = 5.0 / 4.0;
+  constexpr REAL FDPart1_Rational_9_20 = 9.0 / 20.0;
+  constexpr REAL FDPart1_Rational_1_2 = 1.0 / 2.0;
+  constexpr REAL FDPart1_Rational_1_28 = 1.0 / 28.0;
+  constexpr REAL FDPart1_Rational_1_168 = 1.0 / 168.0;
+  constexpr REAL FDPart1_Rational_1_6 = 1.0 / 6.0;
+  constexpr REAL FDPart1_Rational_1_14 = 1.0 / 14.0;
+  constexpr REAL FDPart1_Rational_1_280 = 1.0 / 280.0;
+  constexpr REAL FDPart1_Rational_5_4 = 5.0 / 4.0;
   const REAL FD_result = invdxx2 * (-FDPROTO * FDPart1_Rational_9_20 + FDPROTO_i2m2 * FDPart1_Rational_1_14 - FDPROTO_i2m3 * FDPart1_Rational_1_168 +
                                     FDPROTO_i2p1 * FDPart1_Rational_5_4 + FDPROTO_i2p3 * FDPart1_Rational_1_6 - FDPROTO_i2p4 * FDPart1_Rational_1_28 +
                                     FDPROTO_i2p5 * FDPart1_Rational_1_280 + FDPart1_Rational_1_2 * (-FDPROTO_i2m1 - FDPROTO_i2p2));

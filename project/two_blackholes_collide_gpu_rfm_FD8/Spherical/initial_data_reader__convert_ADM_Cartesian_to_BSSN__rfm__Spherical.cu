@@ -30,7 +30,7 @@ typedef struct __rescaled_BSSN_rfm_basis_struct__ {
 /*
  * Convert ADM variables from the spherical or Cartesian basis to the Cartesian basis
  */
-__device__ static
+__device__ __device__ static
 void ADM_SphorCart_to_Cart(const commondata_struct *restrict commondata, const REAL xCart[3],
                                   const initial_data_struct *restrict initial_data, ADM_Cart_basis_struct *restrict ADM_Cart_basis) {
 
@@ -80,7 +80,7 @@ void ADM_SphorCart_to_Cart(const commondata_struct *restrict commondata, const R
 /*
  * Convert ADM variables in the Cartesian basis to BSSN variables in the Cartesian basis
  */
-__device__ static void ADM_Cart_to_BSSN_Cart(const commondata_struct *restrict commondata, const REAL xCart[3],
+__device__ __device__ static void ADM_Cart_to_BSSN_Cart(const commondata_struct *restrict commondata, const REAL xCart[3],
                                   const ADM_Cart_basis_struct *restrict ADM_Cart_basis, BSSN_Cart_basis_struct *restrict BSSN_Cart_basis) {
 
   // *In the Cartesian basis*, convert ADM quantities gammaDD & KDD
@@ -135,7 +135,7 @@ __device__ static void ADM_Cart_to_BSSN_Cart(const commondata_struct *restrict c
  * Cartesian -> Spherical basis transformation of BSSN vectors/tensors *except* lambda^i.
  * After the basis transform, all BSSN quantities are rescaled.
  */
-__device__ static
+__device__ __device__ static
 void BSSN_Cart_to_rescaled_BSSN_rfm(const commondata_struct *restrict commondata, const REAL xCart[3],
                                            const BSSN_Cart_basis_struct *restrict BSSN_Cart_basis,
                                            rescaled_BSSN_rfm_basis_struct *restrict rescaled_BSSN_rfm_basis) {
@@ -435,10 +435,10 @@ void initial_data_lambdaU_grid_interior_gpu(REAL *restrict _xx0, REAL *restrict 
         const REAL hDD22_i2p2 = in_gfs[IDX4(HDD22GF, i0, i1, i2 + 2)];
         const REAL hDD22_i2p3 = in_gfs[IDX4(HDD22GF, i0, i1, i2 + 3)];
         const REAL hDD22_i2p4 = in_gfs[IDX4(HDD22GF, i0, i1, i2 + 4)];
-        const REAL FDPart1_Rational_4_5 = 4.0 / 5.0;
-        const REAL FDPart1_Rational_4_105 = 4.0 / 105.0;
-        const REAL FDPart1_Rational_1_5 = 1.0 / 5.0;
-        const REAL FDPart1_Rational_1_280 = 1.0 / 280.0;
+        constexpr REAL FDPart1_Rational_4_5 = 4.0 / 5.0;
+        constexpr REAL FDPart1_Rational_4_105 = 4.0 / 105.0;
+        constexpr REAL FDPart1_Rational_1_5 = 1.0 / 5.0;
+        constexpr REAL FDPart1_Rational_1_280 = 1.0 / 280.0;
         const REAL hDD_dD000 = invdxx0 * (FDPart1_Rational_1_280 * (hDD00_i0m4 - hDD00_i0p4) + FDPart1_Rational_1_5 * (hDD00_i0m2 - hDD00_i0p2) +
                                           FDPart1_Rational_4_105 * (-hDD00_i0m3 + hDD00_i0p3) + FDPart1_Rational_4_5 * (-hDD00_i0m1 + hDD00_i0p1));
         const REAL hDD_dD001 = invdxx1 * (FDPart1_Rational_1_280 * (hDD00_i1m4 - hDD00_i1p4) + FDPart1_Rational_1_5 * (hDD00_i1m2 - hDD00_i1p2) +
