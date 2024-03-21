@@ -48,6 +48,7 @@ def register_CFunction_initial_data(
     populate_ID_persist_struct_str: str = "",
     free_ID_persist_struct_str: str = "",
     include_T4UU: bool = False,
+    fp_type: str = "double",
 ) -> Union[None, pcg.NRPyEnv_type]:
     """
     Register C functions for converting ADM initial data to BSSN variables and applying boundary conditions.
@@ -95,6 +96,7 @@ def register_CFunction_initial_data(
         IDCoordSystem=IDCoordSystem,
         ID_persist_struct_str=ID_persist_struct_str,
         include_T4UU=include_T4UU,
+        fp_type=fp_type,
     )
 
     desc = "Set initial data."
