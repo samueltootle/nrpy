@@ -32,6 +32,7 @@ def register_CFunction_exact_ADM_ID_function(
     BU: List[sp.Expr],
     gammaDD: List[List[sp.Expr]],
     KDD: List[List[sp.Expr]],
+    fp_type: str = "double",
 ) -> None:
     """
     Register C function for exact ADM initial data of a given ID type.
@@ -56,11 +57,12 @@ def register_CFunction_exact_ADM_ID_function(
         rfm_Spherical = refmetric.reference_metric["Spherical"]
         body += "const REAL Cartx=xCart[0],Carty=xCart[1],Cartz=xCart[2];\n"
         body += "REAL r, th, ph;\n"
-        body += ccg.c_codegen(
+        body += c_codegen(
             rfm_Spherical.Cart_to_xx,
             ["r", "th", "ph"],
             verbose=False,
             include_braces=True,
+            fp_type=fp_type,
         )
         body += "const REAL xx0=r, xx1=th, xx2=ph;\n"
     elif IDCoordSystem == "Cartesian":
@@ -92,11 +94,12 @@ def register_CFunction_exact_ADM_ID_function(
         for t in zip(*sorted(zip(list_of_output_varnames, list_of_output_exprs)))
     )
 
-    body += ccg.c_codegen(
+    body += c_codegen(
         list_of_output_exprs,
         list_of_output_varnames,
         verbose=False,
         include_braces=False,
+        fp_type=fp_type,
     )
 
     cfc.register_CFunction(
@@ -113,6 +116,7 @@ def register_CFunction_exact_ADM_ID_function(
 def Cfunction_ADM_SphorCart_to_Cart(
     IDCoordSystem: str = "Spherical",
     include_T4UU: bool = False,
+    fp_type: str = "double",
 ) -> str:
     """
     Convert ADM variables from the spherical or Cartesian basis to the Cartesian basis.
@@ -157,10 +161,11 @@ def Cfunction_ADM_SphorCart_to_Cart(
 
       // Set destination xx[3] based on desired xCart[3]
       REAL xx0,xx1,xx2;
-      """ + ccg.c_codegen(
+      """ + c_codegen(
             rfm.Cart_to_xx,
             ["xx0", "xx1", "xx2"],
             include_braces=True,
+            fp_type=fp_type,
         ).replace(
             "Cartx", "xCart[0]"
         ).replace(
@@ -222,11 +227,12 @@ def Cfunction_ADM_SphorCart_to_Cart(
         for t in zip(*sorted(zip(list_of_output_varnames, list_of_output_exprs)))
     )
 
-    body += ccg.c_codegen(
+    body += c_codegen(
         list_of_output_exprs,
         list_of_output_varnames,
         verbose=False,
         include_braces=False,
+        fp_type=fp_type,
     )
 
     return cfc.CFunction(
@@ -240,7 +246,7 @@ def Cfunction_ADM_SphorCart_to_Cart(
     ).full_function
 
 
-def Cfunction_ADM_Cart_to_BSSN_Cart(include_T4UU: bool = False) -> str:
+def Cfunction_ADM_Cart_to_BSSN_Cart(include_T4UU: bool = False, fp_type: str = "double") -> str:
     """
     Convert ADM variables in the Cartesian basis to BSSN variables in the Cartesian basis.
 
@@ -296,11 +302,12 @@ def Cfunction_ADM_Cart_to_BSSN_Cart(include_T4UU: bool = False) -> str:
         list(t)
         for t in zip(*sorted(zip(list_of_output_varnames, list_of_output_exprs)))
     )
-    body += ccg.c_codegen(
+    body += c_codegen(
         list_of_output_exprs,
         list_of_output_varnames,
         verbose=False,
         include_braces=False,
+        fp_type=fp_type,
     )
 
     return cfc.CFunction(
@@ -313,7 +320,8 @@ def Cfunction_ADM_Cart_to_BSSN_Cart(include_T4UU: bool = False) -> str:
 
 
 def Cfunction_BSSN_Cart_to_rescaled_BSSN_rfm(
-    CoordSystem: str, include_T4UU: bool = False
+    CoordSystem: str, include_T4UU: bool = False,
+    fp_type: str = "double",
 ) -> str:
     """
     Convert Cartesian-basis BSSN vectors/tensors (except lambda^i) to CoordSystem basis, then rescale these BSSN quantities.
@@ -414,11 +422,12 @@ After the basis transform, all BSSN quantities are rescaled."""
         for t in zip(*sorted(zip(list_of_output_varnames, list_of_output_exprs)))
     )
 
-    body += ccg.c_codegen(
+    body += c_codegen(
         list_of_output_exprs,
         list_of_output_varnames,
         verbose=False,
         include_braces=False,
+        fp_type=fp_type,
     )
 
     return cfc.CFunction(
@@ -434,7 +443,7 @@ After the basis transform, all BSSN quantities are rescaled."""
 
 # Cfunction_initial_data_lambdaU_grid_interior() computes lambdaU from
 # finite-difference derivatives of rescaled metric quantities
-def Cfunction_initial_data_lambdaU_grid_interior(CoordSystem: str) -> str:
+def Cfunction_initial_data_lambdaU_grid_interior(CoordSystem: str, fp_type: str = "double") -> str:
     """
     Compute lambdaU in the specified coordinate system.
 
@@ -475,7 +484,7 @@ def Cfunction_initial_data_lambdaU_grid_interior(CoordSystem: str) -> str:
         lambdaU[i] = LambdabarU[i] / rfm.ReU[i]
 
     body = lp.simple_loop(
-        ccg.c_codegen(
+        c_codegen(
             lambdaU,
             [
                 gri.BHaHGridFunction.access_gf("lambdaU0"),
@@ -485,6 +494,7 @@ def Cfunction_initial_data_lambdaU_grid_interior(CoordSystem: str) -> str:
             verbose=False,
             include_braces=False,
             enable_fd_codegen=True,
+            fp_type=fp_type,
         ),
         loop_region="interior",
         read_xxs=True,
@@ -508,6 +518,7 @@ def register_CFunction_initial_data_reader__convert_ADM_Sph_or_Cart_to_BSSN(
     include_T4UU: bool = False,
     enable_fd_functions: bool = False,
     ID_persist_struct_str: str = "",
+    fp_type: str = "double",
 ) -> None:
     """
     Register the CFunction for converting initial ADM data to BSSN variables.
@@ -607,13 +618,13 @@ typedef struct __rescaled_BSSN_rfm_basis_struct__ {
     ##############
     ##############
     prefunc += Cfunction_ADM_SphorCart_to_Cart(
-        IDCoordSystem=IDCoordSystem, include_T4UU=include_T4UU
+        IDCoordSystem=IDCoordSystem, include_T4UU=include_T4UU, fp_type=fp_type
     )
-    prefunc += Cfunction_ADM_Cart_to_BSSN_Cart(include_T4UU=include_T4UU)
+    prefunc += Cfunction_ADM_Cart_to_BSSN_Cart(include_T4UU=include_T4UU, fp_type=fp_type)
     prefunc += Cfunction_BSSN_Cart_to_rescaled_BSSN_rfm(
-        CoordSystem=CoordSystem, include_T4UU=include_T4UU
+        CoordSystem=CoordSystem, include_T4UU=include_T4UU, fp_type=fp_type
     )
-    prefunc += Cfunction_initial_data_lambdaU_grid_interior(CoordSystem=CoordSystem)
+    prefunc += Cfunction_initial_data_lambdaU_grid_interior(CoordSystem=CoordSystem, fp_type=fp_type)
 
     desc = f"Read ADM data in the {IDCoordSystem} basis, and output rescaled BSSN data in the {CoordSystem} basis"
     cfunc_type = "void"
