@@ -6,7 +6,7 @@
 /*
  * Set up a cell-centered grids of size grid_physical_size.
  */
-void numerical_grids_and_timestep(commondata_struct *restrict commondata, griddata_struct *restrict griddata, bool calling_for_first_time) {
+void numerical_grids_and_timestep(commondata_struct *restrict commondata, griddata_struct *restrict griddata, griddata_struct *restrict griddata_host, bool calling_for_first_time) {
   // Step 1.a: Set CoordSystem_hash
   CoordSystem_hash_setup(commondata, griddata);
 
@@ -31,14 +31,15 @@ void numerical_grids_and_timestep(commondata_struct *restrict commondata, gridda
     set_param_constants(&griddata[grid].params);
     rfm_precompute_defines(commondata, &griddata[grid].params, &griddata[grid].rfmstruct, griddata[grid].xx);
   }
-
+  cpyDevicetoHost__grid(commondata, griddata_host, griddata);
+  cudaDeviceSynchronize();
   // Step 1.d: Set up curvilinear boundary condition struct (bcstruct)
 
   for (int grid = 0; grid < commondata->NUMGRIDS; grid++) {
     set_param_constants(&griddata[grid].params);
-    bcstruct_set_up(commondata, &griddata[grid].params, griddata[grid].xx, &griddata[grid].bcstruct);
+    bcstruct_set_up(commondata, &griddata[grid].params, griddata_host[grid].xx, &griddata[grid].bcstruct);
   }
-
+  cudaDeviceSynchronize();
   // Step 1.e: Set timestep based on minimum spacing between neighboring gridpoints.
   commondata->dt = 1e30;
   for (int grid = 0; grid < commondata->NUMGRIDS; grid++) {

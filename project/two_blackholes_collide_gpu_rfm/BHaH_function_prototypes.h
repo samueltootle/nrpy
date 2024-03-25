@@ -55,7 +55,7 @@ void initial_data_reader__convert_ADM_Cartesian_to_BSSN__rfm__Spherical(const co
 int main(int argc, const char *argv[]);
 void numerical_grid_params_Nxx_dxx_xx(commondata_struct *restrict commondata, params_struct *restrict params, REAL *xx[3]);
 void numerical_grid_params_Nxx_dxx_xx__rfm__Spherical(commondata_struct *restrict commondata, params_struct *restrict params, REAL * xx[3]);
-void numerical_grids_and_timestep(commondata_struct *restrict commondata, griddata_struct *restrict griddata, bool calling_for_first_time);
+void numerical_grids_and_timestep(commondata_struct *restrict commondata, griddata_struct *restrict griddata, griddata_struct *restrict griddata_host, bool calling_for_first_time);
 void params_struct_set_to_default(commondata_struct *restrict commondata, griddata_struct *restrict griddata);
 void progress_indicator(commondata_struct *restrict commondata, const griddata_struct *restrict griddata);
 void rfm_precompute_defines(const commondata_struct *restrict commondata, const params_struct *restrict params, rfm_struct *restrict rfmstruct, REAL *xx[3]);

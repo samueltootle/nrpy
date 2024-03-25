@@ -1,19 +1,47 @@
 #include "../BHaH_defines.h"
 #include "../BHaH_function_prototypes.h"
 #include "../BHaH_gpu_defines.h"
-#include "../BHaH_gpu_function_prototypes.h"
 
-__global__
-void print_inner(innerpt_bc_struct *restrict inner_bc_array, size_t const N) {
-  for(int i = 0; i < N; ++i) {
-    for(int j = 0; j < 10; ++j) {
-      auto p = inner_bc_array[i].parity[j];
-      auto dstpt = inner_bc_array[i].dstpt;
-      auto srcpt = inner_bc_array[i].srcpt;
-      printf("%d: (%d, %d) %d, %d\n", p, i, j, dstpt, srcpt);
-    }
+static void cpy_pure_outer_bc_array(bc_struct *restrict bcstruct_h, bc_struct *restrict bcstruct_d,
+  const int idx, const int idx2d) {
+    const int streamid = idx2d % nstreams;
+    cudaMemcpyAsync(
+          &bcstruct_d->pure_outer_bc_array[idx][idx2d].i0, 
+          &bcstruct_h->pure_outer_bc_array[idx][idx2d].i0,
+          sizeof(short), 
+          cudaMemcpyHostToDevice, streams[streamid]);
+    cudaCheckErrors(cudaMemcpy, "Memcpy failed - pure_outer_bc_array1")
+    cudaMemcpyAsync(
+          &bcstruct_d->pure_outer_bc_array[idx][idx2d].i1, 
+          &bcstruct_h->pure_outer_bc_array[idx][idx2d].i1,
+          sizeof(short), 
+          cudaMemcpyHostToDevice, streams[streamid]);                  
+    cudaCheckErrors(cudaMemcpy, "Memcpy failed - pure_outer_bc_array2")
+    cudaMemcpyAsync(
+          &bcstruct_d->pure_outer_bc_array[idx][idx2d].i2, 
+          &bcstruct_h->pure_outer_bc_array[idx][idx2d].i2,
+          sizeof(short), 
+          cudaMemcpyHostToDevice, streams[streamid]);
+    cudaCheckErrors(cudaMemcpy, "Memcpy failed - pure_outer_bc_array2")                  
+    cudaMemcpyAsync(
+          &bcstruct_d->pure_outer_bc_array[idx][idx2d].FACEX0, 
+          &bcstruct_h->pure_outer_bc_array[idx][idx2d].FACEX0,
+          sizeof(int8_t), 
+          cudaMemcpyHostToDevice, streams[streamid]);
+    cudaCheckErrors(cudaMemcpy, "Memcpy failed - pure_outer_bc_array Face0")
+    cudaMemcpyAsync(
+          &bcstruct_d->pure_outer_bc_array[idx][idx2d].FACEX1, 
+          &bcstruct_h->pure_outer_bc_array[idx][idx2d].FACEX1,
+          sizeof(int8_t), 
+          cudaMemcpyHostToDevice, streams[streamid]);
+    cudaCheckErrors(cudaMemcpy, "Memcpy failed - pure_outer_bc_array Face1")
+    cudaMemcpyAsync(
+          &bcstruct_d->pure_outer_bc_array[idx][idx2d].FACEX2, 
+          &bcstruct_h->pure_outer_bc_array[idx][idx2d].FACEX2,
+          sizeof(int8_t), 
+          cudaMemcpyHostToDevice, streams[streamid]);
+    cudaCheckErrors(cudaMemcpy, "Memcpy failed - pure_outer_bc_array Face2")
   }
-}
 
 /*
  * EigenCoord_set_x0x1x2_inbounds__i0i1i2_inbounds_single_pt():
@@ -40,15 +68,10 @@ void print_inner(innerpt_bc_struct *restrict inner_bc_array, size_t const N) {
  * storing tensors/vectors.
  *
  */
-__device__
-void EigenCoord_set_x0x1x2_inbounds__i0i1i2_inbounds_single_pt(
-  REAL *restrict _xx0, REAL *restrict _xx1, REAL *restrict _xx2,
-    const int i0, const int i1, const int i2, 
-      REAL x0x1x2_inbounds[3], int i0i1i2_inbounds[3]) {
-
-  REAL const & dxx0 = d_params.dxx0;
-  REAL const & dxx1 = d_params.dxx1;
-  REAL const & dxx2 = d_params.dxx2;
+static void EigenCoord_set_x0x1x2_inbounds__i0i1i2_inbounds_single_pt(const commondata_struct *restrict commondata,
+                                                                      const params_struct *restrict params, REAL *restrict xx[3], const int i0,
+                                                                      const int i1, const int i2, REAL x0x1x2_inbounds[3], int i0i1i2_inbounds[3]) {
+#include "../set_CodeParameters.h"
 
   // This is a 3-step algorithm:
   // Step 1: (x0,x1,x2) -> (Cartx,Carty,Cartz)
@@ -75,9 +98,9 @@ void EigenCoord_set_x0x1x2_inbounds__i0i1i2_inbounds_single_pt(
   REAL xCart[3]; // where (x,y,z) is output
   {
     // xx_to_Cart for EigenCoordinate Spherical (orig coord = Spherical):
-    REAL xx0 = _xx0[i0];
-    REAL xx1 = _xx1[i1];
-    REAL xx2 = _xx2[i2];
+    REAL xx0 = xx[0][i0];
+    REAL xx1 = xx[1][i1];
+    REAL xx2 = xx[2][i2];
     /*
      *  Original SymPy expressions:
      *  "[xCart[0] = xx0*sin(xx1)*cos(xx2)]"
@@ -97,7 +120,7 @@ void EigenCoord_set_x0x1x2_inbounds__i0i1i2_inbounds_single_pt(
   REAL Cartz = xCart[2];
 
   // Step 2: Find the (i0_inbounds,i1_inbounds,i2_inbounds) corresponding to the above Cartesian coordinate.
-  //   If (i0_inbounds,i1_inbounds,i2_inbounds) is in a ghost zone, then it must equal (i0,i1,i2), and
+  //   If (i0_inbounds,i1_inbounds,i2_inbounds) is in a gbcstruct_h zone, then it must equal (i0,i1,i2), and
   //      the point is an outer boundary point.
   //   Otherwise (i0_inbounds,i1_inbounds,i2_inbounds) is in the grid interior, and data at (i0,i1,i2)
   //      must be replaced with data at (i0_inbounds,i1_inbounds,i2_inbounds), but multiplied by the
@@ -120,9 +143,8 @@ void EigenCoord_set_x0x1x2_inbounds__i0i1i2_inbounds_single_pt(
   // Next compute xxmin[i]. By definition,
   //    xx[i][j] = xxmin[i] + ((REAL)(j-NGHOSTS) + (1.0/2.0))*dxxi;
   // -> xxmin[i] = xx[i][0] - ((REAL)(0-NGHOSTS) + (1.0/2.0))*dxxi
-  const REAL xxmin[3] = {_xx0[0] - ((REAL)(0 - NGHOSTS) + (1.0 / 2.0)) * dxx0, 
-                         _xx1[0] - ((REAL)(0 - NGHOSTS) + (1.0 / 2.0)) * dxx1,
-                         _xx2[0] - ((REAL)(0 - NGHOSTS) + (1.0 / 2.0)) * dxx2};
+  const REAL xxmin[3] = {xx[0][0] - ((REAL)(0 - NGHOSTS) + (1.0 / 2.0)) * dxx0, xx[1][0] - ((REAL)(0 - NGHOSTS) + (1.0 / 2.0)) * dxx1,
+                         xx[2][0] - ((REAL)(0 - NGHOSTS) + (1.0 / 2.0)) * dxx2};
 
   // Finally compute i{0,1,2}_inbounds (add 0.5 to account for rounding down)
   const int i0_inbounds = (int)((Cart_to_xx0_inbounds - xxmin[0] - (1.0 / 2.0) * dxx0 + ((REAL)NGHOSTS) * dxx0) / dxx0 + 0.5);
@@ -139,9 +161,9 @@ void EigenCoord_set_x0x1x2_inbounds__i0i1i2_inbounds_single_pt(
   REAL xCart_from_xx, yCart_from_xx, zCart_from_xx;
   {
     // xx_to_Cart for Coordinate Spherical):
-    REAL xx0 = _xx0[i0];
-    REAL xx1 = _xx1[i1];
-    REAL xx2 = _xx2[i2];
+    REAL xx0 = xx[0][i0];
+    REAL xx1 = xx[1][i1];
+    REAL xx2 = xx[2][i2];
     /*
      *  Original SymPy expressions:
      *  "[xCart_from_xx = xx0*sin(xx1)*cos(xx2)]"
@@ -156,13 +178,12 @@ void EigenCoord_set_x0x1x2_inbounds__i0i1i2_inbounds_single_pt(
 
   // Step 3.b: Compute {x,y,z}Cart_from_xx_inbounds, as a
   //           function of i0_inbounds,i1_inbounds,i2_inbounds
-  [[maybe_unused]] REAL xCart_from_xx_inbounds, yCart_from_xx_inbounds, zCart_from_xx_inbounds;
+  REAL xCart_from_xx_inbounds, yCart_from_xx_inbounds, zCart_from_xx_inbounds;
   {
     // xx_to_Cart_inbounds for Coordinate Spherical):
-    REAL xx0 = _xx0[i0_inbounds];
-    REAL xx1 = _xx1[i1_inbounds];
-    REAL xx2 = _xx2[i2_inbounds];
-
+    REAL xx0 = xx[0][i0_inbounds];
+    REAL xx1 = xx[1][i1_inbounds];
+    REAL xx2 = xx[2][i2_inbounds];
     /*
      *  Original SymPy expressions:
      *  "[xCart_from_xx_inbounds = xx0*sin(xx1)*cos(xx2)]"
@@ -179,22 +200,22 @@ void EigenCoord_set_x0x1x2_inbounds__i0i1i2_inbounds_single_pt(
   //           they should be identical!!!
 #define EPS_REL 1e-8
   const REAL norm_factor = sqrt(xCart_from_xx * xCart_from_xx + yCart_from_xx * yCart_from_xx + zCart_from_xx * zCart_from_xx) + 1e-15;
-  // if (fabs((double)(xCart_from_xx - xCart_from_xx_inbounds)) > EPS_REL * norm_factor ||
-  //     fabs((double)(yCart_from_xx - yCart_from_xx_inbounds)) > EPS_REL * norm_factor ||
-  //     fabs((double)(zCart_from_xx - zCart_from_xx_inbounds)) > EPS_REL * norm_factor) {
-  //   fprintf(stderr,
-  //           "Error in Spherical coordinate system: Inner boundary point does not map to grid interior point: ( %.15e %.15e %.15e ) != ( %.15e %.15e "
-  //           "%.15e ) | xx: %e %e %e -> %e %e %e | %d %d %d\n",
-  //           (double)xCart_from_xx, (double)yCart_from_xx, (double)zCart_from_xx, (double)xCart_from_xx_inbounds, (double)yCart_from_xx_inbounds,
-  //           (double)zCart_from_xx_inbounds, _xx0[i0], _xx1[i1], _xx2[i2], _xx0[i0_inbounds], _xx1[i1_inbounds], _xx2[i2_inbounds],
-  //           Nxx_plus_2NGHOSTS0, Nxx_plus_2NGHOSTS1, Nxx_plus_2NGHOSTS2);
-  //   exit(1);
-  // }
+  if (fabs((double)(xCart_from_xx - xCart_from_xx_inbounds)) > EPS_REL * norm_factor ||
+      fabs((double)(yCart_from_xx - yCart_from_xx_inbounds)) > EPS_REL * norm_factor ||
+      fabs((double)(zCart_from_xx - zCart_from_xx_inbounds)) > EPS_REL * norm_factor) {
+    fprintf(stderr,
+            "Error in Spherical coordinate system: Inner boundary point does not map to grid interior point: ( %.15e %.15e %.15e ) != ( %.15e %.15e "
+            "%.15e ) | xx: %e %e %e -> %e %e %e | %d %d %d\n",
+            (double)xCart_from_xx, (double)yCart_from_xx, (double)zCart_from_xx, (double)xCart_from_xx_inbounds, (double)yCart_from_xx_inbounds,
+            (double)zCart_from_xx_inbounds, xx[0][i0], xx[1][i1], xx[2][i2], xx[0][i0_inbounds], xx[1][i1_inbounds], xx[2][i2_inbounds],
+            Nxx_plus_2NGHOSTS0, Nxx_plus_2NGHOSTS1, Nxx_plus_2NGHOSTS2);
+    exit(1);
+  }
 
   // Step 4: Set output arrays.
-  x0x1x2_inbounds[0] = _xx0[i0_inbounds];
-  x0x1x2_inbounds[1] = _xx1[i1_inbounds];
-  x0x1x2_inbounds[2] = _xx2[i2_inbounds];
+  x0x1x2_inbounds[0] = xx[0][i0_inbounds];
+  x0x1x2_inbounds[1] = xx[1][i1_inbounds];
+  x0x1x2_inbounds[2] = xx[2][i2_inbounds];
   i0i1i2_inbounds[0] = i0_inbounds;
   i0i1i2_inbounds[1] = i1_inbounds;
   i0i1i2_inbounds[2] = i2_inbounds;
@@ -208,9 +229,10 @@ void EigenCoord_set_x0x1x2_inbounds__i0i1i2_inbounds_single_pt(
  * above for more details), here we compute the parity conditions
  * for all 10 tensor types supported by NRPy+.
  */
-__device__
-void set_parity_for_inner_boundary_single_pt(const REAL xx0, const REAL xx1, const REAL xx2, const REAL x0x1x2_inbounds[3], const int idx,
+static void set_parity_for_inner_boundary_single_pt(const commondata_struct *restrict commondata, const params_struct *restrict params,
+                                                    const REAL xx0, const REAL xx1, const REAL xx2, const REAL x0x1x2_inbounds[3], const int idx,
                                                     innerpt_bc_struct *restrict innerpt_bc_arr) {
+#include "../set_CodeParameters.h"
 
   const REAL xx0_inbounds = x0x1x2_inbounds[0];
   const REAL xx1_inbounds = x0x1x2_inbounds[1];
@@ -272,8 +294,9 @@ void set_parity_for_inner_boundary_single_pt(const REAL xx0, const REAL xx1, con
   // Next perform sanity check on parity array output: should be +1 or -1 to within 8 significant digits:
   for (int whichparity = 0; whichparity < 10; whichparity++) {
     if (fabs(REAL_parity_array[whichparity]) < 1 - 1e-8 || fabs(REAL_parity_array[whichparity]) > 1 + 1e-8) {
-      printf("Error at point (%e %e %e), which maps to (%e %e %e).\n", xx0, xx1, xx2, xx0_inbounds, xx1_inbounds, xx2_inbounds);
-      printf("Parity evaluated to %e , which is not within 8 significant digits of +1 or -1.\n", REAL_parity_array[whichparity]);
+      fprintf(stderr, "Error at point (%e %e %e), which maps to (%e %e %e).\n", xx0, xx1, xx2, xx0_inbounds, xx1_inbounds, xx2_inbounds);
+      fprintf(stderr, "Parity evaluated to %e , which is not within 8 significant digits of +1 or -1.\n", REAL_parity_array[whichparity]);
+      exit(1);
     }
     for (int parity = 0; parity < 10; parity++) {
       innerpt_bc_arr[idx].parity[parity] = 1;
@@ -281,272 +304,6 @@ void set_parity_for_inner_boundary_single_pt(const REAL xx0, const REAL xx1, con
         innerpt_bc_arr[idx].parity[parity] = -1;
     }
   } // END for(int whichparity=0;whichparity<10;whichparity++)
-}
-
-__global__
-void count_ib_points(uint * n_ib, REAL *restrict _xx0, REAL *restrict _xx1, REAL *restrict _xx2) {
-    
-    // shared data between all warps
-    // Assumes one block = 32 warps = 32 * 32 threads
-    // As of today, the standard maximum threads per
-    // block is 1024 = 32 * 32
-    __shared__ uint shared_data[2][32];
-
-    int const & Nxx_plus_2NGHOSTS0 = d_params.Nxx_plus_2NGHOSTS0;
-    int const & Nxx_plus_2NGHOSTS1 = d_params.Nxx_plus_2NGHOSTS1;
-    int const & Nxx_plus_2NGHOSTS2 = d_params.Nxx_plus_2NGHOSTS2;
-
-    // Global data index - expecting a 1D dataset
-    // Thread indices
-    const int tid0 = threadIdx.x + blockIdx.x*blockDim.x;
-    const int tid1 = threadIdx.y + blockIdx.y*blockDim.y;
-    const int tid2 = threadIdx.z + blockIdx.z*blockDim.z;
-    // Thread strides
-    const int stride0 = blockDim.x * gridDim.x;
-    const int stride1 = blockDim.y * gridDim.y;
-    const int stride2 = blockDim.z * gridDim.z;
-
-    // thread index
-    uint tid = threadIdx.x + threadIdx.y * blockDim.x + threadIdx.z * blockDim.x * blockDim.y;
-    
-    // reduce excessive looping by computing both at the same time
-    uint local_ib_points = 0;
-
-    // // warp mask - says all threads are involved in shuffle
-    // // 0xFFFFFFFFU in binary is 32 1's.
-    unsigned int mask = 0xFFFFFFFFU;
-
-    // lane = which thread am I in the warp
-    uint lane = tid % warpSize;
-    // warpID = which warp am I in the block
-    uint warpID = tid / warpSize;
-    
-    // Loop over bounds on both sides of x/y/z, at the same time
-    int i0i1i2[3];
-    for(size_t i2 = tid2; i2 < Nxx_plus_2NGHOSTS2; i2 += stride2) {
-      for(size_t i1 = tid1; i1 < Nxx_plus_2NGHOSTS1; i1 += stride1) {
-        for(size_t i0 = tid0; i0 < Nxx_plus_2NGHOSTS0; i0 += stride0) {
-          // Initialize
-          REAL x0x1x2_inbounds[3] = {0,0,0};
-          int i0i1i2_inbounds[3] = {0,0,0};
-          // Assign lower ghost zone boundary points
-          i0i1i2[0]=i0; i0i1i2[1]=i1; i0i1i2[2]=i2;
-          bool is_in_interior = IS_IN_GRID_INTERIOR(i0i1i2, Nxx_plus_2NGHOSTS0, Nxx_plus_2NGHOSTS1, Nxx_plus_2NGHOSTS2, NGHOSTS);
-          if(!is_in_interior) {
-            EigenCoord_set_x0x1x2_inbounds__i0i1i2_inbounds_single_pt(
-              _xx0, _xx1, _xx2, i0, i1, i2, x0x1x2_inbounds, i0i1i2_inbounds);
-            bool pure_boundary_point = \
-              (i0 == i0i1i2_inbounds[0]) && \
-              (i1 == i0i1i2_inbounds[1]) && \
-              (i2 == i0i1i2_inbounds[2]);
-            if(!pure_boundary_point) {
-              local_ib_points++;
-            }
-          }
-        }
-      }
-    }
-
-    // Shuffle down kernel
-    for(int offset = warpSize / 2; offset > 0; offset >>= 1) {
-        uint shfl_ib = __shfl_down_sync(mask, local_ib_points, offset);
-        local_ib_points += shfl_ib;
-    }
-    // Shuffle results in lane 0 have the shuffle result
-    if(lane == 0) {
-        shared_data[0][warpID] = local_ib_points;
-    }
-    
-    // Make sure all warps in the block are syncronized
-    __syncthreads();
-    // Since there is only 32 partial reductions, we only
-    // have one warp worth of work
-    if(warpID == 0) {
-        // Check to make sure we had 32 blocks of data
-        if(tid < blockDim.x / warpSize) {
-            local_ib_points = shared_data[0][lane];
-        } else {
-            local_ib_points = 0;
-        }        
-        
-        // Shuffle down kernel
-        for(int offset = warpSize / 2; offset > 0; offset >>= 1) {
-            uint shfl_ib = __shfl_down_sync(mask, local_ib_points, offset);
-            local_ib_points += shfl_ib;
-        }
-        if(tid == 0) {
-            atomicAdd(n_ib, local_ib_points);
-            // printf("%d", local_ib_points);
-        }
-    }
-}
-
-__host__
-[[nodiscard]] uint compute_num_inner(REAL * xx[3], const params_struct * params) {
-  
-  uint num_inner=0;
-  uint* num_inner_gpu;
-  cudaMalloc(&num_inner_gpu, sizeof(uint));
-  cudaCheckErrors(countMalloc, "memory failure")
-  cudaMemcpy(num_inner_gpu, &num_inner, sizeof(uint), cudaMemcpyHostToDevice);
-  cudaCheckErrors(cpy, "memory failure")
-
-  // We're only interested in the ghost zones
-  // size_t total_ghosts = (2. * NGHOSTS);
-  int const & Nxx_plus_2NGHOSTS0 = params->Nxx_plus_2NGHOSTS0;
-  int const & Nxx_plus_2NGHOSTS1 = params->Nxx_plus_2NGHOSTS1;
-  int const & Nxx_plus_2NGHOSTS2 = params->Nxx_plus_2NGHOSTS2;
-  size_t N = Nxx_plus_2NGHOSTS0 * Nxx_plus_2NGHOSTS1 * Nxx_plus_2NGHOSTS2;
-
-  size_t block_threads = MIN(MAX(N,32), 1024)/2;
-  size_t grids = (N + block_threads - 1)/block_threads;
-  
-  count_ib_points<<<grids, block_threads>>>(num_inner_gpu, xx[0], xx[1], xx[2]);
-  cudaCheckErrors(count_ib_points, "kernel failure")
-  cudaMemcpy(&num_inner, num_inner_gpu, sizeof(uint), cudaMemcpyDeviceToHost);
-  cudaCheckErrors(cudaMemcpy, "copy failure")
-  cudaFree(num_inner_gpu);
-  return num_inner;
-}
-
-__global__
-void set_pure_outer_bc_array_gpu(int const which_gz, int * idx2d, 
-  outerpt_bc_struct *  pure_outer_bc_array,
-    REAL *restrict _xx0, REAL *restrict _xx1, REAL *restrict _xx2,
-      int i0min, int i0max, int i1min, int i1max, int i2min, int i2max,
-          const int face) {
-
-    const int FACEX0 = (face == 0) - (face == 1); // +1 if face==0 ; -1 if face==1. Otherwise 0.
-    const int FACEX1 = (face == 2) - (face == 3); // +1 if face==2 ; -1 if face==3. Otherwise 0.
-    const int FACEX2 = (face == 4) - (face == 5); // +1 if face==4 ; -1 if face==5. Otherwise 0.
-
-    // Global data index - expecting a 1D dataset
-    // Thread indices
-    const int tid0 = threadIdx.x + blockIdx.x*blockDim.x;
-    const int tid1 = 0; //threadIdx.y + blockIdx.y*blockDim.y;
-    const int tid2 = 0; //threadIdx.z + blockIdx.z*blockDim.z;
-    // Thread strides
-    const int stride0 = blockDim.x * gridDim.x;
-    const int stride1 = 1; //blockDim.y * gridDim.y;
-    const int stride2 = 1; //blockDim.z * gridDim.z;
-
-    for(size_t i2 = tid2+i2min; i2 < i2max; i2 += stride2) {
-      for(size_t i1 = tid1+i1min; i1 < i1max; i1 += stride1) {
-        for(size_t i0 = tid0+i0min; i0 < i0max; i0 += stride0) {
-          // Initialize
-          REAL x0x1x2_inbounds[3] = {0,0,0};
-          int i0i1i2_inbounds[3] = {0,0,0};
-                          
-          EigenCoord_set_x0x1x2_inbounds__i0i1i2_inbounds_single_pt(
-            _xx0, _xx1, _xx2, i0, i1, i2, x0x1x2_inbounds, i0i1i2_inbounds);
-          bool pure_boundary_point = \
-            (i0 == i0i1i2_inbounds[0]) && \
-            (i1 == i0i1i2_inbounds[1]) && \
-            (i2 == i0i1i2_inbounds[2]);
-          if(pure_boundary_point) {
-            int const idx = *idx2d;
-            pure_outer_bc_array[idx].i0 = i0;
-            pure_outer_bc_array[idx].i1 = i1;
-            pure_outer_bc_array[idx].i2 = i2;
-            pure_outer_bc_array[idx].FACEX0 = FACEX0;
-            pure_outer_bc_array[idx].FACEX1 = FACEX1;
-            pure_outer_bc_array[idx].FACEX2 = FACEX2;
-            *idx2d += 1;
-          }
-        }
-      }
-    }
-}
-
-__host__
-void set_pure_outer_bc_array(REAL * xx[3], bc_struct *restrict bcstruct) {
-  int* idx2d_gpu;
-  cudaMalloc(&idx2d_gpu, 1 * sizeof(int));
-  cudaCheckErrors(countMalloc, "memory failure")
-  for (int which_gz = 0; which_gz < NGHOSTS; which_gz++) {
-    for (int dirn = 0; dirn < 3; dirn++) {
-      int idx2d = 0;
-      cudaMemcpy(idx2d_gpu, &idx2d, sizeof(int), cudaMemcpyHostToDevice);
-      cudaCheckErrors(cpy, "memory failure")
-
-      {
-        const int face = dirn * 2;
-        set_pure_outer_bc_array_gpu<<<1,1>>>(which_gz, idx2d_gpu, bcstruct->pure_outer_bc_array[dirn + (3 * which_gz)],
-            xx[0], xx[1], xx[2], 
-            bcstruct->bc_info.bc_loop_bounds[which_gz][face][0], bcstruct->bc_info.bc_loop_bounds[which_gz][face][1], 
-            bcstruct->bc_info.bc_loop_bounds[which_gz][face][2], bcstruct->bc_info.bc_loop_bounds[which_gz][face][3], 
-            bcstruct->bc_info.bc_loop_bounds[which_gz][face][4], bcstruct->bc_info.bc_loop_bounds[which_gz][face][5], 
-            face);
-        cudaCheckErrors(set_pure_outer_bc_array_gpu, "kernel failure")
-      }
-      // UPPER FACE: dirn=0 -> x0max; dirn=1 -> x1max; dirn=2 -> x2max
-      {
-        const int face = dirn * 2 + 1;
-        set_pure_outer_bc_array_gpu<<<1,1>>>(which_gz, idx2d_gpu, bcstruct->pure_outer_bc_array[dirn + (3 * which_gz)],
-            xx[0], xx[1], xx[2], 
-            bcstruct->bc_info.bc_loop_bounds[which_gz][face][0], bcstruct->bc_info.bc_loop_bounds[which_gz][face][1], 
-            bcstruct->bc_info.bc_loop_bounds[which_gz][face][2], bcstruct->bc_info.bc_loop_bounds[which_gz][face][3], 
-            bcstruct->bc_info.bc_loop_bounds[which_gz][face][4], bcstruct->bc_info.bc_loop_bounds[which_gz][face][5], 
-            face);
-        cudaCheckErrors(set_pure_outer_bc_array_gpu, "kernel failure")
-      }
-      cudaMemcpy(&idx2d, idx2d_gpu, sizeof(int), cudaMemcpyDeviceToHost);
-      cudaCheckErrors(cudaMemcpy, "copy failure")
-      bcstruct->bc_info.num_pure_outer_boundary_points[which_gz][dirn] = idx2d;
-      // printf("pure pts: %d\n", idx2d);
-    }
-  }
-  cudaFree(idx2d_gpu);
-}
-
-__global__
-void set_inner_bc_array(innerpt_bc_struct *restrict inner_bc_array, REAL *restrict _xx0, REAL *restrict _xx1, REAL *restrict _xx2, const int num_inner){
-
-    int const & Nxx_plus_2NGHOSTS0 = d_params.Nxx_plus_2NGHOSTS0;
-    int const & Nxx_plus_2NGHOSTS1 = d_params.Nxx_plus_2NGHOSTS1;
-    int const & Nxx_plus_2NGHOSTS2 = d_params.Nxx_plus_2NGHOSTS2;
-
-    // Global data index - expecting a 1D dataset
-    // Thread indices
-    const int tid0 = threadIdx.x + blockIdx.x*blockDim.x;
-    const int tid1 = threadIdx.y + blockIdx.y*blockDim.y;
-    const int tid2 = threadIdx.z + blockIdx.z*blockDim.z;
-    // Thread strides
-    const int stride0 = blockDim.x * gridDim.x;
-    const int stride1 = blockDim.y * gridDim.y;
-    const int stride2 = blockDim.z * gridDim.z;
-    
-    uint which_inner = 0;
-    int i0i1i2[3];
-    for(size_t i2 = tid2; i2 < Nxx_plus_2NGHOSTS2; i2 += stride2) {
-      for(size_t i1 = tid1; i1 < Nxx_plus_2NGHOSTS1; i1 += stride1) {
-        for(size_t i0 = tid0; i0 < Nxx_plus_2NGHOSTS0; i0 += stride0) {
-          // Assign lower ghost zone boundary points
-          i0i1i2[0]=i0; i0i1i2[1]=i1; i0i1i2[2]=i2;
-          bool is_in_interior = IS_IN_GRID_INTERIOR(i0i1i2, Nxx_plus_2NGHOSTS0, Nxx_plus_2NGHOSTS1, Nxx_plus_2NGHOSTS2, NGHOSTS);
-          if(!is_in_interior) {
-            // Initialize
-            REAL x0x1x2_inbounds[3] = {0,0,0};
-            int i0i1i2_inbounds[3] = {0,0,0};
-            EigenCoord_set_x0x1x2_inbounds__i0i1i2_inbounds_single_pt(
-              _xx0, _xx1, _xx2, i0, i1, i2, x0x1x2_inbounds, i0i1i2_inbounds);
-            bool pure_boundary_point = \
-              (i0 == i0i1i2_inbounds[0]) && \
-              (i1 == i0i1i2_inbounds[1]) && \
-              (i2 == i0i1i2_inbounds[2]);
-            if(!pure_boundary_point) {
-              if(which_inner >= num_inner) {
-                printf("PROBLEM\n");
-              }
-              inner_bc_array[which_inner].dstpt = IDX3(i0, i1, i2);
-              inner_bc_array[which_inner].srcpt = IDX3(i0i1i2_inbounds[0], i0i1i2_inbounds[1], i0i1i2_inbounds[2]);
-              set_parity_for_inner_boundary_single_pt(_xx0[i0], _xx1[i1], _xx2[i2], x0x1x2_inbounds, which_inner, inner_bc_array);
-              which_inner++;
-            }
-          }
-        }
-      }
-    }
 }
 
 /*
@@ -558,7 +315,7 @@ void set_inner_bc_array(innerpt_bc_struct *restrict inner_bc_array, REAL *restri
  * int srcpt;  // srcpt is the 3D grid index (a la IDX3) to which the inner boundary point maps
  * int8_t parity[10];  // parity[10] is a calculation of dot products for the 10 independent parity types
  * } innerpt_bc_struct;
- * At each ghostzone (i.e., each point within NGHOSTS points from grid boundary):
+ * At each gbcstruct_hzone (i.e., each point within NGHOSTS points from grid boundary):
  * Call EigenCoord_set_x0x1x2_inbounds__i0i1i2_inbounds_single_pt().
  * This function converts the curvilinear coordinate (x0,x1,x2) to the corresponding
  * Cartesian coordinate (x,y,z), then finds the grid point
@@ -586,7 +343,7 @@ void set_inner_bc_array(innerpt_bc_struct *restrict inner_bc_array, REAL *restri
  * } outerpt_bc_struct;
  * Outer boundary points are filled from the inside out, two faces at a time.
  * E.g., consider a Cartesian coordinate grid that has 14 points in each direction,
- * including the ghostzones, with NGHOSTS=2.
+ * including the gbcstruct_hzones, with NGHOSTS=2.
  * We first fill in the lower x0 face with (i0=1,i1={2,11},i2={2,11}). We fill these
  * points in first, since they will in general (at least in the case of extrapolation
  * outer BCs) depend on e.g., i0=2 and i0=3 points.
@@ -608,34 +365,75 @@ void set_inner_bc_array(innerpt_bc_struct *restrict inner_bc_array, REAL *restri
  * the struct is set only at outer boundary points. This is slightly
  * wasteful, but only in memory, not in CPU.
  */
-void bcstruct_set_up__rfm__Spherical(const commondata_struct *restrict commondata, const params_struct * params, REAL * xx[3], bc_struct *restrict bcstruct) {
-
-  cudaDeviceSynchronize();
-  
+void bcstruct_set_up__rfm__Spherical(const commondata_struct *restrict commondata, const params_struct * params, REAL * xx[3], bc_struct *restrict bcstruct_gd) {
+#include "../set_CodeParameters.h"
+  bc_struct* bcstruct = new bc_struct;
   ////////////////////////////////////////
   // STEP 1: SET UP INNER BOUNDARY STRUCTS
   {
-    // Get number of inner boundary points
-    uint num_inner = compute_num_inner(xx, params);
-    // printf("INNER: %d\n", num_inner);
-    // Allocate storage for mapping
+    // First count the number of inner points.
+    int num_inner = 0;
+    LOOP_OMP("omp parallel for reduction(+:num_inner)", i0, 0, Nxx_plus_2NGHOSTS0, i1, 0, Nxx_plus_2NGHOSTS1, i2, 0, Nxx_plus_2NGHOSTS2) {
+      const int i0i1i2[3] = {i0, i1, i2};
+      if (!IS_IN_GRID_INTERIOR(i0i1i2, Nxx_plus_2NGHOSTS0, Nxx_plus_2NGHOSTS1, Nxx_plus_2NGHOSTS2, NGHOSTS)) {
+        REAL x0x1x2_inbounds[3];
+        int i0i1i2_inbounds[3];
+        EigenCoord_set_x0x1x2_inbounds__i0i1i2_inbounds_single_pt(commondata, params, xx, i0, i1, i2, x0x1x2_inbounds, i0i1i2_inbounds);
+        if (i0 == i0i1i2_inbounds[0] && i1 == i0i1i2_inbounds[1] && i2 == i0i1i2_inbounds[2]) {
+          // this is a pure outer boundary point.
+        } else {
+          // this is an inner boundary point, which maps either
+          //  to the grid interior or to an outer boundary point
+          num_inner++;
+        }
+      }
+    }
+    // Store num_inner to bc_info:
     bcstruct->bc_info.num_inner_boundary_points = num_inner;
-    cudaMalloc(&bcstruct->inner_bc_array, sizeof(innerpt_bc_struct) * num_inner);
+    bcstruct_gd->bc_info.num_inner_boundary_points = num_inner;
+
+    // Next allocate memory for inner_boundary_points:
+    cudaMallocHost((void**)&bcstruct->inner_bc_array, sizeof(innerpt_bc_struct) * num_inner);
+    cudaCheckErrors(cudaMallocHost, "Pinned malloc inner_bc_array failed.")
+    // bcstruct->inner_bc_array = (innerpt_bc_struct *restrict)malloc(sizeof(innerpt_bc_struct) * num_inner);
+    cudaMalloc(&bcstruct_gd->inner_bc_array, sizeof(innerpt_bc_struct) * num_inner);
     cudaCheckErrors(cudaMalloc, "memory failure")
-    
-    // Fill inner_bc_array mapping
-    set_inner_bc_array<<<1,1>>>(bcstruct->inner_bc_array,xx[0], xx[1], xx[2], num_inner);
-    cudaCheckErrors(set_inner_bc_array, "kernel failure")
   }
+
+  // Then set inner_bc_array:
+  {
+    int which_inner = 0;
+    LOOP_NOOMP(i0, 0, Nxx_plus_2NGHOSTS0, i1, 0, Nxx_plus_2NGHOSTS1, i2, 0, Nxx_plus_2NGHOSTS2) {
+      const int i0i1i2[3] = {i0, i1, i2};
+      if (!IS_IN_GRID_INTERIOR(i0i1i2, Nxx_plus_2NGHOSTS0, Nxx_plus_2NGHOSTS1, Nxx_plus_2NGHOSTS2, NGHOSTS)) {
+        REAL x0x1x2_inbounds[3];
+        int i0i1i2_inbounds[3];
+        EigenCoord_set_x0x1x2_inbounds__i0i1i2_inbounds_single_pt(commondata, params, xx, i0, i1, i2, x0x1x2_inbounds, i0i1i2_inbounds);
+        if (i0 == i0i1i2_inbounds[0] && i1 == i0i1i2_inbounds[1] && i2 == i0i1i2_inbounds[2]) {
+          // this is a pure outer boundary point.
+        } else {
+          bcstruct->inner_bc_array[which_inner].dstpt = IDX3(i0, i1, i2);
+          bcstruct->inner_bc_array[which_inner].srcpt = IDX3(i0i1i2_inbounds[0], i0i1i2_inbounds[1], i0i1i2_inbounds[2]);
+          // printf("%d / %d\n",which_inner, bc_info->num_inner_boundary_points);
+          set_parity_for_inner_boundary_single_pt(commondata, params, xx[0][i0], xx[1][i1], xx[2][i2], x0x1x2_inbounds, which_inner,
+                                                  bcstruct->inner_bc_array);
+
+          which_inner++;
+        }
+      }
+    }
+  }
+  cudaMemcpyAsync(bcstruct_gd->inner_bc_array, 
+                  bcstruct->inner_bc_array, 
+                  sizeof(innerpt_bc_struct) * bcstruct->bc_info.num_inner_boundary_points, 
+                  cudaMemcpyHostToDevice, streams[nstreams-1]);
+  cudaCheckErrors(cudaMemcpy, "Memcpy failed - inner_bc_array")
+
   ////////////////////////////////////////
   // STEP 2: SET UP OUTER BOUNDARY STRUCTS
   // First set up loop bounds for outer boundary condition updates,
   //   store to bc_info->bc_loop_bounds[which_gz][face][]. Also
   //   allocate memory for outer_bc_array[which_gz][face][]:
-  int const& Nxx_plus_2NGHOSTS0 = params->Nxx_plus_2NGHOSTS0;
-  int const& Nxx_plus_2NGHOSTS1 = params->Nxx_plus_2NGHOSTS1;
-  int const& Nxx_plus_2NGHOSTS2 = params->Nxx_plus_2NGHOSTS2;
-  
   int imin[3] = {NGHOSTS, NGHOSTS, NGHOSTS};
   int imax[3] = {Nxx_plus_2NGHOSTS0 - NGHOSTS, Nxx_plus_2NGHOSTS1 - NGHOSTS, Nxx_plus_2NGHOSTS2 - NGHOSTS};
   for (int which_gz = 0; which_gz < NGHOSTS; which_gz++) {
@@ -657,20 +455,31 @@ void bcstruct_set_up__rfm__Spherical(const commondata_struct *restrict commondat
     // x0min and x0max faces: Allocate memory for outer_bc_array and set bc_loop_bounds:
     //                        Note that x0min and x0max faces have exactly the same size.
     //                   Also, note that face/2 --v   offsets this factor of 2 ------------------------------------------v
-    cudaMalloc(&bcstruct->pure_outer_bc_array[3 * which_gz + face / 2], 
+    cudaMallocHost((void**)&bcstruct->pure_outer_bc_array[3 * which_gz + face / 2], 
+                  sizeof(outerpt_bc_struct) * 2 * (
+                (x0min_face_range[1] - x0min_face_range[0]) * 
+                (x0min_face_range[3] - x0min_face_range[2]) * 
+                (x0min_face_range[5] - x0min_face_range[4])));
+    cudaCheckErrors(cudaMallocHost, "Pinned malloc pure_outer_bc_array failed.")
+    cudaMalloc(&bcstruct_gd->pure_outer_bc_array[3 * which_gz + face / 2], 
                sizeof(outerpt_bc_struct) * 2 * (
                 (x0min_face_range[1] - x0min_face_range[0]) * 
                 (x0min_face_range[3] - x0min_face_range[2]) * 
                 (x0min_face_range[5] - x0min_face_range[4])
     ));
+    // bcstruct->pure_outer_bc_array[3 * which_gz + face / 2] = (outerpt_bc_struct *restrict)malloc(
+    //     sizeof(outerpt_bc_struct) * 2 *
+    //     ((x0min_face_range[1] - x0min_face_range[0]) * (x0min_face_range[3] - x0min_face_range[2]) * (x0min_face_range[5] - x0min_face_range[4])));
     // x0min face: Can't set bc_info->bc_loop_bounds[which_gz][face] = { i0min,i0max, ... } since it's not const :(
     for (int i = 0; i < 6; i++) {
       bcstruct->bc_info.bc_loop_bounds[which_gz][face][i] = x0min_face_range[i];
+      bcstruct_gd->bc_info.bc_loop_bounds[which_gz][face][i] = x0min_face_range[i];
     }
     face++;
     // x0max face: Set loop bounds & allocate memory for outer_bc_array:
     for (int i = 0; i < 6; i++) {
       bcstruct->bc_info.bc_loop_bounds[which_gz][face][i] = x0max_face_range[i];
+      bcstruct_gd->bc_info.bc_loop_bounds[which_gz][face][i] = x0max_face_range[i];
     }
     face++;
     ////////////////////////
@@ -679,20 +488,31 @@ void bcstruct_set_up__rfm__Spherical(const commondata_struct *restrict commondat
     // x1min and x1max faces: Allocate memory for outer_bc_array and set bc_loop_bounds:
     //                        Note that x1min and x1max faces have exactly the same size.
     //                   Also, note that face/2 --v   offsets this factor of 2 ------------------------------------------v
-    cudaMalloc(&bcstruct->pure_outer_bc_array[3 * which_gz + face / 2],
+    cudaMallocHost((void**)&bcstruct->pure_outer_bc_array[3 * which_gz + face / 2], 
+                  sizeof(outerpt_bc_struct) * 2 * (
+                (x1min_face_range[1] - x1min_face_range[0]) * 
+                (x1min_face_range[3] - x1min_face_range[2]) * 
+                (x1min_face_range[5] - x1min_face_range[4])));
+    cudaCheckErrors(cudaMallocHost, "Pinned malloc pure_outer_bc_array failed.")
+    cudaMalloc(&bcstruct_gd->pure_outer_bc_array[3 * which_gz + face / 2], 
                sizeof(outerpt_bc_struct) * 2 * (
                 (x1min_face_range[1] - x1min_face_range[0]) * 
                 (x1min_face_range[3] - x1min_face_range[2]) * 
                 (x1min_face_range[5] - x1min_face_range[4])
     ));
+    // bcstruct->pure_outer_bc_array[3 * which_gz + face / 2] = (outerpt_bc_struct *restrict)malloc(
+    //     sizeof(outerpt_bc_struct) * 2 *
+    //     ((x1min_face_range[1] - x1min_face_range[0]) * (x1min_face_range[3] - x1min_face_range[2]) * (x1min_face_range[5] - x1min_face_range[4])));
     // x1min face: Can't set bc_info->bc_loop_bounds[which_gz][face] = { i0min,i0max, ... } since it's not const :(
     for (int i = 0; i < 6; i++) {
       bcstruct->bc_info.bc_loop_bounds[which_gz][face][i] = x1min_face_range[i];
+      bcstruct_gd->bc_info.bc_loop_bounds[which_gz][face][i] = x1min_face_range[i];
     }
     face++;
     // x1max face: Set loop bounds & allocate memory for outer_bc_array:
     for (int i = 0; i < 6; i++) {
       bcstruct->bc_info.bc_loop_bounds[which_gz][face][i] = x1max_face_range[i];
+      bcstruct_gd->bc_info.bc_loop_bounds[which_gz][face][i] = x1max_face_range[i];
     }
     face++;
     ////////////////////////
@@ -701,23 +521,98 @@ void bcstruct_set_up__rfm__Spherical(const commondata_struct *restrict commondat
     // x2min and x2max faces: Allocate memory for outer_bc_array and set bc_loop_bounds:
     //                        Note that x2min and x2max faces have exactly the same size.
     //                   Also, note that face/2 --v   offsets this factor of 2 ------------------------------------------v
-    cudaMalloc(&bcstruct->pure_outer_bc_array[3 * which_gz + face / 2],
+    cudaMallocHost((void**)&bcstruct->pure_outer_bc_array[3 * which_gz + face / 2], 
+                  sizeof(outerpt_bc_struct) * 2 * (
+                (x2min_face_range[1] - x2min_face_range[0]) * 
+                (x2min_face_range[3] - x2min_face_range[2]) * 
+                (x2min_face_range[5] - x2min_face_range[4])));
+    cudaCheckErrors(cudaMallocHost, "Pinned malloc pure_outer_bc_array failed.")
+    cudaMalloc(&bcstruct_gd->pure_outer_bc_array[3 * which_gz + face / 2], 
                sizeof(outerpt_bc_struct) * 2 * (
                 (x2min_face_range[1] - x2min_face_range[0]) * 
                 (x2min_face_range[3] - x2min_face_range[2]) * 
                 (x2min_face_range[5] - x2min_face_range[4])
-    ));
+    ));    
+    // bcstruct->pure_outer_bc_array[3 * which_gz + face / 2] = (outerpt_bc_struct *restrict)malloc(
+    //     sizeof(outerpt_bc_struct) * 2 *
+    //     ((x2min_face_range[1] - x2min_face_range[0]) * (x2min_face_range[3] - x2min_face_range[2]) * (x2min_face_range[5] - x2min_face_range[4])));
     // x2min face: Can't set bc_info->bc_loop_bounds[which_gz][face] = { i0min,i0max, ... } since it's not const :(
     for (int i = 0; i < 6; i++) {
       bcstruct->bc_info.bc_loop_bounds[which_gz][face][i] = x2min_face_range[i];
+      bcstruct_gd->bc_info.bc_loop_bounds[which_gz][face][i] = x2min_face_range[i];
     }
     face++;
     // x2max face: Set loop bounds & allocate memory for outer_bc_array:
     for (int i = 0; i < 6; i++) {
       bcstruct->bc_info.bc_loop_bounds[which_gz][face][i] = x2max_face_range[i];
+      bcstruct_gd->bc_info.bc_loop_bounds[which_gz][face][i] = x2max_face_range[i];
     }
     face++;
     ////////////////////////
   }
-  set_pure_outer_bc_array(xx, bcstruct);
+
+  for (int which_gz = 0; which_gz < NGHOSTS; which_gz++) {
+    for (int dirn = 0; dirn < 3; dirn++) {
+      int idx2d = 0;
+      // LOWER FACE: dirn=0 -> x0min; dirn=1 -> x1min; dirn=2 -> x2min
+      {
+        const int face = dirn * 2;
+#define IDX2D_BCS(i0, i0min, i0max, i1, i1min, i1max, i2, i2min, i2max)                                                                              \
+  (((i0) - (i0min)) + ((i0max) - (i0min)) * (((i1) - (i1min)) + ((i1max) - (i1min)) * ((i2) - (i2min))))
+        const int FACEX0 = (face == 0) - (face == 1); // +1 if face==0 (x0min) ; -1 if face==1 (x0max). Otherwise 0.
+        const int FACEX1 = (face == 2) - (face == 3); // +1 if face==2 (x1min) ; -1 if face==3 (x1max). Otherwise 0.
+        const int FACEX2 = (face == 4) - (face == 5); // +1 if face==4 (x2min) ; -1 if face==5 (x2max). Otherwise 0.
+        LOOP_NOOMP(i0, bcstruct->bc_info.bc_loop_bounds[which_gz][face][0], bcstruct->bc_info.bc_loop_bounds[which_gz][face][1], i1,
+                   bcstruct->bc_info.bc_loop_bounds[which_gz][face][2], bcstruct->bc_info.bc_loop_bounds[which_gz][face][3], i2,
+                   bcstruct->bc_info.bc_loop_bounds[which_gz][face][4], bcstruct->bc_info.bc_loop_bounds[which_gz][face][5]) {
+          REAL x0x1x2_inbounds[3];
+          int i0i1i2_inbounds[3];
+          EigenCoord_set_x0x1x2_inbounds__i0i1i2_inbounds_single_pt(commondata, params, xx, i0, i1, i2, x0x1x2_inbounds, i0i1i2_inbounds);
+          if (i0 == i0i1i2_inbounds[0] && i1 == i0i1i2_inbounds[1] && i2 == i0i1i2_inbounds[2]) {
+            bcstruct->pure_outer_bc_array[dirn + (3 * which_gz)][idx2d].i0 = i0;
+            bcstruct->pure_outer_bc_array[dirn + (3 * which_gz)][idx2d].i1 = i1;
+            bcstruct->pure_outer_bc_array[dirn + (3 * which_gz)][idx2d].i2 = i2;
+            bcstruct->pure_outer_bc_array[dirn + (3 * which_gz)][idx2d].FACEX0 = FACEX0;
+            bcstruct->pure_outer_bc_array[dirn + (3 * which_gz)][idx2d].FACEX1 = FACEX1;
+            bcstruct->pure_outer_bc_array[dirn + (3 * which_gz)][idx2d].FACEX2 = FACEX2;
+            
+            cpy_pure_outer_bc_array(bcstruct, bcstruct_gd, dirn + (3 * which_gz), idx2d);
+            idx2d++;
+          }
+        }
+      }
+      // UPPER FACE: dirn=0 -> x0max; dirn=1 -> x1max; dirn=2 -> x2max
+      {
+        const int face = dirn * 2 + 1;
+        const int FACEX0 = (face == 0) - (face == 1); // +1 if face==0 ; -1 if face==1. Otherwise 0.
+        const int FACEX1 = (face == 2) - (face == 3); // +1 if face==2 ; -1 if face==3. Otherwise 0.
+        const int FACEX2 = (face == 4) - (face == 5); // +1 if face==4 ; -1 if face==5. Otherwise 0.
+        LOOP_NOOMP(i0, bcstruct->bc_info.bc_loop_bounds[which_gz][face][0], bcstruct->bc_info.bc_loop_bounds[which_gz][face][1], i1,
+                   bcstruct->bc_info.bc_loop_bounds[which_gz][face][2], bcstruct->bc_info.bc_loop_bounds[which_gz][face][3], i2,
+                   bcstruct->bc_info.bc_loop_bounds[which_gz][face][4], bcstruct->bc_info.bc_loop_bounds[which_gz][face][5]) {
+          REAL x0x1x2_inbounds[3];
+          int i0i1i2_inbounds[3];
+          EigenCoord_set_x0x1x2_inbounds__i0i1i2_inbounds_single_pt(commondata, params, xx, i0, i1, i2, x0x1x2_inbounds, i0i1i2_inbounds);
+          if (i0 == i0i1i2_inbounds[0] && i1 == i0i1i2_inbounds[1] && i2 == i0i1i2_inbounds[2]) {
+            bcstruct->pure_outer_bc_array[dirn + (3 * which_gz)][idx2d].i0 = i0;
+            bcstruct->pure_outer_bc_array[dirn + (3 * which_gz)][idx2d].i1 = i1;
+            bcstruct->pure_outer_bc_array[dirn + (3 * which_gz)][idx2d].i2 = i2;
+            bcstruct->pure_outer_bc_array[dirn + (3 * which_gz)][idx2d].FACEX0 = FACEX0;
+            bcstruct->pure_outer_bc_array[dirn + (3 * which_gz)][idx2d].FACEX1 = FACEX1;
+            bcstruct->pure_outer_bc_array[dirn + (3 * which_gz)][idx2d].FACEX2 = FACEX2;
+            cpy_pure_outer_bc_array(bcstruct, bcstruct_gd, dirn + (3 * which_gz), idx2d);
+            idx2d++;
+          }
+        }
+      }
+      bcstruct->bc_info.num_pure_outer_boundary_points[which_gz][dirn] = idx2d;
+      bcstruct_gd->bc_info.num_pure_outer_boundary_points[which_gz][dirn] = idx2d;
+    }
+  }
+  cudaFree(bcstruct->inner_bc_array);
+  for (int which_gz = 0; which_gz < NGHOSTS; which_gz++) {
+    for(int i = 0; i < NGHOSTS * 3; ++i)
+      cudaFree(bcstruct->pure_outer_bc_array[i]);
+  }
+  free(bcstruct);
 }

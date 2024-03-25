@@ -54,8 +54,7 @@ int main(int argc, const char *argv[]) {
   {
     // if calling_for_first_time, then initialize commondata time=nn=t_0=nn_0 = 0
     const bool calling_for_first_time = true;
-    numerical_grids_and_timestep(&commondata, griddata, calling_for_first_time);
-    cpyDevicetoHost__grid(&commondata, griddata_host, griddata);
+    numerical_grids_and_timestep(&commondata, griddata, griddata_host, calling_for_first_time);
   }
 
   for (int grid = 0; grid < commondata.NUMGRIDS; grid++) {
