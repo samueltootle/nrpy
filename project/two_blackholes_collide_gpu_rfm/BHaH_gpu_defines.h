@@ -30,6 +30,7 @@ typedef void (*ID_pfunc)(const commondata_struct *restrict commondata, const REA
 #define GPU_NBLOCK2 2
 #define SHARED_SIZE_LIMIT 1024U
 #define PENCIL_SIZEY 4
+#define GPU_THREADX_MAX 256
 
 // error checking macro
 #ifdef DEBUG

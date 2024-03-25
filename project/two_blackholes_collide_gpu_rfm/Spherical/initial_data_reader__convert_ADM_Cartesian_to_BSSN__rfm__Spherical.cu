@@ -572,20 +572,6 @@ void initial_data_reader__convert_ADM_Cartesian_to_BSSN__rfm__Spherical_gpu(cons
     }
 }
 
-void initial_data_lambdaU_grid_interior(const commondata_struct *restrict commondata, const params_struct *restrict params,
-                                               REAL *restrict xx[3], REAL *restrict in_gfs) {
-  #include "../set_CodeParameters.h"
-  int threads_in_x_dir = MIN(1024, params->Nxx0 / 32);
-  int threads_in_y_dir = MIN(1024 / threads_in_x_dir, params->Nxx1);
-  int threads_in_z_dir = 1;
-  dim3 block_threads(threads_in_x_dir, threads_in_y_dir, threads_in_z_dir);
-
-  // Assumes the grids are small enough such that Nxx0 < 1024, therefore we only
-  // need tiles to cover y and z
-  dim3 grid_blocks(params->Nxx1 / threads_in_y_dir, params->Nxx2, 1);
-  initial_data_lambdaU_grid_interior_gpu<<<grid_blocks, block_threads>>>(xx[0], xx[1], xx[2], in_gfs);
-}
-
 /*
  * Read ADM data in the Cartesian basis, and output rescaled BSSN data in the Spherical basis
  */
@@ -615,8 +601,8 @@ void initial_data_reader__convert_ADM_Cartesian_to_BSSN__rfm__Spherical(
   ID_pfunc host_function_ptr;
   cudaMemcpyFromSymbol(&host_function_ptr, id_ptr, sizeof(ID_pfunc));
 
-  int threads_in_x_dir = MIN(1024, params->Nxx0 / 32);
-  int threads_in_y_dir = MIN(1024 / threads_in_x_dir, params->Nxx1);
+  int threads_in_x_dir = MIN(GPU_THREADX_MAX, params->Nxx0 / 32);
+  int threads_in_y_dir = MIN(GPU_THREADX_MAX / threads_in_x_dir, params->Nxx1);
   int threads_in_z_dir = 1;
 
   // Setup our thread layout
@@ -629,6 +615,8 @@ void initial_data_reader__convert_ADM_Cartesian_to_BSSN__rfm__Spherical(
     (Nxx_plus_2NGHOSTS1 + threads_in_y_dir - 1) / threads_in_y_dir,
     (Nxx_plus_2NGHOSTS2 + threads_in_z_dir - 1) / threads_in_z_dir
   );
+  // printf("threads: %d - %d - %d\n", block_threads.x, block_threads.y, block_threads.z);
+  // printf("blocks: %d - %d - %d\n", grid_blocks.x, grid_blocks.y, grid_blocks.z);
 
   initial_data_reader__convert_ADM_Cartesian_to_BSSN__rfm__Spherical_gpu<<<grid_blocks,block_threads>>>(
     commondata_gpu, xx[0], xx[1], xx[2], gridfuncs->y_n_gfs, ID_persist_gpu, host_function_ptr
@@ -643,7 +631,8 @@ void initial_data_reader__convert_ADM_Cartesian_to_BSSN__rfm__Spherical(
   //    symmetry boundaries being correct.
   apply_bcs_inner_only(commondata, params, bcstruct, gridfuncs->y_n_gfs);
 
-  initial_data_lambdaU_grid_interior(commondata, params, xx, gridfuncs->y_n_gfs);
+  // initial_data_lambdaU_grid_interior(commondata, params, xx, gridfuncs->y_n_gfs);
+  initial_data_lambdaU_grid_interior_gpu<<<grid_blocks, block_threads>>>(xx[0], xx[1], xx[2], gridfuncs->y_n_gfs);
   cudaFree(commondata_gpu); 
   cudaFree(ID_persist_gpu);
 }

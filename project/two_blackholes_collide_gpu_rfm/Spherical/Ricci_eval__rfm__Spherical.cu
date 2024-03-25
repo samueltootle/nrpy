@@ -1154,8 +1154,8 @@ void Ricci_eval__rfm__Spherical_gpu(const REAL *restrict _f0_of_xx0, const REAL 
 void Ricci_eval__rfm__Spherical(const commondata_struct *restrict commondata, const params_struct *restrict params,
                                 const rfm_struct *restrict rfmstruct, const REAL *restrict in_gfs, REAL *restrict auxevol_gfs) {
 #include "../set_CodeParameters.h"
-  int threads_in_x_dir = MIN(1024, params->Nxx0 / 32);
-  int threads_in_y_dir = MIN(1024 / threads_in_x_dir, params->Nxx1);
+  int threads_in_x_dir = MIN(GPU_THREADX_MAX, params->Nxx0 / 32);
+  int threads_in_y_dir = MIN(GPU_THREADX_MAX / threads_in_x_dir, params->Nxx1);
   int threads_in_z_dir = 1;
 
   // Setup our thread layout

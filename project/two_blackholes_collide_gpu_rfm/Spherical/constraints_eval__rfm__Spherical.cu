@@ -725,12 +725,18 @@ void constraints_eval__rfm__Spherical(const commondata_struct *restrict commonda
                                       const rfm_struct *restrict rfmstruct, const REAL *restrict in_gfs, const REAL *restrict auxevol_gfs,
                                       REAL *restrict diagnostic_output_gfs) {
 #include "../set_CodeParameters.h"
-  int threads_in_x_dir = MIN(1024, params->Nxx0 / 32);
-  int threads_in_y_dir = MIN(1024 / threads_in_x_dir, params->Nxx1);
+  int threads_in_x_dir = MIN(GPU_THREADX_MAX, params->Nxx0 / 32);
+  int threads_in_y_dir = MIN(GPU_THREADX_MAX / threads_in_x_dir, params->Nxx1);
   int threads_in_z_dir = 1;
   dim3 block_threads(threads_in_x_dir, threads_in_y_dir, threads_in_z_dir);
 
-  dim3 grid_blocks(params->Nxx1 / threads_in_y_dir, params->Nxx2, 1);
+  // (N + block_threads - 1) / block_threads;
+  // dim3 grid_blocks(params->Nxx1 / threads_in_y_dir, params->Nxx2, 1);
+  dim3 grid_blocks(
+    (params->Nxx0 + threads_in_x_dir - 1) / threads_in_x_dir,
+    (params->Nxx1 + threads_in_y_dir - 1) / threads_in_y_dir,
+    (params->Nxx2 + threads_in_z_dir - 1) / threads_in_z_dir
+  );
   constraints_eval__rfm__Spherical_gpu<<<grid_blocks, block_threads>>>(rfmstruct->f0_of_xx0, rfmstruct->f1_of_xx1, 
     rfmstruct->f1_of_xx1__D1, rfmstruct->f1_of_xx1__DD11, in_gfs, auxevol_gfs, diagnostic_output_gfs);
 }

@@ -44,7 +44,7 @@ void rk_substep1(params_struct *restrict params,
                 * Nxx_plus_2NGHOSTS1 \
                 * Nxx_plus_2NGHOSTS2 \
                 * NUM_EVOL_GFS;
-    int block_threads = MIN(1024, N);
+    int block_threads = MIN(GPU_THREADX_MAX, N/32);
     int grid_blocks = (N + block_threads - 1) / block_threads;
 
     rk_substep1_gpu<<<grid_blocks, block_threads>>>(y_n_gfs,
@@ -97,7 +97,7 @@ void rk_substep2(params_struct *restrict params,
                 * Nxx_plus_2NGHOSTS1 \
                 * Nxx_plus_2NGHOSTS2 \
                 * NUM_EVOL_GFS;
-    int block_threads = MIN(1024, N);
+    int block_threads = MIN(GPU_THREADX_MAX, N/32);
     int grid_blocks = (N + block_threads - 1) / block_threads;
 
     rk_substep2_gpu<<<grid_blocks, block_threads>>>(params, 
@@ -153,7 +153,7 @@ void rk_substep3(params_struct *restrict params,
                 * Nxx_plus_2NGHOSTS1 \
                 * Nxx_plus_2NGHOSTS2 \
                 * NUM_EVOL_GFS;
-    int block_threads = MIN(1024, N);
+    int block_threads = MIN(GPU_THREADX_MAX, N/32);
     int grid_blocks = (N + block_threads - 1) / block_threads;
 
     rk_substep3_gpu<<<grid_blocks, block_threads>>>(params, 
@@ -205,7 +205,7 @@ void rk_substep4(params_struct *restrict params,
                 * Nxx_plus_2NGHOSTS1 \
                 * Nxx_plus_2NGHOSTS2 \
                 * NUM_EVOL_GFS;
-    int block_threads = MIN(1024, N);
+    int block_threads = MIN(GPU_THREADX_MAX, N / 32);
     int grid_blocks = (N + block_threads - 1) / block_threads;
 
     rk_substep4_gpu<<<grid_blocks, block_threads>>>(params, 
