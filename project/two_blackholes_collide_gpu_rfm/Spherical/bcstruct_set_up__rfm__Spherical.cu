@@ -609,10 +609,9 @@ void bcstruct_set_up__rfm__Spherical(const commondata_struct *restrict commondat
       bcstruct_gd->bc_info.num_pure_outer_boundary_points[which_gz][dirn] = idx2d;
     }
   }
-  cudaFree(bcstruct->inner_bc_array);
-  for (int which_gz = 0; which_gz < NGHOSTS; which_gz++) {
-    for(int i = 0; i < NGHOSTS * 3; ++i)
-      cudaFree(bcstruct->pure_outer_bc_array[i]);
-  }
+  cudaDeviceSynchronize();
+  cudaFreeHost(bcstruct->inner_bc_array);
+  for(int i = 0; i < NGHOSTS * 3; ++i)
+    cudaFreeHost(bcstruct->pure_outer_bc_array[i]);
   free(bcstruct);
 }

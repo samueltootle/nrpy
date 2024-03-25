@@ -39,7 +39,7 @@ void numerical_grids_and_timestep(commondata_struct *restrict commondata, gridda
     set_param_constants(&griddata[grid].params);
     bcstruct_set_up(commondata, &griddata[grid].params, griddata_host[grid].xx, &griddata[grid].bcstruct);
   }
-  cudaDeviceSynchronize();
+  
   // Step 1.e: Set timestep based on minimum spacing between neighboring gridpoints.
   commondata->dt = 1e30;
   for (int grid = 0; grid < commondata->NUMGRIDS; grid++) {
