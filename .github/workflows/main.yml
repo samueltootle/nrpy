@@ -5,6 +5,9 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
+  # Run on the 1st and 15th of each month, at 4:47AM UTC, to check for breakages due to e.g., sympy-dev.
+  schedule:
+    - cron: '47 4 1,15 * *'
 
 jobs:
   build:
@@ -13,10 +16,10 @@ jobs:
     strategy:
       matrix:
        os: ['ubuntu-20.04', 'ubuntu-22.04']
-       python-version: ['3.6.7', '3.x']  # runs jobs on python 3.6.7 and the latest python version
+       python-version: ['3.6.15', '3.x']  # runs jobs on python 3.6.15 and the latest python version
        exclude:
          - os: 'ubuntu-22.04'
-           python-version: '3.6.7'
+           python-version: '3.6.15'
 
     steps:
     - uses: actions/checkout@v3
@@ -32,8 +35,14 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        if [ -f requirements.txt ]; then pip install -U -r requirements.txt; fi
-        pip install -U mypy pylint black clang-format ipython setuptools
+        pip install -U -r requirements.txt
+        if [ "${{ matrix.python-version }}" != "3.6.15" ]; then
+          pip install -U -r requirements-dev.txt
+        else
+          # Install packages from requirements-dev.txt except those with a fixed version.
+          cat requirements-dev.txt | grep -v '==' | xargs pip install -U
+        fi
+        pip install -U clang-format ipython setuptools
         sudo apt-get -y install libgsl-dev
 
     - name: Install latest DEVELOPMENT sympy for ubuntu-22.04
@@ -44,11 +53,13 @@ jobs:
       if: matrix.os == 'ubuntu-20.04'
       run: pip install sympy
 
-    - name: Display sympy version
-      run: echo "Running CI tests with SymPy version = $(isympy --version)"
+    - name: Display sympy and clang-format versions
+      run: |
+        echo "Running CI tests with SymPy version = $(isympy --version)"
+        echo "Running CI tests with clang-format version = $(clang-format --version)"
 
-    - name: Check mypy and black versions when Python != 3.6.7 chosen (they are too broken in that Python version).
-      if: matrix.python-version != '3.6.7'
+    - name: Check mypy and black versions when Python != 3.6.15 chosen (they are too broken in that Python version).
+      if: matrix.python-version != '3.6.15'
       run: |
         mypy --version
         black --version
@@ -58,16 +69,17 @@ jobs:
         failed_tests=()
         # Use find to locate python files based on pattern or directory structure.
         #   Don't analyze Python scripts in tests/ (though they should pass!)
-        #   Ignore CarpetX infrastructure for now as well...
-        python_files=$(find . -name '*.py' -not -name '__init__.py' -not -path './build/*' -not -path './nrpy/infrastructures/CarpetX/*' -not -path '*/tests/*')
+        python_files=$(find . -name '*.py' -not -name '__init__.py' -not -path './build/*' -not -path '*/tests/*')
 
         for python_file in $python_files; do
           echo ""
           echo "-={ $python_file }=-"
-          echo "-={ Step 1: Doctests/run Python module }=-"
-          DOCTEST_MODE=1 PYTHONPATH=.:$PYTHONPATH python $python_file || { failed_tests+=("doctest in $python_file"); break; }
-          if [ "${{ matrix.python-version }}" != "3.6.7" ]; then
-            # Turns out that black in Python 3.6.7 has a heart attack when parsing equations/general_relativity/BSSN_quantities.py:
+          if [[ ! $python_file =~ nrpy/examples/.* ]]; then
+            echo "-={ Step 1: Doctests/run Python module }=-"
+            DOCTEST_MODE=1 PYTHONPATH=.:$PYTHONPATH python $python_file || { failed_tests+=("doctest in $python_file"); break; }
+          fi
+          if [ "${{ matrix.python-version }}" != "3.6.15" ]; then
+            # Turns out that black in Python 3.6.15 has a heart attack when parsing equations/general_relativity/BSSN_quantities.py:
             # INTERNAL ERROR: Black produced code that is not equivalent to the source. Please report a bug on .... [HOW ABOUT NO. BEGGING FOR WONTFIX]
             echo "-={ Step 2: black $python_file }=-"
             black --check $python_file || { failed_tests+=("black in $python_file"); break; }
@@ -75,10 +87,10 @@ jobs:
             PYTHONPATH=.:$PYTHONPATH mypy --strict --pretty --allow-untyped-calls $python_file || { failed_tests+=("mypy in $python_file"); break; }
           fi
           echo "-={ Step 4: pylint }=-"
-          if [ "${{ matrix.python-version }}" != "3.6.7" ]; then
-            PYTHONPATH=.:$PYTHONPATH pylint_score=$(pylint --rcfile=.pylintrc $python_file | tail -2 | grep -Eo '[0-9\.]+' | head -1 || echo "0")
+          if [ "${{ matrix.python-version }}" != "3.6.15" ]; then
+            pylint_score=$(PYTHONPATH=.:$PYTHONPATH pylint --rcfile=.pylintrc $python_file | tail -2 | grep -Eo '[0-9\.]+' | head -1 || echo "0")
           else
-            PYTHONPATH=.:$PYTHONPATH pylint_score=$(pylint --rcfile=.pylintrc_python36 $python_file | tail -2 | grep -Eo '[0-9\.]+' | head -1 || echo "0")
+            pylint_score=$(PYTHONPATH=.:$PYTHONPATH pylint --rcfile=.pylintrc_python36 $python_file | tail -2 | grep -Eo '[0-9\.]+' | head -1 || echo "0")
           fi
           echo "Pylint score is $pylint_score"
           if (( $(echo "$pylint_score < 9.5" | bc -l) )); then
@@ -101,8 +113,11 @@ jobs:
       run: |
         pwd &&
         pip install . &&
+        mkdir tmp &&
+        cd tmp &&
         python -m nrpy.examples.wave_equation_cartesian   && (cd project/wavetoy && make && make clean) &&
         python -m nrpy.examples.wave_equation_curvilinear && (cd project/curviwavetoy && make && make clean) &&
+        python -m nrpy.examples.nrpyelliptic_conformally_flat && (cd project/nrpyelliptic_conformally_flat && make && make clean) &&
         python -m nrpy.examples.two_blackholes_collide    && (cd project/two_blackholes_collide && make && make clean) &&
         python -m nrpy.examples.blackhole_spectroscopy    && (cd project/blackhole_spectroscopy && make && make clean) &&
         python -m nrpy.examples.spinning_blackhole        && (cd project/spinning_blackhole && make && make clean) &&
@@ -114,7 +129,7 @@ jobs:
 
     strategy:
       matrix:
-        python-version: [ '3.6.7', '3.x' ]
+        python-version: [ '3.6.15', '3.x' ]
 
     steps:
     - uses: actions/checkout@v3
@@ -131,15 +146,19 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-        pip install -U mypy pylint black clang-format ipython setuptools
+        if [ "${{ matrix.python-version }}" != "3.6.15" ]; then pip install -U mypy==1.8.0 black==24.1.1; fi
+        pip install -U pylint clang-format ipython setuptools
         brew install gsl
 
     - name: Check that pip installed nrpy creates valid, compilable C example projects
       run: |
         pwd &&
         pip install . &&
+        mkdir tmp &&
+        cd tmp &&
         python -m nrpy.examples.wave_equation_cartesian   && (cd project/wavetoy && make && make clean) &&
         python -m nrpy.examples.wave_equation_curvilinear && (cd project/curviwavetoy && make && make clean) &&
+        python -m nrpy.examples.nrpyelliptic_conformally_flat && (cd project/nrpyelliptic_conformally_flat && make && make clean) &&
         python -m nrpy.examples.two_blackholes_collide    && (cd project/two_blackholes_collide && make && make clean) &&
         python -m nrpy.examples.blackhole_spectroscopy    && (cd project/blackhole_spectroscopy && make && make clean) &&
         python -m nrpy.examples.spinning_blackhole        && (cd project/spinning_blackhole && make && make clean) &&

@@ -4,6 +4,7 @@ Library of C functions for solving the BSSN equations in curvilinear coordinates
 Author: Zachariah B. Etienne
         zachetie **at** gmail **dot* com
 """
+
 from collections import OrderedDict as ODict
 from typing import List, Union, cast, Tuple, Dict
 from pathlib import Path
@@ -97,7 +98,7 @@ def register_CFunction_initial_data(
     )
 
     desc = "Set initial data."
-    c_type = "void"
+    cfunc_type = "void"
     name = "initial_data"
     params = (
         "commondata_struct *restrict commondata, griddata_struct *restrict griddata"
@@ -128,7 +129,7 @@ griddata[grid].xx, &griddata[grid].bcstruct, &griddata[grid].gridfuncs, &ID_pers
     cfc.register_CFunction(
         includes=includes,
         desc=desc,
-        c_type=c_type,
+        cfunc_type=cfunc_type,
         name=name,
         params=params,
         include_CodeParameters_h=False,
@@ -219,7 +220,7 @@ def register_CFunction_diagnostics(
             )
 
     desc = r"""Diagnostics."""
-    c_type = "void"
+    cfunc_type = "void"
     name = "diagnostics"
     params = (
         "commondata_struct *restrict commondata, griddata_struct *restrict griddata"
@@ -297,7 +298,7 @@ if(commondata->time + commondata->dt > commondata->t_final) printf("\n");
     cfc.register_CFunction(
         includes=includes,
         desc=desc,
-        c_type=c_type,
+        cfunc_type=cfunc_type,
         name=name,
         params=params,
         include_CodeParameters_h=False,
@@ -345,7 +346,7 @@ def register_CFunction_rhs_eval(
     if enable_simd:
         includes += [str(Path("simd") / "simd_intrinsics.h")]
     desc = r"""Set RHSs for the BSSN evolution equations."""
-    c_type = "void"
+    cfunc_type = "void"
     name = "rhs_eval"
     params = "const commondata_struct *restrict commondata, const params_struct *restrict params, REAL *restrict xx[3], const REAL *restrict auxevol_gfs, const REAL *restrict in_gfs, REAL *restrict rhs_gfs"
     if enable_rfm_precompute:
@@ -383,9 +384,11 @@ def register_CFunction_rhs_eval(
 
         if KreissOliger_strength_mult_by_W:
             Bq = BSSN_quantities[
-                CoordSystem + "_rfm_precompute"
-                if enable_rfm_precompute
-                else CoordSystem
+                (
+                    CoordSystem + "_rfm_precompute"
+                    if enable_rfm_precompute
+                    else CoordSystem
+                )
             ]
             EvolvedConformalFactor_cf = par.parval_from_str("EvolvedConformalFactor_cf")
             if EvolvedConformalFactor_cf == "W":
@@ -479,7 +482,7 @@ def register_CFunction_rhs_eval(
         includes=includes,
         prefunc=fin.construct_FD_functions_prefunc() if enable_fd_functions else "",
         desc=desc,
-        c_type=c_type,
+        cfunc_type=cfunc_type,
         CoordSystem_for_wrapper_func=CoordSystem,
         name=name,
         params=params,
@@ -518,9 +521,11 @@ def register_CFunction_Ricci_eval(
         # try/except in case BSSN_quantities hasn't been set yet.
         try:
             del BSSN_quantities[
-                CoordSystem + "_rfm_precompute"
-                if enable_rfm_precompute
-                else CoordSystem
+                (
+                    CoordSystem + "_rfm_precompute"
+                    if enable_rfm_precompute
+                    else CoordSystem
+                )
             ]
         except KeyError:
             pass
@@ -533,7 +538,7 @@ def register_CFunction_Ricci_eval(
     if enable_simd:
         includes += [str(Path("simd") / "simd_intrinsics.h")]
     desc = r"""Set Ricci tensor."""
-    c_type = "void"
+    cfunc_type = "void"
     name = "Ricci_eval"
     params = "const commondata_struct *restrict commondata, const params_struct *restrict params, REAL *restrict xx[3], const REAL *restrict in_gfs, REAL *restrict auxevol_gfs"
     if enable_rfm_precompute:
@@ -578,7 +583,7 @@ def register_CFunction_Ricci_eval(
         prefunc=fin.construct_FD_functions_prefunc() if enable_fd_functions else "",
         includes=includes,
         desc=desc,
-        c_type=c_type,
+        cfunc_type=cfunc_type,
         CoordSystem_for_wrapper_func=CoordSystem,
         name=name,
         params=params,
@@ -618,7 +623,7 @@ def register_CFunction_constraints(
     if enable_simd:
         includes += [str(Path("simd") / "simd_intrinsics.h")]
     desc = r"""Evaluate BSSN constraints."""
-    c_type = "void"
+    cfunc_type = "void"
     name = "constraints_eval"
     params = "const commondata_struct *restrict commondata, const params_struct *restrict params, REAL *restrict xx[3], const REAL *restrict in_gfs, const REAL *restrict auxevol_gfs, REAL *restrict diagnostic_output_gfs"
     if enable_rfm_precompute:
@@ -652,7 +657,7 @@ def register_CFunction_constraints(
         includes=includes,
         prefunc=fin.construct_FD_functions_prefunc() if enable_fd_functions else "",
         desc=desc,
-        c_type=c_type,
+        cfunc_type=cfunc_type,
         CoordSystem_for_wrapper_func=CoordSystem,
         name=name,
         params=params,
@@ -691,7 +696,7 @@ def register_CFunction_enforce_detgammabar_equals_detgammahat(
 
     includes = ["BHaH_defines.h"]
     desc = r"""Enforce det(gammabar) = det(gammahat) constraint. Required for strong hyperbolicity."""
-    c_type = "void"
+    cfunc_type = "void"
     name = "enforce_detgammabar_equals_detgammahat"
     params = "const commondata_struct *restrict commondata, const params_struct *restrict params, REAL *restrict xx[3], REAL *restrict in_gfs"
     if enable_rfm_precompute:
@@ -755,7 +760,7 @@ def register_CFunction_enforce_detgammabar_equals_detgammahat(
         prefunc=fin.construct_FD_functions_prefunc() if enable_fd_functions else "",
         includes=includes,
         desc=desc,
-        c_type=c_type,
+        cfunc_type=cfunc_type,
         CoordSystem_for_wrapper_func=CoordSystem,
         name=name,
         params=params,
@@ -976,9 +981,7 @@ def register_CFunction_psi4_tetrad(
     return cast(pcg.NRPyEnv_type, pcg.NRPyEnv())
 
 
-def register_CFunction_psi4_spinweightm2_decomposition_on_sphlike_grids() -> (
-    Union[None, pcg.NRPyEnv_type]
-):
+def register_CFunction_psi4_spinweightm2_decomposition_on_sphlike_grids() -> None:
     """
     Register C function for decomposing psi4 into spin-weighted spherical harmonics.
 
@@ -986,9 +989,6 @@ def register_CFunction_psi4_spinweightm2_decomposition_on_sphlike_grids() -> (
 
     :return: None if in registration phase, else the updated NRPy environment.
     """
-    if pcg.pcg_registration_phase():
-        pcg.register_func_call(f"{__name__}.{cast(FT, cfr()).f_code.co_name}", locals())
-        return None
     prefunc = r"""
 static void lowlevel_decompose_psi4_into_swm2_modes(const int Nxx_plus_2NGHOSTS1,const int Nxx_plus_2NGHOSTS2,
                                                     const REAL dxx1, const REAL dxx2,
@@ -1146,4 +1146,3 @@ static void lowlevel_decompose_psi4_into_swm2_modes(const int Nxx_plus_2NGHOSTS1
         include_CodeParameters_h=True,
         body=body,
     )
-    return cast(pcg.NRPyEnv_type, pcg.NRPyEnv())

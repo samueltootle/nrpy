@@ -11,6 +11,7 @@ This example sets up a complete C code for solving the GR field
 Author: Zachariah B. Etienne
         zachetie **at** gmail **dot* com
 """
+
 #########################################################
 # STEP 1: Import needed Python modules, then set codegen
 #         and compile-time parameters.
@@ -205,10 +206,11 @@ BCl.register_CFunction_psi4_tetrad(
     CoordSystem=CoordSystem,
     output_empty_function=False,
 )
-BCl.register_CFunction_psi4_spinweightm2_decomposition_on_sphlike_grids()
 
 if __name__ == "__main__":
     pcg.do_parallel_codegen()
+# Does not need to be parallelized.
+BCl.register_CFunction_psi4_spinweightm2_decomposition_on_sphlike_grids()
 
 numericalgrids.register_CFunctions(
     list_of_CoordSystems=[CoordSystem],

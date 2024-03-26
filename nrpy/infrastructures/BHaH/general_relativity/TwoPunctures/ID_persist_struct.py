@@ -6,6 +6,7 @@ License: Lesser GNU Public License, version 2.0+
 Author: Zachariah B. Etienne
         zachetie **at** gmail **dot* com
 """
+
 import nrpy.c_function as cfc
 import nrpy.params as par
 
@@ -97,7 +98,7 @@ IMPORTANT: We set up initial data in TwoPunctures assuming the BBH is initially 
 Initialize ID_persist_struct: populate some with defaults; set others with inputs from commondata;
 set up initial_p_t and initial_p_r if not set in parfile.
 """
-    c_type = "void"
+    cfunc_type = "void"
     name = "initialize_ID_persist_struct"
     params = "commondata_struct *restrict commondata, ID_persist_struct *restrict par"
     body = r"""  // Step 1: Set default TwoPunctures values
@@ -236,7 +237,7 @@ set up initial_p_t and initial_p_r if not set in parfile.
         subdirectory="TwoPunctures",
         includes=includes,
         desc=desc,
-        c_type=c_type,
+        cfunc_type=cfunc_type,
         name=name,
         params=params,
         body=body,

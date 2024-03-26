@@ -4,6 +4,7 @@ Provide functions that declare and define useful BSSN quantities.
 Author: Zachariah B. Etienne
         zachetie **at** gmail **dot* com
 """
+
 from typing import Dict, List
 import sympy as sp  # SymPy: The Python computer algebra package upon which NRPy+ depends
 
@@ -268,7 +269,7 @@ class BSSNQuantities:
         # Step 7.a: Defines RbarDD, DGammaUDD, gammabarDD_dHatD, DGammaU
 
         # Step 7.a.i: Define \varepsilon_{ij} = epsDD[i][j]
-        epsDD = ixp.zerorank3()
+        epsDD = ixp.zerorank2()
         for i in range(3):
             for j in range(3):
                 epsDD[i][j] = self.hDD[i][j] * rfm.ReDD[i][j]
@@ -499,6 +500,7 @@ class BSSNQuantities:
         cf_dD = ixp.declarerank1("cf_dD")
         cf_dupD = ixp.declarerank1("cf_dupD")  # Needed for \partial_t \phi next.
         cf_dDD = ixp.declarerank2("cf_dDD", symmetry="sym01")
+
         self.phi_dD = ixp.zerorank1()
         self.phi_dupD = ixp.zerorank1()
         self.phi_dDD = ixp.zerorank2()

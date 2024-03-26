@@ -23,6 +23,7 @@ def register_CFunctions_params_commondata_struct_set_to_default() -> None:
     >>> _, __ = par.register_CodeParameters("REAL", "CodeParameters_c_files", ["a", "pi_three_sigfigs"], [1, 3.14], commondata=True)
     >>> ___ = par.register_CodeParameter("#define", "CodeParameters_c_files", "b", 0)
     >>> _leaveitbe = par.register_CodeParameter("REAL", "CodeParameters_c_files", "leaveitbe", add_to_parfile=False, add_to_set_CodeParameters_h=False)
+    >>> _int = par.register_CodeParameter("int", "CodeParameters_c_files", "blah_int", 1, commondata=True, add_to_parfile=True, add_to_set_CodeParameters_h=False)
     >>> _str = par.register_CodeParameter("char[100]", "CodeParameters_c_files", "some_string", "cheese")
     >>> _bool = par.register_CodeParameter("bool", "CodeParameters_c_files", "BHaH_is_amazing", True, add_to_set_CodeParameters_h=True)
     >>> cfc.CFunction_dict.clear()
@@ -51,6 +52,7 @@ def register_CFunctions_params_commondata_struct_set_to_default() -> None:
     <BLANKLINE>
       // Set commondata_struct variables to default
       commondata->a = 1;                   // CodeParameters_c_files::a
+      commondata->blah_int = 1;            // CodeParameters_c_files::blah_int
       commondata->pi_three_sigfigs = 3.14; // CodeParameters_c_files::pi_three_sigfigs
     }
     <BLANKLINE>
@@ -58,7 +60,7 @@ def register_CFunctions_params_commondata_struct_set_to_default() -> None:
     for function_name in ["commondata_struct", "params_struct"]:
         includes = ["BHaH_defines.h"]
         desc = f"Set {function_name} to default values specified within NRPy+."
-        c_type = "void"
+        cfunc_type = "void"
         name = f"{function_name}_set_to_default"
         params = "commondata_struct *restrict commondata"
         if function_name == "params_struct":
@@ -70,9 +72,9 @@ def register_CFunctions_params_commondata_struct_set_to_default() -> None:
             if (function_name == "commondata_struct" and CodeParam.commondata) or (
                 function_name == "params_struct" and not CodeParam.commondata
             ):
-                if CodeParam.add_to_parfile and CodeParam.add_to_set_CodeParameters_h:
+                if CodeParam.add_to_parfile:
                     struct = "commondata" if CodeParam.commondata else "params"
-                    CPtype = CodeParam.c_type_alias
+                    CPtype = CodeParam.cparam_type
                     comment = f"  // {CodeParam.module}::{parname}"
                     defaultval = CodeParam.defaultvalue
                     if "char" in CPtype and "[" in CPtype and "]" in CPtype:
@@ -104,7 +106,7 @@ def register_CFunctions_params_commondata_struct_set_to_default() -> None:
             include_CodeParameters_h=False,
             includes=includes,
             desc=desc,
-            c_type=c_type,
+            cfunc_type=cfunc_type,
             name=name,
             params=params,
             body=body,
@@ -130,20 +132,22 @@ def write_CodeParameters_h_files(
     const REAL pi_three_sigfigs = commondata->pi_three_sigfigs; // CodeParameters_c_files::pi_three_sigfigs
     char some_string[100];                                      // CodeParameters_c_files::some_string
     {
-      strncpy(some_string, params->some_string, 99);
-      some_string[99] = '\0';
-    } // Properly null terminate char array.
-    <BLANKLINE>
+      // Copy up to 99 characters from params->some_string to some_string
+      strncpy(some_string, params->some_string, 100 - 1);
+      // Explicitly null-terminate some_string to ensure it is a valid C-string
+      some_string[100 - 1] = '\0'; // Properly null terminate char array.
+    }
     >>> print((project_dir / 'set_CodeParameters-nopointer.h').read_text())
     const REAL a = commondata.a;                               // CodeParameters_c_files::a
     const bool BHaH_is_amazing = params.BHaH_is_amazing;       // CodeParameters_c_files::BHaH_is_amazing
     const REAL pi_three_sigfigs = commondata.pi_three_sigfigs; // CodeParameters_c_files::pi_three_sigfigs
     char some_string[100];                                     // CodeParameters_c_files::some_string
     {
-      strncpy(some_string, params.some_string, 99);
-      some_string[99] = '\0';
-    } // Properly null terminate char array.
-    <BLANKLINE>
+      // Copy up to 99 characters from params.some_string to some_string
+      strncpy(some_string, params.some_string, 100 - 1);
+      // Explicitly null-terminate some_string to ensure it is a valid C-string
+      some_string[100 - 1] = '\0'; // Properly null terminate char array.
+    }
     >>> print((project_dir / 'set_CodeParameters-simd.h').read_text())
     const REAL NOSIMDa = commondata->a;                                         // CodeParameters_c_files::a
     const REAL_SIMD_ARRAY a = ConstSIMD(NOSIMDa);                               // CodeParameters_c_files::a
@@ -173,7 +177,7 @@ def write_CodeParameters_h_files(
                 else:
                     struct = "params"
                 # C parameter type, parameter name
-                CPtype = CodeParam.c_type_alias
+                CPtype = CodeParam.cparam_type
                 # For efficiency reasons, set_CodeParameters*.h does not set char arrays;
                 #   access those from the params struct directly.
                 pointer = "->" if pointerEnable else "."
@@ -181,8 +185,14 @@ def write_CodeParameters_h_files(
                 comment = f"  // {CodeParam.module}::{CPname}"
                 if "char" in CPtype and "[" in CPtype and "]" in CPtype:
                     # Handle char array C type
-                    CPsize = CPtype.split("[")[1].split("]")[0]
-                    Coutput = f"char {CPname}[{CPsize}]; {comment} \n {{ strncpy({CPname}, {struct}{pointer}{CPname}, {int(CPsize)-1}); {CPname}[{int(CPsize)-1}]='\\0'; }} // Properly null terminate char array.\n"
+                    CPsize = int(CPtype.split("[")[1].split("]")[0])
+                    Coutput = rf"""char {CPname}[{CPsize}]; {comment}
+{{
+  // Copy up to {CPsize-1} characters from {struct}{pointer}{CPname} to {CPname}
+  strncpy({CPname}, {struct}{pointer}{CPname}, {CPsize}-1);
+  // Explicitly null-terminate {CPname} to ensure it is a valid C-string
+  {CPname}[{CPsize}-1]='\0'; // Properly null terminate char array.
+}}"""
                 else:
                     # Handle all other C types
                     Coutput = f"const {CPtype} {CPname} = {struct}{pointer}{CPname};{comment}\n"
@@ -218,10 +228,10 @@ def write_CodeParameters_h_files(
         # SIMD does not support char arrays.
         if (
             CodeParam.add_to_set_CodeParameters_h
-            and "char" not in CodeParam.c_type_alias
+            and "char" not in CodeParam.cparam_type
         ):
             struct = "commondata" if CodeParam.commondata else "params"
-            CPtype = CodeParam.c_type_alias
+            CPtype = CodeParam.cparam_type
             comment = f"  // {CodeParam.module}::{CPname}"
             if CPtype == "REAL":
                 c_output = f"const REAL NOSIMD{CPname} = {struct}->{CPname};{comment}\n"

@@ -9,6 +9,7 @@ the resulting replaced/reduced expressions after the CSE procedure was applied.
 Author: Ken Sible
 Email:  ksible *at* outlook *dot* com
 """
+
 import sys  # Standard Python module for multiplatform OS-level functions
 from collections import OrderedDict
 from typing import Union, List, Tuple, Dict, cast
@@ -93,7 +94,7 @@ def cse_preprocess(
 
     # Maps to hold symbol to rational and rational to symbol mappings
     symbol_to_Rational_dict: Dict[sp.Basic, sp.Rational] = OrderedDict()
-    map_rat_to_sym: Dict[sp.Rational, sp.Basic] = OrderedDict()
+    map_rat_to_sym: Dict[sp.Rational | int, sp.Basic] = OrderedDict()
 
     # Loop over each expression in the input list
     for i, expr in enumerate(expr_list):
@@ -119,9 +120,10 @@ def cse_preprocess(
                 # If rational number hasn't been encountered before, replace
                 # it with a symbol using get() to avoid try-except;
                 # typehinting note: subexpr is guaranteed to be Rational.
-                repl = map_rat_to_sym.get(subexpr)  # type: ignore
+                subexpr = cast(sp.Rational, subexpr)
+                repl = map_rat_to_sym.get(subexpr)
                 if repl is None:
-                    p, q = subexpr.p, subexpr.q  # type: ignore
+                    p, q = subexpr.p, subexpr.q
 
                     # Name the variable based on its value and whether it's an integer or a rational number
                     var_name = (
@@ -134,10 +136,13 @@ def cse_preprocess(
                     repl = sp.Symbol(var_name)
 
                     # Add mapping of symbol to rational and rational to symbol
-                    symbol_to_Rational_dict[repl], map_rat_to_sym[subexpr] = subexpr, repl  # type: ignore
+                    symbol_to_Rational_dict[repl], map_rat_to_sym[subexpr] = (
+                        subexpr,
+                        repl,
+                    )
 
                 # Update subexpression in the subtree
-                subtree.expr = repl * sign
+                subtree.expr = cast(sp.Expr, repl * cast(sp.Expr, sign))
 
                 if sign < 0:
                     tree.build(subtree, clear=False)
@@ -150,7 +155,7 @@ def cse_preprocess(
                 )
                 if subtree.expr == sp.Symbol("didnotfind_subtree_expr"):
                     symbol_to_Rational_dict[_NegativeOne_] = sp.S.NegativeOne
-                    map_rat_to_sym[subexpr] = _NegativeOne_  # type: ignore
+                    map_rat_to_sym[cast(int, subexpr)] = _NegativeOne_
                     subtree.expr = _NegativeOne_
         # Update expression from reconstructed tree
         expr = tree.reconstruct()
@@ -204,8 +209,10 @@ def cse_preprocess(
                 subexpr = subtree.expr
                 if subexpr.func == sp.Pow:
                     base, exponent = subexpr.args[0], subexpr.args[1]
-                    if base == _NegativeOne_ and isinstance(exponent, int):
-                        subtree.expr = _One_ if exponent % 2 == 0 else _NegativeOne_
+                    if base == _NegativeOne_:
+                        subtree.expr = (
+                            _One_ if sp.Integer(exponent) % 2 == 0 else _NegativeOne_
+                        )
                         tree.build(subtree)
                         changed_expr = True
             if changed_expr:

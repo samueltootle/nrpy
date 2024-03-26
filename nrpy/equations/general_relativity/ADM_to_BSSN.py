@@ -85,7 +85,7 @@ class ADM_to_BSSN:
                 self.hDD[i][j] = (self.gammabarDD[i][j] - rfm.ghatDD[i][j]) / rfm.ReDD[
                     i
                 ][j]
-        gammabarUU, gammabarDET = ixp.symm_matrix_inverter3x3(self.gammabarDD)
+        _gammabarUU, gammabarDET = ixp.symm_matrix_inverter3x3(self.gammabarDD)
 
         self.cf = sp.sympify(0)
 
@@ -130,42 +130,7 @@ class ADM_to_BSSN:
                 ) * (KDD[i][j] - sp.Rational(1, 3) * gammaDD[i][j] * self.trK)
                 self.aDD[i][j] = self.AbarDD[i][j] / rfm.ReDD[i][j]
 
-        # Step 2.d: \bar{Lambda}^i
-        # \bar{Lambda}^i = \bar{gamma}^{jk}(\bar{Gamma}^i_{jk} - \hat{Gamma}^i_{jk}).
-        # First compute Christoffel symbols \bar{Gamma}^i_{jk}, with respect to barred metric:
-        GammabarUDD = ixp.zerorank3()
-        for i in range(3):
-            for j in range(3):
-                for k in range(3):
-                    for l in range(3):
-                        GammabarUDD[i][j][k] += (
-                            sp.Rational(1, 2)
-                            * gammabarUU[i][l]
-                            * (
-                                sp.diff(self.gammabarDD[l][j], rfm.xx[k])
-                                + sp.diff(self.gammabarDD[l][k], rfm.xx[j])
-                                - sp.diff(self.gammabarDD[j][k], rfm.xx[l])
-                            )
-                        )
-        # Next evaluate \bar{Lambda}^i, based on GammabarUDD above and GammahatUDD
-        #       (from the reference metric):
-        LambdabarU = ixp.zerorank1()
-        for i in range(3):
-            for j in range(3):
-                for k in range(3):
-                    LambdabarU[i] += gammabarUU[j][k] * (
-                        GammabarUDD[i][j][k] - rfm.GammahatUDD[i][j][k]
-                    )
-        for i in range(3):
-            # We evaluate LambdabarU[i] here to ensure proper cancellations. If these cancellations
-            #   are not applied, certain expressions (e.g., lambdaU[0] in StaticTrumpet) will
-            #   cause SymPy's (v1.5+) CSE algorithm to hang
-            LambdabarU[i] = LambdabarU[i].doit()
-        lambdaU = ixp.zerorank1()
-        for i in range(3):
-            lambdaU[i] = LambdabarU[i] / rfm.ReU[i]
-
-        # Step 2.e: Rescale beta^i and B^i according to the prescription described in
+        # Step 2.d: Rescale beta^i and B^i according to the prescription described in
         #         the [BSSN in curvilinear coordinates tutorial module](Tutorial-BSSNCurvilinear.ipynb)
         #         (also [Ruchlin *et al.*](https://arxiv.org/pdf/1712.07658.pdf)):
         #
@@ -192,15 +157,13 @@ if __name__ == "__main__":
         print(f"Doctest passed: All {results.attempted} test(s) passed")
 
     # Cannot import InitialData_Spherical here, as that would result in a circular dependency.
-    def StaticTrumpet_standalone() -> (
-        Tuple[
-            List[List[sp.Expr]],
-            List[List[sp.Expr]],
-            sp.Expr,
-            List[sp.Expr],
-            List[sp.Expr],
-        ]
-    ):
+    def StaticTrumpet_standalone() -> Tuple[
+        List[List[sp.Expr]],
+        List[List[sp.Expr]],
+        sp.Expr,
+        List[sp.Expr],
+        List[sp.Expr],
+    ]:
         """
         Set up Static Trumpet initial data.
 

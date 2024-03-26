@@ -9,6 +9,7 @@ from typing import Dict, List, Optional, Tuple
 from pathlib import Path
 
 import nrpy.c_function as cfc
+from nrpy.helpers.conditional_file_updater import ConditionalFileUpdater
 
 
 class ScheduleCCL:
@@ -64,7 +65,7 @@ def construct_schedule_ccl(
 {STORAGE}
 """
     schedule_ccl_dict: Dict[str, List[ScheduleCCL]] = {}
-    for function_name, item in cfc.CFunction_dict.items():
+    for function_name, item in sorted(cfc.CFunction_dict.items()):
         if item.ET_schedule_bins_entries:
             for schedule_bin, entry in item.ET_schedule_bins_entries:
                 schedule_ccl_dict.setdefault(item.ET_thorn_name, []).append(
@@ -119,30 +120,5 @@ def construct_schedule_ccl(
 
     output_Path = Path(project_dir) / thorn_name
     output_Path.mkdir(parents=True, exist_ok=True)
-    with open(output_Path / "schedule.ccl", "w", encoding="utf-8") as file:
+    with ConditionalFileUpdater(output_Path / "schedule.ccl", encoding="utf-8") as file:
         file.write(outstr)
-
-
-# def auto_EVOL_AUXEVOL_AUX_STORAGE() -> str:
-#     outstr = ""
-#     for gfname, gf in gri.glb_gridfcs_dict.items():
-#         if gf.group == "EVOL":
-#             outstr += """
-# STORAGE: evol_variables[3]     # Evolution variables
-# STORAGE: evol_variables_rhs[1] # Variables storing right-hand-sides
-# """
-#             break
-#     for gfname, gf in gri.glb_gridfcs_dict.items():
-#         if gf.group == "AUXEVOL":
-#             outstr += """
-# STORAGE: auxevol_variables[1]  # Single-timelevel storage of variables needed for evolutions.
-# """
-#             break
-#
-#     for gfname, gf in gri.glb_gridfcs_dict.items():
-#         if gf.group == "AUX":
-#             outstr += """
-# STORAGE: aux_variables[3]      # Diagnostics variables
-# """
-#             break
-#     return outstr

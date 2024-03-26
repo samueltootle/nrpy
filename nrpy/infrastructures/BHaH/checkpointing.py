@@ -6,6 +6,7 @@ Provides checkpointing capabilities to BHaH simulations.
 Author: Zachariah B. Etienne
         zachetie **at** gmail **dot* com
 """
+
 from typing import Tuple
 
 import nrpy.c_function as cfc
@@ -29,7 +30,7 @@ def register_CFunction_read_checkpoint(
 #define FREAD(ptr, size, nmemb, stream) { const int numitems=fread((ptr), (size), (nmemb), (stream)); }
 """
     desc = "Read a checkpoint file"
-    c_type = "int"
+    cfunc_type = "int"
     name = "read_checkpoint"
     params = (
         "commondata_struct *restrict commondata, griddata_struct *restrict griddata"
@@ -86,7 +87,7 @@ def register_CFunction_read_checkpoint(
         includes=includes,
         prefunc=prefunc,
         desc=desc,
-        c_type=c_type,
+        cfunc_type=cfunc_type,
         name=name,
         params=params,
         include_CodeParameters_h=False,
@@ -113,7 +114,7 @@ def register_CFunction_write_checkpoint(
     )
     includes = ["BHaH_defines.h", "BHaH_function_prototypes.h"]
     desc = "Write a checkpoint file"
-    c_type = "void"
+    cfunc_type = "void"
     name = "write_checkpoint"
     params = "const commondata_struct *restrict commondata, griddata_struct *restrict griddata"
 
@@ -174,7 +175,7 @@ if (fabs(round(currtime / outevery) * outevery - currtime) < 0.5 * currdt) {
     cfc.register_CFunction(
         includes=includes,
         desc=desc,
-        c_type=c_type,
+        cfunc_type=cfunc_type,
         name=name,
         params=params,
         include_CodeParameters_h=False,

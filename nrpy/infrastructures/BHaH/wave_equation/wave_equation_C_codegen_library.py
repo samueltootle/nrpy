@@ -4,6 +4,7 @@ Library of C functions for solving the wave equation in curvilinear coordinates,
 Author: Zachariah B. Etienne
         zachetie **at** gmail **dot* com
 """
+
 from typing import Union, cast, List, Tuple, Dict
 from inspect import currentframe as cfr
 from types import FrameType as FT
@@ -62,7 +63,7 @@ def register_CFunction_exact_solution_single_Cartesian_point(
     includes = ["BHaH_defines.h"]
 
     desc = r"""Exact solution at a single Cartesian point (x, y, z) = (xCart0, xCart1, xCart2)."""
-    c_type = "void"
+    cfunc_type = "void"
     name = "exact_solution_single_Cartesian_point"
     params = r"""const commondata_struct *restrict commondata, const params_struct *restrict params,
     const REAL xCart0, const REAL xCart1, const REAL xCart2,  REAL *restrict exact_soln_UUGF, REAL *restrict exact_soln_VVGF
@@ -76,7 +77,7 @@ def register_CFunction_exact_solution_single_Cartesian_point(
     cfc.register_CFunction(
         includes=includes,
         desc=desc,
-        c_type=c_type,
+        cfunc_type=cfunc_type,
         name=name,
         params=params,
         include_CodeParameters_h=True,
@@ -102,7 +103,7 @@ def register_CFunction_initial_data(
     includes = ["BHaH_defines.h", "BHaH_function_prototypes.h"]
 
     desc = r"""Set initial data to params.time==0 corresponds to the initial data."""
-    c_type = "void"
+    cfunc_type = "void"
     name = "initial_data"
     params = (
         "commondata_struct *restrict commondata, griddata_struct *restrict griddata"
@@ -136,7 +137,7 @@ if( read_checkpoint(commondata, griddata) ) return;
     cfc.register_CFunction(
         includes=includes,
         desc=desc,
-        c_type=c_type,
+        cfunc_type=cfunc_type,
         name=name,
         params=params,
         include_CodeParameters_h=False,
@@ -191,7 +192,7 @@ def register_CFunction_diagnostics(
 
     includes = ["BHaH_defines.h", "BHaH_function_prototypes.h"]
     desc = r"""Diagnostics."""
-    c_type = "void"
+    cfunc_type = "void"
     name = "diagnostics"
     params = (
         "commondata_struct *restrict commondata, griddata_struct *restrict griddata"
@@ -288,7 +289,7 @@ def register_CFunction_diagnostics(
     cfc.register_CFunction(
         includes=includes,
         desc=desc,
-        c_type=c_type,
+        cfunc_type=cfunc_type,
         name=name,
         params=params,
         include_CodeParameters_h=False,
@@ -326,7 +327,7 @@ def register_CFunction_rhs_eval(
     if enable_simd:
         includes += [str(Path("simd") / "simd_intrinsics.h")]
     desc = r"""Set RHSs for wave equation."""
-    c_type = "void"
+    cfunc_type = "void"
     name = "rhs_eval"
     params = "const commondata_struct *restrict commondata, const params_struct *restrict params, REAL *restrict xx[3], const REAL *restrict in_gfs, REAL *restrict rhs_gfs"
     if enable_rfm_precompute:
@@ -377,7 +378,7 @@ def register_CFunction_rhs_eval(
         include_CodeParameters_h=True,
         includes=includes,
         desc=desc,
-        c_type=c_type,
+        cfunc_type=cfunc_type,
         CoordSystem_for_wrapper_func=CoordSystem,
         name=name,
         params=params,

@@ -10,7 +10,9 @@ import logging
 import re  # Regular expressions can be toxic due to edge cases -- we use them sparingly
 import sys
 from typing import List, Union, Dict, Any, Optional, Sequence, Tuple
+from typing_extensions import Literal
 import sympy as sp
+import sympy.codegen.ast as sp_ast
 import nrpy.finite_difference as fin
 import nrpy.params as par
 
@@ -20,6 +22,40 @@ from nrpy.helpers.cse_preprocess_postprocess import (
     cse_preprocess,
     cse_postprocess,
 )  # NRPy+: CSE preprocessing and postprocessing
+from nrpy.helpers.type_annotation_utilities import (
+    validate_literal_arguments,
+    generate_class_representation,
+)
+
+fp_type_list = Literal[
+    # Traditional C types
+    "double",
+    "float",
+    "long double",
+    # Standard C++ types
+    "std::float32_t",
+    "std::float64_t",
+    # Unsupported types by sympy ccode generator
+    # "std::bfloat16_t",
+    # "std::float16_t",
+    # "__float128",
+    # "std::float128_t",
+]
+
+fp_type_to_sympy_type = {
+    # Traditional C types
+    "double": sp_ast.float64,
+    "float": sp_ast.float32,
+    "long double": sp_ast.float80,
+    # Standard C++ types
+    "std::float32_t": sp_ast.float32,
+    "std::float64_t": sp_ast.float64,
+    # Unsupported types by sympy ccode generator
+    # "std::bfloat16_t": sp_ast.float16,
+    # "std::float16_t" : sp_ast.float16,
+    # "__float128" : sp_ast.float128,
+    # "std::float128_t": sp_ast.float128,
+}
 
 
 class CCodeGen:
@@ -30,11 +66,11 @@ class CCodeGen:
         prestring: str = "",
         poststring: str = "",
         include_braces: bool = True,
-        c_type: str = "double",
-        c_type_alias: str = "",
+        fp_type: fp_type_list = "double",
+        fp_type_alias: str = "",
         verbose: bool = True,
         enable_cse: bool = True,
-        cse_sorting: str = "canonical",
+        cse_sorting: Literal["canonical", "none"] = "canonical",
         cse_varprefix: str = "",
         enable_cse_preprocess: bool = False,
         enable_simd: bool = False,
@@ -50,7 +86,7 @@ class CCodeGen:
         automatically_read_gf_data_from_memory: bool = False,
         enforce_c_parameters_must_be_defined: bool = False,
         enable_fd_functions: bool = False,
-        mem_alloc_style: str = "210",
+        mem_alloc_style: Literal["210", "012"] = "210",
         upwind_control_vec: Union[List[sp.Symbol], sp.Symbol] = sp.Symbol("unset"),
         symbol_to_Rational_dict: Optional[Dict[sp.Basic, sp.Rational]] = None,
         clang_format_enable: bool = False,
@@ -62,9 +98,11 @@ class CCodeGen:
         :param prestring: String to be included before the code.
         :param poststring: String to be included after the code.
         :param include_braces: Boolean to decide whether to include braces.
-        :param c_type: C data type, such as 'double'.
-        :param c_type_alias: Alias for the C data type, such as 'REAL' or 'CCTK_REAL'.
-        :param verbose: Boolean for verbosity.
+        :param fp_type: floating-point data type, such as 'double'.
+        :param fp_type_alias: Infrastructure-specific alias for the C/C++ floating point data type. E.g., 'REAL' or 'CCTK_REAL'.
+        :param fp_ccg_type: floating-point C code gen type used by sympy to deduce character literals
+        :param ccg_type_aliases: All type aliases to by used by sympy C codegen
+        :param verbose: Boolean to enable verbose output.
         :param enable_cse: Boolean to enable common subexpression elimination.
         :param cse_sorting: Sorting method for common subexpression elimination.
         :param cse_varprefix: Variable prefix for common subexpression elimination.
@@ -86,12 +124,23 @@ class CCodeGen:
         :param upwind_control_vec: Upwind control vector as a symbol or list of symbols.
         :param clang_format_enable: Boolean to enable clang formatting.
         :param clang_format_options: Options for clang formatting.
+        >>> c = CCodeGen(fp_type="double")
+        >>> c.fp_type
+        'double'
+        >>> CCodeGen(fp_type="foo")
+        Traceback (most recent call last):
+          ...
+        ValueError: In function '__init__': parameter 'fp_type' has value: 'foo', which is not in the allowed_values set: ('double', 'float', 'long double', 'std::float32_t', 'std::float64_t')
+
         """
+        validate_literal_arguments()
         self.prestring = prestring
         self.poststring = poststring
         self.include_braces = include_braces
-        self.c_type = c_type
-        self.c_type_alias = c_type_alias
+        self.fp_type = fp_type
+        self.fp_type_alias = fp_type_alias
+        self.fp_ccg_type = fp_type_to_sympy_type[fp_type]
+        self.ccg_type_aliases = {sp_ast.real: self.fp_ccg_type}
         self.verbose = verbose
         self.enable_cse = enable_cse
         self.cse_sorting = cse_sorting
@@ -130,37 +179,30 @@ class CCodeGen:
 
         # Now, process input!
 
-        # Set c_type and c_type_alias
-        if self.c_type not in ("float", "double", "long double"):
-            raise ValueError(
-                "c_type must be a standard C type for floating point numbers: float, double, or long double,\n"
-                "as it is used to find the appropriate transcendental function; e.g., sin(), sinf(), or sinl().\n"
-                "c_type_alias will appear in the generated code, and will be set according to infrastructure.\n"
-                f"You chose c_type={self.c_type}"
-            )
+        # Set fp_type and fp_type_alias
         Infrastructure = par.parval_from_str("Infrastructure")
         if self.enable_simd:
-            if self.c_type not in "double":
+            if self.fp_type not in "double":
                 raise ValueError(
                     "SIMD output currently only supports double precision. Sorry!"
                 )
-            # If enable_simd==True, then check if c_type=="double". If not, error out.
-            #         Otherwise set c_type="REAL_SIMD_ARRAY", which should be #define'd
+            # If enable_simd==True, then check if fp_type=="double". If not, error out.
+            #         Otherwise set fp_type="REAL_SIMD_ARRAY", which should be #define'd
             #         within the C code. For example for AVX-256, the C code should have
             #         #define REAL_SIMD_ARRAY __m256d
             if Infrastructure in ("BHaH", "CarpetX", "ETLegacy"):
-                self.c_type = self.c_type_alias = "REAL_SIMD_ARRAY"
+                self.fp_type_alias = "REAL_SIMD_ARRAY"
             else:
-                raise ValueError("FIXME: Please specify the c_type for SIMD")
+                raise ValueError("FIXME: Please specify the fp_type for SIMD")
         else:
             if Infrastructure == "NRPy":
-                self.c_type_alias = self.c_type
+                self.fp_type_alias = self.fp_type
             elif Infrastructure == "BHaH":
-                self.c_type_alias = "REAL"
+                self.fp_type_alias = "REAL"
             elif Infrastructure in ("ETLegacy", "CarpetX"):
-                self.c_type_alias = "CCTK_REAL"
+                self.fp_type_alias = "CCTK_REAL"
             else:
-                self.c_type_alias = ""
+                self.fp_type_alias = ""
 
         if self.enable_GoldenKernels:
             self.enable_cse_preprocess = True
@@ -200,6 +242,15 @@ class CCodeGen:
         if self.enable_fd_codegen:
             self.automatically_read_gf_data_from_memory = True
 
+        if self.enable_simd and self.fp_ccg_type is not sp_ast.float64:
+            raise ValueError(
+                "SIMD is only compatible with double precision floating point type."
+            )
+
+    def __repr__(self) -> str:
+        """Create a human readable representation of the CCodeGen object and what's in it."""
+        return generate_class_representation()
+
 
 def c_codegen(
     sympyexpr: Union[
@@ -214,7 +265,7 @@ def c_codegen(
 
     :param sympyexpr: A SymPy expression or list of SymPy expressions to be converted.
     :param output_varname_str: A string or list of strings representing the variable name(s) in the output.
-    :param kwargs: Additional keyword arguments for customization.
+    :param kwargs: Additional keyword arguments for customization. They are used to initialize a CCodeGen object.
     :return: A string containing the generated C code.
 
     >>> x, y, z = sp.symbols("x y z", real=True)
@@ -223,6 +274,21 @@ def c_codegen(
     <BLANKLINE>
     >>> print(c_codegen(1/x**2 + 1/sp.sqrt(y) - 1/sp.sin(x*z), "double blah", include_braces=False, verbose=False))
     double blah = -1/sin(x*z) + (1.0/sqrt(y)) + (1.0/((x)*(x)));
+    <BLANKLINE>
+    >>> for fp_type in ["double", "float", "long double", "std::float32_t", "std::float64_t"]:
+    ...     print(c_codegen(1/x**2 + 1/sp.sqrt(y) - 1/sp.sin(x*z), f"{fp_type} blah", include_braces=False, verbose=False, fp_type=fp_type))
+    double blah = -1/sin(x*z) + (1.0/sqrt(y)) + (1.0/((x)*(x)));
+    <BLANKLINE>
+    float blah = -1/sinf(x*z) + (1.0/sqrt(y)) + (1.0/((x)*(x)));
+    <BLANKLINE>
+    long double blah = -1/sinl(x*z) + (1.0/sqrt(y)) + (1.0/((x)*(x)));
+    <BLANKLINE>
+    std::float32_t blah = -1/sinf(x*z) + (1.0/sqrt(y)) + (1.0/((x)*(x)));
+    <BLANKLINE>
+    std::float64_t blah = -1/sin(x*z) + (1.0/sqrt(y)) + (1.0/((x)*(x)));
+    <BLANKLINE>
+    >>> print(c_codegen(1.0 * sp.sin(x * sp.pi), "float blah", include_braces=False, fp_type="float", verbose=False))
+    float blah = 1.0F*sinf(M_PI*x);
     <BLANKLINE>
     >>> print(c_codegen(x**5 + x**3 + x - 1/x, "REAL_SIMD_ARRAY blah", include_braces=False, verbose=False, enable_simd=True))
     const double dbl_Integer_1 = 1.0;
@@ -253,6 +319,10 @@ def c_codegen(
     REAL_SIMD_ARRAY blah = AddSIMD(tmp0, FusedMulAddSIMD(MulSIMD(MulSIMD(MulSIMD(x, x), x), x), x, SinSIMD(tmp0)));
     }
     <BLANKLINE>
+    >>> print(c_codegen(x**5 + x**3 + sp.sin(x**3), "REAL_SIMD_ARRAY blah", enable_simd=True, fp_type="float"))
+    Traceback (most recent call last):
+    ...
+    ValueError: SIMD output currently only supports double precision. Sorry!
     """
     # Injected tuples wreak havoc in this function, so check for them & error out if spotted.
     if isinstance(sympyexpr, tuple):
@@ -344,6 +414,8 @@ def c_codegen(
             upwind_control_vec=CCGParams.upwind_control_vec,
             enable_fd_functions=CCGParams.enable_fd_functions,
             enable_simd=CCGParams.enable_simd,
+            enable_GoldenKernels=CCGParams.enable_GoldenKernels,
+            fp_type=CCGParams.fp_type,
         )
 
     # Step 4: If CCGParams.verbose, then output the original SymPy
@@ -353,9 +425,11 @@ def c_codegen(
         commentblock += f"/*\n *  Original SymPy expression{plural}:\n"
 
         expressions = "\n".join(
-            f'*  "[{varname} = {expr}]"'
-            if len(output_varname_str) > 1
-            else f'*  "{varname} = {expr}"'
+            (
+                f'*  "[{varname} = {expr}]"'
+                if len(output_varname_str) > 1
+                else f'*  "{varname} = {expr}"'
+            )
             for varname, expr in zip(output_varname_str, sympyexpr_list)
         )
 
@@ -378,8 +452,9 @@ def c_codegen(
                 expr,
                 output_varname_str[i],
                 user_functions=custom_functions_for_SymPy_ccode,
+                type_aliases=CCGParams.ccg_type_aliases,
             )
-            outstring += f"{ccode_postproc(processed_code, CCGParams)}\n"
+            outstring += f"{processed_code}\n"
     # Step 4b: If CSE enabled, then perform CSE using SymPy and then
     #          resulting C code.
     else:
@@ -409,13 +484,14 @@ def c_codegen(
                     CCGParams.symbol_to_Rational_dict[v].q
                 )
                 if not CCGParams.enable_simd:
-                    RATIONAL_decls += f"const {CCGParams.c_type_alias} {str(v)} = "
-
-                    # Since Integer is a subclass of Rational in SymPy, we need only check whether
-                    # the denominator q = 1 to determine if a rational is an integer.
-                    RATIONAL_decls += (
-                        f"{str(p)}/{str(q)};\n" if q != 1 else f"{str(p)};\n"
+                    RATIONAL_assignment = f"const {CCGParams.fp_type_alias} {str(v)}"
+                    RATIONAL_expr = sp.Rational(p, q)
+                    RATIONAL_decls += sp.ccode(
+                        RATIONAL_expr,
+                        assign_to=RATIONAL_assignment,
+                        type_aliases=CCGParams.ccg_type_aliases,
                     )
+                    RATIONAL_decls += "\n"
 
         #####
         # Prior to the introduction of the SCALAR_TMP type, NRPy+
@@ -475,7 +551,7 @@ def c_codegen(
         # Processing common subexpressions and results from cse_postprocess
         # cse_results[0] contains common subexpression definitions, does not specify varnames.
         for common_subexpression in cse_results[0]:
-            full_type_string = f"const {CCGParams.c_type_alias} "
+            full_type_string = f"const {CCGParams.fp_type_alias} "
             if CCGParams.enable_simd:
                 simd_expr = expr_convert_to_simd_intrins(
                     common_subexpression[1],
@@ -494,13 +570,11 @@ def c_codegen(
                     )
                 outstring += (
                     full_type_string
-                    + ccode_postproc(
-                        sp.ccode(
-                            common_subexpression[1],
-                            common_subexpression[0],
-                            user_functions=custom_functions_for_SymPy_ccode,
-                        ),
-                        CCGParams,
+                    + sp.ccode(
+                        common_subexpression[1],
+                        common_subexpression[0],
+                        user_functions=custom_functions_for_SymPy_ccode,
+                        type_aliases=CCGParams.ccg_type_aliases,
                     )
                     + "\n"
                 )
@@ -531,13 +605,11 @@ def c_codegen(
                         result, CCGParams.postproc_substitution_dict
                     )
                 outstring += (
-                    ccode_postproc(
-                        sp.ccode(
-                            result,
-                            varnames_excluding_SCALAR_TMPs[i],
-                            user_functions=custom_functions_for_SymPy_ccode,
-                        ),
-                        CCGParams,
+                    sp.ccode(
+                        result,
+                        varnames_excluding_SCALAR_TMPs[i],
+                        user_functions=custom_functions_for_SymPy_ccode,
+                        type_aliases=CCGParams.ccg_type_aliases,
                     )
                     + "\n"
                 )
@@ -622,71 +694,6 @@ custom_functions_for_SymPy_ccode = {
 }
 
 
-def ccode_postproc(string: str, CCGParams: CCodeGen) -> str:
-    """
-    Process the generated C code string for functions related to specific data types.
-
-    This function appends the appropriate suffix to standard C math library functions
-    based on the data c_type (e.g., pow -> powf in single precision). It also removes
-    the "L" suffix on floating point numbers when not in long double precision.
-
-    :param string: The original C code string.
-    :param CCGParams: The CCodeGen object containing c_type information.
-    :return: The processed C code string.
-    """
-    # Append the cmath function suffix to standard C math library functions:
-    c_funcs = [
-        "pow",
-        "sqrt",
-        "cbrt",
-        "sin",
-        "cos",
-        "tan",
-        "sinh",
-        "cosh",
-        "tanh",
-        "exp",
-        "log",
-        "fabs",
-        "fmin",
-        "fmax",
-    ]
-    has_c_func = False
-    for func in c_funcs:
-        if f"{func}(" in string:
-            has_c_func = True
-            break
-
-    if has_c_func:
-        # Define the dictionary to map the c_type to corresponding cmath function suffix
-        cmath_suffixes = {
-            "float": "f",
-            "double": "",
-            "long double": "l",
-        }
-
-        # If the c_type is not one of the known keys, raise an error
-        if CCGParams.c_type not in cmath_suffixes:
-            raise ValueError(f"{__name__}::c_type = '{CCGParams.c_type}' not supported")
-
-        # Get the corresponding cmath function suffix from the dictionary
-        cmath_suffix = cmath_suffixes[CCGParams.c_type]
-
-        # Add "(" to the end of each function name and join them with '|' to create a pattern that matches any of them
-        pattern = "|".join([f"{func}\\(" for func in c_funcs])
-
-        # Use a lambda function to add the suffix to the matched function name
-        string = re.sub(
-            pattern, lambda match: f"{match.group()[:-1]}{cmath_suffix}(", string
-        )
-
-        # If c_type is not 'long double', get rid of the "L" suffix on floating point numbers:
-        if CCGParams.c_type != "long double":
-            string = re.sub(r"([0-9.]+)L/([0-9.]+)L", "(\\1 / \\2)", string)
-
-    return string
-
-
 def apply_substitution_dict(
     expr: sp.Basic, postproc_substitution_dict: Dict[str, str]
 ) -> sp.Basic:
@@ -753,8 +760,8 @@ def gridfunction_management_and_FD_codegen(
     >>> gri.glb_gridfcs_dict.clear()
     >>> mem_alloc_style = "210"
     >>> enable_simd=False
-    >>> c_type="double"
-    >>> c_type_alias="REAL"
+    >>> fp_type="double"
+    >>> fp_type_alias="REAL"
     >>> enable_fd_functions=False
     >>> fd_order = 2
     >>> upwind_control_vec = gri.register_gridfunctions_for_single_rank1("vetU", group="EVOL")
@@ -762,7 +769,7 @@ def gridfunction_management_and_FD_codegen(
     >>> hDD      = gri.register_gridfunctions_for_single_rank2("hDD", group="EVOL", symmetry="sym01")
     >>> hDD_dD   = ixp.declarerank3("hDD_dD", symmetry="sym01")
     >>> hDD_dupD = ixp.declarerank3("hDD_dupD", symmetry="sym01")
-    >>> a0, a1, b, c = par.register_CodeParameters(c_type_alias=c_type_alias, module=__name__, names=["a0", "a1", "b", "c"], defaultvalues=1)
+    >>> a0, a1, b, c = par.register_CodeParameters(cparam_type=fp_type_alias, module=__name__, names=["a0", "a1", "b", "c"], defaultvalues=1)
     >>> lhs_list = ["REAL a0",                       "REAL a1"]
     >>> exprlist = [b*hDD[1][0] + c*hDD_dD[0][1][1], c*hDD_dupD[0][2][2] + b*hDD_dupD[0][2][0] + a1*a0*vU[1]]
     >>> print(exprlist)
@@ -813,7 +820,7 @@ def gridfunction_management_and_FD_codegen(
     const REAL hDD02_i2p2 = in_gfs[IDX4(HDD02GF, i0, i1, i2+2)];
     const REAL vU1 = in_gfs[IDX4(VU1GF, i0, i1, i2)];
     const REAL FDPart1_Rational_1_2 = 1.0/2.0;
-    const REAL FDPart1_Integer_2 = 2.0;
+    const REAL FDPart1_Integer_2 = 2;
     const REAL FDPart1_Rational_3_2 = 3.0/2.0;
     const REAL FDPart1tmp0 = FDPart1_Rational_3_2*hDD02;
     const REAL UpwindAlgInputhDD_ddnD020 = invdxx0*(-FDPart1_Integer_2*hDD02_i0m1 + FDPart1_Rational_1_2*hDD02_i0m2 + FDPart1tmp0);
@@ -952,7 +959,7 @@ def gridfunction_management_and_FD_codegen(
             for dirn in upwind_directions:
                 upwind_FDexprs += [CCGParams.upwind_control_vec[dirn]]
                 upwind_FDlhsvarnames += [
-                    f"const {CCGParams.c_type_alias} UpwindControlVectorU{dirn}"
+                    f"const {CCGParams.fp_type_alias} UpwindControlVectorU{dirn}"
                 ]
         return upwind_FDexprs, upwind_FDlhsvarnames, upwind_directions
 
@@ -1044,7 +1051,7 @@ def gridfunction_management_and_FD_codegen(
                 FDFunction.CFunction = FDFunction.CFunction_fd_function(
                     c_codegen(
                         FDFunction.FDexpr,
-                        f"const {CCGParams.c_type_alias} FD_result",
+                        f"const {CCGParams.fp_type_alias} FD_result",
                         **kwargs_FDPart1,
                     )
                 )
@@ -1068,7 +1075,7 @@ def gridfunction_management_and_FD_codegen(
 const REAL_SIMD_ARRAY upwind_Integer_{n} = ConstSIMD(tmp_upwind_Integer_{n});
 """
             for dirn in upwind_directions:
-                Coutput += f"const {CCGParams.c_type_alias} Upwind{dirn} = UPWIND_ALG(UpwindControlVectorU{dirn});\n"
+                Coutput += f"const {CCGParams.fp_type_alias} Upwind{dirn} = UPWIND_ALG(UpwindControlVectorU{dirn});\n"
 
         upwindU = [sp.sympify(0) for _ in range(3)]
         # Populate upwindU with symbolic expressions based on direction
@@ -1099,7 +1106,7 @@ const REAL_SIMD_ARRAY upwind_Integer_{n} = ConstSIMD(tmp_upwind_Integer_{n});
 
                 # Update expression and variable lists
                 upwind_expr_list.append(upwind_expr)
-                var_list.append(f"const {CCGParams.c_type_alias} {deriv_var}")
+                var_list.append(f"const {CCGParams.fp_type_alias} {deriv_var}")
 
         # Copy kwargs
         kwargs_FDPart2 = kwargs_FDPart1.copy()
@@ -1109,6 +1116,7 @@ const REAL_SIMD_ARRAY upwind_Integer_{n} = ConstSIMD(tmp_upwind_Integer_{n});
             {
                 "enable_cse_preprocess": CCGParams.enable_cse_preprocess,
                 "simd_find_more_subs": CCGParams.simd_find_more_subs,
+                "enable_GoldenKernels": CCGParams.enable_GoldenKernels,
                 "simd_clean_NegativeOnes_after_processing": False,
                 "cse_varprefix": "FDPart2",
             }

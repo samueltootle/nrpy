@@ -6,6 +6,7 @@ Emails: ksible *at* outlook *dot** com
         assumpcaothiago *at* gmail *dot** com
         zachetie *at* gmail *dot** com
 """
+
 from typing import Dict, Union, Any, Optional
 import shutil
 from pathlib import Path
@@ -216,6 +217,9 @@ def expr_convert_to_simd_intrins(
 
     >>> convert(-a*b - c)
     NegFusedMulSubSIMD(a, b, c)
+
+    >>> convert(cos(a*b + c))
+    CosSIMD(FusedMulAddSIMD(a, b, c))
     """
     for item in preorder_traversal(expr):
         for arg in item.args:
@@ -777,7 +781,7 @@ def copy_simd_intrinsics_h(project_dir: str) -> None:
     simd_path.mkdir(parents=True, exist_ok=True)
 
     try:
-        # only Python 3.7+ has importlib.resources
+        # only Python 3.7+ has importlib.resources, and only Python 3.9+ has importlib.resources.files()
         import importlib.resources  # pylint: disable=E1101,C0415
 
         source_path = (
@@ -786,7 +790,8 @@ def copy_simd_intrinsics_h(project_dir: str) -> None:
             / "simd_intrinsics.h"
         )
         shutil.copy(str(source_path), str(simd_path))
-    except ImportError:  # Fallback to resource_filename for older Python versions
+    except (ImportError, AttributeError):
+        # Fallback for versions without importlib.resources or importlib.resources.files()
         # pylint: disable=E1101,C0415
         from pkg_resources import resource_filename  # type: ignore
 

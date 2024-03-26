@@ -4,6 +4,7 @@ Registration of grid functions with the MoL (method of lines) thorn.
 Author: Zachariah B. Etienne
         zachetie **at** gmail **dot* com
 """
+
 import nrpy.c_function as cfc
 
 
@@ -22,9 +23,8 @@ def register_CFunction_MoL_registration(thorn_name: str) -> None:
 with the Method of Lines timestepper
 MoL (the Einstein Toolkit Method of Lines thorn)
 (MoL thorn, found in arrangements/CactusBase/MoL).
-MoL documentation located in arrangements/CactusBase/MoL/doc
-"""
-    c_type = "void"
+MoL documentation located in arrangements/CactusBase/MoL/doc"""
+    cfunc_type = "void"
     name = f"{thorn_name}_MoL_registration"
     params = "CCTK_ARGUMENTS"
     body = f"""DECLARE_CCTK_ARGUMENTS_{name};
@@ -56,7 +56,7 @@ schedule FUNC_NAME in MoL_Register
         subdirectory=thorn_name,
         includes=includes,
         desc=desc,
-        c_type=c_type,
+        cfunc_type=cfunc_type,
         name=name,
         params=params,
         body=body,

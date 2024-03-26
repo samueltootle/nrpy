@@ -38,7 +38,7 @@ def simple_loop(
         for (int i0 = 0; i0 < cctk_lsh[0]; i0++) {
           // <INTERIOR>
         } // END LOOP: for (int i0 = 0; i0 < cctk_lsh[0]; i0++)
-      }   // END LOOP: for (int i1 = 0; i1 < cctk_lsh[1]; i1++)
+      } // END LOOP: for (int i1 = 0; i1 < cctk_lsh[1]; i1++)
     } // END LOOP: for (int i2 = 0; i2 < cctk_lsh[2]; i2++)
     <BLANKLINE>
     >>> print(clang_format(simple_loop(loop_body='// <INTERIOR>', loop_region="interior", OMP_custom_pragma="#CUSTOM_OMP")))
@@ -48,13 +48,11 @@ def simple_loop(
         for (int i0 = cctk_nghostzones[0]; i0 < cctk_lsh[0] - cctk_nghostzones[0]; i0++) {
           // <INTERIOR>
         } // END LOOP: for (int i0 = cctk_nghostzones[0]; i0 < cctk_lsh[0]-cctk_nghostzones[0]; i0++)
-      }   // END LOOP: for (int i1 = cctk_nghostzones[1]; i1 < cctk_lsh[1]-cctk_nghostzones[1]; i1++)
+      } // END LOOP: for (int i1 = cctk_nghostzones[1]; i1 < cctk_lsh[1]-cctk_nghostzones[1]; i1++)
     } // END LOOP: for (int i2 = cctk_nghostzones[2]; i2 < cctk_lsh[2]-cctk_nghostzones[2]; i2++)
     <BLANKLINE>
     """
     # 'AllPoints': loop over all points on a numerical grid, including ghost zones
-    if loop_region == "":
-        return loop_body
     if loop_region == "all points":
         i2i1i0_mins = ["0", "0", "0"]
         i2i1i0_maxs = ["cctk_lsh[2]", "cctk_lsh[1]", "cctk_lsh[0]"]

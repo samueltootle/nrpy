@@ -4,6 +4,7 @@ Register C functions for computing the spin-weight -2 spherical harmonics.
 Author: Zachariah B. Etienne
         zachetie **at** gmail **dot** com
 """
+
 from typing import cast, Union
 from inspect import currentframe as cf
 from types import FrameType as FT
@@ -42,7 +43,7 @@ def register_CFunction_spin_weight_minus2_sph_harmonics() -> (
     desc = r"""// Compute at a single point (th,ph) the spin-weight -2 spherical harmonic Y_{s=-2, l,m}(th,ph)
 // Manual "inline void" of this function results in compilation error with clang.
 """
-    c_type = "void"
+    cfunc_type = "void"
     name = "spin_weight_minus2_sph_harmonics"
     params = "const int l, const int m, const REAL th, const REAL ph, REAL *restrict reYlmswm2_l_m, REAL *restrict imYlmswm2_l_m"
     # Construct body:
@@ -83,7 +84,7 @@ def register_CFunction_spin_weight_minus2_sph_harmonics() -> (
     cfc.register_CFunction(
         includes=includes,
         desc=desc,
-        c_type=c_type,
+        cfunc_type=cfunc_type,
         name=name,
         params=params,
         include_CodeParameters_h=False,

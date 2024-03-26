@@ -16,7 +16,7 @@ import nrpy.params as par
 # Used to specify axes of symmetry so that derivatives across these axes get set to zero
 par.register_param(py_type=str, module=__name__, name="symmetry_axes", value="")
 
-_symbol_type = sp.Expr
+_symbol_type = Any  # sp.Expr
 _rank1_type = Sequence[_symbol_type]
 _rank2_type = Sequence[_rank1_type]
 _rank3_type = Sequence[_rank2_type]
@@ -74,15 +74,17 @@ def create_tensor_symbolic(
 
     # Generate the tensor
     tensor = [
-        sp.Symbol(
-            symbol
-            + "".join(
-                index_to_char[start_idx + n] if character_zero_index else str(n)
-                for n in preindex + [i]
-            ),
+        (
+            sp.Symbol(
+                symbol
+                + "".join(
+                    index_to_char[start_idx + n] if character_zero_index else str(n)
+                    for n in preindex + [i]
+                ),
+            )
+            if symbol
+            else sp.sympify(0)
         )
-        if symbol
-        else sp.sympify(0)
         for i in range(shape[0])
     ]
 
@@ -114,7 +116,13 @@ def declare_indexedexp(
     >>> ixp = declare_indexedexp('M', rank=2, dimension=3, symmetry='sym01')
     >>> assert func.pipe(ixp, lambda x: func.repeat(func.flatten, x, 1), set, len) == 6
 
-    Doctest 2: convert a symmetric rank-3 tensor to a 1D list & find the number of unique indices.
+    Doctest 2: Attempt to create a tensor with invalid symmetry.
+    >>> try:
+    ...     Merror = declare_indexedexp('M', rank=2, dimension=3, symmetry='01')
+    ... except ValueError as e:
+    ...     assert str(e) == "Unsupported symmetry '01' for indexed expression. Valid symmetry options must start with 'sym', 'anti', or 'nosym'"
+
+    Doctest 3: convert a symmetric rank-3 tensor to a 1D list & find the number of unique indices.
     >>> ixp = declare_indexedexp('M', rank=3, dimension=3, symmetry='sym01')
     >>> assert len(set(func.repeat(func.flatten, ixp, 2))) == 18
     >>> ixp = declare_indexedexp('M', rank=3, dimension=3, symmetry='sym02')
@@ -124,7 +132,7 @@ def declare_indexedexp(
     >>> ixp = declare_indexedexp('M', rank=3, dimension=3, symmetry='sym012')
     >>> assert len(set(func.repeat(func.flatten, ixp, 2))) == 10
 
-    Doctest 3: convert a symmetric rank-4 tensor to a 1D list & find the number of unique indices.
+    Doctest 4: convert a symmetric rank-4 tensor to a 1D list & find the number of unique indices.
     >>> ixp = declare_indexedexp('M', rank=4, dimension=3, symmetry='sym01')
     >>> assert len(set(func.repeat(func.flatten, ixp, 3))) == 54
     >>> ixp = declare_indexedexp('M', rank=4, dimension=3, symmetry='sym02')
@@ -154,7 +162,7 @@ def declare_indexedexp(
     >>> ixp = declare_indexedexp('M', rank=4, dimension=3, symmetry='sym0123')
     >>> assert len(set(func.repeat(func.flatten, ixp, 3))) == 15
 
-    Doctest 4: convert an antisymmetric rank-4 tensor to a 1D list & find the number of unique indices.
+    Doctest 5: convert an antisymmetric rank-4 tensor to a 1D list & find the number of unique indices.
     >>> ixp = declare_indexedexp('M', rank=2, dimension=3, symmetry='anti01')
     >>> assert len(set(map(abs, func.repeat(func.flatten, ixp, 1))).difference({0})) == 3
     >>> ixp = declare_indexedexp('M', rank=3, dimension=3, symmetry='anti012')
@@ -233,6 +241,10 @@ def declare_indexedexp(
     )
     symmetry = kwargs.get("symmetry")
     if symmetry:
+        if not symmetry.startswith(("sym", "anti", "nosym")):
+            raise ValueError(
+                f"Unsupported symmetry '{symmetry}' for indexed expression. Valid symmetry options must start with 'sym', 'anti', or 'nosym'"
+            )
         indexedexp = symmetrize(
             rank, cast(_rank2_type, indexedexp), symmetry, dimension
         )

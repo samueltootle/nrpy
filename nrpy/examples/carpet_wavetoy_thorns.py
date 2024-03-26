@@ -12,7 +12,6 @@ from typing import Union, cast, List
 from pathlib import Path
 from inspect import currentframe as cfr
 from types import FrameType as FT
-import shutil
 import os
 
 import nrpy.c_codegen as ccg
@@ -63,9 +62,6 @@ OMP_collapse = 1
 
 project_dir = os.path.join("project", project_name)
 
-# First clean the project directory, if it exists.
-shutil.rmtree(project_dir, ignore_errors=True)
-
 par.set_parval_from_str("parallel_codegen_enable", parallel_codegen_enable)
 par.set_parval_from_str("fd_order", fd_order)
 standard_ET_includes = ["math.h", "cctk.h", "cctk_Arguments.h", "cctk_Parameters.h"]
@@ -112,9 +108,23 @@ DECLARE_CCTK_PARAMETERS;
     )
     prefunc += "}\n"
 
+    prefunc += r"""
+// Exact solution at a single point around the origin.
+static void WaveToy_exact_solution_single_point_r0(const CCTK_REAL time, const CCTK_REAL xCart0, const CCTK_REAL xCart1, const CCTK_REAL xCart2,
+    CCTK_REAL *restrict exact_soln_UUGF, CCTK_REAL *restrict exact_soln_VVGF) {
+DECLARE_CCTK_PARAMETERS;
+"""
+    prefunc += ccg.c_codegen(
+        [exactsoln.uu_exactsoln_r0, exactsoln.vv_exactsoln_r0],
+        ["*exact_soln_UUGF", "*exact_soln_VVGF"],
+        verbose=False,
+        include_braces=False,
+    )
+    prefunc += "}\n"
+
     gri.register_gridfunctions(["uu_exact", "vv_exact"], group="AUX")
     desc = r"""Set the exact solution at all grid points."""
-    c_type = "void"
+    cfunc_type = "void"
     name = f"{thorn_name}_exact_solution_all_points"
     params = "CCTK_ARGUMENTS"
     body = f"DECLARE_CCTK_ARGUMENTS_{name};\n"
@@ -132,8 +142,17 @@ DECLARE_CCTK_PARAMETERS;
     vv_exact_gf_access = gri.ETLegacyGridFunction.access_gf(vvGF)
 
     body += lp.simple_loop(
-        f"WaveToy_exact_solution_single_point(cctk_time, {x_gf_access}, {y_gf_access},"
-        f"                                             {z_gf_access}, &{uu_exact_gf_access}, &{vv_exact_gf_access});\n",
+        f"""CCTK_REAL local_x = {x_gf_access};
+  CCTK_REAL local_y = {y_gf_access};
+  CCTK_REAL local_z = {z_gf_access};
+  if(local_x*local_x + local_y*local_y + local_z*local_z > 1e-20) {{
+  WaveToy_exact_solution_single_point(cctk_time, local_x, local_y,
+                                      local_z, &{uu_exact_gf_access}, &{vv_exact_gf_access});
+}} else {{
+  WaveToy_exact_solution_single_point_r0(cctk_time, local_x, local_y,
+                                      local_z, &{uu_exact_gf_access}, &{vv_exact_gf_access});
+}}
+""",
         loop_region="all points",
     )
 
@@ -166,7 +185,7 @@ schedule FUNC_NAME IN {schedule_bin}
         includes=includes,
         prefunc=prefunc,
         desc=desc,
-        c_type=c_type,
+        cfunc_type=cfunc_type,
         name=name,
         params=params,
         body=body,
@@ -193,7 +212,7 @@ def register_CFunction_rhs_eval(thorn_name: str) -> Union[None, pcg.NRPyEnv_type
     if enable_simd:
         includes += [os.path.join("simd", "simd_intrinsics.h")]
     desc = r"""Set RHSs for wave equation."""
-    c_type = "void"
+    cfunc_type = "void"
     name = f"{thorn_name}_rhs_eval"
     params = "CCTK_ARGUMENTS"
     # Populate uu_rhs, vv_rhs
@@ -244,7 +263,7 @@ def register_CFunction_rhs_eval(thorn_name: str) -> Union[None, pcg.NRPyEnv_type
 schedule FUNC_NAME in MoL_CalcRHS as rhs_eval
 {
   LANG: C
-  READS: evol_variables(everywhere) #, auxevol_variables(interior)
+  READS: evol_variables(everywhere)
   WRITES: evol_variables_rhs(interior)
 } "MoL: Evaluate WaveToy RHSs"
 """,
@@ -254,7 +273,7 @@ schedule FUNC_NAME in MoL_CalcRHS as rhs_eval
         subdirectory=thorn_name,
         includes=includes,
         desc=desc,
-        c_type=c_type,
+        cfunc_type=cfunc_type,
         name=name,
         params=params,
         body=body,
@@ -296,7 +315,6 @@ schedule_ccl.construct_schedule_ccl(
     STORAGE="""
 STORAGE: evol_variables[3]     # Evolution variables
 STORAGE: evol_variables_rhs[1] # Variables storing right-hand-sides
-# STORAGE: auxevol_variables[1]  # Single-timelevel storage of variables needed for evolutions.
 STORAGE: aux_variables[3]      # Diagnostics variables
 """,
 )
@@ -308,12 +326,13 @@ interface_ccl.construct_interface_ccl(
 USES INCLUDE: Boundary.h
 """,
     is_evol_thorn=True,
-    enable_NewRad=True,
+    enable_NewRad=False,
 )
 CParams_registered_to_params_ccl += param_ccl.construct_param_ccl(
     project_dir=project_dir,
     thorn_name=evol_thorn_name,
-    shares_extends_str="",
+    shares_extends_str=f"""shares: {ID_thorn_name}
+USES CCTK_REAL wavespeed""",
 )
 
 # CCL files: ID_thorn
@@ -321,16 +340,13 @@ schedule_ccl.construct_schedule_ccl(
     project_dir=project_dir,
     thorn_name=ID_thorn_name,
     STORAGE="""
-STORAGE: evol_variables[3]     # Evolution variables
-# STORAGE: evol_variables_rhs[1] # Variables storing right-hand-sides
-# STORAGE: aux_variables[3]      # Diagnostics variables
-# STORAGE: auxevol_variables[1]  # Single-timelevel storage of variables needed for evolutions.
+STORAGE: evol_variables[3] # Evolution variables
 """,
 )
 interface_ccl.construct_interface_ccl(
     project_dir=project_dir,
     thorn_name=ID_thorn_name,
-    inherits="Grid WaveToyNRPy  # WaveToyNRPy provides all gridfunctions.",
+    inherits=f"""Grid {evol_thorn_name} # {evol_thorn_name} provides all gridfunctions.""",
     USES_INCLUDEs="",
     is_evol_thorn=False,
     enable_NewRad=False,
@@ -346,16 +362,13 @@ schedule_ccl.construct_schedule_ccl(
     project_dir=project_dir,
     thorn_name=diag_thorn_name,
     STORAGE="""
-# STORAGE: evol_variables[3]     # Evolution variables
-# STORAGE: evol_variables_rhs[1] # Variables storing right-hand-sides
-STORAGE: aux_variables[3]      # Diagnostics variables
-# STORAGE: auxevol_variables[1]  # Single-timelevel storage of variables needed for evolutions.
+STORAGE: aux_variables[3] # Diagnostics variables
 """,
 )
 interface_ccl.construct_interface_ccl(
     project_dir=project_dir,
     thorn_name=diag_thorn_name,
-    inherits="Grid WaveToyNRPy  # WaveToyNRPy provides all gridfunctions.",
+    inherits=f"""Grid {evol_thorn_name} # {evol_thorn_name} provides all gridfunctions.""",
     USES_INCLUDEs="",
     is_evol_thorn=False,
     enable_NewRad=False,
@@ -364,8 +377,8 @@ CParams_registered_to_params_ccl += param_ccl.construct_param_ccl(
     project_dir=project_dir,
     thorn_name=diag_thorn_name,
     # FIXME: the following line generation could be automated:
-    shares_extends_str="""
-shares: IDWaveToyNRPy
+    shares_extends_str=f"""
+shares: {ID_thorn_name}
 USES CCTK_REAL sigma
 USES CCTK_REAL wavespeed
 """,
@@ -379,9 +392,3 @@ for thorn in [evol_thorn_name, ID_thorn_name, diag_thorn_name]:
 simd.copy_simd_intrinsics_h(
     project_dir=str(Path(project_dir) / evol_thorn_name / "src")
 )
-
-
-# print(
-#     f"Finished! Now go into project/{project_name} and type `make` to build, then ./{project_name} to run."
-# )
-# print(f"    Parameter file can be found in {project_name}.par")

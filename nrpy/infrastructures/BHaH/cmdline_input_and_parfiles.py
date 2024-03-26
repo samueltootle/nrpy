@@ -104,7 +104,7 @@ invalid parameter names.
 @param argc: The argument count from the command-line input.
 @param argv: The argument vector containing command-line arguments."""
 
-    c_type = "void"
+    cfunc_type = "void"
     name = "cmdline_input_and_parfile_parser"
     params = "commondata_struct *restrict commondata, int argc, const char *argv[]"
     if cmdline_inputs is None:
@@ -201,8 +201,8 @@ invalid parameter names.
             CodeParam.add_to_parfile
             and CodeParam.commondata
             and (
-                CodeParam.c_type_alias in ("int", "REAL", "bool")
-                or "char" in CodeParam.c_type_alias
+                CodeParam.cparam_type in ("int", "REAL", "bool")
+                or "char" in CodeParam.cparam_type
             )
         ):
             body += f'else if (strcmp(param, "{key}") == 0) param_index = {i};\n'
@@ -224,24 +224,24 @@ invalid parameter names.
     for key in sorted(par.glb_code_params_dict.keys()):
         CodeParam = par.glb_code_params_dict[key]
         if CodeParam.add_to_parfile and CodeParam.commondata:
-            if CodeParam.c_type_alias == "int":
+            if CodeParam.cparam_type == "int":
                 body += f'else if(param_index == {i}) read_integer(value, &commondata->{key}, "{key}");\n'
                 found_integer = True
                 i += 1
-            elif CodeParam.c_type_alias == "REAL":
+            elif CodeParam.cparam_type == "REAL":
                 body += f'else if(param_index == {i}) read_double(value, &commondata->{key}, "{key}");\n'
                 found_REAL = True
                 i += 1
-            elif CodeParam.c_type_alias == "bool":
+            elif CodeParam.cparam_type == "bool":
                 body += f'else if(param_index == {i}) read_boolean(value, &commondata->{key}, "{key}");\n'
                 found_boolean = True
                 i += 1
             elif (
-                "char" in CodeParam.c_type_alias
-                and "[" in CodeParam.c_type_alias
-                and "]" in CodeParam.c_type_alias
+                "char" in CodeParam.cparam_type
+                and "[" in CodeParam.cparam_type
+                and "]" in CodeParam.cparam_type
             ):
-                CPsize = CodeParam.c_type_alias.split("[")[1].split("]")[0]
+                CPsize = CodeParam.cparam_type.split("[")[1].split("]")[0]
                 body += f'else if(param_index == {i}) read_chararray(value, commondata->{key}, "{key}", {CPsize});\n'
                 found_chararray = True
                 i += 1
@@ -262,10 +262,10 @@ invalid parameter names.
     for key in cmdline_inputs:
         CodeParam = par.glb_code_params_dict[key]
         if CodeParam.add_to_parfile and CodeParam.commondata:
-            if CodeParam.c_type_alias == "int":
+            if CodeParam.cparam_type == "int":
                 body += f'read_integer(argv[argc - number_of_steerable_parameters + {i}], &commondata->{key}, "{key}");\n'
                 i += 1
-            elif CodeParam.c_type_alias == "REAL":
+            elif CodeParam.cparam_type == "REAL":
                 body += f'read_double(argv[argc - number_of_steerable_parameters + {i}], &commondata->{key}, "{key}");\n'
                 i += 1
     body += "}\n"
@@ -287,7 +287,7 @@ static void read_integer(const char *value, int *result, const char *param_name)
 """
     if found_REAL:
         prefunc += r"""
-static void read_double(const char *value, double *result, const char *param_name) {
+static void read_double(const char *value, REAL *result, const char *param_name) {
   char *endptr;
   errno = 0; // To detect overflow
   double double_val = strtod(value, &endptr);
@@ -297,7 +297,7 @@ static void read_double(const char *value, double *result, const char *param_nam
     exit(1);
   }
 
-  *result = double_val;
+  *result = (REAL) double_val;
 }
 """
     if found_chararray:
@@ -339,7 +339,7 @@ static void read_boolean(const char *value, bool *result, const char *param_name
         includes=includes,
         prefunc=prefunc,
         desc=desc,
-        c_type=c_type,
+        cfunc_type=cfunc_type,
         name=name,
         params=params,
         body=body,
@@ -355,11 +355,12 @@ def generate_default_parfile(project_dir: str, project_name: str) -> None:
     :return: None
 
     Doctest:
-    >>> _, __ = par.register_CodeParameters("REAL", "CodeParameters_c_files", ["a", "pi_three_sigfigs"], [1, 3.14], commondata=True)
+    >>> _, __ = par.register_CodeParameters("REAL", "CodeParameters_c_files", ["a", "pi_three_sigfigs"], [1.0, 3.14], commondata=True)
     >>> ___ = par.register_CodeParameter("#define", "CodeParameters_c_files", "b", 0)
     >>> _leaveitbe = par.register_CodeParameter("REAL", "CodeParameters_c_files", "leaveitbe", add_to_parfile=False, add_to_set_CodeParameters_h=False)
     >>> _leaveitoutofparfile = par.register_CodeParameter("REAL", "CodeParameters_c_files", "leaveitoutofparfile", add_to_parfile=False)
     >>> _str = par.register_CodeParameter("char", "CodeParameters_c_files", "string[100]", "cheese", commondata=True)
+    >>> _int = par.register_CodeParameter("int", "CodeParameters_c_files", "blahint", -1, commondata=True, add_to_parfile=True, add_to_set_CodeParameters_h=False)
     >>> _bool = par.register_CodeParameter("bool", "CodeParameters_c_files", "BHaH_is_amazing", "true")
     >>> cfc.CFunction_dict.clear()
     >>> project_dir = Path("/tmp/tmp_BHaH_parfile")
@@ -370,7 +371,8 @@ def generate_default_parfile(project_dir: str, project_name: str) -> None:
     ###########################
     ###########################
     ### Module: CodeParameters_c_files
-    a = 1                    # (type: REAL)
+    a = 1.0                  # (type: REAL)
+    blahint = -1             # (type: int)
     pi_three_sigfigs = 3.14  # (type: REAL)
     string = "cheese"        # (type: char array)
     <BLANKLINE>
@@ -382,8 +384,8 @@ def generate_default_parfile(project_dir: str, project_name: str) -> None:
         par.glb_code_params_dict.items(), key=lambda x: x[1].module
     ):
         if CodeParam.commondata:
-            CPtype = CodeParam.c_type_alias
-            if CodeParam.add_to_set_CodeParameters_h and CodeParam.add_to_parfile:
+            CPtype = CodeParam.cparam_type
+            if CodeParam.add_to_parfile:
                 if CPtype == "char":
                     chararray_name = parname.split("[")[0]
                     parfile_output_dict[CodeParam.module].append(

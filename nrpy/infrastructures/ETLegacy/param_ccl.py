@@ -4,10 +4,12 @@ Module for constructing param.ccl for Cactus thorns.
 Author: Zachariah B. Etienne
         zachetie **at** gmail **dot* com
 """
+
 from typing import List
 from pathlib import Path
 import nrpy.params as par
 import nrpy.c_function as cfc
+from nrpy.helpers.conditional_file_updater import ConditionalFileUpdater
 
 
 def construct_param_ccl(
@@ -38,14 +40,16 @@ restricted:
             and CFunction.ET_current_thorn_CodeParams_used
         ):
             for CPname in CFunction.ET_current_thorn_CodeParams_used:
-                CParam = par.glb_code_params_dict[CPname]
-                paramccl_str += f'{CParam.c_type_alias} {CParam.name} "(see NRPy+ for parameter definition)"\n'
-                paramccl_str += "{\n"
-                paramccl_str += ' *:* :: "All values accepted. NRPy+ does not restrict the allowed ranges of parameters yet."\n'
-                paramccl_str += f"}} {CParam.defaultvalue}\n\n"
-                CParams_registered_to_params_ccl += [CPname]
+                # only declare parameters once
+                if CPname not in CParams_registered_to_params_ccl:
+                    CParam = par.glb_code_params_dict[CPname]
+                    paramccl_str += f'{CParam.cparam_type} {CParam.name} "(see NRPy+ for parameter definition)"\n'
+                    paramccl_str += "{\n"
+                    paramccl_str += ' *:* :: "All values accepted. NRPy+ does not restrict the allowed ranges of parameters yet."\n'
+                    paramccl_str += f"}} {CParam.defaultvalue}\n\n"
+                    CParams_registered_to_params_ccl += [CPname]
     output_Path = Path(project_dir) / thorn_name
     output_Path.mkdir(parents=True, exist_ok=True)
-    with open(output_Path / "param.ccl", "w", encoding="utf-8") as file:
+    with ConditionalFileUpdater(output_Path / "param.ccl", encoding="utf-8") as file:
         file.write(paramccl_str)
     return CParams_registered_to_params_ccl

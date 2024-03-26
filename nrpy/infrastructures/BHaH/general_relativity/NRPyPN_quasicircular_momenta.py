@@ -4,6 +4,7 @@ Set up C function for setting 3.5PN quasicircular momenta for binary black holes
 Author: Zachariah B. Etienne
         zachetie **at** gmail **dot* com
 """
+
 from typing import Union, cast
 from types import FrameType as FT
 from inspect import currentframe as cfr
@@ -77,7 +78,7 @@ def register_CFunction_NRPyPN_quasicircular_momenta() -> Union[None, pcg.NRPyEnv
 
     includes = ["BHaH_defines.h"]
     desc = """Compute quasicircular momenta using validated expressions from NRPyPN."""
-    c_type = "void"
+    cfunc_type = "void"
     name = "NRPyPN_quasicircular_momenta"
     params = "commondata_struct *restrict commondata"
     body = r"""// compute quasicircular parameters if commondata.p_t and commondata.p_r not
@@ -123,7 +124,7 @@ printf("p_t, p_r = %.15e %.15e\n", Pt, Pr);
     cfc.register_CFunction(
         includes=includes,
         desc=desc,
-        c_type=c_type,
+        cfunc_type=cfunc_type,
         name=name,
         params=params,
         body=body,

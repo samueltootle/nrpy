@@ -9,7 +9,7 @@ Authors: Zachariah B. Etienne
 """
 
 # Step P1: Import needed NRPy+ core modules:
-from typing import List, Dict, Tuple, Union
+from typing import List, Tuple
 import sympy as sp  # SymPy: The Python computer algebra package upon which NRPy+ depends
 import nrpy.c_codegen as ccg
 import nrpy.c_function as cfc
@@ -116,67 +116,25 @@ def BHaH_defines_set_gridfunction_defines_with_parity_types(
         auxevol_variables_list,
     ) = gri.BHaHGridFunction.gridfunction_lists()[0:3]
 
-    def set_parity_types(list_of_gf_names: List[str]) -> List[int]:
-        """
-        Set the parity types for a given list of grid function names.
-
-        :param list_of_gf_names: List of grid function names for which to set the parity types.
-        :return: A list of integers representing the parity types for the grid functions.
-        """
-        parity_type: List[int] = []
-        for name in list_of_gf_names:
-            for gf in gri.glb_gridfcs_dict.values():
-                if isinstance(gf, gri.BHaHGridFunction) and gf.name == name:
-                    parity_type__orig_len = len(parity_type)
-                    if gf.rank == 0:
-                        parity_type.append(0)
-                    elif gf.rank == 1:
-                        parity_type.append(int(gf.name[-1]) + 1)
-                    elif gf.rank == 2:
-                        idx0 = gf.name[-2]
-                        idx1 = gf.name[-1]
-                        parity_conditions: Dict[Tuple[str, str], int] = {
-                            ("0", "0"): 4,
-                            ("0", "1"): 5,
-                            ("1", "0"): 5,
-                            ("0", "2"): 6,
-                            ("2", "0"): 6,
-                            ("1", "1"): 7,
-                            ("1", "2"): 8,
-                            ("2", "1"): 8,
-                            ("2", "2"): 9,
-                        }
-                        parity_value: Union[int, None] = parity_conditions.get(
-                            (idx0, idx1)
-                        )
-                        if parity_value is not None:
-                            parity_type.append(parity_value)
-                    if len(parity_type) == parity_type__orig_len:
-                        raise ValueError(
-                            f"Error: Could not figure out parity type for {gf.group} gridfunction: {gf.name}, {gf.name[-2]}, {gf.name[-1]}, {gf.rank}"
-                        )
-
-        if len(parity_type) != len(list_of_gf_names):
-            raise ValueError(
-                "Error: For some reason the length of the parity types list did not match the length of the gf list."
-            )
-        return parity_type
-
     outstr = """
 /* PARITY TYPES FOR EVOLVED (plus optional) GRIDFUNCTIONS.
  * SEE \"Tutorial-Start_to_Finish-Curvilinear_BCs.ipynb\" FOR DEFINITIONS. */
 """
     if len(evolved_variables_list) > 0:
-        evol_parity_type = set_parity_types(evolved_variables_list)
+        evol_parity_type = gri.BHaHGridFunction.set_parity_types(evolved_variables_list)
 
         outstr += f"static const int8_t evol_gf_parity[{len(evolved_variables_list)}] = {{ {', '.join(map(str, evol_parity_type)) } }};\n"
     if set_parity_on_aux:
         if len(auxiliary_variables_list) > 0:
-            aux_parity_type = set_parity_types(auxiliary_variables_list)
+            aux_parity_type = gri.BHaHGridFunction.set_parity_types(
+                auxiliary_variables_list
+            )
             outstr += f"static const int8_t aux_gf_parity[{len(auxiliary_variables_list)}] = {{ {', '.join(map(str, aux_parity_type))} }};\n"
     if set_parity_on_auxevol:
         if len(auxevol_variables_list) > 0:
-            auxevol_parity_type = set_parity_types(auxevol_variables_list)
+            auxevol_parity_type = gri.BHaHGridFunction.set_parity_types(
+                auxevol_variables_list
+            )
             outstr += f"static const int8_t auxevol_gf_parity[{len(auxevol_variables_list)}] = {{ {', '.join(map(str, auxevol_parity_type))} }};\n"
 
     if verbose:
@@ -239,7 +197,7 @@ def Cfunction__EigenCoord_set_x0x1x2_inbounds__i0i1i2_inbounds_single_pt(
   multiplying by a +/- 1 if the data is from a gridfunction
   storing tensors/vectors.
 """
-    c_type = "static void"
+    cfunc_type = "static void"
     name = "EigenCoord_set_x0x1x2_inbounds__i0i1i2_inbounds_single_pt"
     params = """const commondata_struct *restrict commondata, const params_struct *restrict params, REAL *restrict xx[3],
 const int i0, const int i1, const int i2,
@@ -405,7 +363,7 @@ REAL Cartz = xCart[2];
     cf = cfc.CFunction(
         subdirectory=CoordSystem,
         desc=desc,
-        c_type=c_type,
+        cfunc_type=cfunc_type,
         name=name,
         params=params,
         include_CodeParameters_h=True,
@@ -432,7 +390,7 @@ Given (x0,x1,x2)=(xx0,xx1,xx2) and
 EigenCoord_set_x0x1x2_inbounds__i0i1i2_inbounds_single_pt()
 above for more details), here we compute the parity conditions
 for all 10 tensor types supported by NRPy+."""
-    c_type = "static void"
+    cfunc_type = "static void"
     name = "set_parity_for_inner_boundary_single_pt"
     params = """const commondata_struct *restrict commondata, const params_struct *restrict params,
                 const REAL xx0,const REAL xx1,const REAL xx2,  const REAL x0x1x2_inbounds[3], const int idx,
@@ -468,7 +426,7 @@ for(int whichparity=0;whichparity<10;whichparity++) {{
     cf = cfc.CFunction(
         subdirectory=CoordSystem,
         desc=desc,
-        c_type=c_type,
+        cfunc_type=cfunc_type,
         CoordSystem_for_wrapper_func=CoordSystem,
         name=name,
         params=params,
@@ -554,7 +512,7 @@ Step 2: Set up outer boundary structs bcstruct->outer_bc_array[which_gz][face][i
     regardless of whether the point is an outer or inner point. However
     the struct is set only at outer boundary points. This is slightly
     wasteful, but only in memory, not in CPU."""
-    c_type = "void"
+    cfunc_type = "void"
     name = "bcstruct_set_up"
     params = "const commondata_struct *restrict commondata, const params_struct *restrict params, REAL *restrict xx[3], bc_struct *restrict bcstruct"
     body = r"""
@@ -733,7 +691,7 @@ Step 2: Set up outer boundary structs bcstruct->outer_bc_array[which_gz][face][i
         includes=includes,
         prefunc=prefunc,
         desc=desc,
-        c_type=c_type,
+        cfunc_type=cfunc_type,
         CoordSystem_for_wrapper_func=CoordSystem,
         name=name,
         params=params,
@@ -756,7 +714,7 @@ Inner boundary points map to either the grid
 interior ("pure inner") or to pure outer
 boundary points ("inner maps to outer").
 """
-    c_type = "void"
+    cfunc_type = "void"
     name = "apply_bcs_inner_only"
     params = "const commondata_struct *restrict commondata, const params_struct *restrict params, const bc_struct *restrict bcstruct, REAL *restrict gfs"
     body = r"""
@@ -777,7 +735,7 @@ boundary points ("inner maps to outer").
     cfc.register_CFunction(
         includes=includes,
         desc=desc,
-        c_type=c_type,
+        cfunc_type=cfunc_type,
         name=name,
         params=params,
         include_CodeParameters_h=True,
@@ -800,7 +758,7 @@ def register_CFunction_apply_bcs_outerextrap_and_inner() -> None:
 #  * f(x0 = constant. Then f_{i0} = f_{i0-3} <- CHECK!
 #  * f(x) = x. WOLOG suppose x0=0. Then f_{i0} = (-3dx) - 3(-2dx) + 3(-dx) = + dx(-3+6-3) = 0 <- CHECK!
 #  * f(x) = x^2. WOLOG suppose x0=0. Then f_{i0} = (-3dx)^2 - 3(-2dx)^2 + 3(-dx)^2 = + dx^2(9-12+3) = 0 <- CHECK!"""
-    c_type = "void"
+    cfunc_type = "void"
     name = "apply_bcs_outerextrap_and_inner"
     params = "const commondata_struct *restrict commondata, const params_struct *restrict params, const bc_struct *restrict bcstruct, REAL *restrict gfs"
     body = r"""
@@ -864,7 +822,7 @@ def register_CFunction_apply_bcs_outerextrap_and_inner() -> None:
     cfc.register_CFunction(
         includes=includes,
         desc=desc,
-        c_type=c_type,
+        cfunc_type=cfunc_type,
         name=name,
         params=params,
         include_CodeParameters_h=True,
@@ -889,7 +847,7 @@ def setup_Cfunction_r_and_partial_xi_partial_r_derivs(CoordSystem: str) -> str:
     :return: A string containing the generated C code for the function.
     """
     desc = "Compute r(xx0,xx1,xx2) and partial_r x^i."
-    c_type = "static inline void"
+    cfunc_type = "static inline void"
     name = "r_and_partial_xi_partial_r_derivs"
     params = """const commondata_struct *restrict commondata, const params_struct *restrict params,
     const REAL xx0,const REAL xx1,const REAL xx2,    REAL *r,
@@ -917,7 +875,7 @@ def setup_Cfunction_r_and_partial_xi_partial_r_derivs(CoordSystem: str) -> str:
         subdirectory=CoordSystem,
         includes=[],
         desc=desc,
-        c_type=c_type,
+        cfunc_type=cfunc_type,
         name=name,
         params=params,
         include_CodeParameters_h=True,
@@ -977,7 +935,7 @@ def setup_Cfunction_FD1_arbitrary_upwind(
 
     includes: List[str] = []
     desc = "Compute 1st derivative finite-difference derivative with arbitrary upwind"
-    c_type = "static inline REAL"
+    cfunc_type = "static inline REAL"
     name = f"FD1_arbitrary_upwind_x{dirn}_dirn"
     params = """const commondata_struct *restrict commondata, const params_struct *restrict params,
 const REAL *restrict gf,  const int i0,const int i1,const int i2, const int offset"""
@@ -1024,7 +982,7 @@ return 0.0 / 0.0;  // poison output if offset computed incorrectly
         subdirectory="one_subdirectory_down",
         includes=includes,
         desc=desc,
-        c_type=c_type,
+        cfunc_type=cfunc_type,
         name=name,
         params=params,
         include_CodeParameters_h=True,
@@ -1049,7 +1007,7 @@ def setup_Cfunction_compute_partial_r_f(
     :return: A C function for computing the partial derivative
     """
     desc = "Compute \\partial_r f"
-    c_type = "static inline REAL"
+    cfunc_type = "static inline REAL"
     name = "compute_partial_r_f"
     params = """const commondata_struct *restrict commondata, const params_struct *restrict params,
 REAL *restrict xx[3], const REAL *restrict gfs,
@@ -1104,7 +1062,7 @@ const REAL partial_x0_partial_r, const REAL partial_x1_partial_r, const REAL par
         subdirectory=CoordSystem,
         includes=[],
         desc=desc,
-        c_type=c_type,
+        cfunc_type=cfunc_type,
         name=name,
         params=params,
         include_CodeParameters_h=True,
@@ -1141,7 +1099,7 @@ def setup_Cfunction_radiation_bcs(
     )
     desc = r"""*** Apply radiation BCs to all outer boundaries. ***
 """
-    c_type = "static inline REAL"
+    cfunc_type = "static inline REAL"
     name = "radiation_bcs"
     params = """const commondata_struct *restrict commondata, const params_struct *restrict params,
     const bc_struct *restrict bcstruct,REAL *restrict xx[3],
@@ -1188,7 +1146,7 @@ return partial_t_f_outgoing_wave + k * rinv*rinv*rinv;
         includes=includes,
         prefunc=prefunc,
         desc=desc,
-        c_type=c_type,
+        cfunc_type=cfunc_type,
         name=name,
         params=params,
         include_CodeParameters_h=True,
@@ -1218,7 +1176,7 @@ boundary points. In the first step, it parallelizes the task using OpenMP and st
 the outer boundary points layer-by-layer, prioritizing the faces in the order x0, x1, x2. The second step
 applies BCs to the inner boundary points, which may map either to the grid interior or to the outer boundary.
 """
-    c_type = "void"
+    cfunc_type = "void"
     name = "apply_bcs_outerradiation_and_inner"
     params = """const commondata_struct *restrict commondata, const params_struct *restrict params,
     const bc_struct *restrict bcstruct, REAL *restrict xx[3],
@@ -1283,7 +1241,7 @@ applies BCs to the inner boundary points, which may map either to the grid inter
         includes=includes,
         prefunc=prefunc,
         desc=desc,
-        c_type=c_type,
+        cfunc_type=cfunc_type,
         CoordSystem_for_wrapper_func=CoordSystem,
         name=name,
         params=params,

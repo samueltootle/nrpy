@@ -4,6 +4,7 @@ Construct BHaH_defines.h from data registered to griddata_commondata, CodeParame
 Author: Zachariah B. Etienne
         zachetie **at** gmail **dot* com
 """
+
 import sys
 from pathlib import Path
 from typing import Optional, Dict, List
@@ -161,7 +162,7 @@ def output_BHaH_defines_h(
     # Add all CodeParameters
     # Iterate through the global code parameters dictionary
     for CPname, CodeParam in par.glb_code_params_dict.items():
-        CPtype: str = CodeParam.c_type_alias
+        CPtype: str = CodeParam.cparam_type
         if CPtype != "#define":
             comment: str = f"  // {CodeParam.module}::{CPname}"
             c_output = f"  {CPtype} {CPname};{comment}\n"

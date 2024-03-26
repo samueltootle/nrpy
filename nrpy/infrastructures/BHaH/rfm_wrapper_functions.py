@@ -4,6 +4,7 @@ Register wrapper functions for routines that span multiple coordinate systems.
 Author: Zachariah B. Etienne
         zachetie **at** gmail **dot* com
 """
+
 from typing import List, Dict
 import hashlib
 import re
@@ -46,9 +47,9 @@ def register_CFunctions_CoordSystem_wrapper_funcs() -> None:
             if wrapper_func_name not in wrapper_func_list:
                 wrapper_func_list += [wrapper_func_name]
                 base_CFunc_list += [CFunction]
-                if CFunction.c_type != "void":
+                if CFunction.cfunc_type != "void":
                     raise ValueError(
-                        f"Error creating wrapper function for CFunction {CFunction.name}: the return type {CFunction.c_type} is not void."
+                        f"Error creating wrapper function for CFunction {CFunction.name}: the return type {CFunction.cfunc_type} is not void."
                     )
 
     CoordSystem_hash_dict: Dict[str, int] = {}
@@ -101,7 +102,7 @@ def register_CFunctions_CoordSystem_wrapper_funcs() -> None:
             includes=["BHaH_defines.h", "BHaH_function_prototypes.h"],
             prefunc="",
             desc=base_CFunc.desc,
-            c_type=base_CFunc.c_type,
+            cfunc_type=base_CFunc.cfunc_type,
             name=wrapper_func_name,
             CoordSystem_for_wrapper_func="",
             params=base_CFunc.params,

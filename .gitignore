@@ -1,6 +1,6 @@
 *.sqlite
 *.nsys-rep
-__pycache__
+**/__pycache__/
 *.o
 project/two_blackholes_collide_nosimd*
 project/two_blackholes_collide_simd*
