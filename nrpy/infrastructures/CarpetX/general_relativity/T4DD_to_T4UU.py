@@ -26,13 +26,14 @@ def register_CFunction_T4DD_to_T4UU(
     thorn_name: str,
     CoordSystem: str,
     enable_rfm_precompute: bool,
+    fp_type: str = "doube",
 ) -> Union[None, pcg.NRPyEnv_type]:
     """
     Register the function that enforces the det(gammabar) = det(gammahat) constraint.
 
     :param thorn_name: The Einstein Toolkit thorn name.
     :param CoordSystem: The coordinate system to be used.
-    :param enable_rfm_precompute: Whether or not to enable reference metric precomputation.
+    :param enable_rfm_precompute: Whether to enable reference metric precomputation.
 
     :return: None if in registration phase, else the updated NRPy environment.
     """
@@ -99,12 +100,14 @@ WARNING: Do not enable SIMD here, as it is not guaranteed that
         T4UU_expr_list,
         T4DD_access_gfs,
         enable_simd=False,
+        fp_type=fp_type,
     )
 
     body += lp.simple_loop(
         loop_body=loop_body,
         loop_region="all points",
         enable_simd=False,
+        fp_type=fp_type,
     )
 
     schedule1 = f"""

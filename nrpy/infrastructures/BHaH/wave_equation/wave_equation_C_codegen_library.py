@@ -35,6 +35,7 @@ def register_CFunction_exact_solution_single_Cartesian_point(
     default_k0: float = 1.0,
     default_k1: float = 1.0,
     default_k2: float = 1.0,
+    fp_type: str = "double",
 ) -> Union[None, pcg.NRPyEnv_type]:
     """
     Register the C function for the exact solution at a single point.
@@ -73,6 +74,7 @@ def register_CFunction_exact_solution_single_Cartesian_point(
         ["*exact_soln_UUGF", "*exact_soln_VVGF"],
         verbose=False,
         include_braces=False,
+        fp_type=fp_type,
     )
     cfc.register_CFunction(
         includes=includes,
@@ -87,7 +89,7 @@ def register_CFunction_exact_solution_single_Cartesian_point(
 
 
 def register_CFunction_initial_data(
-    OMP_collapse: int, enable_checkpointing: bool = False
+    OMP_collapse: int, enable_checkpointing: bool = False, fp_type: str = "double"
 ) -> Union[None, pcg.NRPyEnv_type]:
     """
     Register the initial data function for the wave equation with specific parameters.
@@ -132,6 +134,7 @@ if( read_checkpoint(commondata, griddata) ) return;
         read_xxs=True,
         loop_region="all points",
         OMP_collapse=OMP_collapse,
+        fp_type=fp_type,
     )
     body += "}\n"
     cfc.register_CFunction(
@@ -169,7 +172,7 @@ def register_CFunction_diagnostics(
 
     :param list_of_CoordSystems: Lists of unique CoordSystems used.
     :param default_diagnostics_out_every: Specifies the default diagnostics output frequency.
-    :param enable_progress_indicator: Whether or not to enable the progress indicator.
+    :param enable_progress_indicator: Whether to enable the progress indicator.
     :param grid_center_filename_tuple: Tuple containing filename and variables for grid center output.
     :param axis_filename_tuple: Tuple containing filename and variables for axis output.
     :param plane_filename_tuple: Tuple containing filename and variables for plane output.
@@ -304,6 +307,7 @@ def register_CFunction_rhs_eval(
     enable_simd: bool,
     enable_KreissOliger_dissipation: bool,
     OMP_collapse: int,
+    fp_type: str = "double",
 ) -> Union[None, pcg.NRPyEnv_type]:
     """
     Register the right-hand side (RHS) evaluation function for the wave equation.
@@ -312,9 +316,9 @@ def register_CFunction_rhs_eval(
     selected coordinate system and specified parameters.
 
     :param CoordSystem: The coordinate system.
-    :param enable_rfm_precompute: Whether or not to enable reference metric precomputation.
-    :param enable_simd: Whether or not to enable SIMD.
-    :param enable_KreissOliger_dissipation: Whether or not to enable Kreiss-Oliger dissipation, to damp high-frequency noise.
+    :param enable_rfm_precompute: Whether to enable reference metric precomputation.
+    :param enable_simd: Whether to enable SIMD.
+    :param enable_KreissOliger_dissipation: Whether to enable Kreiss-Oliger dissipation, to damp high-frequency noise.
     :param OMP_collapse: Level of OpenMP loop collapsing.
 
     :return: None if in registration phase, else the updated NRPy environment.
@@ -365,6 +369,7 @@ def register_CFunction_rhs_eval(
             ],
             enable_fd_codegen=True,
             enable_simd=enable_simd,
+            fp_type=fp_type,
         ),
         loop_region="interior",
         enable_simd=enable_simd,
@@ -372,6 +377,7 @@ def register_CFunction_rhs_eval(
         enable_rfm_precompute=enable_rfm_precompute,
         read_xxs=not enable_rfm_precompute,
         OMP_collapse=OMP_collapse,
+        fp_type=fp_type,
     )
 
     cfc.register_CFunction(

@@ -31,14 +31,15 @@ def register_CFunction_Ricci_eval(
     enable_simd: bool,
     fd_order: int,
     OMP_collapse: int = 1,
+    fp_type: str = "double",
 ) -> Union[None, pcg.NRPyEnv_type]:
     """
     Register the right-hand side evaluation function for the BSSN equations.
 
     :param thorn_name: The Einstein Toolkit thorn name.
     :param CoordSystem: The coordinate system to be used.
-    :param enable_rfm_precompute: Whether or not to enable reference metric precomputation.
-    :param enable_simd: Whether or not to enable SIMD (Single Instruction, Multiple Data).
+    :param enable_rfm_precompute: Whether to enable reference metric precomputation.
+    :param enable_simd: Whether to enable SIMD (Single Instruction, Multiple Data).
     :param fd_order: Order of finite difference method
     :param OMP_collapse: Degree of OpenMP loop collapsing.
 
@@ -88,10 +89,12 @@ def register_CFunction_Ricci_eval(
             enable_simd=enable_simd,
             enable_fd_functions=True,
             enable_GoldenKernels=True,
+            fp_type=fp_type,
         ),
         loop_region="interior",
         enable_simd=enable_simd,
         OMP_collapse=OMP_collapse,
+        fp_type=fp_type,
     )
 
     schedule = f"""

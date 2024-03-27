@@ -30,13 +30,14 @@ def register_CFunction_enforce_detgammahat_constraint(
     CoordSystem: str,
     enable_rfm_precompute: bool,
     OMP_collapse: int = 1,
+    fp_type: str = "double"
 ) -> Union[None, pcg.NRPyEnv_type]:
     """
     Register the function that enforces the det(gammabar) = det(gammahat) constraint.
 
     :param thorn_name: The Einstein Toolkit thorn name.
     :param CoordSystem: The coordinate system to be used.
-    :param enable_rfm_precompute: Whether or not to enable reference metric precomputation.
+    :param enable_rfm_precompute: Whether to enable reference metric precomputation.
     :param OMP_collapse: Degree of OpenMP loop collapsing.
 
     :return: None if in registration phase, else the updated NRPy environment.
@@ -98,10 +99,12 @@ def register_CFunction_enforce_detgammahat_constraint(
             automatically_read_gf_data_from_memory=True,
             enable_fd_codegen=True,
             enable_fd_functions=True,
+            fp_type=fp_type,
         ),
         loop_region="all points",
         enable_simd=False,
         OMP_collapse=OMP_collapse,
+        fp_type=fp_type,
     )
 
     schedule = """
