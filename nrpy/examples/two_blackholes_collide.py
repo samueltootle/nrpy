@@ -124,7 +124,8 @@ BCl.register_CFunction_diagnostics(
 )
 if enable_rfm_precompute:
     rfm_precompute.register_CFunctions_rfm_precompute(
-        list_of_CoordSystems=[CoordSystem], fp_type=fp_type,
+        list_of_CoordSystems=[CoordSystem],
+        fp_type=fp_type,
     )
 BCl.register_CFunction_rhs_eval(
     CoordSystem=CoordSystem,
@@ -165,7 +166,9 @@ if __name__ == "__main__":
     pcg.do_parallel_codegen()
 
 cbc.CurviBoundaryConditions_register_C_functions(
-    list_of_CoordSystems=[CoordSystem], radiation_BC_fd_order=radiation_BC_fd_order, fp_type=fp_type,
+    list_of_CoordSystems=[CoordSystem],
+    radiation_BC_fd_order=radiation_BC_fd_order,
+    fp_type=fp_type,
 )
 rhs_string = """
 Ricci_eval(commondata, params, rfmstruct, RK_INPUT_GFS, auxevol_gfs);
@@ -185,7 +188,7 @@ MoL.register_CFunctions(
   enforce_detgammabar_equals_detgammahat(commondata, params, rfmstruct, RK_OUTPUT_GFS);""",
     enable_rfm_precompute=enable_rfm_precompute,
     enable_curviBCs=True,
-    fp_type=fp_type
+    fp_type=fp_type,
 )
 xxCartxx.register_CFunction__Cart_to_xx_and_nearest_i0i1i2(CoordSystem, fp_type=fp_type)
 xxCartxx.register_CFunction_xx_to_Cart(CoordSystem, fp_type=fp_type)
