@@ -112,8 +112,13 @@ void cfl_limited_timestep__rfm__Spherical(commondata_struct *restrict commondata
   cudaMalloc(&ds_gpu,sizeof(REAL) * Nxx_tot);
   cudaCheckErrors(cudaMalloc, "cudaMalloc failure"); // error checking
 
-  dim3 grid(GPU_NGRID0,GPU_NGRID1,GPU_NGRID2);
+  // dim3 grid(GPU_NGRID0,GPU_NGRID1,GPU_NGRID2);
   dim3 block(GPU_NBLOCK0,GPU_NBLOCK1,GPU_NBLOCK2);
+  dim3 grid(
+    (params->Nxx0 + block.x - 1) / block.x,
+    (params->Nxx1 + block.y - 1) / block.y,
+    (params->Nxx2 + block.z - 1) / block.z
+  );
 
   // compute_ds2<<<grid, block>>>(xx[0], xx[1], xx[2], ds_gpu);
   // TEST_coord_direction(0, ds_gpu, "dsmin2", Nxx_tot);

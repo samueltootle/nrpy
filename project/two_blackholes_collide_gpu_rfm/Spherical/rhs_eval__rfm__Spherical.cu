@@ -1852,8 +1852,8 @@ void rhs_eval__rfm__Spherical(const commondata_struct *restrict commondata, cons
                               const rfm_struct *restrict rfmstruct, const REAL *restrict auxevol_gfs, const REAL *restrict in_gfs,
                               REAL *restrict rhs_gfs) {
 #include "../set_CodeParameters.h"
-  int threads_in_x_dir = MIN(GPU_THREADX_MAX, params->Nxx0 / 32);
-  int threads_in_y_dir = MIN(GPU_THREADX_MAX / threads_in_x_dir, params->Nxx1);
+  int threads_in_x_dir = 32; //MIN(GPU_THREADX_MAX, params->Nxx0 / 32);
+  int threads_in_y_dir = 32; //MIN(GPU_THREADX_MAX / threads_in_x_dir, params->Nxx1);
   int threads_in_z_dir = 1;
 
     // Setup our thread layout

@@ -725,8 +725,8 @@ void constraints_eval__rfm__Spherical(const commondata_struct *restrict commonda
                                       const rfm_struct *restrict rfmstruct, const REAL *restrict in_gfs, const REAL *restrict auxevol_gfs,
                                       REAL *restrict diagnostic_output_gfs) {
 #include "../set_CodeParameters.h"
-  int threads_in_x_dir = MIN(GPU_THREADX_MAX, params->Nxx0 / 32);
-  int threads_in_y_dir = MIN(GPU_THREADX_MAX / threads_in_x_dir, params->Nxx1);
+  int threads_in_x_dir = 32; //MIN(GPU_THREADX_MAX, params->Nxx0 / 32);
+  int threads_in_y_dir = 32; //MIN(GPU_THREADX_MAX / threads_in_x_dir, params->Nxx1);
   int threads_in_z_dir = 1;
   dim3 block_threads(threads_in_x_dir, threads_in_y_dir, threads_in_z_dir);
 
