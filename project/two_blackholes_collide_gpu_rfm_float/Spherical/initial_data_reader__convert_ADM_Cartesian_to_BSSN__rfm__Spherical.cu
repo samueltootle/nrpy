@@ -602,7 +602,7 @@ void initial_data_reader__convert_ADM_Cartesian_to_BSSN__rfm__Spherical(
   cudaMemcpyFromSymbol(&host_function_ptr, id_ptr, sizeof(ID_pfunc));
 
   int threads_in_x_dir = 32; //MIN(GPU_THREADX_MAX, params->Nxx0 / 32);
-  int threads_in_y_dir = 32; //MIN(GPU_THREADX_MAX / threads_in_x_dir, params->Nxx1);
+  int threads_in_y_dir = 2U * NGHOSTS; //MIN(GPU_THREADX_MAX / threads_in_x_dir, params->Nxx1);
   int threads_in_z_dir = 1;
 
   // Setup our thread layout

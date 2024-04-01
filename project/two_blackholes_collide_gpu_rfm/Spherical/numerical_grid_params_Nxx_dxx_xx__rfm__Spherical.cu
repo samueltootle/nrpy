@@ -123,7 +123,7 @@ void numerical_grid_params_Nxx_dxx_xx__rfm__Spherical(commondata_struct *restric
 
   dim3 block_threads, grid_blocks;
   auto set_grid_block = [&block_threads, &grid_blocks](auto Nx) {
-    size_t threads_in_x_dir = MIN(Nx, 1024);
+    size_t threads_in_x_dir = 32; //MIN(Nx, 1024);
     block_threads = dim3(threads_in_x_dir, 1, 1);
     grid_blocks = dim3((Nx + threads_in_x_dir - 1)/threads_in_x_dir, 1, 1);
   };

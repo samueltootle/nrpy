@@ -79,7 +79,7 @@ void enforce_detgammabar_equals_detgammahat__rfm__Spherical(const commondata_str
                                                             const rfm_struct *restrict rfmstruct, REAL *restrict in_gfs) {
 #include "../set_CodeParameters.h"
   int threads_in_x_dir = 32; //MIN(1024, params->Nxx0 / 32);
-  int threads_in_y_dir = 32; //MIN(1024 / threads_in_x_dir, params->Nxx1);
+  int threads_in_y_dir = 2U * NGHOSTS; //MIN(1024 / threads_in_x_dir, params->Nxx1);
   int threads_in_z_dir = 1;
 
   // Setup our thread layout

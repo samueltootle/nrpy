@@ -2124,7 +2124,7 @@ void rhs_eval__rfm__Spherical(const commondata_struct *restrict commondata, cons
                               REAL *restrict rhs_gfs) {
 #include "../set_CodeParameters.h"
   int threads_in_x_dir = MIN(1024, params->Nxx0 / 32);
-  int threads_in_y_dir = MIN(1024 / threads_in_x_dir, params->Nxx1);
+  int threads_in_y_dir = 2U * NGHOSTS; //MIN(1024 / threads_in_x_dir, params->Nxx1);
   int threads_in_z_dir = 1;
 
     // Setup our thread layout

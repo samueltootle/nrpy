@@ -53,7 +53,7 @@ void rfm_precompute_defines__rfm__Spherical(const commondata_struct *restrict co
   
   dim3 block_threads, grid_blocks;
   auto set_grid_block = [&block_threads, &grid_blocks](auto Nx) {
-    size_t tx = MIN(Nx, 1024);
+    size_t tx = 32; //MIN(Nx, 1024);
     block_threads = dim3(tx, 1, 1);
     grid_blocks = dim3((Nx + tx - 1)/tx, 1, 1);
   };
