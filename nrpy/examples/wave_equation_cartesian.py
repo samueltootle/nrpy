@@ -19,13 +19,14 @@ import nrpy.params as par
 from nrpy.helpers import simd
 
 import nrpy.infrastructures.BHaH.BHaH_defines_h as Bdefines_h
-import nrpy.infrastructures.BHaH.CodeParameters as CPs
 import nrpy.infrastructures.BHaH.cmdline_input_and_parfiles as cmdpar
-import nrpy.infrastructures.BHaH.simple_loop as lp
+import nrpy.infrastructures.BHaH.CodeParameters as CPs
+import nrpy.infrastructures.BHaH.diagnostics.progress_indicator as progress
+from nrpy.infrastructures.BHaH import griddata_commondata
+import nrpy.infrastructures.BHaH.main_c as main
 import nrpy.infrastructures.BHaH.Makefile_helpers as Makefile
 from nrpy.infrastructures.BHaH.MoLtimestepping import MoL
-import nrpy.infrastructures.BHaH.main_c as main
-import nrpy.infrastructures.BHaH.diagnostics.progress_indicator as progress
+import nrpy.infrastructures.BHaH.simple_loop as lp
 from nrpy.equations.wave_equation.WaveEquation_RHSs import WaveEquation_RHSs
 from nrpy.equations.wave_equation.WaveEquation_Solutions_InitialData import (
     WaveEquation_solution_Cartesian,
@@ -78,8 +79,6 @@ def register_CFunction_numerical_grids_and_timestep_setup() -> None:
     This function calls the cfc.register_CFunction method to register a C function
     responsible for the setup of numerical grids and time steps. It defines essential parameters,
     including grid dimensions, time steps, and other related quantities.
-
-    :return: None
     """
     includes = ["BHaH_defines.h"]
     desc = r"""Set up cell-centered Cartesian grids."""
@@ -381,8 +380,6 @@ def register_CFunction_apply_bcs() -> None:
     This function registers a C function responsible for applying spatial boundary
     conditions to the scalar wave grid functions. Quadratic polynomial extrapolation
     is used to update boundary conditions on all six faces of the 3D grid cube.
-
-    :return: None
     """
     includes = ["BHaH_defines.h"]
     desc = """Apply (quadratic extrapolation) spatial boundary conditions to the scalar wave gridfunctions.
@@ -473,6 +470,10 @@ main.register_CFunction_main_c(
     initial_data_desc=WaveType,
     boundary_conditions_desc="Quadratic extrapolation, manually defined",
 )
+griddata_commondata.register_CFunction_griddata_free(
+    enable_rfm_precompute=False, enable_CurviBCs=False
+)
+
 
 if enable_simd:
     simd.copy_simd_intrinsics_h(project_dir=project_dir)

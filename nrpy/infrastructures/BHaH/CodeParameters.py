@@ -19,6 +19,10 @@ def register_CFunctions_params_commondata_struct_set_to_default() -> None:
     """
     Register a C function to set code parameters to their default values.
 
+    :raises ValueError: If an invalid default value is provided for any parameter. This
+                ensures that all parameters can be correctly initialized in the
+                generated C code.
+
     Doctests:
     >>> _, __ = par.register_CodeParameters("REAL", "CodeParameters_c_files", ["a", "pi_three_sigfigs"], [1, 3.14], commondata=True)
     >>> ___ = par.register_CodeParameter("#define", "CodeParameters_c_files", "b", 0)
@@ -84,7 +88,7 @@ def register_CFunctions_params_commondata_struct_set_to_default() -> None:
                         c_output = f"{struct}->{parname} = {str(defaultval).lower()};{comment}\n"
                     else:
                         raise ValueError(
-                            f"{CodeParam.defaultvalue} is not a valid default value. Note that Booleans must be capitalized."
+                            f"{CodeParam.defaultvalue} is not a valid default value, for parameter {CodeParam.module}::{parname}, commondata = {CodeParam.commondata}"
                         )
                     struct_list.append(c_output)
 
@@ -92,10 +96,10 @@ def register_CFunctions_params_commondata_struct_set_to_default() -> None:
         body = ""
         if function_name == "params_struct":
             body += r"""// Loop over params structs:
-    for(int grid=0; grid<commondata->NUMGRIDS; grid++) {
-    params_struct *restrict params = &griddata[grid].params;
-    """
-            body += "// Set params_struct variables to default\n"
+for(int grid=0; grid<commondata->NUMGRIDS; grid++) {
+  params_struct *restrict params = &griddata[grid].params;
+  // Set params_struct variables to default
+"""
             body += "".join(sorted(struct_list))
             body += "}\n"
         else:
@@ -166,7 +170,15 @@ def write_CodeParameters_h_files(
 
     # Step 4.a: Output non-SIMD version, set_CodeParameters.h
     def gen_set_CodeParameters(pointerEnable: bool = True) -> str:
-        """Generate content of set_CodeParameters*.h based on the pointerEnable flag."""
+        """
+        Generate content for set_CodeParameters*.h based on the pointerEnable flag.
+
+        :param pointerEnable: A boolean flag indicating whether to access parameters through pointers.
+                If True, parameters are accessed through pointers (struct->param).
+                If False, direct access is assumed (struct.param).
+
+        :return: A string containing the C code to be included in set_CodeParameters*.h, setting simulation parameters according to their specification in NRPy+.
+        """
         returnstring = ""
         for CPname, CodeParam in sorted(
             par.glb_code_params_dict.items(), key=lambda x: x[0].lower()

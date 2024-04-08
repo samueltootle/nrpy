@@ -103,8 +103,6 @@ def output_BHaH_defines_h(
     :param supplemental_defines_dict: Additional key-value pairs to be included in the output file
     :param clang_format_options: Options for clang formatting.
 
-    :raises ValueError: If the project directory does not exist
-
     >>> from nrpy.infrastructures.BHaH.MoLtimestepping import MoL
     >>> import nrpy.finite_difference as fin
     >>> from nrpy.helpers.generic import compress_string_to_base64, decompress_base64_to_string, diff_strings
@@ -112,7 +110,7 @@ def output_BHaH_defines_h(
     >>> project_dir = Path("/tmp", "tmp_BHaH_defines_h")
     >>> project_dir.mkdir(parents=True, exist_ok=True)
     >>> output_BHaH_defines_h(project_dir=str(project_dir))
-    >>> expected_string = decompress_base64_to_string("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")
+    >>> expected_string = decompress_base64_to_string("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")
     >>> returned_string = (project_dir / "BHaH_defines.h").read_text()
     >>> if returned_string != expected_string:
     ...    compressed_str = compress_string_to_base64(returned_string)
@@ -125,14 +123,15 @@ def output_BHaH_defines_h(
 
     ###############################
     # GENERALLY USEFUL DEFINITIONS
-    gen_BHd_str = """#include <stdio.h>
-#include <math.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdbool.h>
-#include <errno.h>
-#include <ctype.h>
-#include <time.h>
+    gen_BHd_str = """#include <ctype.h>   // Character type functions, such as isdigit, isalpha, etc.
+#include <errno.h>   // Error number definitions
+#include <math.h>    // Transcendental functions, etc.
+#include <stdbool.h> // bool-typed variables
+#include <stdint.h>  // int8_t-typed variables
+#include <stdio.h>   // Basic input/output functions, such as *printf, fopen, fwrite, etc.
+#include <stdlib.h>  // malloc/free, etc.
+#include <string.h>  // String handling functions, such as strlen, strcmp, etc.
+#include <time.h>    // Time-related functions and types, such as time(), clock(),
 """
     if enable_simd:
         gen_BHd_str += "// output_BHaH_defines_h(...,enable_simd=True) was called so we #include SIMD intrinsics:\n"
@@ -144,7 +143,20 @@ def output_BHaH_defines_h(
 
 #define MIN(A, B) ( ((A) < (B)) ? (A) : (B) )
 #define MAX(A, B) ( ((A) > (B)) ? (A) : (B) )
+#define SQR(A) ((A) * (A))
 """
+    code_params_includes_define_type = False
+    for CPname, CodeParam in par.glb_code_params_dict.items():
+        if CodeParam.cparam_type == "#define":
+            if not code_params_includes_define_type:
+                code_params_includes_define_type = True
+                gen_BHd_str += "// START: CodeParameters declared as #define.\n"
+            gen_BHd_str += f"""#ifndef {CPname}
+#define {CPname} {CodeParam.defaultvalue} // {CodeParam.module}
+#endif
+"""
+    if code_params_includes_define_type:
+        gen_BHd_str += "// END: CodeParameters declared as #define.\n"
     register_BHaH_defines("general", gen_BHd_str)
 
     #####################################
@@ -162,9 +174,9 @@ def output_BHaH_defines_h(
     # Add all CodeParameters
     # Iterate through the global code parameters dictionary
     for CPname, CodeParam in par.glb_code_params_dict.items():
-        CPtype: str = CodeParam.cparam_type
+        CPtype = CodeParam.cparam_type
         if CPtype != "#define":
-            comment: str = f"  // {CodeParam.module}::{CPname}"
+            comment = f"  // {CodeParam.module}::{CPname}"
             c_output = f"  {CPtype} {CPname};{comment}\n"
             if "char" in CPtype and "[" in CPtype and "]" in CPtype:
                 chararray_size = CPtype.split("[")[1].replace("]", "")
@@ -175,6 +187,14 @@ def output_BHaH_defines_h(
                 CCodelines_commondata_struct.append(c_output)
             else:
                 CCodelines_params_struct.append(c_output)
+
+    if "commondata_struct" in par.glb_extras_dict:
+        for module, item_list in par.glb_extras_dict["commondata_struct"].items():
+            for item in item_list:
+                c_code_line = f"  {item.c_declaration};"
+                if item.description != "":
+                    c_code_line += f"// <- {module}: {item.description}"
+                CCodelines_commondata_struct.append(c_code_line + "\n")
 
     # Sort CCodelines_params_struct and append them to the par_BHd_str
     for line in sorted(CCodelines_params_struct):
@@ -258,7 +278,7 @@ _Pragma(__OMP_PRAGMA__)  \
         "reference_metric",
         "nrpy.infrastructures.BHaH.CurviBoundaryConditions.CurviBoundaryConditions",
         "nrpy.infrastructures.BHaH.MoLtimestepping.MoL",
-        "nrpy.infrastructures.BHaH.interpolate",
+        "nrpy.infrastructures.BHaH.interpolation.interpolation",
         "grid",  # griddata struct depends upon other core modules
     ]
     # Populate BHaH_defines.h with core modules

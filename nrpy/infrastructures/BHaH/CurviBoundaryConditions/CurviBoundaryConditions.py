@@ -11,6 +11,7 @@ Authors: Zachariah B. Etienne
 # Step P1: Import needed NRPy+ core modules:
 from typing import List, Tuple
 import sympy as sp  # SymPy: The Python computer algebra package upon which NRPy+ depends
+import sympy.codegen.ast as sp_ast
 import nrpy.c_codegen as ccg
 import nrpy.c_function as cfc
 import nrpy.params as par  # NRPy+: Parameter interface
@@ -35,6 +36,7 @@ def parity_conditions_symbolic_dot_products(
     Set unit-vector dot products (parity) for each of the 10 parity condition types.
 
     :param CoordSystem: The coordinate system for which to calculate the parity conditions.
+    :param fp_type: Floating point type, e.g., "double".
     :return: C code string representing the unit vector dot products for the ten parity conditions.
     """
     rfm = refmetric.reference_metric[CoordSystem]
@@ -172,10 +174,14 @@ def Cfunction__EigenCoord_set_x0x1x2_inbounds__i0i1i2_inbounds_single_pt(
     these coordinates back to an 'interior' point in eigencoordinate form. For cell-centered
     grids, this point aligns with a point on the numerical grid within round-off error.
     Finally, a check is done to ensure the conversion back to Cartesian matches the original
-    values; an error is thrown if not.
+    values; a runtime error is thrown if not.
 
     :param CoordSystem: The coordinate system for mapping.
+    :param fp_type: Floating point type, e.g., "double".
+
     :return: Body of the C code.
+
+    :raises RuntimeError: If the conversion back to Cartesian coordinates does not match the original coordinates, indicating an error in the mapping process.
     """
     desc = """EigenCoord_set_x0x1x2_inbounds__i0i1i2_inbounds_single_pt():
   A coordinate system's "eigencoordinate" is the simplest member
@@ -398,6 +404,7 @@ def Cfunction__set_parity_for_inner_boundary_single_pt(
     Generate C code for setting the parity for inner boundary single point in a given coordinate system.
 
     :param CoordSystem: Coordinate system in which to set the parity
+    :param fp_type: Floating point type, e.g., "double".
     :return: Full function C code as a string
 
     Doctest: FIXME
@@ -476,6 +483,7 @@ def register_CFunction_bcstruct_set_up(
     computational grid are filled, based on the given coordinate system (CoordSystem).
 
     :param CoordSystem: The coordinate system for which to set up boundary conditions.
+    :param fp_type: Floating point type, e.g., "double".
     """
     includes = [
         "BHaH_defines.h",
@@ -879,6 +887,7 @@ def setup_Cfunction_r_and_partial_xi_partial_r_derivs(
     partial x^i / partial r for a given coordinate system.
 
     :param CoordSystem: The coordinate system for which to compute r and its derivatives.
+    :param fp_type: Floating point type, e.g., "double".
     :return: A string containing the generated C code for the function.
     """
     desc = "Compute r(xx0,xx1,xx2) and partial_r x^i."
@@ -963,6 +972,7 @@ def setup_Cfunction_FD1_arbitrary_upwind(
     :param dirn: Direction in which to compute the derivative.
     :param radiation_BC_fd_order: Finite difference order for radiation boundary condition.
                                   If -1, will use default finite difference order.
+    :param fp_type: Floating point type, e.g., "double".
     :return: The full C function as a string.
     """
     import sympy.codegen.ast as sp_ast
@@ -1124,6 +1134,7 @@ def setup_Cfunction_radiation_bcs(
 
     :param CoordSystem: The coordinate system to use.
     :param radiation_BC_fd_order: Finite differencing order to use. Default is -1.
+    :param fp_type: Floating point type, e.g., "double".
     :return: A string containing the generated C code for the function.
     """
     includes: List[str] = []
@@ -1215,6 +1226,7 @@ def register_CFunction_apply_bcs_outerradiation_and_inner(
 
     :param CoordSystem: The coordinate system to use.
     :param radiation_BC_fd_order: Finite differencing order for the radiation boundary conditions. Default is 2.
+    :param fp_type: Floating point type, e.g., "double".
     """
     includes = ["BHaH_defines.h", "BHaH_function_prototypes.h"]
     prefunc = setup_Cfunction_radiation_bcs(
@@ -1315,7 +1327,7 @@ def CurviBoundaryConditions_register_C_functions(
     :param radiation_BC_fd_order: Finite differencing order for the radiation boundary conditions. Default is 2.
     :param set_parity_on_aux: If True, set parity on auxiliary grid functions.
     :param set_parity_on_auxevol: If True, set parity on auxiliary evolution grid functions.
-    :return: None
+    :param fp_type: Floating point type, e.g., "double".
     """
     for CoordSystem in list_of_CoordSystems:
         # Register C function to set up the boundary condition struct.

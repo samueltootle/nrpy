@@ -15,6 +15,7 @@ from typing import List, Optional
 import cpuinfo  # type: ignore
 
 from nrpy.c_function import CFunction_dict
+from nrpy.helpers.generic import clang_format
 
 
 def output_CFunctions_function_prototypes_and_construct_Makefile(
@@ -27,6 +28,7 @@ def output_CFunctions_function_prototypes_and_construct_Makefile(
     CC: str = "autodetect",
     create_lib: bool = False,
     include_dirs: Optional[List[str]] = None,
+    clang_format_options: str = "-style={BasedOnStyle: LLVM, ColumnLimit: 150}",
 ) -> None:
     """
     Output C functions registered to CFunction_dict and construct a Makefile for compiling C code.
@@ -40,8 +42,12 @@ def output_CFunctions_function_prototypes_and_construct_Makefile(
     :param CC: C compiler to use. Defaults to "autodetect" (clang if using Darwin, gcc otherwise)
     :param create_lib: Whether to create a library. Defaults to False.
     :param include_dirs: List of include directories. Must be a list.
+    :param clang_format_options: Options for the clang-format tool. Defaults to "-style={BasedOnStyle: LLVM, ColumnLimit: 150}".
 
     :raises SystemExit: Exits if errors are encountered.
+    :raises FileNotFoundError: If the specified C compiler is not found.
+    :raises TypeError: If addl_CFLAGS or include_dirs are not lists.
+    :raises ValueError: If addl_CFLAGS or addl_libraries are specified incorrectly.
     """
     if not create_lib and "main" not in CFunction_dict:
         raise SystemExit(
@@ -65,7 +71,14 @@ def output_CFunctions_function_prototypes_and_construct_Makefile(
             exec_or_library_name += ext
 
         def add_flag(flag_list: Optional[List[str]], flag: str) -> List[str]:
-            """Check if a flag is in the list, add it if not."""
+            """
+            Check if a flag is in the list, add it if not.
+
+            :param flag_list: The list to which the flag should be added.
+            :param flag: The flag to add to the list.
+
+            :return: The updated list with the flag added, if it was not already present.
+            """
             if not flag_list:
                 flag_list = []
             if flag not in flag_list:
@@ -115,8 +128,10 @@ def output_CFunctions_function_prototypes_and_construct_Makefile(
     with open(
         project_Path / "BHaH_function_prototypes.h", "w", encoding="utf-8"
     ) as file:
+        outstr = ""
         for key in sorted(CFunction_dict.keys()):
-            file.write(f"{CFunction_dict[key].function_prototype}\n")
+            outstr += f"{CFunction_dict[key].function_prototype}\n"
+        file.write(clang_format(outstr, clang_format_options=clang_format_options))
 
     if CC == "autodetect":
         if os_name == "Darwin":
@@ -274,6 +289,9 @@ def compile_Makefile(
     :param addl_libraries: Additional libraries (default: None).
     :param CC: C compiler (default: "autodetect").
     :param attempt: Compilation attempt number (default: 1).
+
+    :raises FileNotFoundError: If the C compiler or make is not found.
+    :raises SystemExit: If compilation fails after two attempts.
     """
     if CC == "autodetect":
         os_name = platform.system()

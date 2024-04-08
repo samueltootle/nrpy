@@ -19,7 +19,7 @@ echo "Running CI tests with SymPy version = $(isympy --version)"
 failed_tests=()
 
 # Use find to locate python files
-python_files=$(find . -name '*.py' -not -name '__init__.py' -not -path './build/*' -not -path '*/tests/*')
+python_files=$(find . -name '*.py' -not -name '__init__.py' -not -path './project/*' -not -path '*/tests/*' -not -path './nrpy/examples/visualization_scripts/*')
 
 # Loop through each python file
 for python_file in $python_files; do
@@ -47,6 +47,9 @@ for python_file in $python_files; do
 
   echo "-={ Step 5: pydocstyle }=-"
   pydocstyle $python_file || { failed_tests+=("pydocstyle in $python_file"); break; }
+
+  echo "-={ Step 6: darglint }=-"
+  darglint -v 2 $python_file || { failed_tests+=("darglint in $python_file"); break; }
 done
 
 # Exit with failure if any tests failed
