@@ -31,10 +31,17 @@ void apply_bcs_inner_only(const commondata_struct *restrict commondata, const pa
   // Unpack bc_info from bcstruct
   const bc_info_struct *bc_info = &bcstruct->bc_info;
   const int num_inner_bp = bc_info->num_inner_boundary_points;
+  cudaEvent_t start[NUM_EVOL_GFS];
   for (int which_gf = 0; which_gf < NUM_EVOL_GFS; which_gf++) {
-    size_t block_threads = MAX(MIN(1024,(num_inner_bp/32U) * 32U), 1);
-    size_t grid_blocks = (num_inner_bp + block_threads -1) / block_threads;
-    const int streamid = which_gf % nstreams;
+    cudaEventCreateWithFlags(&start[which_gf], cudaEventDisableTiming);
+    size_t block_threads = MAX(MIN(32,(num_inner_bp/32U) * 32U), 1);
+    size_t grid_blocks = MAX(68, (num_inner_bp + block_threads -1) / block_threads);
+    const int streamid = (params->grid_idx + which_gf) % nstreams;
     apply_bcs_inner_only_gpu<<<grid_blocks, block_threads, 0, streams[streamid]>>>(which_gf, num_inner_bp, bcstruct->inner_bc_array, gfs);
+    cudaEventRecord(start[which_gf], streams[streamid]);
+  }
+  for (int which_gf = 0; which_gf < NUM_EVOL_GFS; which_gf++) {
+    cudaEventSynchronize(start[which_gf]);
+    cudaEventDestroy(start[which_gf]);
   }
 }

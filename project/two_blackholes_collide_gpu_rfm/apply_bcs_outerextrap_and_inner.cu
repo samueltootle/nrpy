@@ -44,8 +44,8 @@ void apply_bcs_outerextrap_and_inner_only(const bc_struct *restrict bcstruct, RE
       // printf("%d - %d - %d\n", which_gz, dirn,bc_info->num_pure_outer_boundary_points[which_gz][dirn] );
       if (bc_info->num_pure_outer_boundary_points[which_gz][dirn] > 0) {
         int num_pure = bc_info->num_pure_outer_boundary_points[which_gz][dirn];
-        size_t block_threads = MAX(MIN(1024,(num_pure/32U) * 32U), 1);
-        size_t grid_blocks = (num_pure + block_threads -1) / block_threads;
+        size_t block_threads = MAX(MIN(32,(num_pure/32U) * 32U), 1);
+        size_t grid_blocks = MAX(68, (num_pure + block_threads -1) / block_threads);
         size_t gz_idx = dirn + (3 * which_gz);
         apply_bcs_outerextrap_and_inner_only_gpu<<<grid_blocks, block_threads>>>(
           num_pure, which_gz, dirn, bcstruct->pure_outer_bc_array[gz_idx], gfs);
