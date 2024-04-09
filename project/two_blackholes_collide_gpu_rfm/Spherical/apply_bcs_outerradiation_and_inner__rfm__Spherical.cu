@@ -172,7 +172,7 @@ void apply_bcs_pure_only_gpu(const int num_pure_outer_boundary_points, const int
   }
 }
 
-void apply_bcs_pure_only(const bc_struct *restrict bcstruct,
+static void apply_bcs_pure_only(const bc_struct *restrict bcstruct, const params_struct *restrict params,
   REAL *restrict xx[3], const REAL *restrict custom_wavespeed, const REAL *restrict custom_f_infinity,
     REAL *restrict gfs, REAL *restrict rhs_gfs) {
   const bc_info_struct *bc_info = &bcstruct->bc_info;
@@ -183,7 +183,8 @@ void apply_bcs_pure_only(const bc_struct *restrict bcstruct,
         size_t block_threadsx = MAX(MIN(32,(num_pure/32U) * 32U),1);
         size_t grid_blocks = MAX(68, (num_pure + block_threadsx -1) / block_threadsx);
         size_t gz_idx = dirn + (3 * which_gz);
-        apply_bcs_pure_only_gpu<<<grid_blocks, block_threadsx>>>(
+        size_t streamid = params->grid_idx % nstreams;
+        apply_bcs_pure_only_gpu<<<grid_blocks, block_threadsx, 0, streams[streamid]>>>(
           num_pure, which_gz, dirn, bcstruct->pure_outer_bc_array[gz_idx], gfs, rhs_gfs, 
           xx[0], xx[1], xx[2], custom_wavespeed, custom_f_infinity
         );
@@ -208,7 +209,7 @@ void apply_bcs_outerradiation_and_inner__rfm__Spherical(const commondata_struct 
   //              then +/- x1 faces, finally +/- x2 faces,
   //              filling in the edges as we go.
   // Spawn N OpenMP threads, either across all cores, or according to e.g., taskset.
-  apply_bcs_pure_only(bcstruct, xx, custom_wavespeed, custom_f_infinity, gfs, rhs_gfs);
+  apply_bcs_pure_only(bcstruct, params, xx, custom_wavespeed, custom_f_infinity, gfs, rhs_gfs);
 
   ///////////////////////////////////////////////////////
   // STEP 2 of 2: Apply BCs to inner boundary points.

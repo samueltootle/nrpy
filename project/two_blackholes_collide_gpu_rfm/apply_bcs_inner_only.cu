@@ -36,7 +36,7 @@ void apply_bcs_inner_only(const commondata_struct *restrict commondata, const pa
     cudaEventCreateWithFlags(&start[which_gf], cudaEventDisableTiming);
     size_t block_threads = MAX(MIN(32,(num_inner_bp/32U) * 32U), 1);
     size_t grid_blocks = MAX(68, (num_inner_bp + block_threads -1) / block_threads);
-    const int streamid = (params->grid_idx + which_gf) % nstreams;
+    const int streamid = (params->grid_idx) % nstreams;
     apply_bcs_inner_only_gpu<<<grid_blocks, block_threads, 0, streams[streamid]>>>(which_gf, num_inner_bp, bcstruct->inner_bc_array, gfs);
     cudaEventRecord(start[which_gf], streams[streamid]);
   }
