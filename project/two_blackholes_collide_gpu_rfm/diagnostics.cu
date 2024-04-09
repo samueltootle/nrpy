@@ -33,7 +33,14 @@ void diagnostics(commondata_struct *restrict commondata, griddata_struct *restri
       // Constraint output
       {
         Ricci_eval(commondata, params, &griddata[grid].rfmstruct, y_n_gfs, auxevol_gfs);
+        cudaEvent_t start;
+        cudaEventCreateWithFlags(&start, cudaEventDisableTiming);
+
         constraints_eval(commondata, params, &griddata[grid].rfmstruct, y_n_gfs, auxevol_gfs, diagnostic_output_gfs);
+        size_t streamid = params->grid_idx % nstreams;
+        cudaEventRecord(start, streams[streamid]);
+        cudaEventSynchronize(start);
+        cudaEventDestroy(start);
       }
       constexpr int num_copy_kernels = 5;
       cudaEvent_t start[num_copy_kernels];
