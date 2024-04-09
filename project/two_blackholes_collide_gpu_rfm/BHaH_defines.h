@@ -102,6 +102,7 @@ typedef struct __params_struct__ {
   int Nxx_plus_2NGHOSTS0;   // nrpy.infrastructures.BHaH.numerical_grids_and_timestep::Nxx_plus_2NGHOSTS0
   int Nxx_plus_2NGHOSTS1;   // nrpy.infrastructures.BHaH.numerical_grids_and_timestep::Nxx_plus_2NGHOSTS1
   int Nxx_plus_2NGHOSTS2;   // nrpy.infrastructures.BHaH.numerical_grids_and_timestep::Nxx_plus_2NGHOSTS2
+  int8_t grid_idx;
   char CoordSystemName[50]; // nrpy.reference_metric::CoordSystemName
 } params_struct;
 
