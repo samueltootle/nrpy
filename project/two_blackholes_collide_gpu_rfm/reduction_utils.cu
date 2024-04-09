@@ -82,11 +82,11 @@ void find_min_cu(T * data, unsigned long long int * min, uint const data_length)
 __host__
 REAL find_min(REAL * data, uint const data_length) {
     // This can be tested up to 1024
-    uint threadCount = SHARED_SIZE_LIMIT / 2;
+    uint threadCount = 32;
     
     // print_data<<<1,1>>>(data, data_length);
     // Number of blocks of 1024U threads
-    uint blockCount = (data_length + threadCount - 1) / SHARED_SIZE_LIMIT;
+    uint blockCount = MAX(68, (data_length + threadCount - 1) / SHARED_SIZE_LIMIT);
     if(blockCount < 1) 
         blockCount = 1;
     
