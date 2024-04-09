@@ -131,7 +131,7 @@ void cpyDevicetoHost__grid(const commondata_struct *restrict commondata,
                           griddata_struct *restrict gd_host,
                           const griddata_struct *restrict gd_gpu);
 __host__
-void cpyDevicetoHost__gf(const commondata_struct *restrict commondata,
+size_t cpyDevicetoHost__gf(const commondata_struct *restrict commondata,
                         const params_struct *restrict params,
                         REAL * gf_host,
                         const REAL *gf_gpu,
