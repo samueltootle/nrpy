@@ -46,8 +46,9 @@ void rk_substep1(params_struct *restrict params,
                 * NUM_EVOL_GFS;
     int block_threads = MIN(GPU_THREADX_MAX, N/32);
     int grid_blocks = (N + block_threads - 1) / block_threads;
+    size_t streamid = params->grid_idx % nstreams;
 
-    rk_substep1_gpu<<<grid_blocks, block_threads>>>(y_n_gfs,
+    rk_substep1_gpu<<<grid_blocks, block_threads, 0, streams[streamid]>>>(y_n_gfs,
                                                    y_nplus1_running_total_gfs,
                                                    k_odd_gfs,
                                                    k_even_gfs,
@@ -99,8 +100,9 @@ void rk_substep2(params_struct *restrict params,
                 * NUM_EVOL_GFS;
     int block_threads = MIN(GPU_THREADX_MAX, N/32);
     int grid_blocks = (N + block_threads - 1) / block_threads;
+    size_t streamid = params->grid_idx % nstreams;
 
-    rk_substep2_gpu<<<grid_blocks, block_threads>>>(params, 
+    rk_substep2_gpu<<<grid_blocks, block_threads, 0, streams[streamid]>>>(params, 
                                                    y_n_gfs,
                                                    y_nplus1_running_total_gfs,
                                                    k_odd_gfs,
@@ -155,8 +157,9 @@ void rk_substep3(params_struct *restrict params,
                 * NUM_EVOL_GFS;
     int block_threads = MIN(GPU_THREADX_MAX, N/32);
     int grid_blocks = (N + block_threads - 1) / block_threads;
+    size_t streamid = params->grid_idx % nstreams;
 
-    rk_substep3_gpu<<<grid_blocks, block_threads>>>(params, 
+    rk_substep3_gpu<<<grid_blocks, block_threads, 0, streams[streamid]>>>(params, 
                                                    y_n_gfs,
                                                    y_nplus1_running_total_gfs,
                                                    k_odd_gfs,
@@ -207,8 +210,9 @@ void rk_substep4(params_struct *restrict params,
                 * NUM_EVOL_GFS;
     int block_threads = MIN(GPU_THREADX_MAX, N / 32);
     int grid_blocks = (N + block_threads - 1) / block_threads;
+    size_t streamid = params->grid_idx % nstreams;
 
-    rk_substep4_gpu<<<grid_blocks, block_threads>>>(params, 
+    rk_substep4_gpu<<<grid_blocks, block_threads, 0, streams[streamid]>>>(params, 
                                                    y_n_gfs,
                                                    y_nplus1_running_total_gfs,
                                                    k_odd_gfs,

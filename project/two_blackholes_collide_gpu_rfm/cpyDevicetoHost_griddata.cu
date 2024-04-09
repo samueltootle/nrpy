@@ -62,7 +62,7 @@ void cpyDevicetoHost__malloc_diag_gfs(const commondata_struct *restrict commonda
 }
 
 __host__
-void cpyDevicetoHost__gf(const commondata_struct *restrict commondata,
+size_t cpyDevicetoHost__gf(const commondata_struct *restrict commondata,
                         const params_struct *restrict params,
                         REAL * gf_host,
                         const REAL * gf_gpu,
@@ -73,7 +73,7 @@ void cpyDevicetoHost__gf(const commondata_struct *restrict commondata,
   int const& Nxx_plus_2NGHOSTS2 = params->Nxx_plus_2NGHOSTS2;
   const int Nxx_plus_2NGHOSTS_tot = Nxx_plus_2NGHOSTS0 * Nxx_plus_2NGHOSTS1 * Nxx_plus_2NGHOSTS2;
   
-  int streamid = (gpu_GF_IDX < nstreams) ? gpu_GF_IDX : int(gpu_GF_IDX / nstreams) - 1;
+  size_t streamid = (params->grid_idx + gpu_GF_IDX) % nstreams;
   int offset_gpu  = Nxx_plus_2NGHOSTS_tot * gpu_GF_IDX;
   int offset_host = Nxx_plus_2NGHOSTS_tot * host_GF_IDX;
   cudaMemcpyAsync(&gf_host[offset_host], 
@@ -81,6 +81,7 @@ void cpyDevicetoHost__gf(const commondata_struct *restrict commondata,
                   sizeof(REAL) * Nxx_plus_2NGHOSTS_tot, 
                   cudaMemcpyDeviceToHost, streams[streamid]);
   cudaCheckErrors(cudaMemcpyAsync, "Copy of gf data failed")
+  return streamid;
 }
 
 __host__

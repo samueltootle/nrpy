@@ -9,9 +9,9 @@
 
 __host__
 void set_params(REAL convergence_factor, params_struct * params) {
-  params->Nxx0 = 320;
-  params->Nxx1 = 128;
-  params->Nxx2 = 128;
+  params->Nxx0 = 32;
+  params->Nxx1 = 32;
+  params->Nxx2 = 32;
 
   const REAL grid_physical_size = params->grid_physical_size;
   // Ignoring name for now since I don't see it used anywhere...
@@ -128,15 +128,18 @@ void numerical_grid_params_Nxx_dxx_xx__rfm__Spherical(commondata_struct *restric
     grid_blocks = dim3((Nx + threads_in_x_dir - 1)/threads_in_x_dir, 1, 1);
   };
   
+  size_t streamid = params->grid_idx % nstreams;
   set_grid_block(Nxx_plus_2NGHOSTS0);
-  initialize_grid_xx0_gpu<<<grid_blocks, block_threads, 0, streams[0]>>>(xx[0]);
+  initialize_grid_xx0_gpu<<<grid_blocks, block_threads, 0, streams[streamid]>>>(xx[0]);
   cudaCheckErrors(initialize_grid_xx0_gpu, "kernel failed");
 
+  streamid = (params->grid_idx + 1) % nstreams;
   set_grid_block(Nxx_plus_2NGHOSTS1);
-  initialize_grid_xx1_gpu<<<grid_blocks, block_threads, 0, streams[1]>>>(xx[1]);
+  initialize_grid_xx1_gpu<<<grid_blocks, block_threads, 0, streams[streamid]>>>(xx[1]);
   cudaCheckErrors(initialize_grid_xx1_gpu, "kernel failed");
 
+  streamid = (params->grid_idx + 2) % nstreams;
   set_grid_block(Nxx_plus_2NGHOSTS2);
-  initialize_grid_xx2_gpu<<<grid_blocks, block_threads, 0, streams[2]>>>(xx[2]);
+  initialize_grid_xx2_gpu<<<grid_blocks, block_threads, 0, streams[streamid]>>>(xx[2]);
   cudaCheckErrors(initialize_grid_xx2_gpu, "kernel failed");
 }

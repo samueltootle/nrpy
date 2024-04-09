@@ -45,7 +45,6 @@ void MoL_step_forward_in_time(commondata_struct *restrict commondata, griddata_s
             k_odd_gfs,
             k_even_gfs,
             auxevol_gfs,commondata->dt);
-    cudaDeviceSynchronize();
 
     if (strncmp(commondata->outer_bc_type, "extrapolation", 50) == 0) {
       apply_bcs_outerextrap_and_inner(commondata, params, bcstruct, k_odd_gfs);

@@ -35,12 +35,31 @@ void diagnostics(commondata_struct *restrict commondata, griddata_struct *restri
         Ricci_eval(commondata, params, &griddata[grid].rfmstruct, y_n_gfs, auxevol_gfs);
         constraints_eval(commondata, params, &griddata[grid].rfmstruct, y_n_gfs, auxevol_gfs, diagnostic_output_gfs);
       }
-      cpyDevicetoHost__gf(commondata, params, host_diag_y_n_gfs, y_n_gfs, DIAG_ALPHAGF, ALPHAGF);
-      cpyDevicetoHost__gf(commondata, params, host_diag_y_n_gfs, y_n_gfs, DIAG_CFGF, CFGF);
-      cpyDevicetoHost__gf(commondata, params, host_diag_y_n_gfs, y_n_gfs, DIAG_TRKGF, TRKGF);
+      constexpr int num_copy_kernels = 5;
+      cudaEvent_t start[num_copy_kernels];
+      for(int i = 0; i < num_copy_kernels; ++i) {
+        cudaEventCreateWithFlags(&start[i], cudaEventDisableTiming);
+      }
+      // Could this be a for loop somehow?
+      size_t streamid = cpyDevicetoHost__gf(commondata, params, host_diag_y_n_gfs, y_n_gfs, DIAG_ALPHAGF, ALPHAGF);
+      cudaEventRecord(start[0], streams[streamid]);
 
-      cpyDevicetoHost__gf(commondata, params, host_diagnostic_output_gfs, diagnostic_output_gfs, HGF, HGF);
-      cpyDevicetoHost__gf(commondata, params, host_diagnostic_output_gfs, diagnostic_output_gfs, MSQUAREDGF, MSQUAREDGF);
+      streamid = cpyDevicetoHost__gf(commondata, params, host_diag_y_n_gfs, y_n_gfs, DIAG_CFGF, CFGF);
+      cudaEventRecord(start[1], streams[streamid]);
+
+      streamid = cpyDevicetoHost__gf(commondata, params, host_diag_y_n_gfs, y_n_gfs, DIAG_TRKGF, TRKGF);
+      cudaEventRecord(start[2], streams[streamid]);
+
+      streamid = cpyDevicetoHost__gf(commondata, params, host_diagnostic_output_gfs, diagnostic_output_gfs, HGF, HGF);
+      cudaEventRecord(start[3], streams[streamid]);
+
+      streamid = cpyDevicetoHost__gf(commondata, params, host_diagnostic_output_gfs, diagnostic_output_gfs, MSQUAREDGF, MSQUAREDGF);
+      cudaEventRecord(start[4], streams[streamid]);
+
+      for(int i = 0; i < num_copy_kernels; ++i) {
+        cudaEventSynchronize(start[i]);
+        cudaEventDestroy(start[i]);
+      }
       cudaDeviceSynchronize();
 
       // 0D output

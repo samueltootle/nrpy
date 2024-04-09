@@ -615,10 +615,9 @@ void initial_data_reader__convert_ADM_Cartesian_to_BSSN__rfm__Spherical(
     (Nxx_plus_2NGHOSTS1 + threads_in_y_dir - 1) / threads_in_y_dir,
     (Nxx_plus_2NGHOSTS2 + threads_in_z_dir - 1) / threads_in_z_dir
   );
-  // printf("threads: %d - %d - %d\n", block_threads.x, block_threads.y, block_threads.z);
-  // printf("blocks: %d - %d - %d\n", grid_blocks.x, grid_blocks.y, grid_blocks.z);
+  size_t streamid = params->grid_idx % nstreams;
 
-  initial_data_reader__convert_ADM_Cartesian_to_BSSN__rfm__Spherical_gpu<<<grid_blocks,block_threads>>>(
+  initial_data_reader__convert_ADM_Cartesian_to_BSSN__rfm__Spherical_gpu<<<grid_blocks,block_threads, 0, streams[streamid]>>>(
     commondata_gpu, xx[0], xx[1], xx[2], gridfuncs->y_n_gfs, ID_persist_gpu, host_function_ptr
   );
 
@@ -630,9 +629,8 @@ void initial_data_reader__convert_ADM_Cartesian_to_BSSN__rfm__Spherical(
   //    to the grid interior. It therefore does not account for parity conditions across
   //    symmetry boundaries being correct.
   apply_bcs_inner_only(commondata, params, bcstruct, gridfuncs->y_n_gfs);
-
-  // initial_data_lambdaU_grid_interior(commondata, params, xx, gridfuncs->y_n_gfs);
-  initial_data_lambdaU_grid_interior_gpu<<<grid_blocks, block_threads>>>(xx[0], xx[1], xx[2], gridfuncs->y_n_gfs);
+  
+  initial_data_lambdaU_grid_interior_gpu<<<grid_blocks, block_threads, 0, streams[streamid]>>>(xx[0], xx[1], xx[2], gridfuncs->y_n_gfs);
   cudaFree(commondata_gpu); 
   cudaFree(ID_persist_gpu);
 }

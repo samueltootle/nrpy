@@ -1168,6 +1168,7 @@ void Ricci_eval__rfm__Spherical(const commondata_struct *restrict commondata, co
     (Nxx_plus_2NGHOSTS1 + threads_in_y_dir - 1) / threads_in_y_dir,
     (Nxx_plus_2NGHOSTS2 + threads_in_z_dir - 1) / threads_in_z_dir
   );
-  Ricci_eval__rfm__Spherical_gpu<<<grid_blocks, block_threads>>>(rfmstruct->f0_of_xx0, rfmstruct->f1_of_xx1, 
+  size_t streamid = params->grid_idx % nstreams;
+  Ricci_eval__rfm__Spherical_gpu<<<grid_blocks, block_threads, 0, streams[streamid]>>>(rfmstruct->f0_of_xx0, rfmstruct->f1_of_xx1, 
     rfmstruct->f1_of_xx1__D1, rfmstruct->f1_of_xx1__DD11, in_gfs, auxevol_gfs);
 }
