@@ -25,23 +25,23 @@ import nrpy.helpers.parallel_codegen as pcg
 
 import nrpy.infrastructures.BHaH.BHaH_defines_h as Bdefines_h
 import nrpy.infrastructures.BHaH.general_relativity.BSSN_C_codegen_library as BCl
-import nrpy.infrastructures.BHaH.checkpointing as chkpt
+import nrpy.infrastructures.BHaH.checkpoints.openmp.checkpointing as chkpt
 import nrpy.infrastructures.BHaH.CodeParameters as CPs
 import nrpy.infrastructures.BHaH.cmdline_input_and_parfiles as cmdpar
-import nrpy.infrastructures.BHaH.CurviBoundaryConditions.CurviBoundaryConditions as cbc
+import nrpy.infrastructures.BHaH.CurviBoundaryConditions.openmp.CurviBoundaryConditions as cbc
 import nrpy.infrastructures.BHaH.general_relativity.TwoPunctures.ID_persist_struct as IDps
 from nrpy.infrastructures.BHaH import griddata_commondata
 import nrpy.infrastructures.BHaH.Makefile_helpers as Makefile
-from nrpy.infrastructures.BHaH.MoLtimestepping import MoL
+from nrpy.infrastructures.BHaH.MoLtimestepping.openmp import MoL
 import nrpy.infrastructures.BHaH.main_c as main
-import nrpy.infrastructures.BHaH.numerical_grids_and_timestep as numericalgrids
+import nrpy.infrastructures.BHaH.grid_management.openmp.numerical_grids_and_timestep as numericalgrids
 import nrpy.infrastructures.BHaH.general_relativity.NRPyPN_quasicircular_momenta as NRPyPNqm
 import nrpy.infrastructures.BHaH.diagnostics.progress_indicator as progress
 from nrpy.infrastructures.BHaH import rfm_precompute
 from nrpy.infrastructures.BHaH import rfm_wrapper_functions
 import nrpy.infrastructures.BHaH.special_functions.spin_weight_minus2_spherical_harmonics as swm2sh
 import nrpy.infrastructures.BHaH.general_relativity.TwoPunctures.TwoPunctures_lib as TPl
-import nrpy.infrastructures.BHaH.xx_tofrom_Cart as xxCartxx
+import nrpy.infrastructures.BHaH.grid_management.openmp.xx_tofrom_Cart as xxCartxx
 
 par.set_parval_from_str("Infrastructure", "BHaH")
 
