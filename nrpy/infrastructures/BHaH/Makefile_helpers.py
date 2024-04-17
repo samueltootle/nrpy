@@ -29,6 +29,7 @@ def output_CFunctions_function_prototypes_and_construct_Makefile(
     create_lib: bool = False,
     include_dirs: Optional[List[str]] = None,
     clang_format_options: str = "-style={BasedOnStyle: LLVM, ColumnLimit: 150}",
+    code_ext: str = "c",
 ) -> None:
     """
     Output C functions registered to CFunction_dict and construct a Makefile for compiling C code.
@@ -110,14 +111,14 @@ def output_CFunctions_function_prototypes_and_construct_Makefile(
             subdir_Path = Path(CFunction.subdirectory)
             (project_Path / subdir_Path).mkdir(parents=True, exist_ok=True)
             with open(
-                add_to_Makefile(project_Path, subdir_Path, f"{name}.c"),
+                add_to_Makefile(project_Path, subdir_Path, f"{name}.{code_ext}"),
                 "w",
                 encoding="utf-8",
             ) as file:
                 file.write(CFunction.full_function)
         else:
             with open(
-                add_to_Makefile(project_Path, Path("."), f"{name}.c"),
+                add_to_Makefile(project_Path, Path("."), f"{name}.{code_ext}"),
                 "w",
                 encoding="utf-8",
             ) as file:
@@ -148,6 +149,7 @@ def output_CFunctions_function_prototypes_and_construct_Makefile(
         "fast": "-O3 -funroll-loops -march=native -g -Wall -Wno-unused-variable -std=gnu99",
         # DEBUGCFLAGS: OpenMP requires -fopenmp, and when disabling -fopenmp, unknown pragma warnings appear. -Wunknown-pragmas silences these warnings
         "debug": "-O2 -g -Wall -Wno-unused-variable -Wno-unknown-pragmas",
+        "nvcc" : "-Xcompiler -g -O2 -arch=native -O2 -Xcompiler=-march=native -Xcompiler -Wall --forward-unknown-to-host-compiler --Werror cross-execution-space-call --relocatable-device-code=true -allow-unsupported-compiler",
     }
 
     if CC == "gcc":
@@ -194,6 +196,8 @@ def output_CFunctions_function_prototypes_and_construct_Makefile(
                     )
 
         for key in CFLAGS_dict:
+            if key == "nvcc":
+                continue
             CFLAGS_dict[key] += " -std=gnu99"
 
     if addl_CFLAGS is not None:
@@ -207,7 +211,7 @@ def output_CFunctions_function_prototypes_and_construct_Makefile(
 
     OBJ_FILES_str = "OBJ_FILES ="
     for c_file in sorted(Makefile_list_of_files):
-        OBJ_FILES_str += " " + c_file.replace(".c", ".o")
+        OBJ_FILES_str += " " + c_file.replace(f".{code_ext}", ".o")
 
     LDFLAGS_str = "LDFLAGS ="
     if addl_libraries is not None:
@@ -235,7 +239,13 @@ def output_CFunctions_function_prototypes_and_construct_Makefile(
         )
 
     # Below code is responsible for either writing a Makefile or a backup shell script depending on the conditions
-    Makefile_str = f"""CC ?= {CC}  # assigns the value CC to {CC} only if environment variable CC is not already set
+    Makefile_str = (
+        rf"CC = {CC}  # assigns the value CC to {CC} only if environment variable CC is not already set\n" \
+            if CC == "nvcc" else \
+                f"CC ?= {CC}  # assigns the value CC to {CC} only if environment variable CC is not already set\n"
+    )
+    
+    Makefile_str += f"""
 {CFLAGS_str}
 {INCLUDEDIRS_str}
 {LDFLAGS_str}
@@ -253,7 +263,7 @@ endif
 
 all: {exec_or_library_name}
 
-%.o: %.c $(COMMON_HEADERS)
+%.o: %.cu $(COMMON_HEADERS)
 	$(CC) $(CFLAGS) $(INCLUDEDIRS) -c $< -o $@
 
 {exec_or_library_name}: $(OBJ_FILES)
