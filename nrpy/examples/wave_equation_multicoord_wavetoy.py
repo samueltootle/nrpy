@@ -15,7 +15,7 @@ import nrpy.params as par
 from nrpy.helpers import simd
 import nrpy.helpers.parallel_codegen as pcg
 
-import nrpy.infrastructures.BHaH.BHaH_defines_h as Bdefines_h
+import nrpy.infrastructures.BHaH.header_definitions.openmp.output_BHaH_defines_h as Bdefines_h
 import nrpy.infrastructures.BHaH.checkpoints.openmp.checkpointing as chkpt
 import nrpy.infrastructures.BHaH.cmdline_input_and_parfiles as cmdpar
 import nrpy.infrastructures.BHaH.CodeParameters as CPs

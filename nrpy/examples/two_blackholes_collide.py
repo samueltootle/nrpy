@@ -20,7 +20,7 @@ import nrpy.params as par
 from nrpy.helpers import simd
 import nrpy.helpers.parallel_codegen as pcg
 
-import nrpy.infrastructures.BHaH.BHaH_defines_h as Bdefines_h
+import nrpy.infrastructures.BHaH.header_definitions.openmp.output_BHaH_defines_h as Bdefines_h
 import nrpy.infrastructures.BHaH.general_relativity.BSSN_C_codegen_library as BCl
 import nrpy.infrastructures.BHaH.CodeParameters as CPs
 import nrpy.infrastructures.BHaH.CurviBoundaryConditions.openmp.CurviBoundaryConditions as cbc
