@@ -173,6 +173,30 @@ class base_output_BHaH_defines_h:
         # GRID, etc.
         # Then set up the dictionary entry for grid in BHaH_defines
         self.gri_BHd_str = gri.BHaHGridFunction.gridfunction_defines()
+        self.gri_BHd_str += r"""
+// Declare the IDX4(gf,i,j,k) macro, which enables us to store 4-dimensions of
+//   data in a 1D array. In this case, consecutive values of "i"
+//   (all other indices held to a fixed value) are consecutive in memory, where
+//   consecutive values of "j" (fixing all other indices) are separated by
+//   Nxx_plus_2NGHOSTS0 elements in memory. Similarly, consecutive values of
+//   "k" are separated by Nxx_plus_2NGHOSTS0*Nxx_plus_2NGHOSTS1 in memory, etc.
+#define IDX4(g,i,j,k)                                                  \
+  ( (i) + Nxx_plus_2NGHOSTS0 * ( (j) + Nxx_plus_2NGHOSTS1 * ( (k) + Nxx_plus_2NGHOSTS2 * (g) ) ) )
+#define IDX4pt(g,idx) ( (idx) + (Nxx_plus_2NGHOSTS0*Nxx_plus_2NGHOSTS1*Nxx_plus_2NGHOSTS2) * (g) )
+#define IDX3(i,j,k) ( (i) + Nxx_plus_2NGHOSTS0 * ( (j) + Nxx_plus_2NGHOSTS1 * ( (k) ) ) )
+#define LOOP_REGION(i0min,i0max, i1min,i1max, i2min,i2max)              \
+  for(int i2=i2min;i2<i2max;i2++) for(int i1=i1min;i1<i1max;i1++) for(int i0=i0min;i0<i0max;i0++)
+#define LOOP_OMP(__OMP_PRAGMA__, i0,i0min,i0max, i1,i1min,i1max, i2,i2min,i2max) \
+_Pragma(__OMP_PRAGMA__)  \
+    for(int (i2)=(i2min);(i2)<(i2max);(i2)++) for(int (i1)=(i1min);(i1)<(i1max);(i1)++) for(int (i0)=(i0min);(i0)<(i0max);(i0)++)
+#define LOOP_NOOMP(i0,i0min,i0max, i1,i1min,i1max, i2,i2min,i2max)      \
+  for(int (i2)=(i2min);(i2)<(i2max);(i2)++) for(int (i1)=(i1min);(i1)<(i1max);(i1)++) for(int (i0)=(i0min);(i0)<(i0max);(i0)++)
+#define LOOP_BREAKOUT(i0,i1,i2, i0max,i1max,i2max) { i0=(i0max); i1=(i1max); i2=(i2max); break; }
+#define IS_IN_GRID_INTERIOR(i0i1i2, Nxx_plus_2NGHOSTS0,Nxx_plus_2NGHOSTS1,Nxx_plus_2NGHOSTS2, NG) \
+  ( i0i1i2[0] >= (NG) && i0i1i2[0] < (Nxx_plus_2NGHOSTS0)-(NG) &&       \
+    i0i1i2[1] >= (NG) && i0i1i2[1] < (Nxx_plus_2NGHOSTS1)-(NG) &&       \
+    i0i1i2[2] >= (NG) && i0i1i2[2] < (Nxx_plus_2NGHOSTS2)-(NG) )
+"""
         
         self.gri_BHd_struct_str = register_griddata_struct_and_return_griddata_struct_str(
             enable_rfm_precompute=enable_rfm_precompute
