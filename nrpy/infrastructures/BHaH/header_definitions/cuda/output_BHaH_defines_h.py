@@ -83,6 +83,7 @@ class output_BHaH_gpu_defines_h:
         clang_format_options: str = "-style={BasedOnStyle: LLVM, ColumnLimit: 150}",
         num_streams: int = 3,
         nghosts: Union[int, None] = None,
+        **kwargs,
     ) -> None:
         self.project_Path = Path(project_dir)
         self.num_streams = num_streams
@@ -138,6 +139,8 @@ class output_BHaH_gpu_defines_h:
         self.decl_str += generate_declaration_str(self.combined_decl_dict, prefix="extern")
         
         self.file_output_str = ""
+        self.generate_output_str()
+        self.write_to_file()
     
     def combine_declarations_dicts(self):
         for k,v in self.additional_decl_dict:
@@ -213,6 +216,7 @@ class output_init_gpu_defines_h:
         project_dir: str,
         declarations_dict: Dict[str, Dict[str,str]],
         clang_format_options: str = "-style={BasedOnStyle: LLVM, ColumnLimit: 150}",
+        **kwargs,
     ) -> None:
         self.project_Path = Path(project_dir)
         self.declarations_dict = declarations_dict
@@ -292,6 +296,7 @@ class output_BHaH_defines_h(base_output_BHaH_defines_h):
             clang_format_options=self.clang_format_options,
             nghosts=self.NGHOSTS,
             **kwargs)
+        
         self.BHd_include_str += f'#include "{gpu_defines.bhah_gpu_defines_filename}"\n'
         self.gri_BHd_str += r"""
 #define IDX3INTERIOR(i,j,k) \
