@@ -27,7 +27,7 @@ class base_output_BHaH_defines_h:
     :param supplemental_defines_dict: Additional key-value pairs to be included in the output file
     :param clang_format_options: Options for clang formatting.
 
-    >>> from nrpy.infrastructures.BHaH.MoLtimestepping import MoL
+    >>> from nrpy.infrastructures.BHaH.MoLtimestepping.openmp import MoL
     >>> import nrpy.finite_difference as fin
     >>> from nrpy.helpers.generic import compress_string_to_base64, decompress_base64_to_string, diff_strings
     >>> MoL.register_CFunctions(register_MoL_step_forward_in_time=False)
@@ -41,7 +41,7 @@ class base_output_BHaH_defines_h:
     ...    error_message = "Trusted BHaH_defines.h string changed!\n"
     ...    error_message += "Here's the diff:\n" + diff_strings(expected_string, returned_string) + "\n"
     ...    raise ValueError(error_message + f"base64-encoded output: {compressed_str}")
-    """    
+    """
     def __init__(
         self,
         project_dir: str,
