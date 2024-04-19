@@ -12,7 +12,12 @@ from typing import Optional, Dict, List, Union
 import nrpy.params as par
 import nrpy.grid as gri
 from nrpy.helpers.generic import clang_format
-from nrpy.infrastructures.BHaH.BHaH_defines_h import core_modules_list, register_griddata_struct_and_return_griddata_struct_str, register_BHaH_defines
+from nrpy.infrastructures.BHaH.BHaH_defines_h import (
+    core_modules_list,
+    register_griddata_struct_and_return_griddata_struct_str,
+    register_BHaH_defines,
+)
+
 
 class base_output_BHaH_defines_h:
     r"""
@@ -42,6 +47,7 @@ class base_output_BHaH_defines_h:
     ...    error_message += "Here's the diff:\n" + diff_strings(expected_string, returned_string) + "\n"
     ...    raise ValueError(error_message + f"base64-encoded output: {compressed_str}")
     """
+
     def __init__(
         self,
         project_dir: str,
@@ -53,15 +59,17 @@ class base_output_BHaH_defines_h:
         supplemental_defines_dict: Optional[Dict[str, str]] = None,
         clang_format_options: str = "-style={BasedOnStyle: LLVM, ColumnLimit: 150}",
     ) -> None:
-        self.project_dir=project_dir
-        self.additional_includes=additional_includes
-        self.REAL_means=REAL_means
-        self.enable_simd=enable_simd
-        self.enable_rfm_precompute=enable_rfm_precompute
-        self.fin_NGHOSTS_add_one_for_upwinding_or_KO=fin_NGHOSTS_add_one_for_upwinding_or_KO
-        self.supplemental_defines_dict=supplemental_defines_dict
-        self.clang_format_options=clang_format_options
-        
+        self.project_dir = project_dir
+        self.additional_includes = additional_includes
+        self.REAL_means = REAL_means
+        self.enable_simd = enable_simd
+        self.enable_rfm_precompute = enable_rfm_precompute
+        self.fin_NGHOSTS_add_one_for_upwinding_or_KO = (
+            fin_NGHOSTS_add_one_for_upwinding_or_KO
+        )
+        self.supplemental_defines_dict = supplemental_defines_dict
+        self.clang_format_options = clang_format_options
+
         self.project_Path = Path(project_dir)
         self.project_Path.mkdir(parents=True, exist_ok=True)
 
@@ -83,7 +91,7 @@ class base_output_BHaH_defines_h:
         if additional_includes:
             for include in additional_includes:
                 self.BHd_include_str += f'#include "{include}"\n'
-        
+
         self.BHd_definitions_str = rf"""#define REAL {REAL_means}\
 
 #define MIN(A, B) ( ((A) < (B)) ? (A) : (B) )
@@ -95,7 +103,9 @@ class base_output_BHaH_defines_h:
             if CodeParam.cparam_type == "#define":
                 if not code_params_includes_define_type:
                     code_params_includes_define_type = True
-                    self.BHd_definitions_str += "// START: CodeParameters declared as #define.\n"
+                    self.BHd_definitions_str += (
+                        "// START: CodeParameters declared as #define.\n"
+                    )
                 self.BHd_definitions_str += f"""#ifndef {CPname}
 #define {CPname} {CodeParam.defaultvalue} // {CodeParam.module}
 #endif
@@ -198,26 +208,30 @@ _Pragma(__OMP_PRAGMA__)  \
     i0i1i2[1] >= (NG) && i0i1i2[1] < (Nxx_plus_2NGHOSTS1)-(NG) &&       \
     i0i1i2[2] >= (NG) && i0i1i2[2] < (Nxx_plus_2NGHOSTS2)-(NG) )
 """
-        
-        self.gri_BHd_struct_str = register_griddata_struct_and_return_griddata_struct_str(
-            enable_rfm_precompute=enable_rfm_precompute
+
+        self.gri_BHd_struct_str = (
+            register_griddata_struct_and_return_griddata_struct_str(
+                enable_rfm_precompute=enable_rfm_precompute
+            )
         )
-        
-    def register_define_blocks(self):
+
+    def register_define_blocks(self) -> None:
+        """Register definition blocks to BHaH_defines."""
         general_str = self.BHd_include_str + self.BHd_definitions_str
         register_BHaH_defines("general", general_str)
-        
+
         register_BHaH_defines("params_struct", self.par_BHd_str)
         register_BHaH_defines("commondata_struct", self.commondata_BHd_str)
-        
+
         if any("finite_difference" in key for key in sys.modules):
             register_BHaH_defines("finite_difference", self.fin_BHd_str)
-        
+
         grid_str = self.gri_BHd_str + self.gri_BHd_struct_str
         register_BHaH_defines("grid", grid_str)
-        
+
     # Overload this if you need to structure things differently
-    def write_to_file(self):
+    def write_to_file(self) -> None:
+        """Generate final str and write to header file."""
         def output_key(key_name: str, item_name: str) -> str:
             return f"""
 //********************************************
@@ -247,9 +261,12 @@ _Pragma(__OMP_PRAGMA__)  \
         bhah_defines_file = self.project_Path / "BHaH_defines.h"
         with bhah_defines_file.open("w", encoding="utf-8") as file:
             file.write(
-                clang_format(file_output_str, clang_format_options=self.clang_format_options)
+                clang_format(
+                    file_output_str, clang_format_options=self.clang_format_options
+                )
             )
-        
+
+
 if __name__ == "__main__":
     import doctest
 
