@@ -7,7 +7,7 @@ Author: Zachariah B. Etienne
 
 import sys
 from pathlib import Path
-from typing import Optional, Dict, List
+from typing import Optional, Dict, List, Union
 
 import nrpy.params as par
 import nrpy.grid as gri
@@ -155,14 +155,15 @@ class base_output_BHaH_defines_h:
         # First register C functions needed by finite_difference
 
         # Then set up the dictionary entry for finite_difference in BHaH_defines
+        self.NGHOSTS: Union[int, None] = None
         if any("finite_difference" in key for key in sys.modules):
-            NGHOSTS = int(par.parval_from_str("finite_difference::fd_order") / 2)
+            self.NGHOSTS = int(par.parval_from_str("finite_difference::fd_order") / 2)
             if self.fin_NGHOSTS_add_one_for_upwinding_or_KO:
-                NGHOSTS += 1
+                self.NGHOSTS += 1
             self.fin_BHd_str = f"""
 // Set the number of ghost zones
 // Note that upwinding in e.g., BSSN requires that NGHOSTS = fd_order/2 + 1 <- Notice the +1.
-#define NGHOSTS {NGHOSTS}
+#define NGHOSTS {self.NGHOSTS}
 """
             if not enable_simd:
                 self.fin_BHd_str += """
