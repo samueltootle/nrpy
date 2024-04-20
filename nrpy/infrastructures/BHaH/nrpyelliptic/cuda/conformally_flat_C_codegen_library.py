@@ -7,7 +7,7 @@ Authors: Samuel D. Tootle; sdtootle **at** gmail **dot** com
          Zachariah B. Etienne; zachetie **at** gmail **dot* com
 """
 
-from typing import Union, cast, Tuple, Dict
+from typing import Union, cast, Tuple, Dict, Any
 from types import FrameType as FT
 from pathlib import Path
 from inspect import currentframe as cf
@@ -24,6 +24,77 @@ import nrpy.infrastructures.BHaH.simple_loop as lp
 import nrpy.infrastructures.BHaH.diagnostics.output_0d_1d_2d_nearest_gridpoint_slices as out012d
 
 
+class GPU_Kernel:
+    """
+    Class to Generate GPU Kernel code.
+    
+    :param body: Kernel body
+    :param params_dict: Dictionary storing function arguments as keys and types as Dictionary entry
+    :param c_function_name: Kernel function name
+    :param cfunc_type: C Function return type
+    :param decorators: Function decorators i.e. Kernel type, templates, etc
+    :param fp_type: Floating point type, i.e. double, float, long double
+    :param comments: Additional comments to add to Function description
+    
+    >>> kernel = GPU_Kernel(
+    ... "*x = in;",
+    ... {'x' : 'REAL *restrict', 'in' : 'const REAL'},
+    ... 'basic_assignment_gpu'
+    ... )
+    >>> print(kernel.c_function_call())
+    basic_assignment_gpu(x, in);
+    <BLANKLINE>
+    >>> print(kernel.CFunction.full_function)
+    /*
+     * GPU Kernel: basic_assignment_gpu.
+     *
+     */
+    __global__ static void basic_assignment_gpu([ 'x', 'in' ]) { *x = in; }
+    <BLANKLINE>
+    
+    """
+    def __init__(
+        self,
+        body: str,
+        params_dict: Dict[str, Any],
+        c_function_name: str,
+        cfunc_type: str = "static void",
+        decorators: str = "__global__",
+        fp_type: str = "double",
+        comments: str = "",
+    ) -> None:
+        self.body = body
+        self.params_dict = params_dict
+        self.name = c_function_name
+        self.cfunc_type = f"{decorators} {cfunc_type}"
+        self.decorators = decorators
+        self.fp_type = fp_type
+        
+        self.CFunction: cfc.CFunction
+        self.desc : str = f"GPU Kernel: {self.name}.\n"+comments
+        
+        # Store CFunction
+        self.CFunction = cfc.CFunction(
+            desc=self.desc,
+            cfunc_type=self.cfunc_type,
+            name=self.name,
+            params=list(self.params_dict.keys()),
+            body=self.body,
+        )        
+        
+    def c_function_call(self) -> str:
+        """
+        Generate the C function call for a given Kernel.
+
+        :return: The C function call as a string.
+        """
+        c_function_call: str = self.name + "("
+        for p in self.params_dict:
+            c_function_call += f"{p}, "
+        c_function_call=c_function_call[:-2] + ");\n"
+
+        return c_function_call
+
 # Define functions to set up initial guess
 class gpu_register_CFunction_initial_guess_single_point(
     base_npe_classes.base_register_CFunction_initial_guess_single_point
@@ -36,6 +107,9 @@ class gpu_register_CFunction_initial_guess_single_point(
 
     def __init__(self, fp_type: str = "double") -> None:
         super().__init__(fp_type=fp_type)
+        self.cfunc_type="""__device__ __host__ void"""
+        self.params = r"""const REAL xx0, const REAL xx1, const REAL xx2,  REAL *restrict uu_ID, REAL *restrict vv_ID
+"""
 
         self.body = ccg.c_codegen(
             [sp.sympify(0), sp.sympify(0)],
@@ -52,7 +126,7 @@ class gpu_register_CFunction_initial_guess_single_point(
             CoordSystem_for_wrapper_func="",
             name=self.name,
             params=self.params,
-            include_CodeParameters_h=True,
+            include_CodeParameters_h=False,
             body=self.body,
         )
 
@@ -109,7 +183,7 @@ class gpu_register_CFunction_initial_guess_all_points(
   REAL *restrict in_gfs = griddata[grid].gridfuncs.y_n_gfs;
 """
         self.body += lp.simple_loop(
-            loop_body="initial_guess_single_point(commondata, params, xx0,xx1,xx2,"
+            loop_body="initial_guess_single_point(xx0,xx1,xx2,"
             f"&{self.uu_gf_memaccess},"
             f"&{self.vv_gf_memaccess});",
             read_xxs=True,
@@ -877,3 +951,15 @@ def register_CFunction_compute_residual_all_points(
     )
 
     return cast(pcg.NRPyEnv_type, pcg.NRPyEnv())
+
+if __name__ == "__main__":
+    import doctest
+    import sys
+
+    results = doctest.testmod()
+
+    if results.failed > 0:
+        print(f"Doctest failed: {results.failed} of {results.attempted} test(s)")
+        sys.exit(1)
+    else:
+        print(f"Doctest passed: All {results.attempted} test(s) passed")
