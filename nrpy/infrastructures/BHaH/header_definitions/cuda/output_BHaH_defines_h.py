@@ -358,6 +358,7 @@ class output_BHaH_defines_h(base_output_BHaH_defines_h):
             supplemental_defines_dict=supplemental_defines_dict,
             clang_format_options=clang_format_options,
         )
+        self.BHd_definitions_str += "\n#define restrict __restrict__\n"
         # Generate and write BHaH_gpu_defines.h to file
         gpu_defines = output_BHaH_gpu_defines_h(
             self.project_dir,
