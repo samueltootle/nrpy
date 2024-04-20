@@ -7,7 +7,7 @@ Authors: Samuel D. Tootle; sdtootle **at** gmail **dot** com
          Zachariah B. Etienne; zachetie **at** gmail **dot* com
 """
 
-from typing import Union, cast, Tuple, Dict, Any
+from typing import Union, cast, Tuple, Dict
 from types import FrameType as FT
 from pathlib import Path
 from inspect import currentframe as cf
@@ -24,143 +24,6 @@ import nrpy.infrastructures.BHaH.simple_loop as lp
 import nrpy.infrastructures.BHaH.diagnostics.output_0d_1d_2d_nearest_gridpoint_slices as out012d
 
 
-class GPU_Kernel:
-    """
-    Class to Generate GPU Kernel code.
-    
-    :param body: Kernel body
-    :param params_dict: Dictionary storing function arguments as keys and types as Dictionary entry
-    :param c_function_name: Kernel function name
-    :param cfunc_type: C Function return type
-    :param decorators: Function decorators i.e. Kernel type, templates, etc
-    :param fp_type: Floating point type, i.e. double, float, long double
-    :param comments: Additional comments to add to Function description
-    
-    >>> kernel = GPU_Kernel(
-    ... "*x = in;",
-    ... {'x' : 'REAL *restrict', 'in' : 'const REAL'},
-    ... 'basic_assignment_gpu',
-    ... launch_dict = {
-    ... 'blocks_per_grid' : [32],
-    ... 'threads_per_block' : [128,28,1],
-    ... },
-    ... )
-    >>> print(kernel.c_function_call())
-    basic_assignment_gpu<<<blocks_per_grid,threads_per_block>>>(x, in);
-    <BLANKLINE>
-    >>> print(kernel.CFunction.full_function)
-    /*
-     * GPU Kernel: basic_assignment_gpu.
-     *
-     */
-    __global__ static void basic_assignment_gpu([ 'x', 'in' ]) { *x = in; }
-    <BLANKLINE>
-    >>> print(kernel.launch_block)
-    <BLANKLINE>
-    dim3 threads_per_block = (128,28,1);
-    dim3 blocks_per_grid = (32,1,1);
-    <BLANKLINE>
-    """
-    def __init__(
-        self,
-        body: str,
-        params_dict: Dict[str, Any],
-        c_function_name: str,
-        cfunc_type: str = "static void",
-        decorators: str = "__global__",
-        fp_type: str = "double",
-        comments: str = "",
-        launch_dict: Union[Dict[str, Any], None] = None,
-    ) -> None:
-        self.body = body
-        self.params_dict = params_dict
-        self.name = c_function_name
-        self.cfunc_type = f"{decorators} {cfunc_type}"
-        self.decorators = decorators
-        self.fp_type = fp_type
-        
-        self.CFunction: cfc.CFunction
-        self.desc : str = f"GPU Kernel: {self.name}.\n"+comments
-        self.launch_dict = launch_dict
-        self.launch_block: str = ""
-        self.launch_settings: str = "("
-        
-        if self.decorators == "__global__" and launch_dict is None:
-            raise ValueError(f"Error: {self.decorators} requires a launch_dict")
-        self.generate_launch_block()
-        
-        # Store CFunction
-        self.CFunction = cfc.CFunction(
-            desc=self.desc,
-            cfunc_type=self.cfunc_type,
-            name=self.name,
-            params=list(self.params_dict.keys()),
-            body=self.body,
-        )
-        
-    def generate_launch_block(self):
-        "Generate preceding launch block definitions for kernel function call."
-        if not self.launch_dict is None:
-            blocks_per_grid = self.launch_dict['blocks_per_grid']
-            for _ in range(3 - len(blocks_per_grid)):
-                blocks_per_grid += [1]
-            blocks_per_grid_str = ",".join(map(str, blocks_per_grid))
-            grid_def_str = f"dim3 blocks_per_grid = ({blocks_per_grid_str});"
-            
-            threads_per_block = self.launch_dict['threads_per_block']
-            for _ in range(3 - len(threads_per_block)):
-                threads_per_block += [1]
-            threads_per_block = ",".join(map(str, threads_per_block))
-            block_def_str = f"dim3 threads_per_block = ({threads_per_block});"
-            
-            # Determine if the stream needs to be added to launch
-            stream_def_str = None
-            if 'stream' in self.launch_dict:
-                if self.launch_dict['stream'] == "" or self.launch_dict['stream'] == "default":
-                    stream_def_str = f"size_t streamid = params->grid_idx % nstreams;"
-                else:
-                    stream_def_str = f"size_t streamid = {self.launch_dict['stream']};"
-            
-            # Determine if the shared memory size needs to be added to launch
-            # If a stream is specified, we need to at least set SM to 0
-            sm_def_str = None
-            if 'sm' in self.launch_dict or not stream_def_str is None:
-                if not 'sm' in self.launch_dict or self.launch_dict['sm'] == "" or self.launch_dict['sm'] == "default":
-                    sm_def_str = "size_t sm = 0;"
-                    self.launch_dict['sm'] = 0
-                else:
-                    sm_def_str = f"size_t sm = {self.launch_dict['sm']};"
-            
-            self.launch_block = f"""
-{block_def_str}
-{grid_def_str}
-"""
-            if not sm_def_str is None:
-                self.launch_block +=f"{sm_def_str}"
-            if not stream_def_str is None:
-                self.launch_block +=f"{stream_def_str}"
-            
-            self.launch_settings = f"<<<blocks_per_grid,threads_per_block"
-            if not sm_def_str is None:
-                self.launch_settings+=f",sm"
-            if not stream_def_str is None:
-                self.launch_settings+=f",streams[streamid]"
-            self.launch_settings+=">>>("
-
-    def c_function_call(self) -> str:
-        """
-        Generate the C function call for a given Kernel.
-
-        :return: The C function call as a string.
-        """
-        
-        c_function_call: str = self.name + self.launch_settings
-        for p in self.params_dict:
-            c_function_call += f"{p}, "
-        c_function_call=c_function_call[:-2] + ");\n"
-
-        return c_function_call
-
 # Define functions to set up initial guess
 class gpu_register_CFunction_initial_guess_single_point(
     base_npe_classes.base_register_CFunction_initial_guess_single_point
@@ -173,7 +36,7 @@ class gpu_register_CFunction_initial_guess_single_point(
 
     def __init__(self, fp_type: str = "double") -> None:
         super().__init__(fp_type=fp_type)
-        self.cfunc_type="""__device__ __host__ void"""
+        self.cfunc_type = """__device__ __host__ void"""
         self.params = r"""const REAL xx0, const REAL xx1, const REAL xx2,  REAL *restrict uu_ID, REAL *restrict vv_ID
 """
 
@@ -1017,6 +880,7 @@ def register_CFunction_compute_residual_all_points(
     )
 
     return cast(pcg.NRPyEnv_type, pcg.NRPyEnv())
+
 
 if __name__ == "__main__":
     import doctest
