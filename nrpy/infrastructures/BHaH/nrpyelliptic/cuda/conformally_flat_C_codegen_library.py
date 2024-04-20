@@ -39,10 +39,14 @@ class GPU_Kernel:
     >>> kernel = GPU_Kernel(
     ... "*x = in;",
     ... {'x' : 'REAL *restrict', 'in' : 'const REAL'},
-    ... 'basic_assignment_gpu'
+    ... 'basic_assignment_gpu',
+    ... launch_dict = {
+    ... 'blocks_per_grid' : [32],
+    ... 'threads_per_block' : [128,28,1],
+    ... },
     ... )
     >>> print(kernel.c_function_call())
-    basic_assignment_gpu(x, in);
+    basic_assignment_gpu<<<blocks_per_grid,threads_per_block>>>(x, in);
     <BLANKLINE>
     >>> print(kernel.CFunction.full_function)
     /*
@@ -51,7 +55,11 @@ class GPU_Kernel:
      */
     __global__ static void basic_assignment_gpu([ 'x', 'in' ]) { *x = in; }
     <BLANKLINE>
-    
+    >>> print(kernel.launch_block)
+    <BLANKLINE>
+    dim3 threads_per_block = (128,28,1);
+    dim3 blocks_per_grid = (32,1,1);
+    <BLANKLINE>
     """
     def __init__(
         self,
@@ -62,6 +70,7 @@ class GPU_Kernel:
         decorators: str = "__global__",
         fp_type: str = "double",
         comments: str = "",
+        launch_dict: Union[Dict[str, Any], None] = None,
     ) -> None:
         self.body = body
         self.params_dict = params_dict
@@ -72,6 +81,13 @@ class GPU_Kernel:
         
         self.CFunction: cfc.CFunction
         self.desc : str = f"GPU Kernel: {self.name}.\n"+comments
+        self.launch_dict = launch_dict
+        self.launch_block: str = ""
+        self.launch_settings: str = "("
+        
+        if self.decorators == "__global__" and launch_dict is None:
+            raise ValueError(f"Error: {self.decorators} requires a launch_dict")
+        self.generate_launch_block()
         
         # Store CFunction
         self.CFunction = cfc.CFunction(
@@ -80,15 +96,65 @@ class GPU_Kernel:
             name=self.name,
             params=list(self.params_dict.keys()),
             body=self.body,
-        )        
+        )
         
+    def generate_launch_block(self):
+        "Generate preceding launch block definitions for kernel function call."
+        if not self.launch_dict is None:
+            blocks_per_grid = self.launch_dict['blocks_per_grid']
+            for _ in range(3 - len(blocks_per_grid)):
+                blocks_per_grid += [1]
+            blocks_per_grid_str = ",".join(map(str, blocks_per_grid))
+            grid_def_str = f"dim3 blocks_per_grid = ({blocks_per_grid_str});"
+            
+            threads_per_block = self.launch_dict['threads_per_block']
+            for _ in range(3 - len(threads_per_block)):
+                threads_per_block += [1]
+            threads_per_block = ",".join(map(str, threads_per_block))
+            block_def_str = f"dim3 threads_per_block = ({threads_per_block});"
+            
+            # Determine if the stream needs to be added to launch
+            stream_def_str = None
+            if 'stream' in self.launch_dict:
+                if self.launch_dict['stream'] == "" or self.launch_dict['stream'] == "default":
+                    stream_def_str = f"size_t streamid = params->grid_idx % nstreams;"
+                else:
+                    stream_def_str = f"size_t streamid = {self.launch_dict['stream']};"
+            
+            # Determine if the shared memory size needs to be added to launch
+            # If a stream is specified, we need to at least set SM to 0
+            sm_def_str = None
+            if 'sm' in self.launch_dict or not stream_def_str is None:
+                if not 'sm' in self.launch_dict or self.launch_dict['sm'] == "" or self.launch_dict['sm'] == "default":
+                    sm_def_str = "size_t sm = 0;"
+                    self.launch_dict['sm'] = 0
+                else:
+                    sm_def_str = f"size_t sm = {self.launch_dict['sm']};"
+            
+            self.launch_block = f"""
+{block_def_str}
+{grid_def_str}
+"""
+            if not sm_def_str is None:
+                self.launch_block +=f"{sm_def_str}"
+            if not stream_def_str is None:
+                self.launch_block +=f"{stream_def_str}"
+            
+            self.launch_settings = f"<<<blocks_per_grid,threads_per_block"
+            if not sm_def_str is None:
+                self.launch_settings+=f",sm"
+            if not stream_def_str is None:
+                self.launch_settings+=f",streams[streamid]"
+            self.launch_settings+=">>>("
+
     def c_function_call(self) -> str:
         """
         Generate the C function call for a given Kernel.
 
         :return: The C function call as a string.
         """
-        c_function_call: str = self.name + "("
+        
+        c_function_call: str = self.name + self.launch_settings
         for p in self.params_dict:
             c_function_call += f"{p}, "
         c_function_call=c_function_call[:-2] + ");\n"
@@ -177,10 +243,10 @@ class gpu_register_CFunction_initial_guess_all_points(
   // Unpack griddata struct:
   params_struct *restrict params = &griddata[grid].params;
 #include "set_CodeParameters.h"
-  REAL *restrict xx[3];
+  REAL * xx[3];
   for (int ww = 0; ww < 3; ww++)
     xx[ww] = griddata[grid].xx[ww];
-  REAL *restrict in_gfs = griddata[grid].gridfuncs.y_n_gfs;
+  REAL * in_gfs = griddata[grid].gridfuncs.y_n_gfs;
 """
         self.body += lp.simple_loop(
             loop_body="initial_guess_single_point(xx0,xx1,xx2,"
