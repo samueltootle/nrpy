@@ -66,6 +66,7 @@ class output_BHaH_defines_h(base_output_BHaH_defines_h):
             clang_format_options=clang_format_options,
         )
         self.register_define_blocks()
+        self.generate_output_str()
         self.write_to_file()
 
 if __name__ == "__main__":
