@@ -366,12 +366,16 @@ class output_BHaH_defines_h(base_output_BHaH_defines_h):
             **kwargs,
         )
 
-        self.BHd_include_str += f'#include "{gpu_defines.bhah_gpu_defines_filename}"\n'
         self.gri_BHd_str += r"""
 #define IDX3INTERIOR(i,j,k) \
   ( (i) + Nxx0 * ( (j) + Nxx1 * (k) ) )
 """
         self.register_define_blocks()
+        self.generate_output_str()
+        
+        # Add GPU header to the end of BHaH Defines header
+        self.file_output_str+= f'\n#include "{gpu_defines.bhah_gpu_defines_filename}"\n'
+        
         self.write_to_file()
 
         _ = output_init_gpu_defines_h(
