@@ -149,7 +149,7 @@ def output_CFunctions_function_prototypes_and_construct_Makefile(
         "fast": "-O3 -funroll-loops -march=native -g -Wall -Wno-unused-variable -std=gnu99",
         # DEBUGCFLAGS: OpenMP requires -fopenmp, and when disabling -fopenmp, unknown pragma warnings appear. -Wunknown-pragmas silences these warnings
         "debug": "-O2 -g -Wall -Wno-unused-variable -Wno-unknown-pragmas",
-        "nvcc" : "-Xcompiler -g -O2 -arch=native -O2 -Xcompiler=-march=native -Xcompiler -Wall --forward-unknown-to-host-compiler --Werror cross-execution-space-call --relocatable-device-code=true -allow-unsupported-compiler",
+        "nvcc" : "-Xcompiler -fopenmp -Xcompiler -g -O2 -arch=native -O2 -Xcompiler=-march=native -Xcompiler -Wall --forward-unknown-to-host-compiler --Werror cross-execution-space-call --relocatable-device-code=true -allow-unsupported-compiler",
     }
 
     if CC == "gcc":
@@ -240,7 +240,7 @@ def output_CFunctions_function_prototypes_and_construct_Makefile(
 
     # Below code is responsible for either writing a Makefile or a backup shell script depending on the conditions
     Makefile_str = (
-        rf"CC = {CC}  # assigns the value CC to {CC} only if environment variable CC is not already set\n" \
+        rf"CC = {CC}  # Locally overwrites CC to {CC}\n" \
             if CC == "nvcc" else \
                 f"CC ?= {CC}  # assigns the value CC to {CC} only if environment variable CC is not already set\n"
     )
@@ -249,16 +249,24 @@ def output_CFunctions_function_prototypes_and_construct_Makefile(
 {CFLAGS_str}
 {INCLUDEDIRS_str}
 {LDFLAGS_str}
-
+"""
+    if not CC == "nvcc":
+        Makefile_str += f"""
 # Check for OpenMP support
 OPENMP_FLAG = -fopenmp
 COMPILER_SUPPORTS_OPENMP := $(shell echo | $(CC) $(OPENMP_FLAG) -E - >/dev/null 2>&1 && echo YES || echo NO)
-
 ifeq ($(COMPILER_SUPPORTS_OPENMP), YES)
     CFLAGS += $(OPENMP_FLAG)
     LDFLAGS += $(OPENMP_FLAG)  # -lgomp does not work with clang in termux
 endif
-
+"""
+    else:
+        Makefile_str+= """
+OPENMP_FLAG = -fopenmp
+CFLAGS += $(OPENMP_FLAG)
+LDFLAGS += $(OPENMP_FLAG)
+"""
+    Makefile_str += f"""
 {OBJ_FILES_str}
 
 all: {exec_or_library_name}
@@ -267,7 +275,7 @@ all: {exec_or_library_name}
 	$(CC) $(CFLAGS) $(INCLUDEDIRS) -c $< -o $@
 
 {exec_or_library_name}: $(OBJ_FILES)
-	$(CC) $^ -o $@ $(LDFLAGS)
+	$(CC) {'$(CFLAGS) ' if CC == "nvcc" else ''}$^ -o $@ $(LDFLAGS)
 
 # Use $(RM) to be cross-platform compatible.
 clean:
