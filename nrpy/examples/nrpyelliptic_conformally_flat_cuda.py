@@ -27,7 +27,7 @@ import nrpy.infrastructures.BHaH.main_driver.cuda.main_c as main
 from nrpy.infrastructures.BHaH.MoLtimestepping.openmp import MoL
 import nrpy.infrastructures.BHaH.CurviBoundaryConditions.openmp.CurviBoundaryConditions as cbc
 import nrpy.infrastructures.BHaH.nrpyelliptic.cuda.conformally_flat_C_codegen_library as nrpyellClib
-import nrpy.infrastructures.BHaH.grid_management.openmp.numerical_grids_and_timestep as numericalgrids
+import nrpy.infrastructures.BHaH.grid_management.cuda.numerical_grids_and_timestep as numericalgrids
 from nrpy.infrastructures.BHaH import rfm_precompute
 from nrpy.infrastructures.BHaH import rfm_wrapper_functions
 from nrpy.infrastructures.BHaH.grid_management.openmp import xx_tofrom_Cart
@@ -158,6 +158,7 @@ par.adjust_CodeParam_default("t_final", t_final)
 # STEP 2: Declare core C functions & register each to
 #         cfc.CFunction_dict["function_name"]
 gputils.register_CFunction_set_params_constant()
+gputils.register_CFunction_cpyDevicetoHost__grid()
 
 # Generate functions to set initial guess
 nrpyellClib.register_CFunction_initial_guess_single_point(fp_type=fp_type)
