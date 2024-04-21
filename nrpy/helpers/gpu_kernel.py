@@ -102,7 +102,7 @@ class GPU_Kernel:
             raise ValueError(f"Error: {self.decorators} requires a launch_dict")
         self.generate_launch_block()
 
-        self.param_list = [f"{v} {k}" for k,v in self.params_dict.items()] 
+        self.param_list = [f"{v} {k}" for k, v in self.params_dict.items()]
         # Store CFunction
         self.CFunction = cfc.CFunction(
             desc=self.desc,
@@ -192,6 +192,7 @@ dim3 threads_per_block(threads_in_x_dir, threads_in_y_dir, threads_in_z_dir);
 
         return c_function_call
 
+
 # Define functions to copy params to device
 def register_CFunction_set_params_constant() -> None:
     """
@@ -216,7 +217,72 @@ def register_CFunction_set_params_constant() -> None:
         params=params,
         include_CodeParameters_h=False,
         body=body,
+        subdirectory="CUDA_utils",
     )
+
+
+def generate_CFunction_mallocHostgrid() -> GPU_Kernel:
+
+    desc = r"""Allocate griddata_struct[grid].xx for host."""
+    name = "mallocHostgrid"
+    params_dict = {
+        "commondata": "const commondata_struct *restrict",
+        "params": "const params_struct *restrict",
+        "gd_host": "griddata_struct *restrict",
+        "gd_gpu": "const griddata_struct *restrict",
+    }
+    body = """
+  int const& Nxx_plus_2NGHOSTS0 = params->Nxx_plus_2NGHOSTS0;
+  int const& Nxx_plus_2NGHOSTS1 = params->Nxx_plus_2NGHOSTS1;
+  int const& Nxx_plus_2NGHOSTS2 = params->Nxx_plus_2NGHOSTS2;
+
+  // Set up cell-centered Cartesian coordinate grid, centered at the origin.
+  gd_host->xx[0] = (REAL*) malloc(sizeof(REAL) * Nxx_plus_2NGHOSTS0);
+  gd_host->xx[1] = (REAL*) malloc(sizeof(REAL) * Nxx_plus_2NGHOSTS1);
+  gd_host->xx[2] = (REAL*) malloc(sizeof(REAL) * Nxx_plus_2NGHOSTS2);
+"""
+    kernel = GPU_Kernel(body, params_dict, name, decorators="__host__", comments=desc)
+    return kernel.CFunction.full_function
+
+
+def register_CFunction_cpyDevicetoHost__grid() -> None:
+    """
+    Register C function for copying grid from device to host.
+
+    :return: None.
+    """
+    includes = ["BHaH_defines.h"]
+    prefunc = generate_CFunction_mallocHostgrid()
+    desc = r"""Copy griddata_struct[grid].xx from GPU to host."""
+    cfunc_type = "__host__ void"
+    name = "cpyDevicetoHost__grid"
+    params = "const commondata_struct *restrict commondata, griddata_struct *restrict gd_host, "
+    params += "const griddata_struct *restrict gd_gpu"
+    body = """for (int grid = 0; grid < commondata->NUMGRIDS; grid++) {
+  const params_struct *restrict params = &gd_gpu[grid].params;
+  int const& Nxx_plus_2NGHOSTS0 = params->Nxx_plus_2NGHOSTS0;
+  int const& Nxx_plus_2NGHOSTS1 = params->Nxx_plus_2NGHOSTS1;
+  int const& Nxx_plus_2NGHOSTS2 = params->Nxx_plus_2NGHOSTS2;
+  
+  mallocHostgrid(commondata, params, &gd_host[grid], gd_gpu);
+  cudaMemcpy(gd_host[grid].xx[0], gd_gpu[grid].xx[0], sizeof(REAL) * Nxx_plus_2NGHOSTS0, cudaMemcpyDeviceToHost);
+  cudaMemcpy(gd_host[grid].xx[1], gd_gpu[grid].xx[1], sizeof(REAL) * Nxx_plus_2NGHOSTS1, cudaMemcpyDeviceToHost);
+  cudaMemcpy(gd_host[grid].xx[2], gd_gpu[grid].xx[2], sizeof(REAL) * Nxx_plus_2NGHOSTS2, cudaMemcpyDeviceToHost);
+}
+"""
+    cfc.register_CFunction(
+        prefunc=prefunc,
+        includes=includes,
+        desc=desc,
+        cfunc_type=cfunc_type,
+        CoordSystem_for_wrapper_func="",
+        name=name,
+        params=params,
+        include_CodeParameters_h=False,
+        body=body,
+        subdirectory="CUDA_utils",
+    )
+
 
 if __name__ == "__main__":
     import doctest
