@@ -5,11 +5,7 @@ Author: Samuel D. Tootle
 Email: sdtootle **at** gmail **dot** com
 """
 
-from typing import List, Union, Tuple, Dict
-import sympy as sp
-import nrpy.helpers.loop as lp
-import nrpy.indexedexp as ixp
-
+import nrpy.infrastructures.BHaH.loop_utilities.base_simple_loop as base_sl
 
 class simple_loop(base_sl.base_simple_loop):
     """
@@ -31,55 +27,37 @@ class simple_loop(base_sl.base_simple_loop):
     Doctests:
     >>> from nrpy.helpers.generic import clang_format
     >>> print(clang_format(simple_loop('// <INTERIOR>', loop_region="all points").full_loop_body))
-    #pragma omp parallel for
-    for (int i2 = 0; i2 < Nxx_plus_2NGHOSTS2; i2++) {
-      for (int i1 = 0; i1 < Nxx_plus_2NGHOSTS1; i1++) {
-        for (int i0 = 0; i0 < Nxx_plus_2NGHOSTS0; i0++) {
-          // <INTERIOR>
-        } // END LOOP: for (int i0 = 0; i0 < Nxx_plus_2NGHOSTS0; i0++)
-      } // END LOOP: for (int i1 = 0; i1 < Nxx_plus_2NGHOSTS1; i1++)
-    } // END LOOP: for (int i2 = 0; i2 < Nxx_plus_2NGHOSTS2; i2++)
     <BLANKLINE>
-    >>> print(clang_format(simple_loop('// <INTERIOR>', loop_region="interior", OMP_custom_pragma="#CUSTOM_OMP").full_loop_body))
-    #CUSTOM_OMP
-    for (int i2 = NGHOSTS; i2 < NGHOSTS + Nxx2; i2++) {
-      for (int i1 = NGHOSTS; i1 < NGHOSTS + Nxx1; i1++) {
-        for (int i0 = NGHOSTS; i0 < NGHOSTS + Nxx0; i0++) {
+    const int tid0 = blockIdx.x * blockDim.x + threadIdx.x;
+    const int tid1 = blockIdx.y * blockDim.y + threadIdx.y;
+    const int tid2 = blockIdx.z * blockDim.z + threadIdx.z;
+    <BLANKLINE>
+    const int stride0 = blockDim.x * gridDim.x;
+    const int stride1 = blockDim.y * gridDim.y;
+    const int stride2 = blockDim.z * gridDim.z;
+    <BLANKLINE>
+    for (int i2 = tid2; i2 < Nxx_plus_2NGHOSTS2; i2 += stride2) {
+      for (int i1 = tid1; i1 < Nxx_plus_2NGHOSTS1; i1 += stride1) {
+        for (int i0 = tid0; i0 < Nxx_plus_2NGHOSTS0; i0 += stride0) {
           // <INTERIOR>
-        } // END LOOP: for (int i0 = NGHOSTS; i0 < NGHOSTS+Nxx0; i0++)
-      } // END LOOP: for (int i1 = NGHOSTS; i1 < NGHOSTS+Nxx1; i1++)
-    } // END LOOP: for (int i2 = NGHOSTS; i2 < NGHOSTS+Nxx2; i2++)
+        } // END LOOP: for (int i0 = tid0; i0 < Nxx_plus_2NGHOSTS0; i0 += stride0)
+      } // END LOOP: for (int i1 = tid1; i1 < Nxx_plus_2NGHOSTS1; i1 += stride1)
+    } // END LOOP: for (int i2 = tid2; i2 < Nxx_plus_2NGHOSTS2; i2 += stride2)
     <BLANKLINE>
     >>> print(clang_format(simple_loop('// <INTERIOR>', loop_region="interior",
-    ...       CoordSystem="SinhSymTP", enable_rfm_precompute=True, OMP_collapse=3).full_loop_body))
+    ...       CoordSystem="SinhSymTP", enable_rfm_precompute=True).full_loop_body))
     Setting up reference metric for CoordSystem = SinhSymTP.
-    #pragma omp parallel for collapse(3)
-    for (int i2 = NGHOSTS; i2 < NGHOSTS + Nxx2; i2++) {
-      for (int i1 = NGHOSTS; i1 < NGHOSTS + Nxx1; i1++) {
-        for (int i0 = NGHOSTS; i0 < NGHOSTS + Nxx0; i0++) {
-          const REAL f1_of_xx1 = rfmstruct->f1_of_xx1[i1];
-          const REAL f1_of_xx1__D1 = rfmstruct->f1_of_xx1__D1[i1];
-          const REAL f1_of_xx1__DD11 = rfmstruct->f1_of_xx1__DD11[i1];
-          const REAL f4_of_xx1 = rfmstruct->f4_of_xx1[i1];
-          const REAL f4_of_xx1__D1 = rfmstruct->f4_of_xx1__D1[i1];
-          const REAL f4_of_xx1__DD11 = rfmstruct->f4_of_xx1__DD11[i1];
-          const REAL f0_of_xx0 = rfmstruct->f0_of_xx0[i0];
-          const REAL f0_of_xx0__D0 = rfmstruct->f0_of_xx0__D0[i0];
-          const REAL f0_of_xx0__DD00 = rfmstruct->f0_of_xx0__DD00[i0];
-          const REAL f0_of_xx0__DDD000 = rfmstruct->f0_of_xx0__DDD000[i0];
-          const REAL f2_of_xx0 = rfmstruct->f2_of_xx0[i0];
-          const REAL f2_of_xx0__D0 = rfmstruct->f2_of_xx0__D0[i0];
-          const REAL f2_of_xx0__DD00 = rfmstruct->f2_of_xx0__DD00[i0];
-          // <INTERIOR>
-        } // END LOOP: for (int i0 = NGHOSTS; i0 < NGHOSTS+Nxx0; i0++)
-      } // END LOOP: for (int i1 = NGHOSTS; i1 < NGHOSTS+Nxx1; i1++)
-    } // END LOOP: for (int i2 = NGHOSTS; i2 < NGHOSTS+Nxx2; i2++)
     <BLANKLINE>
-    >>> print(clang_format(simple_loop('// <INTERIOR>', loop_region="interior",
-    ...       CoordSystem="SinhSymTP", enable_rfm_precompute=True, OMP_collapse=2).full_loop_body))
-    #pragma omp parallel for collapse(2)
-    for (int i2 = NGHOSTS; i2 < NGHOSTS + Nxx2; i2++) {
-      for (int i1 = NGHOSTS; i1 < NGHOSTS + Nxx1; i1++) {
+    const int tid0 = blockIdx.x * blockDim.x + threadIdx.x;
+    const int tid1 = blockIdx.y * blockDim.y + threadIdx.y;
+    const int tid2 = blockIdx.z * blockDim.z + threadIdx.z;
+    <BLANKLINE>
+    const int stride0 = blockDim.x * gridDim.x;
+    const int stride1 = blockDim.y * gridDim.y;
+    const int stride2 = blockDim.z * gridDim.z;
+    <BLANKLINE>
+    for (int i2 = tid2 + NGHOSTS; i2 < NGHOSTS + Nxx2; i2 += stride2) {
+      for (int i1 = tid1 + NGHOSTS; i1 < NGHOSTS + Nxx1; i1 += stride1) {
         const REAL f1_of_xx1 = rfmstruct->f1_of_xx1[i1];
         const REAL f1_of_xx1__D1 = rfmstruct->f1_of_xx1__D1[i1];
         const REAL f1_of_xx1__DD11 = rfmstruct->f1_of_xx1__DD11[i1];
@@ -87,7 +65,7 @@ class simple_loop(base_sl.base_simple_loop):
         const REAL f4_of_xx1__D1 = rfmstruct->f4_of_xx1__D1[i1];
         const REAL f4_of_xx1__DD11 = rfmstruct->f4_of_xx1__DD11[i1];
     <BLANKLINE>
-        for (int i0 = NGHOSTS; i0 < NGHOSTS + Nxx0; i0++) {
+        for (int i0 = tid0 + NGHOSTS; i0 < NGHOSTS + Nxx0; i0 += stride0) {
           const REAL f0_of_xx0 = rfmstruct->f0_of_xx0[i0];
           const REAL f0_of_xx0__D0 = rfmstruct->f0_of_xx0__D0[i0];
           const REAL f0_of_xx0__DD00 = rfmstruct->f0_of_xx0__DD00[i0];
@@ -96,23 +74,19 @@ class simple_loop(base_sl.base_simple_loop):
           const REAL f2_of_xx0__D0 = rfmstruct->f2_of_xx0__D0[i0];
           const REAL f2_of_xx0__DD00 = rfmstruct->f2_of_xx0__DD00[i0];
           // <INTERIOR>
-        } // END LOOP: for (int i0 = NGHOSTS; i0 < NGHOSTS+Nxx0; i0++)
-      } // END LOOP: for (int i1 = NGHOSTS; i1 < NGHOSTS+Nxx1; i1++)
-    } // END LOOP: for (int i2 = NGHOSTS; i2 < NGHOSTS+Nxx2; i2++)
+        } // END LOOP: for (int i0 = tid0+NGHOSTS; i0 < NGHOSTS+Nxx0; i0 += stride0)
+      } // END LOOP: for (int i1 = tid1+NGHOSTS; i1 < NGHOSTS+Nxx1; i1 += stride1)
+    } // END LOOP: for (int i2 = tid2+NGHOSTS; i2 < NGHOSTS+Nxx2; i2 += stride2)
     <BLANKLINE>
     """
     
     def __init__(
         self,
         loop_body: str,
-        enable_simd: bool = False,
         loop_region: str = "",
         read_xxs: bool = False,
         CoordSystem: str = "Cartesian",
         enable_rfm_precompute: bool = False,
-        enable_OpenMP: bool = True,
-        OMP_custom_pragma: str = "",
-        OMP_collapse: int = 1,
         fp_type: str = "double",
     ) -> str:
         super().__init__(
@@ -122,55 +96,22 @@ class simple_loop(base_sl.base_simple_loop):
             enable_rfm_precompute=enable_rfm_precompute,
             fp_type=fp_type,
             loop_region=loop_region,
+            cuda=True,
         )
-        self.enable_simd=enable_simd
-        self.enable_OpenMP=enable_OpenMP
-        self.OMP_custom_pragma=OMP_custom_pragma
-        self.OMP_collapse=OMP_collapse
-        
-        # 'Read_xxs': read the xx[3][:] 1D coordinate arrays, as some interior dependency exists
-        if self.read_xxs and enable_simd:
-            raise ValueError("no innerSIMD support for Read_xxs (currently).")
-        
-        if self.enable_rfm_precompute and enable_simd:
-            self.read_rfm_xx_arrays = [
-                self.rfmp.readvr_SIMD_inner_str[0],
-                self.rfmp.readvr_SIMD_outer_str[1],
-                self.rfmp.readvr_SIMD_outer_str[2],
-            ]
-        
-        # 'DisableOpenMP': disable loop parallelization using OpenMP
-        if self.enable_OpenMP or self.OMP_custom_pragma != "":
-            if self.OMP_custom_pragma == "":
-                self.pragma = "#pragma omp parallel for"
-                if self.OMP_collapse > 1:
-                    self.pragma = f"#pragma omp parallel for collapse({self.OMP_collapse})"
-            # 'OMP_custom_pragma': enable loop parallelization using OpenMP with custom pragma
-            else:
-                self.pragma = self.OMP_custom_pragma
-        else:
-            self.pragma = ""
-        
-        if enable_simd:
-            self.increment = ["1", "1", "simd_width"]
 
-        self.prefix_loop_with = [self.pragma, self.read_rfm_xx_arrays[2], self.read_rfm_xx_arrays[1]]
-        if OMP_collapse == 2:
-            self.prefix_loop_with = [
-                self.pragma,
-                "",
-                self.read_rfm_xx_arrays[2] + self.read_rfm_xx_arrays[1],
-            ]
-        elif OMP_collapse == 3:
-            self.prefix_loop_with = [
-                self.pragma,
-                "",
-                "",
-            ]
-            # above: loop_body = read_rfm_xx_arrays[0] + loop_body -----v
-            self.loop_body = self.read_rfm_xx_arrays[2] + self.read_rfm_xx_arrays[1] + self.loop_body
-
+        self.increment = ["stride2", "stride1", "stride0"]
         self.gen_loop_body()
+        self.full_loop_body = f"""
+  const int tid0  = blockIdx.x * blockDim.x + threadIdx.x;
+  const int tid1  = blockIdx.y * blockDim.y + threadIdx.y;
+  const int tid2  = blockIdx.z * blockDim.z + threadIdx.z;
+  
+  const int stride0 = blockDim.x * gridDim.x;
+  const int stride1 = blockDim.y * gridDim.y;
+  const int stride2 = blockDim.z * gridDim.z;
+  
+  {self.full_loop_body}
+"""
 
 if __name__ == "__main__":
     import doctest
