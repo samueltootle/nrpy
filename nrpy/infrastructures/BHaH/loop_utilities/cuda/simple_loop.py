@@ -6,7 +6,7 @@ Email: sdtootle **at** gmail **dot** com
 """
 
 import nrpy.infrastructures.BHaH.loop_utilities.base_simple_loop as base_sl
-
+from typing import Any
 
 class simple_loop(base_sl.base_simple_loop):
     """
@@ -89,6 +89,7 @@ class simple_loop(base_sl.base_simple_loop):
         CoordSystem: str = "Cartesian",
         enable_rfm_precompute: bool = False,
         fp_type: str = "double",
+        **_: Any,
     ) -> str:
         super().__init__(
             loop_body,
@@ -103,6 +104,10 @@ class simple_loop(base_sl.base_simple_loop):
         self.increment = ["stride2", "stride1", "stride0"]
         self.gen_loop_body()
         self.full_loop_body = f"""
+  const int Nxx_plus_2NGHOSTS0 = d_params.Nxx_plus_2NGHOSTS0;
+  const int Nxx_plus_2NGHOSTS1 = d_params.Nxx_plus_2NGHOSTS1;
+  const int Nxx_plus_2NGHOSTS2 = d_params.Nxx_plus_2NGHOSTS2;
+  
   const int tid0  = blockIdx.x * blockDim.x + threadIdx.x;
   const int tid1  = blockIdx.y * blockDim.y + threadIdx.y;
   const int tid2  = blockIdx.z * blockDim.z + threadIdx.z;
