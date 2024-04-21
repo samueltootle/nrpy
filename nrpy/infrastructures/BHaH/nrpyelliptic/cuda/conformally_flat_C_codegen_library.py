@@ -155,9 +155,9 @@ class gpu_register_CFunction_initial_guess_all_points(
 
 
 def register_CFunction_initial_guess_all_points(
-    OMP_collapse: int,
     enable_checkpointing: bool = False,
     fp_type: str = "double",
+    **_ : Any,
 ) -> Union[None, pcg.NRPyEnv_type]:
     """
     Support function for gpu_register_CFunction_initial_guess_all_points.
@@ -200,6 +200,9 @@ class gpu_register_CFunction_auxevol_gfs_single_point(
     ) -> None:
         super().__init__(CoordSystem, fp_type=fp_type)
 
+        self.cfunc_type = """__device__ __host__ void"""
+        self.params = r"""const REAL xx0, const REAL xx1, const REAL xx2, REAL *restrict psi_background, REAL *restrict ADD_times_AUU
+"""
         self.body = ccg.c_codegen(
             [self.psi_background, self.ADD_times_AUU],
             ["*psi_background", "*ADD_times_AUU"],
@@ -215,7 +218,7 @@ class gpu_register_CFunction_auxevol_gfs_single_point(
             CoordSystem_for_wrapper_func="",
             name=self.name,
             params=self.params,
-            include_CodeParameters_h=True,
+            include_CodeParameters_h=False,
             body=self.body,
         )
 
@@ -260,17 +263,7 @@ class gpu_register_CFunction_auxevol_gfs_all_points(
         fp_type: str = "double",
     ) -> None:
         super().__init__(fp_type=fp_type)
-
-        self.body = r"""for(int grid=0; grid<commondata->NUMGRIDS; grid++) {
-  // Unpack griddata struct:
-  params_struct *restrict params = &griddata[grid].params;
-#include "set_CodeParameters.h"
-  REAL *restrict xx[3];
-  for (int ww = 0; ww < 3; ww++)
-    xx[ww] = griddata[grid].xx[ww];
-  REAL *restrict in_gfs = griddata[grid].gridfuncs.auxevol_gfs;
-"""
-        self.body += lp.simple_loop(
+        self.loop_body = lp.simple_loop(
             loop_body="auxevol_gfs_single_point(commondata, params, xx0,xx1,xx2,"
             f"&{self.psi_background_memaccess},"
             f"&{self.ADD_times_AUU_memaccess});",
@@ -279,8 +272,40 @@ class gpu_register_CFunction_auxevol_gfs_all_points(
             OMP_collapse=OMP_collapse,
             fp_type=self.fp_type,
         ).full_loop_body
+        
+        # Put loop_body into a device kernel
+        self.device_kernel = gputils.GPU_Kernel(
+            self.loop_body,
+            {
+                'x0' : 'const REAL *restrict',
+                'x1' : 'const REAL *restrict',
+                'x2' : 'const REAL *restrict',
+                'in_gfs' : 'REAL *restrict'
+            },
+            'auxevol_gfs_all_points_gpu',
+            launch_dict= {
+                'blocks_per_grid' : [],
+                'threads_per_block' : ["32", "NGHOSTS"],
+                'stream' : "default"
+            },
+            fp_type=self.fp_type,
+            comments="GPU Kernel to initialize auxillary grid functions at all grid points.",
+        )
+        
+        self.body = r"""for(int grid=0; grid<commondata->NUMGRIDS; grid++) {
+  // Unpack griddata struct:
+  params_struct *restrict params = &griddata[grid].params;
+  REAL *restrict x0 = griddata[grid].xx[0];
+  REAL *restrict x1 = griddata[grid].xx[1];
+  REAL *restrict x2 = griddata[grid].xx[2];
+  REAL *restrict in_gfs = griddata[grid].gridfuncs.auxevol_gfs;
+#include "set_CodeParameters.h"
+"""
+        self.body += f"{self.device_kernel.launch_block}"
+        self.body += f"{self.device_kernel.c_function_call()}"
         self.body += "}\n"
         cfc.register_CFunction(
+            prefunc=self.device_kernel.CFunction.full_function,
             includes=self.includes,
             desc=self.desc,
             cfunc_type=self.cfunc_type,
