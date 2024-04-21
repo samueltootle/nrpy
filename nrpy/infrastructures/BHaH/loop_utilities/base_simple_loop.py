@@ -1,3 +1,14 @@
+"""
+Base loop utilities for generating loops for use within the BHaH infrastructure.
+
+Authors: 
+Samuel Tootle
+    Email: sdtootle **at** outlook **dot** com
+Zachariah B. Etienne
+    Email: zachetie **at** gmail **dot** com
+Ken Sible
+    Email: ksible **at** outlook **dot** com
+"""
 import nrpy.helpers.loop as lp
 implemented_loop_regions = [
     "",
