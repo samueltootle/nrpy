@@ -7,6 +7,7 @@ Email: sdtootle **at** gmail **dot** com
 
 import nrpy.infrastructures.BHaH.loop_utilities.base_simple_loop as base_sl
 
+
 class simple_loop(base_sl.base_simple_loop):
     """
     Generate a simple loop in C (for use inside of a function).
@@ -79,7 +80,7 @@ class simple_loop(base_sl.base_simple_loop):
     } // END LOOP: for (int i2 = tid2+NGHOSTS; i2 < NGHOSTS+Nxx2; i2 += stride2)
     <BLANKLINE>
     """
-    
+
     def __init__(
         self,
         loop_body: str,
@@ -112,6 +113,7 @@ class simple_loop(base_sl.base_simple_loop):
   
   {self.full_loop_body}
 """
+
 
 if __name__ == "__main__":
     import doctest

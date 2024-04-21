@@ -15,6 +15,7 @@ import sympy as sp
 import nrpy.indexedexp as ixp
 import nrpy.infrastructures.BHaH.loop_utilities.base_simple_loop as base_sl
 
+
 class simple_loop(base_sl.base_simple_loop):
     """
     Generate a simple loop in C (for use inside of a function).
@@ -105,7 +106,7 @@ class simple_loop(base_sl.base_simple_loop):
     } // END LOOP: for (int i2 = NGHOSTS; i2 < NGHOSTS+Nxx2; i2++)
     <BLANKLINE>
     """
-    
+
     def __init__(
         self,
         loop_body: str,
@@ -127,38 +128,44 @@ class simple_loop(base_sl.base_simple_loop):
             fp_type=fp_type,
             loop_region=loop_region,
         )
-        self.enable_simd=enable_simd
-        self.enable_OpenMP=enable_OpenMP
-        self.OMP_custom_pragma=OMP_custom_pragma
-        self.OMP_collapse=OMP_collapse
-        
+        self.enable_simd = enable_simd
+        self.enable_OpenMP = enable_OpenMP
+        self.OMP_custom_pragma = OMP_custom_pragma
+        self.OMP_collapse = OMP_collapse
+
         # 'Read_xxs': read the xx[3][:] 1D coordinate arrays, as some interior dependency exists
         if self.read_xxs and enable_simd:
             raise ValueError("no innerSIMD support for Read_xxs (currently).")
-        
+
         if self.enable_rfm_precompute and enable_simd:
             self.read_rfm_xx_arrays = [
                 self.rfmp.readvr_SIMD_inner_str[0],
                 self.rfmp.readvr_SIMD_outer_str[1],
                 self.rfmp.readvr_SIMD_outer_str[2],
             ]
-        
+
         # 'DisableOpenMP': disable loop parallelization using OpenMP
         if self.enable_OpenMP or self.OMP_custom_pragma != "":
             if self.OMP_custom_pragma == "":
                 self.pragma = "#pragma omp parallel for"
                 if self.OMP_collapse > 1:
-                    self.pragma = f"#pragma omp parallel for collapse({self.OMP_collapse})"
+                    self.pragma = (
+                        f"#pragma omp parallel for collapse({self.OMP_collapse})"
+                    )
             # 'OMP_custom_pragma': enable loop parallelization using OpenMP with custom pragma
             else:
                 self.pragma = self.OMP_custom_pragma
         else:
             self.pragma = ""
-        
+
         if enable_simd:
             self.increment = ["1", "1", "simd_width"]
 
-        self.prefix_loop_with = [self.pragma, self.read_rfm_xx_arrays[2], self.read_rfm_xx_arrays[1]]
+        self.prefix_loop_with = [
+            self.pragma,
+            self.read_rfm_xx_arrays[2],
+            self.read_rfm_xx_arrays[1],
+        ]
         if OMP_collapse == 2:
             self.prefix_loop_with = [
                 self.pragma,
@@ -172,7 +179,9 @@ class simple_loop(base_sl.base_simple_loop):
                 "",
             ]
             # above: loop_body = read_rfm_xx_arrays[0] + loop_body -----v
-            self.loop_body = self.read_rfm_xx_arrays[2] + self.read_rfm_xx_arrays[1] + self.loop_body
+            self.loop_body = (
+                self.read_rfm_xx_arrays[2] + self.read_rfm_xx_arrays[1] + self.loop_body
+            )
 
         self.gen_loop_body()
 
