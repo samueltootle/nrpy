@@ -260,6 +260,8 @@ for(int grid=0; grid<commondata->NUMGRIDS; grid++) {
   set_param_constants(&griddata[grid].params);
   rfm_precompute_defines(commondata, &griddata[grid].params, &griddata[grid].rfmstruct, griddata[grid].xx);
 }
+  cpyDevicetoHost__grid(commondata, griddata_host, griddata);
+  cudaDeviceSynchronize();
 """
         else:
             self.body += "// (reference-metric precomputation disabled)\n"
