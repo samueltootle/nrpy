@@ -94,9 +94,9 @@ class base_simple_loop:
         # 'Read_xxs': read the xx[3][:] 1D coordinate arrays, as some interior dependency exists
         if self.read_xxs:
             self.read_rfm_xx_arrays = [
-                "const REAL xx0 = x0[i0];",
-                "const REAL xx1 = x1[i1];",
-                "const REAL xx2 = x2[i2];",
+                "const REAL xx0 = xx[0][i0];",
+                "const REAL xx1 = xx[1][i1];",
+                "const REAL xx2 = xx[2][i2];",
             ]
 
         # 'enable_rfm_precompute': enable pre-computation of reference metric
@@ -120,6 +120,7 @@ class base_simple_loop:
 
         self.increment = ["1", "1", "1"]
 
+    def initialize_based_on__read_rfm_xx_arrays(self) -> None:
         self.prefix_loop_with = [
             "",
             self.read_rfm_xx_arrays[2],

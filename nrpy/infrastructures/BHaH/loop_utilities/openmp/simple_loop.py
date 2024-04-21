@@ -161,6 +161,8 @@ class simple_loop(base_sl.base_simple_loop):
         if enable_simd:
             self.increment = ["1", "1", "simd_width"]
 
+        self.initialize_based_on__read_rfm_xx_arrays()
+        
         self.prefix_loop_with = [
             self.pragma,
             self.read_rfm_xx_arrays[2],

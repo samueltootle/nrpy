@@ -100,7 +100,16 @@ class simple_loop(base_sl.base_simple_loop):
             loop_region=loop_region,
             cuda=True,
         )
-
+        
+        if self.read_xxs:
+            self.read_rfm_xx_arrays = [
+                "const REAL xx0 = x0[i0];",
+                "const REAL xx1 = x1[i1];",
+                "const REAL xx2 = x2[i2];",
+            ]
+        
+        self.initialize_based_on__read_rfm_xx_arrays()
+        
         self.increment = ["stride2", "stride1", "stride0"]
         self.gen_loop_body()
         self.full_loop_body = f"""
