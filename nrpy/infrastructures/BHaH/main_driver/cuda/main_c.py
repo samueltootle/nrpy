@@ -10,6 +10,7 @@ Author: Samuel D. Tootle
 import nrpy.c_function as cfc
 import nrpy.infrastructures.BHaH.main_driver.base_main_c as base_main
 
+
 class register_CFunction_main_c(base_main.base_register_CFunction_main_c):
     """
     Generate the "generic" C main() function for all simulation codes in the BHaH infrastructure.
@@ -23,8 +24,9 @@ class register_CFunction_main_c(base_main.base_register_CFunction_main_c):
     :param post_MoL_step_forward_in_time: Code for handling post-right-hand-side operations, default is an empty string.
     :param clang_format_options: Clang formatting options, default is "-style={BasedOnStyle: LLVM, ColumnLimit: 150}".
     :raises ValueError: Raised if any required function for BHaH main() is not registered.
-    """ 
-    def __init__ (
+    """
+
+    def __init__(
         self,
         MoL_method: str,
         initial_data_desc: str = "",
@@ -43,9 +45,9 @@ class register_CFunction_main_c(base_main.base_register_CFunction_main_c):
             initialize_constant_auxevol=initialize_constant_auxevol,
             pre_MoL_step_forward_in_time=pre_MoL_step_forward_in_time,
             post_MoL_step_forward_in_time=post_MoL_step_forward_in_time,
-            clang_format_options=clang_format_options
+            clang_format_options=clang_format_options,
         )
-        
+
         self.body = r"""  commondata_struct commondata; // commondata contains parameters common to all grids.
 griddata_struct *restrict griddata; // griddata contains data specific to an individual grid.
 griddata_struct *restrict griddata_host; // stores only the host data needed for diagnostics
@@ -115,6 +117,7 @@ while(commondata.time < commondata.t_final) { // Main loop to progress forward i
             self.body += "  // (nothing here; specify by setting post_MoL_step_forward_in_time string in register_CFunction_main_c().)\n"
         self.body += r"""
 } // End main loop to progress forward in time.
+// Make sure all workers are done
 cudaDeviceSynchronize();
 for(int i = 0; i < nstreams; ++i) {
     cudaStreamDestroy(streams[i]);
@@ -122,12 +125,11 @@ for(int i = 0; i < nstreams; ++i) {
 // Step 6: Free all allocated memory
 {
   const bool enable_free_non_y_n_gfs=true;
-  griddata_free(&commondata, griddata, enable_free_non_y_n_gfs);
-  //griddata_free(&commondata, griddata, griddata_host, enable_free_non_y_n_gfs);
+  griddata_free(&commondata, griddata, griddata_host, enable_free_non_y_n_gfs);
 }
 return 0;
 """
-    
+
         cfc.register_CFunction(
             includes=self.includes,
             prefunc=self.prefunc,
