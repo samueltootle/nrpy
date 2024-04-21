@@ -116,6 +116,11 @@ class output_BHaH_gpu_defines_h:
 #define nstreams {self.num_streams}
 """
         standard_decl_dict = {
+            "d_params" : {
+                "type": "__constant__ params_struct",
+                "suffix": "",
+                "comment": "// Device storage for grid parameters\n",
+            },
             "d_evol_gf_parity": {
                 "type": "__constant__ int8_t",
                 "suffix": "[24]",
