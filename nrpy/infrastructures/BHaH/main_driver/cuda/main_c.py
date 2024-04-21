@@ -62,10 +62,7 @@ cmdline_input_and_parfile_parser(&commondata, argc, argv);
 griddata = (griddata_struct *)malloc(sizeof(griddata_struct) * commondata.NUMGRIDS);
   griddata_host = (griddata_struct *)malloc(sizeof(griddata_struct) * commondata.NUMGRIDS);
 
-// Step 1.d: Set each CodeParameter in griddata.params to default.
-params_struct_set_to_default(&commondata, griddata);
-
-// Step 1.e: Set up numerical grids: xx[3], masks, Nxx, dxx, invdxx, bcstruct, rfm_precompute, timestep, etc.
+// Step 1.d: Set up numerical grids: xx[3], masks, Nxx, dxx, invdxx, bcstruct, rfm_precompute, timestep, etc.
 {
   // if calling_for_first_time, then initialize commondata time=nn=t_0=nn_0 = 0
   const bool calling_for_first_time = true;
