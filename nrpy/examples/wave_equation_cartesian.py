@@ -26,7 +26,7 @@ from nrpy.infrastructures.BHaH import griddata_commondata
 import nrpy.infrastructures.BHaH.main_c as main
 import nrpy.infrastructures.BHaH.Makefile_helpers as Makefile
 from nrpy.infrastructures.BHaH.MoLtimestepping.openmp import MoL
-import nrpy.infrastructures.BHaH.simple_loop as lp
+import nrpy.infrastructures.BHaH.loop_utilities.openmp.simple_loop as lp
 from nrpy.equations.wave_equation.WaveEquation_RHSs import WaveEquation_RHSs
 from nrpy.equations.wave_equation.WaveEquation_Solutions_InitialData import (
     WaveEquation_solution_Cartesian,
@@ -226,7 +226,7 @@ def register_CFunction_initial_data() -> None:
         f"&{vv_gf_obj.read_gf_from_memory_Ccode_onept()});",
         read_xxs=True,
         loop_region="all points",
-    )
+    ).full_loop_body
     body += "}\n"
     cfc.register_CFunction(
         includes=includes,
@@ -359,7 +359,7 @@ def register_CFunction_rhs_eval() -> None:
         ),
         loop_region="interior",
         enable_simd=enable_simd,
-    )
+    ).full_loop_body
 
     cfc.register_CFunction(
         include_CodeParameters_h=True,

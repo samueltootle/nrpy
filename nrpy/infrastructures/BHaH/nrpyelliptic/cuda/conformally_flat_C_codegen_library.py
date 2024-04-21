@@ -7,7 +7,7 @@ Authors: Samuel D. Tootle; sdtootle **at** gmail **dot** com
          Zachariah B. Etienne; zachetie **at** gmail **dot* com
 """
 
-from typing import Union, cast, Tuple, Dict
+from typing import Union, cast, Tuple, Dict, Any
 from types import FrameType as FT
 from pathlib import Path
 from inspect import currentframe as cf
@@ -20,7 +20,7 @@ import nrpy.c_function as cfc
 import nrpy.helpers.parallel_codegen as pcg
 import nrpy.infrastructures.BHaH.nrpyelliptic.base_conformally_flat_C_codegen_library as base_npe_classes
 
-import nrpy.infrastructures.BHaH.simple_loop as lp
+import nrpy.infrastructures.BHaH.loop_utilities.cuda.simple_loop as lp
 import nrpy.infrastructures.BHaH.diagnostics.output_0d_1d_2d_nearest_gridpoint_slices as out012d
 
 
@@ -87,7 +87,6 @@ class gpu_register_CFunction_initial_guess_all_points(
     GPU overload to register the initial guess function for the hyperbolic relaxation equation.
 
     :param enable_checkpointing: Attempt to read from a checkpoint file before generating initial guess.
-    :param OMP_collapse: Degree of GPU loop collapsing.
     :param fp_type: Floating point type, e.g., "double".
 
     :return: None.
@@ -95,9 +94,9 @@ class gpu_register_CFunction_initial_guess_all_points(
 
     def __init__(
         self,
-        OMP_collapse: int,
         enable_checkpointing: bool = False,
         fp_type: str = "double",
+        **_ : Any,
     ) -> None:
 
         super().__init__(enable_checkpointing, fp_type=fp_type)
@@ -117,8 +116,8 @@ class gpu_register_CFunction_initial_guess_all_points(
             f"&{self.vv_gf_memaccess});",
             read_xxs=True,
             loop_region="all points",
-            OMP_collapse=OMP_collapse,
             fp_type=self.fp_type,
+            enable_OpenMP=False,
         )
         self.body += "}\n"
 
