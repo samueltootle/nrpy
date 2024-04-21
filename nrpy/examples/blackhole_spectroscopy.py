@@ -33,7 +33,7 @@ import nrpy.infrastructures.BHaH.general_relativity.TwoPunctures.ID_persist_stru
 from nrpy.infrastructures.BHaH import griddata_commondata
 import nrpy.infrastructures.BHaH.Makefile_helpers as Makefile
 from nrpy.infrastructures.BHaH.MoLtimestepping.openmp import MoL
-import nrpy.infrastructures.BHaH.main_c as main
+import nrpy.infrastructures.BHaH.main_driver.openmp.main_c as main
 import nrpy.infrastructures.BHaH.grid_management.openmp.numerical_grids_and_timestep as numericalgrids
 import nrpy.infrastructures.BHaH.general_relativity.NRPyPN_quasicircular_momenta as NRPyPNqm
 import nrpy.infrastructures.BHaH.diagnostics.progress_indicator as progress
