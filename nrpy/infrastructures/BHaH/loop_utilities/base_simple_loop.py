@@ -69,6 +69,7 @@ class base_simple_loop:
         enable_rfm_precompute: bool = False,
         fp_type: str = "double",
         loop_region: str = "",
+        cuda: bool = False
     ) -> None:
         self.loop_body = loop_body
         self.loop_region = loop_region
@@ -84,7 +85,7 @@ class base_simple_loop:
             raise ValueError(
                 implemented_loop_regions_err(self.loop_region)
             )
-        self.i2i1i0_mins, self.i2i1i0_maxs = get_loop_region_ranges(loop_region)
+        self.i2i1i0_mins, self.i2i1i0_maxs = get_loop_region_ranges(loop_region, cuda=cuda)
         self.prefix_loop_with = [""]
         
         self.read_rfm_xx_arrays = ["", "", ""]
