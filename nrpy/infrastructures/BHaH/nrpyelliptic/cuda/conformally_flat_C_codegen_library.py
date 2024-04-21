@@ -18,6 +18,7 @@ import nrpy.c_codegen as ccg
 import nrpy.c_function as cfc
 
 import nrpy.helpers.parallel_codegen as pcg
+import nrpy.helpers.gpu_kernel as gputils
 import nrpy.infrastructures.BHaH.nrpyelliptic.base_conformally_flat_C_codegen_library as base_npe_classes
 
 import nrpy.infrastructures.BHaH.loop_utilities.cuda.simple_loop as lp
@@ -100,28 +101,49 @@ class gpu_register_CFunction_initial_guess_all_points(
     ) -> None:
 
         super().__init__(enable_checkpointing, fp_type=fp_type)
-
-        self.body += r"""for(int grid=0; grid<commondata->NUMGRIDS; grid++) {
-  // Unpack griddata struct:
-  params_struct *restrict params = &griddata[grid].params;
-#include "set_CodeParameters.h"
-  REAL * xx[3];
-  for (int ww = 0; ww < 3; ww++)
-    xx[ww] = griddata[grid].xx[ww];
-  REAL * in_gfs = griddata[grid].gridfuncs.y_n_gfs;
-"""
-        self.body += lp.simple_loop(
+        self.loop_body = lp.simple_loop(
             loop_body="initial_guess_single_point(xx0,xx1,xx2,"
             f"&{self.uu_gf_memaccess},"
             f"&{self.vv_gf_memaccess});",
             read_xxs=True,
             loop_region="all points",
             fp_type=self.fp_type,
-            enable_OpenMP=False,
+        ).full_loop_body
+        
+        # Put loop_body into a device kernel
+        self.device_kernel = gputils.GPU_Kernel(
+            self.loop_body,
+            {
+                'x0' : 'const REAL *restrict',
+                'x1' : 'const REAL *restrict',
+                'x2' : 'const REAL *restrict',
+                'in_gfs' : 'REAL *restrict'
+            },
+            'initial_guess_all_points_gpu',
+            launch_dict= {
+                'blocks_per_grid' : [],
+                'threads_per_block' : ["32", "NGHOSTS"],
+                'stream' : "default"
+            },
+            fp_type=self.fp_type,
+            comments="GPU Kernel to initialize all grid points.",
         )
+        
+        self.body += r"""for(int grid=0; grid<commondata->NUMGRIDS; grid++) {
+  // Unpack griddata struct:
+  params_struct *restrict params = &griddata[grid].params;
+  REAL *restrict x0 = griddata[grid].xx[0];
+  REAL *restrict x1 = griddata[grid].xx[1];
+  REAL *restrict x2 = griddata[grid].xx[2];
+  REAL *restrict in_gfs = griddata[grid].gridfuncs.y_n_gfs;
+#include "set_CodeParameters.h"
+"""
+        self.body += f"{self.device_kernel.launch_block}"
+        self.body += f"{self.device_kernel.c_function_call()}"
         self.body += "}\n"
 
         cfc.register_CFunction(
+            prefunc=self.device_kernel.CFunction.full_function,
             includes=self.includes,
             desc=self.desc,
             cfunc_type=self.cfunc_type,
@@ -152,7 +174,7 @@ def register_CFunction_initial_guess_all_points(
         pcg.register_func_call(f"{__name__}.{cast(FT, cf()).f_code.co_name}", locals())
         return None
     gpu_register_CFunction_initial_guess_all_points(
-        OMP_collapse, enable_checkpointing, fp_type=fp_type
+        enable_checkpointing, fp_type=fp_type
     )
 
     return cast(pcg.NRPyEnv_type, pcg.NRPyEnv())
@@ -256,7 +278,7 @@ class gpu_register_CFunction_auxevol_gfs_all_points(
             loop_region="all points",
             OMP_collapse=OMP_collapse,
             fp_type=self.fp_type,
-        )
+        ).full_loop_body
         self.body += "}\n"
         cfc.register_CFunction(
             includes=self.includes,
@@ -325,7 +347,7 @@ class gpu_register_CFunction_variable_wavespeed_gfs_all_points(
             read_xxs=True,
             loop_region="interior",
             fp_type=self.fp_type,
-        )
+        ).full_loop_body
 
         # We must close the loop that was opened in the line 'for(int grid=0; grid<commondata->NUMGRIDS; grid++) {'
         self.body += r"""} // END LOOP for(int grid=0; grid<commondata->NUMGRIDS; grid++)
@@ -479,7 +501,7 @@ if(r < integration_radius) {
             loop_region="interior",
             OMP_custom_pragma=r"#pragma omp parallel for reduction(+:squared_sum,volume_sum)",
             fp_type=self.fp_type,
-        )
+        ).full_loop_body
 
         self.body += r"""
   // Compute and output the log of the l2-norm.
@@ -738,7 +760,7 @@ class gpu_register_CFunction_rhs_eval(
             read_xxs=not enable_rfm_precompute,
             OMP_collapse=OMP_collapse,
             fp_type=fp_type,
-        )
+        ).full_loop_body
 
         cfc.register_CFunction(
             include_CodeParameters_h=True,
@@ -837,7 +859,7 @@ class gpu_register_CFunction_compute_residual_all_points(
             read_xxs=not enable_rfm_precompute,
             OMP_collapse=OMP_collapse,
             fp_type=fp_type,
-        )
+        ).full_loop_body
         cfc.register_CFunction(
             include_CodeParameters_h=True,
             includes=self.includes,
