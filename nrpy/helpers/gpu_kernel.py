@@ -42,9 +42,36 @@ class GPU_Kernel:
     <BLANKLINE>
     >>> print(kernel.launch_block)
     <BLANKLINE>
-    dim3 threads_per_block = (128,28,1);
-    dim3 blocks_per_grid = (32,1,1);
+    const size_t threads_in_x_dir = 128;
+    const size_t threads_in_y_dir = 28;
+    const size_t threads_in_z_dir = 1;
+    dim3 threads_per_block(threads_in_x_dir, threads_in_y_dir, threads_in_z_dir);
     <BLANKLINE>
+    dim3 blocks_per_grid(32,1,1);
+    <BLANKLINE>
+    >>> kernel = GPU_Kernel(
+    ... "*x = in;",
+    ... {'x' : 'REAL *restrict', 'in' : 'const REAL'},
+    ... 'basic_assignment_gpu',
+    ... launch_dict = {
+    ... 'blocks_per_grid' : [],
+    ... 'threads_per_block' : [128,28,1],
+    ... },
+    ... )
+    >>> print(kernel.launch_block)
+    <BLANKLINE>
+    const size_t threads_in_x_dir = 128;
+    const size_t threads_in_y_dir = 28;
+    const size_t threads_in_z_dir = 1;
+    dim3 threads_per_block(threads_in_x_dir, threads_in_y_dir, threads_in_z_dir);
+    <BLANKLINE>
+    dim3 grid_blocks(
+        (Nxx_plus_2NGHOSTS0 + threads_in_x_dir - 1) / threads_in_x_dir,
+        (Nxx_plus_2NGHOSTS1 + threads_in_y_dir - 1) / threads_in_y_dir,
+        (Nxx_plus_2NGHOSTS2 + threads_in_z_dir - 1) / threads_in_z_dir
+    );
+    <BLANKLINE>
+
     """
 
     def __init__(
@@ -87,17 +114,28 @@ class GPU_Kernel:
     def generate_launch_block(self):
         "Generate preceding launch block definitions for kernel function call."
         if not self.launch_dict is None:
-            blocks_per_grid = self.launch_dict["blocks_per_grid"]
-            for _ in range(3 - len(blocks_per_grid)):
-                blocks_per_grid += [1]
-            blocks_per_grid_str = ",".join(map(str, blocks_per_grid))
-            grid_def_str = f"dim3 blocks_per_grid = ({blocks_per_grid_str});"
-
             threads_per_block = self.launch_dict["threads_per_block"]
             for _ in range(3 - len(threads_per_block)):
-                threads_per_block += [1]
-            threads_per_block = ",".join(map(str, threads_per_block))
-            block_def_str = f"dim3 threads_per_block = ({threads_per_block});"
+                threads_per_block += ["1"]
+            block_def_str = f"""
+const size_t threads_in_x_dir = {threads_per_block[0]};
+const size_t threads_in_y_dir = {threads_per_block[1]};
+const size_t threads_in_z_dir = {threads_per_block[2]};
+dim3 threads_per_block(threads_in_x_dir, threads_in_y_dir, threads_in_z_dir);
+"""
+
+            blocks_per_grid = self.launch_dict["blocks_per_grid"]
+            if len(blocks_per_grid) > 0:
+                for _ in range(3 - len(blocks_per_grid)):
+                    blocks_per_grid += [1]
+                blocks_per_grid_str = ",".join(map(str, blocks_per_grid))
+                grid_def_str = f"dim3 blocks_per_grid({blocks_per_grid_str});"
+            else:
+                grid_def_str = f"""dim3 grid_blocks(
+    (Nxx_plus_2NGHOSTS0 + threads_in_x_dir - 1) / threads_in_x_dir,
+    (Nxx_plus_2NGHOSTS1 + threads_in_y_dir - 1) / threads_in_y_dir,
+    (Nxx_plus_2NGHOSTS2 + threads_in_z_dir - 1) / threads_in_z_dir
+);"""
 
             # Determine if the stream needs to be added to launch
             stream_def_str = None
@@ -124,8 +162,7 @@ class GPU_Kernel:
                 else:
                     sm_def_str = f"size_t sm = {self.launch_dict['sm']};"
 
-            self.launch_block = f"""
-{block_def_str}
+            self.launch_block = f"""{block_def_str}
 {grid_def_str}
 """
             if not sm_def_str is None:
