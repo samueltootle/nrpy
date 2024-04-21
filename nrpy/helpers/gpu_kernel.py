@@ -102,12 +102,13 @@ class GPU_Kernel:
             raise ValueError(f"Error: {self.decorators} requires a launch_dict")
         self.generate_launch_block()
 
+        self.param_list = [f"{v} {k}" for k,v in self.params_dict.items()] 
         # Store CFunction
         self.CFunction = cfc.CFunction(
             desc=self.desc,
             cfunc_type=self.cfunc_type,
             name=self.name,
-            params=list(self.params_dict.keys()),
+            params=",".join(self.param_list),
             body=self.body,
         )
 
@@ -191,6 +192,31 @@ dim3 threads_per_block(threads_in_x_dir, threads_in_y_dir, threads_in_z_dir);
 
         return c_function_call
 
+# Define functions to copy params to device
+def register_CFunction_set_params_constant() -> None:
+    """
+    Register C function for copying params to __constant__ space on device.
+
+    :return: None.
+    """
+
+    includes = ["BHaH_defines.h"]
+
+    desc = r"""Copy parameters to GPU __constant__."""
+    cfunc_type = "__host__ void"
+    name = "set_param_constants"
+    params = r"""const params_struct *restrict params"""
+    body = "cudaMemcpyToSymbol(d_params, params, sizeof(params_struct));"
+    cfc.register_CFunction(
+        includes=includes,
+        desc=desc,
+        cfunc_type=cfunc_type,
+        CoordSystem_for_wrapper_func="",
+        name=name,
+        params=params,
+        include_CodeParameters_h=False,
+        body=body,
+    )
 
 if __name__ == "__main__":
     import doctest
