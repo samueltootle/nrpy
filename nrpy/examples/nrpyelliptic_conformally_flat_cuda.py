@@ -14,6 +14,7 @@ import os
 import nrpy.params as par
 from nrpy.helpers import simd
 import nrpy.helpers.parallel_codegen as pcg
+import nrpy.helpers.gpu_kernel as gputils
 
 import nrpy.infrastructures.BHaH.header_definitions.cuda.output_BHaH_defines_h as Bdefines_h
 import nrpy.infrastructures.BHaH.checkpoints.openmp.checkpointing as chkpt
@@ -156,7 +157,7 @@ par.adjust_CodeParam_default("t_final", t_final)
 #########################################################
 # STEP 2: Declare core C functions & register each to
 #         cfc.CFunction_dict["function_name"]
-
+gputils.register_CFunction_set_params_constant()
 
 # Generate functions to set initial guess
 nrpyellClib.register_CFunction_initial_guess_single_point(fp_type=fp_type)
