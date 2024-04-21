@@ -12,7 +12,6 @@ Contributors:
 
 from typing import List, Union, Tuple, Dict
 import sympy as sp
-import nrpy.helpers.loop as lp
 import nrpy.indexedexp as ixp
 import nrpy.infrastructures.BHaH.loop_utilities.base_simple_loop as base_sl
 
