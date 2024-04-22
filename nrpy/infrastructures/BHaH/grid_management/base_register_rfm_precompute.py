@@ -62,6 +62,7 @@ class base_register_CFunctions_rfm_precompute:
                     'params' : params,
                     'body' : body,
                     'CoordSystem' : CoordSystem,
+                    'include_CodeParameters_h' : self.include_CodeParameters_h,
                 }
                 defines_list = [s.replace("restrict","") for s in rfm_precompute.BHaH_defines_list]
                 self.combined_BHaH_defines_list.extend(defines_list)
@@ -77,8 +78,9 @@ class base_register_CFunctions_rfm_precompute:
         "Register rfm_precompute CFunctions."
         self.populate_BHaH_defines()
         for name, val_dict in self.function_dict.items():
-            include_CP = self.include_CodeParameters_h if not "malloc" in name else True
+            include_CP = val_dict['include_CodeParameters_h']
             cfc.register_CFunction(
+                prefunc=val_dict['prefunc'],
                 includes=self.includes,
                 desc=val_dict['desc'],
                 cfunc_type=val_dict['cfunc_type'],
