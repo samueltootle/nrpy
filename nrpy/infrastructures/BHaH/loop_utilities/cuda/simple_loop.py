@@ -107,7 +107,12 @@ class simple_loop(base_sl.base_simple_loop):
                 "const REAL xx1 = x1[i1];",
                 "const REAL xx2 = x2[i2];",
             ]
-        
+        elif self.enable_rfm_precompute:
+            self.read_rfm_xx_arrays = [
+                self.rfmp.readvr_str[0].replace('rfmstruct->','rfm_'),
+                self.rfmp.readvr_str[1].replace('rfmstruct->','rfm_'),
+                self.rfmp.readvr_str[2].replace('rfmstruct->','rfm_'),
+            ]
         self.initialize_based_on__read_rfm_xx_arrays()
         
         self.increment = ["stride2", "stride1", "stride0"]
@@ -116,6 +121,10 @@ class simple_loop(base_sl.base_simple_loop):
   const int Nxx_plus_2NGHOSTS0 = d_params.Nxx_plus_2NGHOSTS0;
   const int Nxx_plus_2NGHOSTS1 = d_params.Nxx_plus_2NGHOSTS1;
   const int Nxx_plus_2NGHOSTS2 = d_params.Nxx_plus_2NGHOSTS2;
+  
+  [[maybe_unused]] const int invdxx0 = d_params.invdxx0;
+  [[maybe_unused]] const int invdxx1 = d_params.invdxx1;
+  [[maybe_unused]] const int invdxx2 = d_params.invdxx2;
   
   const int tid0  = blockIdx.x * blockDim.x + threadIdx.x;
   const int tid1  = blockIdx.y * blockDim.y + threadIdx.y;
