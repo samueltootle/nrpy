@@ -71,7 +71,10 @@ class ReferenceMetricPrecompute(rfm_precompute.ReferenceMetricPrecompute):
                             f"  rfmstruct->{key}[i{dirn}] = {sp.ccode(self.freevars_uniq_vals[which_freevar], type_aliases=sp_type_alias)};\n"
                         )
                         
-                        self.rfm_struct__define_kernel_dict[key] = kernel_body
+                        self.rfm_struct__define_kernel_dict[key] = {
+                            'body' : kernel_body,
+                            'expr' : self.freevars_uniq_vals[which_freevar],
+                        }
                         
                         # These have to be passed to kernel as rfm_{freevar}
                         self.readvr_str[
