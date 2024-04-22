@@ -54,17 +54,74 @@ class register_CFunction_numerical_grid_params_Nxx_dxx_xx(
         Nxx_dict: Dict[str, List[int]],
     ) -> None:
         super().__init__(CoordSystem, grid_physical_size, Nxx_dict)
-
+        
+        self.params.replace("REAL *restrict xx[3]", "REAL * xx[3]")
+        self.params = "const commondata_struct *restrict commondata, params_struct *restrict params, REAL * xx[3], const int Nx[3], const bool grid_is_resized"
+        self.prefunc=""
         self.body+="""
-    // Set up cell-centered Cartesian coordinate grid, centered at the origin.
-    xx[0] = (REAL *restrict)malloc(sizeof(REAL)*params->Nxx_plus_2NGHOSTS0);
-    xx[1] = (REAL *restrict)malloc(sizeof(REAL)*params->Nxx_plus_2NGHOSTS1);
-    xx[2] = (REAL *restrict)malloc(sizeof(REAL)*params->Nxx_plus_2NGHOSTS2);
-    for (int j = 0; j < params->Nxx_plus_2NGHOSTS0; j++) xx[0][j] = params->xxmin0 + ((REAL)(j - NGHOSTS) + (1.0 / 2.0)) * params->dxx0;
-    for (int j = 0; j < params->Nxx_plus_2NGHOSTS1; j++) xx[1][j] = params->xxmin1 + ((REAL)(j - NGHOSTS) + (1.0 / 2.0)) * params->dxx1;
-    for (int j = 0; j < params->Nxx_plus_2NGHOSTS2; j++) xx[2][j] = params->xxmin2 + ((REAL)(j - NGHOSTS) + (1.0 / 2.0)) * params->dxx2;
+    // Allocate device storage
+    cudaMalloc(&xx[0], sizeof(REAL) * Nxx_plus_2NGHOSTS0);
+    cudaCheckErrors(malloc, "Malloc failed");
+    cudaMalloc(&xx[1], sizeof(REAL) * Nxx_plus_2NGHOSTS1);
+    cudaCheckErrors(malloc, "Malloc failed");
+    cudaMalloc(&xx[2], sizeof(REAL) * Nxx_plus_2NGHOSTS2);
+    cudaCheckErrors(malloc, "Malloc failed");
+    
+    cpyHosttoDevice_params__constant(params);
+    
+    dim3 block_threads, grid_blocks;
+    auto set_grid_block = [&block_threads, &grid_blocks](auto Nx) {
+        size_t threads_in_x_dir = 32;
+        block_threads = dim3(threads_in_x_dir, 1, 1);
+        grid_blocks = dim3((Nx + threads_in_x_dir - 1)/threads_in_x_dir, 1, 1);
+    };
+    
+    size_t streamid = params->grid_idx % nstreams;
+    set_grid_block(Nxx_plus_2NGHOSTS0);
+    initialize_grid_xx0_gpu<<<grid_blocks, block_threads, 0, streams[streamid]>>>(xx[0]);
+    cudaCheckErrors(initialize_grid_xx0_gpu, "kernel failed");
+
+    streamid = (params->grid_idx + 1) % nstreams;
+    set_grid_block(Nxx_plus_2NGHOSTS1);
+    initialize_grid_xx1_gpu<<<grid_blocks, block_threads, 0, streams[streamid]>>>(xx[1]);
+    cudaCheckErrors(initialize_grid_xx1_gpu, "kernel failed");
+
+    streamid = (params->grid_idx + 2) % nstreams;
+    set_grid_block(Nxx_plus_2NGHOSTS2);
+    initialize_grid_xx2_gpu<<<grid_blocks, block_threads, 0, streams[streamid]>>>(xx[2]);
+    cudaCheckErrors(initialize_grid_xx2_gpu, "kernel failed");
     """
+        for i in range(3):
+            kernel_body = f"""
+  const int index  = blockIdx.x * blockDim.x + threadIdx.x;
+  const int stride = blockDim.x * gridDim.x;
+
+  REAL const& xxmin{i} = d_params.xxmin{i};
+
+  REAL const& dxx{i} = d_params.dxx{i};
+
+  REAL const& Nxx_plus_2NGHOSTS{i} = d_params.Nxx_plus_2NGHOSTS{i};
+
+  constexpr REAL onehalf = 1.0 / 2.0;
+
+  for (int j = index; j < Nxx_plus_2NGHOSTS{i}; j+=stride)
+    xx{i}[j] = xxmin{i} + ((REAL)(j - NGHOSTS) + onehalf) * dxx{i};
+"""
+            xx0_kernel = gputils.GPU_Kernel(
+                kernel_body,
+                {
+                    f"xx{i}" : "REAL *restrict"
+                },
+                f"initialize_grid_xx{i}_gpu",
+                launch_dict= {
+                    'blocks_per_grid' : [],
+                    'threads_per_block' : ["64"],
+                    'stream' : "default"
+                }
+            )
+            self.prefunc += xx0_kernel.CFunction.full_function
         cfc.register_CFunction(
+            prefunc=self.prefunc,
             includes=self.includes,
             desc=self.desc,
             cfunc_type=self.cfunc_type,
