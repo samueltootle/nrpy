@@ -46,7 +46,7 @@ def get_loop_region_ranges(loop_region, cuda: bool = False) -> str:
             i2i1i0_mins = [f"{prefix}{i}+NGHOSTS" for i in reversed(range(3))]
         else:
             i2i1i0_mins = ["NGHOSTS", "NGHOSTS", "NGHOSTS"]
-        i2i1i0_maxs = ["NGHOSTS+Nxx2", "NGHOSTS+Nxx1", "NGHOSTS+Nxx0"]
+        i2i1i0_maxs = ["Nxx_plus_2NGHOSTS2 - NGHOSTS", "Nxx_plus_2NGHOSTS1 - NGHOSTS", "Nxx_plus_2NGHOSTS0 - NGHOSTS"]
 
     return i2i1i0_mins, i2i1i0_maxs
 
