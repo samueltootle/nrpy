@@ -203,7 +203,32 @@ class gpu_register_CFunction_auxevol_gfs_single_point(
         self.cfunc_type = """__device__ __host__ void"""
         self.params = r"""const REAL xx0, const REAL xx1, const REAL xx2, REAL *restrict psi_background, REAL *restrict ADD_times_AUU
 """
-        self.body = ccg.c_codegen(
+        param_refs = ["AMAX", "SINHWAA", "bScale"]
+        commondata_refs = [
+            "zPunc",
+            "P0_x",
+            "P0_y",
+            "P0_z",
+            "P1_x",
+            "P1_y",
+            "P1_z",
+            "S0_x",
+            "S0_y",
+            "S0_z",
+            "S1_x",
+            "S1_y",
+            "S1_z",
+            "bare_mass_0",
+            "bare_mass_1"
+        ]
+        
+        self.body = "// Temporary variables to needed parameters and commondata.\n"
+        for p in param_refs:
+            self.body += f"const REAL {p} = d_params.{p};\n"
+        for cd in commondata_refs:
+            self.body += f"const REAL {cd} = d_commondata.{cd};\n"
+        self.body += "\n\n"
+        self.body += ccg.c_codegen(
             [self.psi_background, self.ADD_times_AUU],
             ["*psi_background", "*ADD_times_AUU"],
             verbose=False,
@@ -259,17 +284,16 @@ class gpu_register_CFunction_auxevol_gfs_all_points(
 
     def __init__(
         self,
-        OMP_collapse: int,
         fp_type: str = "double",
+        **_ : Any,
     ) -> None:
         super().__init__(fp_type=fp_type)
         self.loop_body = lp.simple_loop(
-            loop_body="auxevol_gfs_single_point(commondata, params, xx0,xx1,xx2,"
+            loop_body="auxevol_gfs_single_point(xx0,xx1,xx2,"
             f"&{self.psi_background_memaccess},"
             f"&{self.ADD_times_AUU_memaccess});",
             read_xxs=True,
             loop_region="all points",
-            OMP_collapse=OMP_collapse,
             fp_type=self.fp_type,
         ).full_loop_body
         
@@ -317,8 +341,8 @@ class gpu_register_CFunction_auxevol_gfs_all_points(
 
 
 def register_CFunction_auxevol_gfs_all_points(
-    OMP_collapse: int,
     fp_type: str = "double",
+    **_ : Any,
 ) -> Union[None, pcg.NRPyEnv_type]:
     """
     Support function for gpu_register_CFunction_auxevol_gfs_single_point.
@@ -333,7 +357,7 @@ def register_CFunction_auxevol_gfs_all_points(
     if pcg.pcg_registration_phase():
         pcg.register_func_call(f"{__name__}.{cast(FT, cf()).f_code.co_name}", locals())
         return None
-    gpu_register_CFunction_auxevol_gfs_all_points(OMP_collapse, fp_type=fp_type)
+    gpu_register_CFunction_auxevol_gfs_all_points(fp_type=fp_type)
 
     return cast(pcg.NRPyEnv_type, pcg.NRPyEnv())
 
