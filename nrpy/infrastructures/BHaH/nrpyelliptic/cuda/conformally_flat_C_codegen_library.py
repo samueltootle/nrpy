@@ -782,17 +782,12 @@ class gpu_register_CFunction_rhs_eval(
         self,
         CoordSystem: str,
         enable_rfm_precompute: bool,
-        enable_simd: bool,
-        OMP_collapse: int,
         fp_type: str = "double",
     ) -> None:
 
         super().__init__(CoordSystem, enable_rfm_precompute)
 
-        if enable_simd:
-            self.includes += [str(Path("simd") / "simd_intrinsics.h")]
-
-        self.body = lp.simple_loop(
+        self.simple_loop = lp.simple_loop(
             loop_body=ccg.c_codegen(
                 [self.rhs.uu_rhs, self.rhs.vv_rhs],
                 [
@@ -800,20 +795,55 @@ class gpu_register_CFunction_rhs_eval(
                     gri.BHaHGridFunction.access_gf("vv", gf_array_name="rhs_gfs"),
                 ],
                 enable_fd_codegen=True,
-                enable_simd=enable_simd,
                 fp_type=fp_type,
+                rational_const_alias="constexpr",
             ),
             loop_region="interior",
-            enable_simd=enable_simd,
             CoordSystem=CoordSystem,
             enable_rfm_precompute=enable_rfm_precompute,
             read_xxs=not enable_rfm_precompute,
-            OMP_collapse=OMP_collapse,
             fp_type=fp_type,
-        ).full_loop_body
-
+        )
+        self.loop_body = self.simple_loop.full_loop_body
+        self.kernel_comments="GPU Kernel to evaluate RHS on the interior."
+        self.params_dict_coord = {f"x{i}" : "const REAL *restrict" for i in range(3)}
+        self.body=""
+        
+        if enable_rfm_precompute:
+            
+            self.params_dict_coord = {f'{rfm_f.replace("REAL *restrict ","")[:-1]}' : 'const REAL *restrict' for rfm_f in self.simple_loop.rfmp.BHaH_defines_list}
+            params_dict = {f"rfm_{k}" : v for k,v in self.params_dict_coord.items()}
+            params_dict['auxevol_gfs'] = 'const REAL *restrict'
+            params_dict['in_gfs'] = 'const REAL *restrict'
+            params_dict['rhs_gfs'] = 'REAL *restrict'
+            params_dict['eta_damping'] = 'const REAL'
+        
+            # Put loop_body into a device kernel
+            self.device_kernel = gputils.GPU_Kernel(
+                self.loop_body,
+                params_dict,
+                'rhs_eval_gpu',
+                launch_dict= {
+                    'blocks_per_grid' : [],
+                    'threads_per_block' : ["32", "NGHOSTS"],
+                    'stream' : "default"
+                },
+                fp_type=fp_type,
+                comments=self.kernel_comments,
+            )
+            for k, v in self.params_dict_coord.items():
+                self.body += f"{v} rfm_{k} = rfmstruct->{k};\n"
+        else:
+            raise ValueError(
+                    "rhs_eval without rfm_precompute has not been implemented."
+                )
+        
+        
+        self.body += f"{self.device_kernel.launch_block}"
+        self.body += f"{self.device_kernel.c_function_call()}"
         cfc.register_CFunction(
-            include_CodeParameters_h=False,
+            prefunc=self.device_kernel.CFunction.full_function,
+            include_CodeParameters_h=True,
             includes=self.includes,
             desc=self.desc,
             cfunc_type=self.cfunc_type,
@@ -821,16 +851,14 @@ class gpu_register_CFunction_rhs_eval(
             name=self.name,
             params=self.params,
             body=self.body,
-            enable_simd=enable_simd,
         )
 
 
 def register_CFunction_rhs_eval(
     CoordSystem: str,
     enable_rfm_precompute: bool,
-    enable_simd: bool,
-    OMP_collapse: int,
     fp_type: str = "double",
+    **_ : Any,
 ) -> Union[None, pcg.NRPyEnv_type]:
     """
 
@@ -850,7 +878,7 @@ def register_CFunction_rhs_eval(
         pcg.register_func_call(f"{__name__}.{cast(FT, cf()).f_code.co_name}", locals())
         return None
     gpu_register_CFunction_rhs_eval(
-        CoordSystem, enable_rfm_precompute, enable_simd, OMP_collapse, fp_type=fp_type
+        CoordSystem, enable_rfm_precompute, fp_type=fp_type
     )
 
     return cast(pcg.NRPyEnv_type, pcg.NRPyEnv())
