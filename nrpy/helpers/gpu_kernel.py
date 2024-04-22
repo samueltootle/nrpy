@@ -220,6 +220,33 @@ def register_CFunction_set_params_constant() -> None:
         subdirectory="CUDA_utils",
     )
 
+# Define functions to copy params to device
+def register_CFunction_cpy_commondata_constant() -> None:
+    """
+    Register C function for copying commondata to __constant__ space on device.
+
+    :return: None.
+    """
+
+    includes = ["BHaH_defines.h"]
+
+    desc = r"""Copy parameters to GPU __constant__."""
+    cfunc_type = "__host__ void"
+    name = "cpy_commondata__constants"
+    params = r"""const commondata_struct *restrict commondata"""
+    body = "cudaMemcpyToSymbol(d_commondata, commondata, sizeof(commondata_struct));"
+    cfc.register_CFunction(
+        includes=includes,
+        desc=desc,
+        cfunc_type=cfunc_type,
+        CoordSystem_for_wrapper_func="",
+        name=name,
+        params=params,
+        include_CodeParameters_h=False,
+        body=body,
+        subdirectory="CUDA_utils",
+    )
+
 
 def generate_CFunction_mallocHostgrid() -> GPU_Kernel:
 
