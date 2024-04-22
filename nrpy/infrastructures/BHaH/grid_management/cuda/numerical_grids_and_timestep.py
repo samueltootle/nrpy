@@ -257,7 +257,7 @@ class register_CFunction_numerical_grids_and_timestep(
             self.body += r"""
 for(int grid=0; grid<commondata->NUMGRIDS; grid++) {
   rfm_precompute_malloc(commondata, &griddata[grid].params, &griddata[grid].rfmstruct);
-  set_param_constants(&griddata[grid].params);
+  cpyHosttoDevice_params__constant(&griddata[grid].params);
   rfm_precompute_defines(commondata, &griddata[grid].params, &griddata[grid].rfmstruct, griddata[grid].xx);
 }
   cpyDevicetoHost__grid(commondata, griddata_host, griddata);
@@ -272,7 +272,7 @@ for(int grid=0; grid<commondata->NUMGRIDS; grid++) {
         if self.enable_CurviBCs:
             self.body += r"""
 for(int grid=0; grid<commondata->NUMGRIDS; grid++) {
-  set_param_constants(&griddata[grid].params);
+  cpyHosttoDevice_params__constant(&griddata[grid].params);
   bcstruct_set_up(commondata, &griddata[grid].params, griddata[grid].xx, &griddata[grid].bcstruct);
 }
 """
@@ -283,7 +283,7 @@ for(int grid=0; grid<commondata->NUMGRIDS; grid++) {
 // Step 1.e: Set timestep based on minimum spacing between neighboring gridpoints.
 commondata->dt = 1e30;
 for(int grid=0; grid<commondata->NUMGRIDS; grid++) {
-  set_param_constants(&griddata[grid].params);
+  cpyHosttoDevice_params__constant(&griddata[grid].params);
   cfl_limited_timestep(commondata, &griddata[grid].params, griddata[grid].xx, &griddata[grid].bcstruct);
 }
 

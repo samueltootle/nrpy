@@ -194,7 +194,7 @@ dim3 threads_per_block(threads_in_x_dir, threads_in_y_dir, threads_in_z_dir);
 
 
 # Define functions to copy params to device
-def register_CFunction_set_params_constant() -> None:
+def register_CFunction_cpyHosttoDevice_params__constant() -> None:
     """
     Register C function for copying params to __constant__ space on device.
 
@@ -205,7 +205,7 @@ def register_CFunction_set_params_constant() -> None:
 
     desc = r"""Copy parameters to GPU __constant__."""
     cfunc_type = "__host__ void"
-    name = "set_param_constants"
+    name = "cpyHosttoDevice_params__constant"
     params = r"""const params_struct *restrict params"""
     body = "cudaMemcpyToSymbol(d_params, params, sizeof(params_struct));"
     cfc.register_CFunction(
@@ -221,7 +221,7 @@ def register_CFunction_set_params_constant() -> None:
     )
 
 # Define functions to copy params to device
-def register_CFunction_cpy_commondata_constant() -> None:
+def register_CFunction_cpyHosttoDevice_commondata__constant() -> None:
     """
     Register C function for copying commondata to __constant__ space on device.
 
@@ -232,7 +232,7 @@ def register_CFunction_cpy_commondata_constant() -> None:
 
     desc = r"""Copy parameters to GPU __constant__."""
     cfunc_type = "__host__ void"
-    name = "cpy_commondata__constants"
+    name = "cpyHosttoDevice_commondata__constant"
     params = r"""const commondata_struct *restrict commondata"""
     body = "cudaMemcpyToSymbol(d_commondata, commondata, sizeof(commondata_struct));"
     cfc.register_CFunction(

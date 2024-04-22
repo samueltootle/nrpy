@@ -157,8 +157,8 @@ par.adjust_CodeParam_default("t_final", t_final)
 #########################################################
 # STEP 2: Declare core C functions & register each to
 #         cfc.CFunction_dict["function_name"]
-gputils.register_CFunction_set_params_constant()
-gputils.register_CFunction_cpy_commondata_constant()
+gputils.register_CFunction_cpyHosttoDevice_params__constant()
+gputils.register_CFunction_cpyHosttoDevice_commondata__constant()
 gputils.register_CFunction_cpyDevicetoHost__grid()
 
 # Generate functions to set initial guess
