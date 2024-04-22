@@ -437,6 +437,7 @@ def c_codegen(
             enable_simd=CCGParams.enable_simd,
             enable_GoldenKernels=CCGParams.enable_GoldenKernels,
             fp_type=CCGParams.fp_type,
+            rational_const_alias=CCGParams.rational_const_alias
         )
 
     # Step 4: If CCGParams.verbose, then output the original SymPy
