@@ -688,6 +688,7 @@ class gpu_register_CFunction_diagnostics(
   if (commondata->time + commondata->dt > commondata->t_final)
     printf("\n");
 """
+        self.body="// need to implement\n"
         cfc.register_CFunction(
             includes=self.includes,
             desc=self.desc,
@@ -812,7 +813,7 @@ class gpu_register_CFunction_rhs_eval(
         ).full_loop_body
 
         cfc.register_CFunction(
-            include_CodeParameters_h=True,
+            include_CodeParameters_h=False,
             includes=self.includes,
             desc=self.desc,
             cfunc_type=self.cfunc_type,
