@@ -66,14 +66,19 @@ class ReferenceMetricPrecompute(rfm_precompute.ReferenceMetricPrecompute):
                     ):
                         key = self.freevars_uniq_xx_indep[which_freevar]
                         kernel_body = (
-                            f"for(int i{dirn}=0;i{dirn}<Nxx_plus_2NGHOSTS{dirn};i{dirn}++) {{\n"
-                            f"  const REAL xx{dirn} = xx[{dirn}][i{dirn}];\n"
-                            f"  rfmstruct->{key}[i{dirn}] = {sp.ccode(self.freevars_uniq_vals[which_freevar], type_aliases=sp_type_alias)};\n"
+                            f"const int Nxx_plus_2NGHOSTS{dirn} = d_params.Nxx_plus_2NGHOSTS{dirn};\n"
+                            "const int tid0 = threadIdx.x + blockIdx.x*blockDim.x;\n"
+                            "const int stride0 = blockDim.x * gridDim.x;\n\n"
+                            f"for(int i{dirn}=tid0;i{dirn}<Nxx_plus_2NGHOSTS{dirn};i{dirn}+=stride0) {{\n"
+                            f"  const REAL xx{dirn} = x{dirn}[i{dirn}];\n"
+                            f"  {key}[i{dirn}] = {sp.ccode(self.freevars_uniq_vals[which_freevar], type_aliases=sp_type_alias)};\n"
+                            "}"
                         )
                         
                         self.rfm_struct__define_kernel_dict[key] = {
                             'body' : kernel_body,
                             'expr' : self.freevars_uniq_vals[which_freevar],
+                            'coord': f'x{dirn}',
                         }
                         
                         # These have to be passed to kernel as rfm_{freevar}
