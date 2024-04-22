@@ -60,14 +60,13 @@ cmdline_input_and_parfile_parser(&commondata, argc, argv);
 
 // Step 1.c: Allocate NUMGRIDS griddata arrays, each containing data specific to an individual grid.
 griddata = (griddata_struct *)malloc(sizeof(griddata_struct) * commondata.NUMGRIDS);
-  griddata_host = (griddata_struct *)malloc(sizeof(griddata_struct) * commondata.NUMGRIDS);
+griddata_host = (griddata_struct *)malloc(sizeof(griddata_struct) * commondata.NUMGRIDS);
 
 // Step 1.d: Set up numerical grids: xx[3], masks, Nxx, dxx, invdxx, bcstruct, rfm_precompute, timestep, etc.
 {
   // if calling_for_first_time, then initialize commondata time=nn=t_0=nn_0 = 0
   const bool calling_for_first_time = true;
-  //numerical_grids_and_timestep(&commondata, griddata, griddata_host, calling_for_first_time);
-  numerical_grids_and_timestep(&commondata, griddata, calling_for_first_time);
+  numerical_grids_and_timestep(&commondata, griddata, griddata_host, calling_for_first_time);
 }
 
 for(int grid=0; grid<commondata.NUMGRIDS; grid++) {
