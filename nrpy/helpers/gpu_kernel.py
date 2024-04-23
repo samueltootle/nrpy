@@ -310,6 +310,37 @@ def register_CFunction_cpyDevicetoHost__grid() -> None:
         subdirectory="CUDA_utils",
     )
 
+def register_CFunction_cpyDevicetoHost__malloc_host_diag_gfs() -> None:
+    """
+    Register C function for allocating sufficient Host storage for diagnostics GFs.
+
+    :return: None.
+    """
+    includes = ["BHaH_defines.h"]
+    desc = r"""Allocate Host storage for diagnostics GFs."""
+    cfunc_type = "__host__ void"
+    name = "cpyDevicetoHost__grid"
+    params = "const commondata_struct *restrict commondata, const params_struct *restrict params, "
+    params += "MoL_gridfunctions_struct *restrict gridfuncs"
+    body = """
+  int const& Nxx_plus_2NGHOSTS0 = params->Nxx_plus_2NGHOSTS0;
+  int const& Nxx_plus_2NGHOSTS1 = params->Nxx_plus_2NGHOSTS1;
+  int const& Nxx_plus_2NGHOSTS2 = params->Nxx_plus_2NGHOSTS2;
+  const int Nxx_plus_2NGHOSTS_tot = Nxx_plus_2NGHOSTS0 * Nxx_plus_2NGHOSTS1 * Nxx_plus_2NGHOSTS2;
+  cudaMallocHost((void**)&gridfuncs->y_n_gfs, sizeof(REAL) * Nxx_plus_2NGHOSTS_tot * NUM_DIAG_YN);
+  cudaCheckErrors(cudaMallocHost, "Malloc y_n diagnostic GFs failed.")
+"""
+    cfc.register_CFunction(
+        includes=includes,
+        desc=desc,
+        cfunc_type=cfunc_type,
+        CoordSystem_for_wrapper_func="",
+        name=name,
+        params=params,
+        include_CodeParameters_h=False,
+        body=body,
+        subdirectory="CUDA_utils",
+    )
 
 if __name__ == "__main__":
     import doctest
