@@ -6,6 +6,7 @@ Email: sdtootle **at** gmail **dot** com
 """
 
 import nrpy.infrastructures.BHaH.loop_utilities.base_simple_loop as base_sl
+from nrpy.infrastructures.BHaH.grid_management.cuda import rfm_precompute
 from typing import Any
 
 class simple_loop(base_sl.base_simple_loop):
@@ -100,6 +101,10 @@ class simple_loop(base_sl.base_simple_loop):
             loop_region=loop_region,
             cuda=True,
         )
+
+        self.rfmp = rfm_precompute.ReferenceMetricPrecompute(
+            CoordSystem, fp_type=fp_type
+        )
         
         if self.read_xxs:
             self.read_rfm_xx_arrays = [
@@ -109,9 +114,9 @@ class simple_loop(base_sl.base_simple_loop):
             ]
         elif self.enable_rfm_precompute:
             self.read_rfm_xx_arrays = [
-                self.rfmp.readvr_str[0].replace('rfmstruct->','rfm_'),
-                self.rfmp.readvr_str[1].replace('rfmstruct->','rfm_'),
-                self.rfmp.readvr_str[2].replace('rfmstruct->','rfm_'),
+                self.rfmp.readvr_str,
+                self.rfmp.readvr_str,
+                self.rfmp.readvr_str,
             ]
         self.initialize_based_on__read_rfm_xx_arrays()
         
