@@ -75,9 +75,9 @@ class register_CFunction_bcstruct_set_up(
 
     // Next allocate memory for inner_boundary_points:
     cudaMallocHost((void**)&bcstruct->inner_bc_array, sizeof(innerpt_bc_struct) * num_inner);
-    cudaCheckErrors(cudaMallocHost, "Pinned malloc inner_bc_array failed.")
+    cudaCheckErrors(cudaMallocHost, "Pinned malloc inner_bc_array failed.");
     cudaMalloc(&bcstruct_gpu->inner_bc_array, sizeof(innerpt_bc_struct) * num_inner);
-    cudaCheckErrors(cudaMalloc, "memory failure")
+    cudaCheckErrors(cudaMalloc, "memory failure");
   }
 
   // Then set inner_bc_array using device bcstruct:
@@ -109,7 +109,7 @@ class register_CFunction_bcstruct_set_up(
                   bcstruct->inner_bc_array, 
                   sizeof(innerpt_bc_struct) * bcstruct->bc_info.num_inner_boundary_points, 
                   cudaMemcpyHostToDevice, streams[nstreams-1]);
-  cudaCheckErrors(cudaMemcpy, "Memcpy failed - inner_bc_array")
+  cudaCheckErrors(cudaMemcpy, "Memcpy failed - inner_bc_array");
 
   ////////////////////////////////////////
   // STEP 2: SET UP OUTER BOUNDARY STRUCTS
@@ -136,7 +136,7 @@ class register_CFunction_bcstruct_set_up(
                 (x0min_face_range[1] - x0min_face_range[0]) * 
                 (x0min_face_range[3] - x0min_face_range[2]) * 
                 (x0min_face_range[5] - x0min_face_range[4])));
-    cudaCheckErrors(cudaMallocHost, "Pinned malloc pure_outer_bc_array failed.")
+    cudaCheckErrors(cudaMallocHost, "Pinned malloc pure_outer_bc_array failed.");
     cudaMalloc(&bcstruct_gpu->pure_outer_bc_array[3 * which_gz + face / 2], 
                sizeof(outerpt_bc_struct) * 2 * (
                 (x0min_face_range[1] - x0min_face_range[0]) * 
@@ -167,7 +167,7 @@ class register_CFunction_bcstruct_set_up(
                 (x1min_face_range[1] - x1min_face_range[0]) * 
                 (x1min_face_range[3] - x1min_face_range[2]) * 
                 (x1min_face_range[5] - x1min_face_range[4])));
-    cudaCheckErrors(cudaMallocHost, "Pinned malloc pure_outer_bc_array failed.")
+    cudaCheckErrors(cudaMallocHost, "Pinned malloc pure_outer_bc_array failed.");
     cudaMalloc(&bcstruct_gpu->pure_outer_bc_array[3 * which_gz + face / 2], 
                sizeof(outerpt_bc_struct) * 2 * (
                 (x1min_face_range[1] - x1min_face_range[0]) * 
@@ -198,7 +198,7 @@ class register_CFunction_bcstruct_set_up(
                 (x2min_face_range[1] - x2min_face_range[0]) * 
                 (x2min_face_range[3] - x2min_face_range[2]) * 
                 (x2min_face_range[5] - x2min_face_range[4])));
-    cudaCheckErrors(cudaMallocHost, "Pinned malloc pure_outer_bc_array failed.")
+    cudaCheckErrors(cudaMallocHost, "Pinned malloc pure_outer_bc_array failed.");
     cudaMalloc(&bcstruct_gpu->pure_outer_bc_array[3 * which_gz + face / 2], 
                sizeof(outerpt_bc_struct) * 2 * (
                 (x2min_face_range[1] - x2min_face_range[0]) * 
@@ -290,37 +290,37 @@ static void cpy_pure_outer_bc_array(bc_struct *restrict bcstruct_h, bc_struct *r
           &bcstruct_h->pure_outer_bc_array[idx][idx2d].i0,
           sizeof(short), 
           cudaMemcpyHostToDevice, streams[streamid]);
-    cudaCheckErrors(cudaMemcpy, "Memcpy failed - pure_outer_bc_array1")
+    cudaCheckErrors(cudaMemcpy, "Memcpy failed - pure_outer_bc_array1");
     cudaMemcpyAsync(
           &bcstruct_d->pure_outer_bc_array[idx][idx2d].i1, 
           &bcstruct_h->pure_outer_bc_array[idx][idx2d].i1,
           sizeof(short), 
           cudaMemcpyHostToDevice, streams[streamid]);                  
-    cudaCheckErrors(cudaMemcpy, "Memcpy failed - pure_outer_bc_array2")
+    cudaCheckErrors(cudaMemcpy, "Memcpy failed - pure_outer_bc_array2");
     cudaMemcpyAsync(
           &bcstruct_d->pure_outer_bc_array[idx][idx2d].i2, 
           &bcstruct_h->pure_outer_bc_array[idx][idx2d].i2,
           sizeof(short), 
           cudaMemcpyHostToDevice, streams[streamid]);
-    cudaCheckErrors(cudaMemcpy, "Memcpy failed - pure_outer_bc_array2")                  
+    cudaCheckErrors(cudaMemcpy, "Memcpy failed - pure_outer_bc_array2");
     cudaMemcpyAsync(
           &bcstruct_d->pure_outer_bc_array[idx][idx2d].FACEX0, 
           &bcstruct_h->pure_outer_bc_array[idx][idx2d].FACEX0,
           sizeof(int8_t), 
           cudaMemcpyHostToDevice, streams[streamid]);
-    cudaCheckErrors(cudaMemcpy, "Memcpy failed - pure_outer_bc_array Face0")
+    cudaCheckErrors(cudaMemcpy, "Memcpy failed - pure_outer_bc_array Face0");
     cudaMemcpyAsync(
           &bcstruct_d->pure_outer_bc_array[idx][idx2d].FACEX1, 
           &bcstruct_h->pure_outer_bc_array[idx][idx2d].FACEX1,
           sizeof(int8_t), 
           cudaMemcpyHostToDevice, streams[streamid]);
-    cudaCheckErrors(cudaMemcpy, "Memcpy failed - pure_outer_bc_array Face1")
+    cudaCheckErrors(cudaMemcpy, "Memcpy failed - pure_outer_bc_array Face1");
     cudaMemcpyAsync(
           &bcstruct_d->pure_outer_bc_array[idx][idx2d].FACEX2, 
           &bcstruct_h->pure_outer_bc_array[idx][idx2d].FACEX2,
           sizeof(int8_t), 
           cudaMemcpyHostToDevice, streams[streamid]);
-    cudaCheckErrors(cudaMemcpy, "Memcpy failed - pure_outer_bc_array Face2")
+    cudaCheckErrors(cudaMemcpy, "Memcpy failed - pure_outer_bc_array Face2");
   }
 """ + self.prefunc
         cfc.register_CFunction(
