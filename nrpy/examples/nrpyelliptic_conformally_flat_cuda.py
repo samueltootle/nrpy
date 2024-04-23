@@ -160,6 +160,7 @@ par.adjust_CodeParam_default("t_final", t_final)
 gputils.register_CFunction_cpyHosttoDevice_params__constant()
 gputils.register_CFunction_cpyHosttoDevice_commondata__constant()
 gputils.register_CFunction_cpyDevicetoHost__grid()
+gputils.register_CFunction_find_global_minimum()
 
 # Generate functions to set initial guess
 nrpyellClib.register_CFunction_initial_guess_single_point(fp_type=fp_type)
