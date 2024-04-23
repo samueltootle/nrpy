@@ -24,7 +24,7 @@ import nrpy.infrastructures.BHaH.diagnostics.progress_indicator as progress
 import nrpy.infrastructures.BHaH.grid_management.cuda.griddata_free as griddata_commondata
 import nrpy.infrastructures.BHaH.Makefile_helpers as Makefile
 import nrpy.infrastructures.BHaH.main_driver.cuda.main_c as main
-from nrpy.infrastructures.BHaH.MoLtimestepping.openmp import MoL
+from nrpy.infrastructures.BHaH.MoLtimestepping.cuda import MoL
 import nrpy.infrastructures.BHaH.CurviBoundaryConditions.cuda.CurviBoundaryConditions as cbc
 import nrpy.infrastructures.BHaH.nrpyelliptic.cuda.conformally_flat_C_codegen_library as nrpyellClib
 import nrpy.infrastructures.BHaH.grid_management.cuda.numerical_grids_and_timestep as numericalgrids
