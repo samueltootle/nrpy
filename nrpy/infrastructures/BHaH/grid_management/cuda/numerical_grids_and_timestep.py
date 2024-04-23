@@ -15,6 +15,7 @@ import nrpy.c_function as cfc
 import nrpy.params as par
 import nrpy.infrastructures.BHaH.grid_management.base_numerical_grids_and_timestep as base_gm_classes
 import nrpy.helpers.gpu_kernel as gputils
+import nrpy.infrastructures.BHaH.loop_utilities.cuda.simple_loop as lp
 
 # fmt: off
 for i in range(3):
@@ -151,19 +152,60 @@ class register_CFunction_cfl_limited_timestep(
         super().__init__(CoordSystem, fp_type=fp_type)
         # could be replaced by simple loop?
         self.body = r"""
-REAL ds_min = 1e38;
-#pragma omp parallel for reduction(min:ds_min)
-LOOP_NOOMP(i0, 0, Nxx_plus_2NGHOSTS0,
-           i1, 0, Nxx_plus_2NGHOSTS1,
-           i2, 0, Nxx_plus_2NGHOSTS2) {
-    const REAL xx0 = xx[0][i0];
-    const REAL xx1 = xx[1][i1];
-    const REAL xx2 = xx[2][i2];
-    REAL dsmin0, dsmin1, dsmin2;
-"""
-        self.body += self.min_body
+const int Nxx_tot = (Nxx_plus_2NGHOSTS0)*(Nxx_plus_2NGHOSTS1)*(Nxx_plus_2NGHOSTS2);
+  REAL *ds_min;
+  REAL *restrict x0 = xx[0];
+  REAL *restrict x1 = xx[1];
+  REAL *restrict x2 = xx[2];
 
+  // We only loop over a single GF array length
+  cudaMalloc(&ds_min,sizeof(REAL) * Nxx_tot);
+  cudaCheckErrors(cudaMalloc, "cudaMalloc failure"); // error checking
+"""
+        # lp_body = "REAL ds_min = 1e38;\n"
+        lp_body = "REAL dsmin0, dsmin1, dsmin2;\n"+self.min_body_compute
+        lp_body += """
+  int idx = IDX3(i0,i1,i2);
+  ds_min[idx] = MIN(dsmin0, MIN(dsmin1, dsmin2));
+"""
+        self.loop_body = ""
+        for param_sym in self.unique_symbols:
+            self.loop_body += f"const REAL {param_sym} = d_params.{param_sym};\n"
+        self.loop_body+=lp.simple_loop(
+            loop_body=lp_body,
+            read_xxs=True,
+            loop_region="all points",
+            fp_type=self.fp_type,
+        ).full_loop_body
+        
+        # Put loop_body into a device kernel
+        self.device_kernel = gputils.GPU_Kernel(
+            self.loop_body,
+            {
+                'x0' : 'const REAL *restrict',
+                'x1' : 'const REAL *restrict',
+                'x2' : 'const REAL *restrict',
+                'ds_min' : 'REAL *restrict'
+            },
+            'compute_ds_min__gpu',
+            launch_dict= {
+                'blocks_per_grid' : [],
+                'threads_per_block' : ["64"],
+                'stream' : "default"
+            },
+            fp_type=self.fp_type,
+            comments="GPU Kernel to compute local ds_min per grid point.",
+        )
+        self.body += f"{self.device_kernel.launch_block}"
+        self.body += f"{self.device_kernel.c_function_call()}"
+        self.body += """
+  REAL ds_min__global = find_global__min(ds_min, Nxx_tot);
+
+  commondata->dt = MIN(commondata->dt, ds_min__global * commondata->CFL_FACTOR);
+  cudaFree(ds_min);        
+"""
         cfc.register_CFunction(
+            prefunc=self.device_kernel.CFunction.full_function,
             includes=self.includes,
             desc=self.desc,
             cfunc_type=self.cfunc_type,
