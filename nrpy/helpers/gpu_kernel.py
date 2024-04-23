@@ -189,6 +189,9 @@ dim3 threads_per_block(threads_in_x_dir, threads_in_y_dir, threads_in_z_dir);
         for p in self.params_dict:
             c_function_call += f"{p}, "
         c_function_call = c_function_call[:-2] + ");\n"
+        msg = f"{self.name} failure"
+        msg = f'cudaCheckErrors(cudaKernel, "{msg}")'
+        c_function_call += f"{msg};\n"
 
         return c_function_call
 
@@ -328,7 +331,7 @@ def register_CFunction_cpyDevicetoHost__malloc_host_diag_gfs() -> None:
   int const& Nxx_plus_2NGHOSTS2 = params->Nxx_plus_2NGHOSTS2;
   const int Nxx_plus_2NGHOSTS_tot = Nxx_plus_2NGHOSTS0 * Nxx_plus_2NGHOSTS1 * Nxx_plus_2NGHOSTS2;
   cudaMallocHost((void**)&gridfuncs->y_n_gfs, sizeof(REAL) * Nxx_plus_2NGHOSTS_tot * NUM_DIAG_YN);
-  cudaCheckErrors(cudaMallocHost, "Malloc y_n diagnostic GFs failed.")
+  cudaCheckErrors(cudaMallocHost, "Malloc y_n diagnostic GFs failed.");
 """
     cfc.register_CFunction(
         includes=includes,
