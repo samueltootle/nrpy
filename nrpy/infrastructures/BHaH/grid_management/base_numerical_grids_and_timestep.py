@@ -15,7 +15,7 @@ import sympy as sp
 import nrpy.params as par
 import nrpy.reference_metric as refmetric
 import nrpy.c_codegen as ccg
-
+from nrpy.helpers.expr_tree import get_unique_expression_symbols
 
 class base_register_CFunction_numerical_grid_params_Nxx_dxx_xx:
     """
@@ -184,16 +184,27 @@ class base_register_CFunction_cfl_limited_timestep:
         self.rfm = refmetric.reference_metric[CoordSystem]
         dxx0, dxx1, dxx2 = sp.symbols("dxx0 dxx1 dxx2", real=True)
         self.body = ""
-        self.min_body = ccg.c_codegen(
-            [
-                sp.Abs(self.rfm.scalefactor_orthog[0] * dxx0),
-                sp.Abs(self.rfm.scalefactor_orthog[1] * dxx1),
-                sp.Abs(self.rfm.scalefactor_orthog[2] * dxx2),
-            ],
+        self.min_expressions = [
+            sp.Abs(self.rfm.scalefactor_orthog[0] * dxx0),
+            sp.Abs(self.rfm.scalefactor_orthog[1] * dxx1),
+            sp.Abs(self.rfm.scalefactor_orthog[2] * dxx2),
+        ]
+        
+        # Save unique symbols not related to coordinates in case
+        # we need to include them in the function body
+        self.unique_symbols = list()
+        for expr in self.min_expressions:
+            sub_list = get_unique_expression_symbols(expr, exclude=[f'xx{i}' for i in range(3)])
+            self.unique_symbols += sub_list
+        self.unique_symbols = sorted(list(set(self.unique_symbols)))
+        
+        self.min_body_compute = ccg.c_codegen(
+            self.min_expressions,
             ["dsmin0", "dsmin1", "dsmin2"],
             include_braces=False,
             fp_type=fp_type,
         )
+        self.min_body = self.min_body_compute
         self.min_body += """
   ds_min = MIN(ds_min, MIN(dsmin0, MIN(dsmin1, dsmin2)));
 }
