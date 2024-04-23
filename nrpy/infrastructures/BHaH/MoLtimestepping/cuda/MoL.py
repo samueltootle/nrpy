@@ -18,6 +18,10 @@ import nrpy.c_function as cfc
 from nrpy.infrastructures.BHaH.MoLtimestepping import base_MoL
 from nrpy.infrastructures.BHaH import griddata_commondata
 from nrpy.infrastructures.BHaH import BHaH_defines_h
+import nrpy.helpers.gpu_kernel as gputils
+from nrpy.helpers.generic import (
+    superfast_uniq,
+)
 
 # fmt: off
 _ = par.CodeParameter("int", __name__, "nn_0", add_to_parfile=False, add_to_set_CodeParameters_h=True, commondata=True)
@@ -88,6 +92,229 @@ class register_CFunction_MoL_malloc(base_MoL.base_register_CFunction_MoL_malloc)
             body=self.body,
         )
 
+class RKFunction(base_MoL.RKFunction):
+    """
+    CUDA overload of RKFUNCTION
+    :param fp_type_alias: Infrastructure-specific alias for the C/C++ floating point data type. E.g., 'REAL' or 'CCTK_REAL'.
+    :param operator: The operator with respect to which the derivative is taken.
+    :param RK_lhs_list: List of LHS expressions for RK substep.
+    :param RK_rhs_list: List of RHS expressions for RK substep.
+    :param enable_simd: A flag to specify if SIMD instructions should be used.
+    :param cfunc_type: decorators and return type for the RK substep function
+    :param rk_step: current step (> 0).  Default (None) assumes Euler step
+    :param fp_type: Floating point type, e.g., "double".
+    :param rational_const_alias: Overload const specifier for Rational definitions
+    """
+
+    def __init__(
+        self,
+        fp_type_alias: str,
+        RK_lhs_list: List[sp.Basic],
+        RK_rhs_list: List[sp.Basic],
+        enable_simd: bool = False,
+        cfunc_type: str = "static void",
+        rk_step: Union[int, None] = None,
+        fp_type: str = "double",
+        rational_const_alias: str = "constexpr",
+    ) -> None:
+        super().__init__(
+            fp_type_alias,
+            RK_lhs_list,
+            RK_rhs_list,
+            enable_simd=enable_simd,
+            cfunc_type=cfunc_type,
+            rk_step=rk_step,
+            fp_type=fp_type,
+            rational_const_alias=rational_const_alias,
+        )
+        self.device_kernel = None
+        
+    def CFunction_RK_substep_function(self) -> None:
+        """Generate a C function based on the given RK substep expression lists."""
+        self.body = ""
+        self.params: str = "params_struct *restrict params, "
+        kernel_body: str = ""
+        for i in ["0", "1", "2"]:
+            kernel_body += f"const int Nxx_plus_2NGHOSTS{i} = d_params.Nxx_plus_2NGHOSTS{i};\n"
+        kernel_body += "const int Ntot = Nxx_plus_2NGHOSTS0*Nxx_plus_2NGHOSTS1*Nxx_plus_2NGHOSTS2*NUM_EVOL_GFS;\n\n"
+        kernel_body += (
+            "// Kernel thread/stride setup\n"
+            "const int tid0 = threadIdx.x + blockIdx.x*blockDim.x;\n"
+            "const int stride0 = blockDim.x * gridDim.x;\n\n"
+            "for(int i=tid0;i<Ntot;i+=stride0) {\n"
+        )
+
+        var_type = "REAL"
+
+        read_list = [
+            read
+            for el in self.RK_rhs_list
+            for read in list(sp.ordered(el.free_symbols))
+        ]
+        read_list_unique = superfast_uniq(read_list)
+
+        for el in read_list_unique:
+            if str(el) != "commondata->dt":
+                gfs_el = str(el).replace("gfsL", "gfs[i]")
+                self.param_vars.append(gfs_el[:-3])
+                self.params += f"{var_type} *restrict {gfs_el[:-3]},"
+                kernel_body += f"const {var_type} {el} = {gfs_el};\n"
+        for el in self.RK_lhs_str_list:
+            lhs_var = el[:-3]
+            if not lhs_var in self.params:
+                self.param_vars.append(lhs_var)
+                self.params += f"{var_type} *restrict {lhs_var},"
+        self.params += f"const {var_type} dt"
+
+        kernel_params = {
+            k : "REAL *restrict" for k in self.param_vars
+        }
+        kernel_params['dt'] = 'const REAL'
+        self.device_kernel = gputils.GPU_Kernel(
+            kernel_body + self.loop_body.replace("commondata->dt", "dt") + "\n}\n",
+            kernel_params,
+            f"{self.name}_gpu",
+            launch_dict= {
+                'blocks_per_grid' : [],
+                'threads_per_block' : ["64"],
+                'stream' : f"params->grid_idx % nstreams"
+            },
+            fp_type=self.fp_type,
+            comments=f"GPU Kernel to compute RK substep {self.rk_step}.",
+        )
+        prefunc = self.device_kernel.CFunction.full_function
+        
+        # if self.enable_simd:
+        #     self.body += self.loop_body.replace("commondata->dt", "DT")
+        #     for j, el in enumerate(self.RK_lhs_list):
+        #         self.body += f"  WriteSIMD(&{str(el).replace('gfsL', 'gfs[i]')}, __rhs_exp_{j});\n"
+        # else:
+        #     self.body += self.loop_body.replace("commondata->dt", "dt")
+        # self.body += "}\n"
+        # Store CFunction
+        for i in range(3):
+            self.body+=f"const int Nxx_plus_2NGHOSTS{i} = params->Nxx_plus_2NGHOSTS{i};\n"
+        self.body+=self.device_kernel.launch_block
+        self.body+=self.device_kernel.c_function_call()
+        self.CFunction = cfc.CFunction(
+            prefunc=prefunc,
+            includes=self.includes,
+            desc=self.desc,
+            cfunc_type=self.cfunc_type,
+            name=self.name,
+            params=self.params,
+            body=self.body,
+        )
+
+# single_RK_substep_input_symbolic() performs necessary replacements to
+#   define C code for a single RK substep
+#   (e.g., computing k_1 and then updating the outer boundaries)
+def single_RK_substep_input_symbolic(
+    # comment_block: str,
+    substep_time_offset_dt: Union[sp.Basic, int, str],
+    rhs_str: str,
+    rhs_input_expr: sp.Basic,
+    rhs_output_expr: sp.Basic,
+    RK_lhs_list: Union[sp.Basic, List[sp.Basic]],
+    RK_rhs_list: Union[sp.Basic, List[sp.Basic]],
+    post_rhs_list: Union[str, List[str]],
+    post_rhs_output_list: Union[sp.Basic, List[sp.Basic]],
+    rk_step: Union[int, None] = None,
+    enable_simd: bool = False,
+    gf_aliases: str = "",
+    post_post_rhs_string: str = "",
+    fp_type: str = "double",
+    additional_comments: str = "",
+    rational_const_alias: str = "const",
+) -> str:
+    """
+    Generate C code for a given Runge-Kutta substep.
+
+    :param substep_time_offset_dt: Time offset for the RK substep.
+    :param rhs_str: Right-hand side string of the C code.
+    :param rhs_input_expr: Input expression for the RHS.
+    :param rhs_output_expr: Output expression for the RHS.
+    :param RK_lhs_list: List of LHS expressions for RK.
+    :param RK_rhs_list: List of RHS expressions for RK.
+    :param post_rhs_list: List of post-RHS expressions.
+    :param post_rhs_output_list: List of outputs for post-RHS expressions.
+    :param rk_step: Optional integer representing the current RK step.
+    :param enable_simd: Whether SIMD optimization is enabled.
+    :param gf_aliases: Additional aliases for grid functions.
+    :param post_post_rhs_string: String to be used after the post-RHS phase.
+    :param fp_type: Floating point type, e.g., "double".
+    :param additional_comments: additional comments to append to auto-generated comment block.
+
+    :return: A string containing the generated C code.
+
+    :raises ValueError: If substep_time_offset_dt cannot be extracted from the Butcher table.
+    """
+    # Ensure all input lists are lists
+    RK_lhs_list = [RK_lhs_list] if not isinstance(RK_lhs_list, list) else RK_lhs_list
+    RK_rhs_list = [RK_rhs_list] if not isinstance(RK_rhs_list, list) else RK_rhs_list
+    post_rhs_list = (
+        [post_rhs_list] if not isinstance(post_rhs_list, list) else post_rhs_list
+    )
+    post_rhs_output_list = (
+        [post_rhs_output_list]
+        if not isinstance(post_rhs_output_list, list)
+        else post_rhs_output_list
+    )
+    comment_block = (
+        f"// -={{ START k{rk_step} substep }}=-"
+        if not rk_step is None
+        else "// ***Euler timestepping only requires one RHS evaluation***"
+    )
+    comment_block += additional_comments
+    body = f"{comment_block}\n"
+
+    if isinstance(substep_time_offset_dt, (int, sp.Rational, sp.Mul)):
+        substep_time_offset_str = f"{float(substep_time_offset_dt):.17e}"
+    else:
+        raise ValueError(
+            f"Could not extract substep_time_offset_dt={substep_time_offset_dt} from Butcher table"
+        )
+    body += "for(int grid=0; grid<commondata->NUMGRIDS; grid++) {\n"
+    body += (
+        f"commondata->time = time_start + {substep_time_offset_str} * commondata->dt;\n"
+    )
+    body += gf_aliases
+
+    # Part 1: RHS evaluation
+    updated_rhs_str = (
+        str(rhs_str)
+        .replace("RK_INPUT_GFS", str(rhs_input_expr).replace("gfsL", "gfs"))
+        .replace("RK_OUTPUT_GFS", str(rhs_output_expr).replace("gfsL", "gfs"))
+    )
+    body += updated_rhs_str + "\n"
+    # Part 2: RK update
+    RK_key = f"RK_STEP{rk_step}"
+    base_MoL.MoL_Functions_dict[RK_key] = RKFunction(
+        "REAL",
+        RK_lhs_list,
+        RK_rhs_list,
+        rk_step=rk_step,
+        enable_simd=enable_simd,
+        fp_type=fp_type,
+        rational_const_alias=rational_const_alias,
+    )
+
+    body += base_MoL.MoL_Functions_dict[RK_key].c_function_call()
+
+    # Part 3: Call post-RHS functions
+    for post_rhs, post_rhs_output in zip(post_rhs_list, post_rhs_output_list):
+        body += post_rhs.replace(
+            "RK_OUTPUT_GFS", str(post_rhs_output).replace("gfsL", "gfs")
+        )
+
+    body += "}\n"
+
+    for post_rhs, post_rhs_output in zip(post_rhs_list, post_rhs_output_list):
+        body += post_post_rhs_string.replace(
+            "RK_OUTPUT_GFS", str(post_rhs_output).replace("gfsL", "gfs")
+        )
+
+    return body
 
 ########################################################################################################################
 # EXAMPLE
@@ -146,6 +373,7 @@ class register_CFunction_MoL_step_forward_in_time(
         enable_curviBCs: bool = False,
         enable_simd: bool = False,
         fp_type: str = "double",
+        rational_const_alias: str = "constexpr",
     ) -> None:
 
         super().__init__(
@@ -158,12 +386,44 @@ class register_CFunction_MoL_step_forward_in_time(
             enable_curviBCs=enable_curviBCs,
             enable_simd=enable_simd,
             fp_type=fp_type,
+            rational_const_alias=rational_const_alias,
         )
         if enable_simd:
             self.includes += [os.path.join("SIMD", "SIMD_intrinsics.h")]
+        self.single_RK_substep_input_symbolic = single_RK_substep_input_symbolic
         self.setup_gf_aliases()
         self.generate_RK_steps()
+        
         self.register_final_code()
+    
+    def register_final_code(self) -> None:
+        """
+        Generate remaining body of the code and register function.
+        This is the main method to be overloaded by parallelization module to customize execution.
+        """
+        prefunc = base_MoL.construct_RK_functions_prefunc()
+
+        for _, v in self.rk_step_body_dict.items():
+            self.body += v
+
+        self.body += """
+// Adding dt to commondata->time many times will induce roundoff error,
+//   so here we set time based on the iteration number.
+commondata->time = (REAL)(commondata->nn + 1) * commondata->dt;
+
+// Finally, increment the timestep n:
+commondata->nn++;
+"""
+        cfc.register_CFunction(
+            includes=self.includes,
+            desc=self.desc,
+            cfunc_type=self.cfunc_type,
+            name=self.name,
+            params=self.params,
+            include_CodeParameters_h=False,
+            body=self.body,
+            prefunc=prefunc,
+        )
 
 
 # register_CFunction_MoL_free_memory() registers
