@@ -1,8 +1,11 @@
 """
 Set up basic functions and loop insertions for precomputed reference metric infrastructure.
+This module overloads the defaults for CUDA based codes
 
 Author: Zachariah B. Etienne
-        zachetie **at** gmail **dot* com
+        zachetie **at** gmail **dot** com
+        Samuel D. Tootle
+        sdtootle **at** gmail **dot** com
 """
 
 from typing import List
