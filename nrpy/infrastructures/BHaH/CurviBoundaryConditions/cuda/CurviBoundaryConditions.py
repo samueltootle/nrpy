@@ -749,9 +749,13 @@ class register_CFunction_apply_bcs_outerradiation_and_inner(
         self.body = r"""
   // Unpack bc_info from bcstruct
   const bc_info_struct *bc_info = &bcstruct->bc_info;
+  
   // Update device constants
   cudaMemcpy(d_gridfunctions_wavespeed, custom_wavespeed, NUM_EVOL_GFS * sizeof(REAL), cudaMemcpyHostToDevice);
-cudaMemcpy(d_gridfunctions_f_infinity, custom_f_infinity, NUM_EVOL_GFS * sizeof(REAL), cudaMemcpyHostToDevice);
+  cudaCheckErrors(copy, "Copy to d_gridfunctions_wavespeed failed");
+  cudaMemcpy(d_gridfunctions_f_infinity, custom_f_infinity, NUM_EVOL_GFS * sizeof(REAL), cudaMemcpyHostToDevice);
+  cudaCheckErrors(copy, "Copy to d_gridfunctions_f_infinity failed");
+  
   ////////////////////////////////////////////////////////
   // STEP 1 of 2: Apply BCs to pure outer boundary points.
   //              By "pure" we mean that these points are
