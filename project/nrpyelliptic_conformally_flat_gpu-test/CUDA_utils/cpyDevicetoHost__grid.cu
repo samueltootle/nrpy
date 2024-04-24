@@ -27,7 +27,7 @@ __host__ void cpyDevicetoHost__grid(const commondata_struct *restrict commondata
     int const &Nxx_plus_2NGHOSTS1 = params->Nxx_plus_2NGHOSTS1;
     int const &Nxx_plus_2NGHOSTS2 = params->Nxx_plus_2NGHOSTS2;
 
-    mallocHostgrid(commondata, params, &gd_host[grid], gd_gpu);
+    mallocHostgrid(commondata, params, &gd_host[grid], &gd_gpu[grid]);
     cudaMemcpy(gd_host[grid].xx[0], gd_gpu[grid].xx[0], sizeof(REAL) * Nxx_plus_2NGHOSTS0, cudaMemcpyDeviceToHost);
     cudaMemcpy(gd_host[grid].xx[1], gd_gpu[grid].xx[1], sizeof(REAL) * Nxx_plus_2NGHOSTS1, cudaMemcpyDeviceToHost);
     cudaMemcpy(gd_host[grid].xx[2], gd_gpu[grid].xx[2], sizeof(REAL) * Nxx_plus_2NGHOSTS2, cudaMemcpyDeviceToHost);

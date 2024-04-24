@@ -137,14 +137,14 @@ void numerical_grid_params_Nxx_dxx_xx__rfm__SinhSymTP(const commondata_struct *r
   // printf("%f - %f - %f\n", params->invdxx0, params->invdxx1, params->invdxx2);
 
   // Allocate device storage
-  cudaMalloc(&xx[0], sizeof(REAL) * Nxx_plus_2NGHOSTS0);
+  cudaMalloc(&xx[0], sizeof(REAL) * params->Nxx_plus_2NGHOSTS0);
   cudaCheckErrors(malloc, "Malloc failed");
-  cudaMalloc(&xx[1], sizeof(REAL) * Nxx_plus_2NGHOSTS1);
+  cudaMalloc(&xx[1], sizeof(REAL) * params->Nxx_plus_2NGHOSTS1);
   cudaCheckErrors(malloc, "Malloc failed");
-  cudaMalloc(&xx[2], sizeof(REAL) * Nxx_plus_2NGHOSTS2);
+  cudaMalloc(&xx[2], sizeof(REAL) * params->Nxx_plus_2NGHOSTS2);
   cudaCheckErrors(malloc, "Malloc failed");
 
-  // cpyHosttoDevice_params__constant(params);
+  cpyHosttoDevice_params__constant(params);
 
   dim3 block_threads, grid_blocks;
   auto set_grid_block = [&block_threads, &grid_blocks](auto Nx) {
