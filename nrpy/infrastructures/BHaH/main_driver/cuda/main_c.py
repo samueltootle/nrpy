@@ -47,8 +47,10 @@ class register_CFunction_main_c(base_main.base_register_CFunction_main_c):
             post_MoL_step_forward_in_time=post_MoL_step_forward_in_time,
             clang_format_options=clang_format_options,
         )
-
-        self.body = r"""  commondata_struct commondata; // commondata contains parameters common to all grids.
+        self.includes += ["BHaH_gpu_global_defines.h"]
+        self.body = r"""
+#include "BHaH_gpu_global_init.h"
+commondata_struct commondata; // commondata contains parameters common to all grids.
 griddata_struct *restrict griddata; // griddata contains data specific to an individual grid.
 griddata_struct *restrict griddata_host; // stores only the host data needed for diagnostics
 
