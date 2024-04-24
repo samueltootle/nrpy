@@ -150,13 +150,13 @@ class output_BHaH_gpu_defines_h:
         # This device storage is only needed by some problems
         if evolved_variables_list:
             standard_decl_dict["d_gridfunctions_wavespeed"] = {
-                "type": "REAL*",
-                "suffix": "",
+                "type": "__constant__ REAL",
+                "suffix": "[NUM_EVOL_GFS]",
                 "comment": "",
             }
             standard_decl_dict["d_gridfunctions_f_infinity"] = {
-                "type": "REAL*",
-                "suffix": "",
+                "type": "__constant__ REAL",
+                "suffix": "[NUM_EVOL_GFS]",
                 "comment": "",
             }
         self.combined_decl_dict = standard_decl_dict
@@ -286,16 +286,17 @@ for(int i = 0; i < nstreams; ++i) {
 }
 // Copy parity array to device __constant__ memory
 cudaMemcpyToSymbol(d_evol_gf_parity, evol_gf_parity, 24 * sizeof(int8_t));
+cudaCheckErrors(copy, "Copy to d_evol_gf_parity failed");
 """
         if "d_gridfunctions_wavespeed" in declarations_dict.keys():
             self.file_output_str += """
 // Copy gridfunctions_wavespeed array to device memory
-cudaMalloc(&d_gridfunctions_wavespeed, NUM_EVOL_GFS * sizeof(REAL));
-cudaMemcpy(d_gridfunctions_wavespeed, gridfunctions_wavespeed, NUM_EVOL_GFS * sizeof(REAL), cudaMemcpyHostToDevice);
+cudaMemcpyToSymbol(d_gridfunctions_wavespeed, gridfunctions_wavespeed, NUM_EVOL_GFS * sizeof(REAL));
+cudaCheckErrors(copy, "Copy to d_gridfunctions_wavespeed failed");
 
 // Copy gridfunctions_f_infinity array to device memory
-cudaMalloc(&d_gridfunctions_f_infinity, NUM_EVOL_GFS * sizeof(REAL));
-cudaMemcpy(d_gridfunctions_f_infinity, gridfunctions_f_infinity, NUM_EVOL_GFS * sizeof(REAL), cudaMemcpyHostToDevice);        
+cudaMemcpyToSymbol(d_gridfunctions_f_infinity, gridfunctions_f_infinity, NUM_EVOL_GFS * sizeof(REAL));
+cudaCheckErrors(copy, "Copy to d_gridfunctions_f_infinity failed");
 """
 
         self.file_output_str = clang_format(
