@@ -29,6 +29,24 @@ for i, key in enumerate(BHaH_defines_h.core_modules_list):
             str(__name__)
         )
 
+class setup_Cfunction_FD1_arbitrary_upwind(base_cbc_classes.setup_Cfunction_FD1_arbitrary_upwind):
+    
+    def __init__(
+        self, dirn: int,
+        radiation_BC_fd_order: int = -1,
+        fp_type: str = "double",
+    ) -> None:
+        super().__init__(dirn, radiation_BC_fd_order=radiation_BC_fd_order, fp_type=fp_type)
+        self.include_CodeParameters_h = False
+        self.cfunc_decorators = "__device__"
+        self.params = """const REAL *restrict gf,  const int i0,const int i1,const int i2, const int offset"""
+        
+        new_header = ""
+        for i in range(3):
+            new_header+=f"int const Nxx_plus_2NGHOSTS{i} = d_params.Nxx_plus_2NGHOSTS{i};\n"
+        new_header +=f"REAL const invdxx{dirn} = d_params.invdxx{dirn};\n"
+        self.body = new_header + self.body
+        self.generate_CFunction()
 
 # bcstruct_set_up():
 #      This function is documented in desc= and body= fields below.
