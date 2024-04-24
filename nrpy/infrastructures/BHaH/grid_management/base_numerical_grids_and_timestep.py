@@ -96,6 +96,7 @@ if( !grid_is_resized ) {{
 params->Nxx_plus_2NGHOSTS0 = params->Nxx0 + 2*NGHOSTS;
 params->Nxx_plus_2NGHOSTS1 = params->Nxx1 + 2*NGHOSTS;
 params->Nxx_plus_2NGHOSTS2 = params->Nxx2 + 2*NGHOSTS;
+#include "../set_CodeParameters.h"
 
 // Set grid size to grid_physical_size (set above, based on params->grid_physical_size):
 """

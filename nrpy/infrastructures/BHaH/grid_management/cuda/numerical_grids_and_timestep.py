@@ -61,11 +61,11 @@ class register_CFunction_numerical_grid_params_Nxx_dxx_xx(
         self.prefunc=""
         self.body+="""
     // Allocate device storage
-    cudaMalloc(&xx[0], sizeof(REAL) * params->Nxx_plus_2NGHOSTS0);
+    cudaMalloc(&xx[0], sizeof(REAL) * Nxx_plus_2NGHOSTS0);
     cudaCheckErrors(malloc, "Malloc failed");
-    cudaMalloc(&xx[1], sizeof(REAL) * params->Nxx_plus_2NGHOSTS1);
+    cudaMalloc(&xx[1], sizeof(REAL) * Nxx_plus_2NGHOSTS1);
     cudaCheckErrors(malloc, "Malloc failed");
-    cudaMalloc(&xx[2], sizeof(REAL) * params->Nxx_plus_2NGHOSTS2);
+    cudaMalloc(&xx[2], sizeof(REAL) * Nxx_plus_2NGHOSTS2);
     cudaCheckErrors(malloc, "Malloc failed");
     
     cpyHosttoDevice_params__constant(params);
@@ -129,7 +129,7 @@ class register_CFunction_numerical_grid_params_Nxx_dxx_xx(
             CoordSystem_for_wrapper_func=CoordSystem,
             name=self.name,
             params=self.params,
-            include_CodeParameters_h=True,  # keep this False or regret having to debug the mess.
+            include_CodeParameters_h=False,  # keep this False or regret having to debug the mess.
             body=self.body,
         )
 
