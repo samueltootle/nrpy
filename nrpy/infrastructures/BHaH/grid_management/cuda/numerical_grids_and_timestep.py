@@ -61,11 +61,11 @@ class register_CFunction_numerical_grid_params_Nxx_dxx_xx(
         self.prefunc=""
         self.body+="""
     // Allocate device storage
-    cudaMalloc(&xx[0], sizeof(REAL) * Nxx_plus_2NGHOSTS0);
+    cudaMalloc(&xx[0], sizeof(REAL) * params->Nxx_plus_2NGHOSTS0);
     cudaCheckErrors(malloc, "Malloc failed");
-    cudaMalloc(&xx[1], sizeof(REAL) * Nxx_plus_2NGHOSTS1);
+    cudaMalloc(&xx[1], sizeof(REAL) * params->Nxx_plus_2NGHOSTS1);
     cudaCheckErrors(malloc, "Malloc failed");
-    cudaMalloc(&xx[2], sizeof(REAL) * Nxx_plus_2NGHOSTS2);
+    cudaMalloc(&xx[2], sizeof(REAL) * params->Nxx_plus_2NGHOSTS2);
     cudaCheckErrors(malloc, "Malloc failed");
     
     cpyHosttoDevice_params__constant(params);
@@ -290,7 +290,7 @@ for(int grid=0; grid<commondata->NUMGRIDS; grid++) {
             self.body += r"""
 for(int grid=0; grid<commondata->NUMGRIDS; grid++) {
   cpyHosttoDevice_params__constant(&griddata[grid].params);
-  bcstruct_set_up(commondata, &griddata[grid].params, griddata[grid].xx, &griddata[grid].bcstruct);
+  bcstruct_set_up(commondata, &griddata[grid].params, griddata_host[grid].xx, &griddata[grid].bcstruct);
 }
 """
         else:
