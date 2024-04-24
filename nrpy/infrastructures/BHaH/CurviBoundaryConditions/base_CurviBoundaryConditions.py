@@ -697,11 +697,7 @@ def get_arb_offset_FD_coeffs_indices(
 
 # partial_r f term: FD1_arbitrary_upwind(): C function to evaluate
 #   partial_i f with arbitrary upwinding
-def setup_Cfunction_FD1_arbitrary_upwind(
-    dirn: int,
-    radiation_BC_fd_order: int = -1,
-    fp_type: str = "double",
-) -> str:
+class setup_Cfunction_FD1_arbitrary_upwind:
     """
     Set up the C function for computing the 1st derivative finite-difference.
 
@@ -713,75 +709,84 @@ def setup_Cfunction_FD1_arbitrary_upwind(
     :param fp_type: Floating point type, e.g., "double".
     :return: The full C function as a string.
     """
-    import sympy.codegen.ast as sp_ast
+    def __init__(
+        self,
+        dirn: int,
+        radiation_BC_fd_order: int = -1,
+        fp_type: str = "double",
+    ) -> str:
+        self.dirn=dirn
+        self.radiation_BC_fd_order=radiation_BC_fd_order
+        self.fp_type=fp_type
+        
+        import sympy.codegen.ast as sp_ast
+        self.default_FDORDER = par.parval_from_str("fd_order")
+        if radiation_BC_fd_order == -1:
+            radiation_BC_fd_order = self.default_FDORDER
 
-    default_FDORDER = par.parval_from_str("fd_order")
-    if radiation_BC_fd_order == -1:
-        radiation_BC_fd_order = default_FDORDER
+        par.set_parval_from_str("fd_order", radiation_BC_fd_order)
 
-    par.set_parval_from_str("fd_order", radiation_BC_fd_order)
+        self.includes: List[str] = []
+        self.desc = "Compute 1st derivative finite-difference derivative with arbitrary upwind"
+        self.cfunc_type = "static inline REAL"
+        self.name = f"FD1_arbitrary_upwind_x{dirn}_dirn"
+        self.params = """const commondata_struct *restrict commondata, const params_struct *restrict params,
+    const REAL *restrict gf,  const int i0,const int i1,const int i2, const int offset"""
+        self.body = "switch(offset) {\n"
 
-    includes: List[str] = []
-    desc = "Compute 1st derivative finite-difference derivative with arbitrary upwind"
-    cfunc_type = "static inline REAL"
-    name = f"FD1_arbitrary_upwind_x{dirn}_dirn"
-    params = """const commondata_struct *restrict commondata, const params_struct *restrict params,
-const REAL *restrict gf,  const int i0,const int i1,const int i2, const int offset"""
-    body = "switch(offset) {\n"
+        tmp_list: List[int] = []
+        fp_ccg_type = ccg.fp_type_to_sympy_type[fp_type]
+        sp_type_alias = {sp_ast.real: fp_ccg_type}
+        for offset in range(
+            0, int(radiation_BC_fd_order // 2) + 1
+        ):  # Use // for integer division
+            tmp_list.append(offset)
+            if offset > 0:
+                tmp_list.append(-offset)
 
-    tmp_list: List[int] = []
-    fp_ccg_type = ccg.fp_type_to_sympy_type[fp_type]
-    sp_type_alias = {sp_ast.real: fp_ccg_type}
-    for offset in range(
-        0, int(radiation_BC_fd_order // 2) + 1
-    ):  # Use // for integer division
-        tmp_list.append(offset)
-        if offset > 0:
-            tmp_list.append(-offset)
+        for offset in tmp_list:
+            self.body += f"case {offset}:\n"
+            self.body += "  return ("
+            coeffs, indices = get_arb_offset_FD_coeffs_indices(
+                radiation_BC_fd_order, offset, 1
+            )
 
-    for offset in tmp_list:
-        body += f"case {offset}:\n"
-        body += "  return ("
-        coeffs, indices = get_arb_offset_FD_coeffs_indices(
-            radiation_BC_fd_order, offset, 1
+            for i, coeff in enumerate(coeffs):
+                if coeff == 0:
+                    continue
+                offset_str: str = str(indices[i])
+                if i > 0:
+                    self.body += "          "
+                if offset_str == "0":
+                    self.body += f"+{sp.ccode(coeff, type_aliases=sp_type_alias)}*gf[IDX3(i0,i1,i2)]\n"
+                else:
+                    if dirn == 0:
+                        self.body += f"+{sp.ccode(coeff, type_aliases=sp_type_alias)}*gf[IDX3(i0+{offset_str},i1,i2)]\n"
+                    elif dirn == 1:
+                        self.body += f"+{sp.ccode(coeff, type_aliases=sp_type_alias)}*gf[IDX3(i0,i1+{offset_str},i2)]\n"
+                    elif dirn == 2:
+                        self.body += f"+{sp.ccode(coeff, type_aliases=sp_type_alias)}*gf[IDX3(i0,i1,i2+{offset_str})]\n"
+
+            self.body = self.body[:-1].replace("+-", "-") + f") * invdxx{dirn};\n"
+
+        self.body += """}
+    return 0.0 / 0.0;  // poison output if offset computed incorrectly
+    """
+        par.set_parval_from_str("fd_order", self.default_FDORDER)
+        self.generate_CFunction()
+        
+    def generate_CFunction(self) -> None:
+        "Generate CFunction from class parameters."        
+        self.CFunction = cfc.CFunction(
+            subdirectory="one_subdirectory_down",
+            includes=self.includes,
+            desc=self.desc,
+            cfunc_type=self.cfunc_type,
+            name=self.name,
+            params=self.params,
+            include_CodeParameters_h=True,
+            body=self.body,
         )
-
-        for i, coeff in enumerate(coeffs):
-            if coeff == 0:
-                continue
-            offset_str: str = str(indices[i])
-            if i > 0:
-                body += "          "
-            if offset_str == "0":
-                body += f"+{sp.ccode(coeff, type_aliases=sp_type_alias)}*gf[IDX3(i0,i1,i2)]\n"
-            else:
-                if dirn == 0:
-                    body += f"+{sp.ccode(coeff, type_aliases=sp_type_alias)}*gf[IDX3(i0+{offset_str},i1,i2)]\n"
-                elif dirn == 1:
-                    body += f"+{sp.ccode(coeff, type_aliases=sp_type_alias)}*gf[IDX3(i0,i1+{offset_str},i2)]\n"
-                elif dirn == 2:
-                    body += f"+{sp.ccode(coeff, type_aliases=sp_type_alias)}*gf[IDX3(i0,i1,i2+{offset_str})]\n"
-
-        body = body[:-1].replace("+-", "-") + f") * invdxx{dirn};\n"
-
-    body += """}
-return 0.0 / 0.0;  // poison output if offset computed incorrectly
-"""
-
-    cf = cfc.CFunction(
-        subdirectory="one_subdirectory_down",
-        includes=includes,
-        desc=desc,
-        cfunc_type=cfunc_type,
-        name=name,
-        params=params,
-        include_CodeParameters_h=True,
-        body=body,
-    )
-
-    par.set_parval_from_str("fd_order", default_FDORDER)
-
-    return cf.full_function
 
 
 # partial_r f term: Numerically evaluate partial_r f,
@@ -885,7 +890,7 @@ def setup_Cfunction_radiation_bcs(
                 dirn=i,
                 radiation_BC_fd_order=radiation_BC_fd_order,
                 fp_type=fp_type,
-            )
+            ).CFunction.full_function
     prefunc += setup_Cfunction_r_and_partial_xi_partial_r_derivs(
         CoordSystem=CoordSystem,
         fp_type=fp_type,
