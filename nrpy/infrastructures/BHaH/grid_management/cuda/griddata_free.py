@@ -55,10 +55,6 @@ class register_CFunction_griddata_free(base_free.base_register_CFunction_griddat
 } // END for(int grid=0;grid<commondata->NUMGRIDS;grid++)
 """
         self.body += """
-  cudaFree(d_gridfunctions_f_infinity);
-  cudaCheckErrors(free, "d_gridfunctions_f_infinityFree failed");
-  cudaFree(d_gridfunctions_wavespeed);
-  cudaCheckErrors(free, "d_gridfunctions_wavespeedFree failed");
   free(griddata);
   free(griddata_host);
 """
