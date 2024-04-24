@@ -216,13 +216,13 @@ nrpyellClib.register_CFunction_rhs_eval(
 )
 
 # Generate function to compute residuals
-# nrpyellClib.register_CFunction_compute_residual_all_points(
-#     CoordSystem=CoordSystem,
-#     enable_rfm_precompute=enable_rfm_precompute,
-#     enable_simd=enable_simd,
-#     OMP_collapse=OMP_collapse,
-#     fp_type=fp_type,
-# )
+nrpyellClib.register_CFunction_compute_residual_all_points(
+    CoordSystem=CoordSystem,
+    enable_rfm_precompute=enable_rfm_precompute,
+    enable_simd=enable_simd,
+    OMP_collapse=OMP_collapse,
+    fp_type=fp_type,
+)
 
 # Generate diagnostics functions
 # nrpyellClib.register_CFunction_compute_L2_norm_of_gridfunction(

@@ -939,10 +939,11 @@ class gpu_register_CFunction_compute_residual_all_points(
         super().__init__(
             CoordSystem=CoordSystem, enable_rfm_precompute=enable_rfm_precompute
         )
+        self.body=""
         if enable_simd:
             self.includes += [str(Path("simd") / "simd_intrinsics.h")]
 
-        self.body = lp.simple_loop(
+        self.simple_loop = lp.simple_loop(
             loop_body=ccg.c_codegen(
                 [self.rhs.residual],
                 [
@@ -959,10 +960,34 @@ class gpu_register_CFunction_compute_residual_all_points(
             CoordSystem=CoordSystem,
             enable_rfm_precompute=enable_rfm_precompute,
             read_xxs=not enable_rfm_precompute,
-            OMP_collapse=OMP_collapse,
             fp_type=fp_type,
-        ).full_loop_body
+        )
+        self.kernel_body = self.simple_loop.full_loop_body
+        self.params_dict_coord = {f'{rfm_f.replace("REAL *restrict ","")[:-1]}' : 'const REAL *restrict' for rfm_f in self.simple_loop.rfmp.BHaH_defines_list}
+        params_dict = {f"rfm_{k}" : v for k,v in self.params_dict_coord.items()}
+        params_dict['auxevol_gfs'] = 'const REAL *restrict'
+        params_dict['in_gfs'] = 'const REAL *restrict'
+        params_dict['aux_gfs'] = 'REAL *restrict'
+        self.kernel_body = self.kernel_body.replace("const REAL f", "[[maybe_unused]] const REAL f")
+        self.device_kernel = gputils.GPU_Kernel(
+            self.kernel_body,
+            params_dict,
+            f"{self.name}_gpu",
+            launch_dict= {
+                'blocks_per_grid' : [],
+                'threads_per_block' : ["32", "NGHOSTS"],
+                'stream' : "default"
+            },
+            fp_type=fp_type,
+            comments="GPU Kernel to compute the residual throughout the grid.",
+        )
+        self.prefunc = self.device_kernel.CFunction.full_function
+        for k, v in self.params_dict_coord.items():
+            self.body += f"{v} rfm_{k} = rfmstruct->{k};\n"
+        self.body+=self.device_kernel.launch_block + "\n\n"
+        self.body+=self.device_kernel.c_function_call()
         cfc.register_CFunction(
+            prefunc=self.prefunc,
             include_CodeParameters_h=True,
             includes=self.includes,
             desc=self.desc,
