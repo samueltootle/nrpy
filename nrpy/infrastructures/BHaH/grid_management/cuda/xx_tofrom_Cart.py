@@ -118,7 +118,11 @@ class register_CFunction_xx_to_Cart(base_xx_classes.base_register_CFunction_xx_t
             fp_type=fp_type,
         )
         self.cfunc_type = "void"
-        self.cfunc_decorators = "__device__ __host__"
+        self.cfunc_decorators = "__host__"
+        kernel_body =""
+        for sym in self.unique_symbols:
+            kernel_body += f"const REAL {sym} = params->{sym};\n"
+        self.body = kernel_body + self.body
         cfc.register_CFunction(
             includes=self.includes,
             desc=self.descr,
@@ -126,7 +130,7 @@ class register_CFunction_xx_to_Cart(base_xx_classes.base_register_CFunction_xx_t
             CoordSystem_for_wrapper_func=self.CoordSystem,
             name=self.name,
             params=self.params,
-            include_CodeParameters_h=True,
+            include_CodeParameters_h=False,
             body=self.body,
             cfunc_decorators=self.cfunc_decorators,
         )
