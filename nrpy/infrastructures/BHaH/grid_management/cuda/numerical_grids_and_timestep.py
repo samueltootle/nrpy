@@ -199,7 +199,7 @@ const int Nxx_tot = (Nxx_plus_2NGHOSTS0)*(Nxx_plus_2NGHOSTS1)*(Nxx_plus_2NGHOSTS
         self.body += f"{self.device_kernel.launch_block}"
         self.body += f"{self.device_kernel.c_function_call()}"
         self.body += """
-  REAL ds_min__global = find_global__min(ds_min, Nxx_tot);
+  REAL ds_min__global = find_global__minimum(ds_min, Nxx_tot);
 
   commondata->dt = MIN(commondata->dt, ds_min__global * commondata->CFL_FACTOR);
   cudaFree(ds_min);        
