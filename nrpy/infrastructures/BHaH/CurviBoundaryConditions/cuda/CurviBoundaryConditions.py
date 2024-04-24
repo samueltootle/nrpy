@@ -17,7 +17,8 @@ from nrpy.infrastructures.BHaH import griddata_commondata
 from nrpy.infrastructures.BHaH import BHaH_defines_h
 import nrpy.infrastructures.BHaH.CurviBoundaryConditions.base_CurviBoundaryConditions as base_cbc_classes
 import nrpy.helpers.gpu_kernel as gputils
-
+import nrpy.reference_metric as refmetric  # NRPy+: Reference metric support
+from nrpy.validate_expressions.validate_expressions import check_zero
 _ = par.CodeParameter(
     "char[50]", __name__, "outer_bc_type", "radiation", commondata=True
 )
@@ -608,6 +609,64 @@ class setup_Cfunction_r_and_partial_xi_partial_r_derivs(base_cbc_classes.setup_C
         self.body = new_header + "\n" + self.body
         self.generate_CFunction()
 
+
+class setup_Cfunction_compute_partial_r_f(base_cbc_classes.setup_Cfunction_compute_partial_r_f):
+    """
+    Set up a C function for computing the partial derivative of f with respect to r.
+
+    :param CoordSystem: Coordinate system to be used for the computation
+    :param radiation_BC_fd_order: Order of finite difference for radiation boundary conditions, default is -1
+    :return: A C function for computing the partial derivative
+    """    
+    def __init__(
+        self,
+        CoordSystem: str, radiation_BC_fd_order: int = -1
+    ) -> str:
+        super().__init__(CoordSystem, radiation_BC_fd_order=radiation_BC_fd_order)
+        self.include_CodeParameters_h=False
+        self.cfunc_decorators="__device__"
+        
+        self.desc = "Compute \\partial_r f"
+        self.cfunc_type = "static inline REAL"
+        self.name = "compute_partial_r_f"
+        self.params = """REAL *restrict xx[3], const REAL *restrict gfs,
+const int which_gf, const int dest_i0,const int dest_i1,const int dest_i2,
+const int FACEi0,const int FACEi1,const int FACEi2,
+const REAL partial_x0_partial_r, const REAL partial_x1_partial_r, const REAL partial_x2_partial_r"""
+
+        self.default_FDORDER = par.parval_from_str("fd_order")
+        if radiation_BC_fd_order == -1:
+            radiation_BC_fd_order = self.default_FDORDER
+
+        self.FD1_stencil_radius = int(radiation_BC_fd_order / 2)
+        self.body = ""
+        self.tmp_definitions = f"""  ///////////////////////////////////////////////////////////
+
+  // FD1_stencil_radius = radiation_BC_fd_order/2 = {self.FD1_stencil_radius}
+  const int FD1_stencil_radius = {self.FD1_stencil_radius};
+  """
+        for i in range(3):
+            self.tmp_definitions += f"const int Nxx_plus_2NGHOSTS{i} = d_params.Nxx_plus_2NGHOSTS{i};\n"
+        self.tmp_definitions += "const int ntot = Nxx_plus_2NGHOSTS0*Nxx_plus_2NGHOSTS1*Nxx_plus_2NGHOSTS2;\n"
+        self.generate_CFunction()
+
+    def regenerate_body(self):
+        rfm = refmetric.reference_metric[self.CoordSystem]
+        self.body = ""
+        for i in range(3):
+            si = str(i)
+            if check_zero(rfm.Jac_dUrfm_dDSphUD[i][0]):
+                self.body += f"  const REAL partial_x{si}_f=0.0;\n"
+            else:
+                self.body += (
+                    f"  int i{si}_offset = FACEi{si};  // Shift stencil away from the face we're updating.\n"
+                    f"  // Next adjust i{si}_offset so that FD stencil never goes out of bounds.\n"
+                    f"  if(dest_i{si} < FD1_stencil_radius) i{si}_offset = FD1_stencil_radius-dest_i{si};\n"
+                    f"  else if(dest_i{si} > (Nxx_plus_2NGHOSTS{si}-FD1_stencil_radius-1)) i{si}_offset = (Nxx_plus_2NGHOSTS{si}-FD1_stencil_radius-1) - dest_i{si};\n"
+                    f"  const REAL partial_x{si}_f=FD1_arbitrary_upwind_x{si}_dirn(&gfs[which_gf*ntot],dest_i0,dest_i1,dest_i2,i{si}_offset);\n"
+                )
+        self.body += "  return partial_x0_partial_r*partial_x0_f + partial_x1_partial_r*partial_x1_f + partial_x2_partial_r*partial_x2_f;\n"
+
 class setup_Cfunction_radiation_bcs(base_cbc_classes.setup_Cfunction_radiation_bcs):
     """
     Generate C code to apply radiation boundary conditions in a given coordinate system.
@@ -626,11 +685,32 @@ class setup_Cfunction_radiation_bcs(base_cbc_classes.setup_Cfunction_radiation_b
         super().__init__(CoordSystem, radiation_BC_fd_order=radiation_BC_fd_order, fp_type=fp_type)
         self.cfunc_decorators = "__device__"
         self.include_CodeParameters_h=False
+        self.params = """REAL *restrict xx[3],
+        const REAL *restrict gfs, REAL *restrict gfs_rhss,
+        const int which_gf, const REAL gf_wavespeed, const REAL gf_f_infinity,
+        const int dest_i0,const int dest_i1,const int dest_i2,
+        const short FACEi0,const short FACEi1,const short FACEi2"""
         
         self.upwind_setup_func = setup_Cfunction_FD1_arbitrary_upwind
         self.r_and_partial_xi_partial_r_derivs_prefunc_setup_func = setup_Cfunction_r_and_partial_xi_partial_r_derivs
-        # self.compute_partial_r_f_setup_func = setup_Cfunction_compute_partial_r_f
+        self.compute_partial_r_f_setup_func = setup_Cfunction_compute_partial_r_f
         
+        self.function_calls = """
+r_and_partial_xi_partial_r_derivs(xx[0][dest_i0],xx[1][dest_i1],xx[2][dest_i2],
+                                  &r, &partial_x0_partial_r, &partial_x1_partial_r,  &partial_x2_partial_r);
+r_and_partial_xi_partial_r_derivs(xx[0][dest_i0_int], xx[1][dest_i1_int], xx[2][dest_i2_int],
+                                  &r_int, &partial_x0_partial_r_int, &partial_x1_partial_r_int, &partial_x2_partial_r_int);
+const REAL partial_r_f     = compute_partial_r_f(xx,gfs, which_gf,dest_i0,    dest_i1,    dest_i2,
+                                                 FACEi0,FACEi1,FACEi2,
+                                                 partial_x0_partial_r    ,partial_x1_partial_r    ,partial_x2_partial_r);
+const REAL partial_r_f_int = compute_partial_r_f(xx,gfs, which_gf,dest_i0_int,dest_i1_int,dest_i2_int,
+                                                 FACEi0,FACEi1,FACEi2,
+                                                 partial_x0_partial_r_int,partial_x1_partial_r_int,partial_x2_partial_r_int);
+"""
+        Nxx_definitions = ""
+        for i in range(3):
+            Nxx_definitions += f"const int Nxx_plus_2NGHOSTS{i} = d_params.Nxx_plus_2NGHOSTS{i};\n"
+        self.variable_defs +=Nxx_definitions
         self.generate_CFunction()
       
 
@@ -669,7 +749,9 @@ class register_CFunction_apply_bcs_outerradiation_and_inner(
         self.body = r"""
   // Unpack bc_info from bcstruct
   const bc_info_struct *bc_info = &bcstruct->bc_info;
-
+  // Update device constants
+  cudaMemcpy(d_gridfunctions_wavespeed, custom_wavespeed, NUM_EVOL_GFS * sizeof(REAL), cudaMemcpyHostToDevice);
+cudaMemcpy(d_gridfunctions_f_infinity, custom_f_infinity, NUM_EVOL_GFS * sizeof(REAL), cudaMemcpyHostToDevice);
   ////////////////////////////////////////////////////////
   // STEP 1 of 2: Apply BCs to pure outer boundary points.
   //              By "pure" we mean that these points are
@@ -680,7 +762,7 @@ class register_CFunction_apply_bcs_outerradiation_and_inner(
   //              layer, we fill in +/- x0 faces first,
   //              then +/- x1 faces, finally +/- x2 faces,
   //              filling in the edges as we go.
-  apply_bcs_pure_only(params, bcstruct, xx, custom_wavespeed, custom_f_infinity, gfs, rhs_gfs);
+  apply_bcs_pure_only(params, bcstruct, xx, gfs, rhs_gfs);
 
   ///////////////////////////////////////////////////////
   // STEP 2 of 2: Apply BCs to inner boundary points.
@@ -715,17 +797,16 @@ class register_CFunction_apply_bcs_outerradiation_and_inner(
         # Header details for function that will launch the GPU kernel
         desc = "Apply BCs to pure boundary points"
         params = "const params_struct *restrict params, const bc_struct *restrict bcstruct,"
-        params += "REAL *restrict xx[3], const REAL *restrict custom_wavespeed, const REAL *restrict custom_f_infinity,"
-        params += "REAL *restrict gfs, REAL *restrict rhs_gfs"
+        params += "REAL *restrict xx[3], REAL *restrict gfs, REAL *restrict rhs_gfs"
         name = "apply_bcs_pure_only"
         cfunc_type = "static void"
         
         # Start specifying the function body for launching the kernel
         kernel_launch_body = """
 const bc_info_struct *bc_info = &bcstruct->bc_info;
-const REAL *restrict x0 = xx[0];
-const REAL *restrict x1 = xx[1];
-const REAL *restrict x2 = xx[2];
+REAL *restrict x0 = xx[0];
+REAL *restrict x1 = xx[1];
+REAL *restrict x2 = xx[2];
   for (int which_gz = 0; which_gz < NGHOSTS; which_gz++) {
     for (int dirn = 0; dirn < 3; dirn++) {
       if (bc_info->num_pure_outer_boundary_points[which_gz][dirn] > 0) {
@@ -757,8 +838,8 @@ for (int idx2d = tid0; idx2d < num_pure_outer_boundary_points; idx2d+=stride0) {
     REAL* xx[3] = {x0, x1, x2};
     for (int which_gf = 0; which_gf < NUM_EVOL_GFS; which_gf++) {
         // *** Apply radiation BCs to all outer boundary points. ***
-        rhs_gfs[IDX4pt(which_gf, idx3)] = radiation_bcs(commondata, params, bcstruct, xx, gfs, rhs_gfs, which_gf,
-                                                        custom_wavespeed[which_gf], custom_f_infinity[which_gf],
+        rhs_gfs[IDX4pt(which_gf, idx3)] = radiation_bcs(xx, gfs, rhs_gfs, which_gf,
+                                                        d_gridfunctions_wavespeed[which_gf], d_gridfunctions_f_infinity[which_gf],
                                                         i0,i1,i2, FACEX0,FACEX1,FACEX2);
     }
   }
