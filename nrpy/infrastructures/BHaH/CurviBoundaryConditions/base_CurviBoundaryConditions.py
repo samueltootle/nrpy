@@ -25,7 +25,7 @@ import nrpy.finite_difference as fin  # NRPy+: Finite-difference module
 # from nrpy.infrastructures.BHaH import griddata_commondata
 # from nrpy.infrastructures.BHaH import BHaH_defines_h
 from nrpy.validate_expressions.validate_expressions import check_zero
-
+from nrpy.helpers.expr_tree import get_unique_expression_symbols
 
 # Set unit-vector dot products (=parity) for each of the 10 parity condition types
 def parity_conditions_symbolic_dot_products(
@@ -615,9 +615,7 @@ class base_register_CFunction_apply_bcs_outerextrap_and_inner:
 ##   Tutorial-Start_to_Finish-Curvilinear_BCs.ipynb,
 ##   as well as below, in desc= and body=.
 # r_and_partial_xi_partial_r_derivs(): Compute r(x0,x1,x2) and dx^i / dr
-def setup_Cfunction_r_and_partial_xi_partial_r_derivs(
-    CoordSystem: str, fp_type: str = "double"
-) -> str:
+class setup_Cfunction_r_and_partial_xi_partial_r_derivs:
     """
     Generate C code to compute the radial coordinate r(x0, x1, x2) and its derivatives.
 
@@ -628,43 +626,62 @@ def setup_Cfunction_r_and_partial_xi_partial_r_derivs(
     :param fp_type: Floating point type, e.g., "double".
     :return: A string containing the generated C code for the function.
     """
-    desc = "Compute r(xx0,xx1,xx2) and partial_r x^i."
-    cfunc_type = "static inline void"
-    name = "r_and_partial_xi_partial_r_derivs"
-    params = """const commondata_struct *restrict commondata, const params_struct *restrict params,
-    const REAL xx0,const REAL xx1,const REAL xx2,    REAL *r,
-    REAL *partial_x0_partial_r,REAL *partial_x1_partial_r,REAL *partial_x2_partial_r"""
-    rfm = refmetric.reference_metric[CoordSystem]
-    # sp.simplify(expr) is too slow here for SinhCylindrical
-    body = ccg.c_codegen(
-        [
-            rfm.xxSph[0],
-            rfm.Jac_dUrfm_dDSphUD[0][0],
-            rfm.Jac_dUrfm_dDSphUD[1][0],
-            rfm.Jac_dUrfm_dDSphUD[2][0],
-        ],
-        [
-            "*r",
-            "*partial_x0_partial_r",
-            "*partial_x1_partial_r",
-            "*partial_x2_partial_r",
-        ],
-        verbose=False,
-        include_braces=False,
-        fp_type=fp_type,
-    )
+    
+    def __init__(
+        self,
+        CoordSystem: str, fp_type: str = "double"
+    ) -> str:
+        self.CoordSystem=CoordSystem
+        self.fp_type=fp_type
+        self.CFunction = None
+        self.include_CodeParameters_h = True
+        self.cfunc_decorators=""
+        
+        self.desc = "Compute r(xx0,xx1,xx2) and partial_r x^i."
+        self.cfunc_type = "static inline void"
+        self.name = "r_and_partial_xi_partial_r_derivs"
+        self.params = """const commondata_struct *restrict commondata, const params_struct *restrict params,
+        const REAL xx0,const REAL xx1,const REAL xx2,    REAL *r,
+        REAL *partial_x0_partial_r,REAL *partial_x1_partial_r,REAL *partial_x2_partial_r"""
+        rfm = refmetric.reference_metric[CoordSystem]
+        # sp.simplify(expr) is too slow here for SinhCylindrical
+        self.expr_list = [
+                rfm.xxSph[0],
+                rfm.Jac_dUrfm_dDSphUD[0][0],
+                rfm.Jac_dUrfm_dDSphUD[1][0],
+                rfm.Jac_dUrfm_dDSphUD[2][0],
+            ]
+        self.unique_symbols = []
+        for expr in self.expr_list:
+            sub_list = get_unique_expression_symbols(expr, exclude=[f'xx{i}' for i in range(3)])
+            self.unique_symbols += sub_list
+        self.unique_symbols = sorted(list(set(self.unique_symbols)))
+        self.body = ccg.c_codegen(
+            self.expr_list,
+            [
+                "*r",
+                "*partial_x0_partial_r",
+                "*partial_x1_partial_r",
+                "*partial_x2_partial_r",
+            ],
+            verbose=False,
+            include_braces=False,
+            fp_type=fp_type,
+        )
+        self.generate_CFunction()
 
-    cf = cfc.CFunction(
-        subdirectory=CoordSystem,
-        includes=[],
-        desc=desc,
-        cfunc_type=cfunc_type,
-        name=name,
-        params=params,
-        include_CodeParameters_h=True,
-        body=body,
+    def generate_CFunction(self):
+        self.CFunction = cfc.CFunction(
+            subdirectory=self.CoordSystem,
+            includes=[],
+            desc=self.desc,
+            cfunc_type=self.cfunc_type,
+            name=self.name,
+            params=self.params,
+            include_CodeParameters_h=self.include_CodeParameters_h,
+            body=self.body,
+            cfunc_decorators=self.cfunc_decorators
     )
-    return cf.full_function
 
 
 # partial_r f term: generate finite-difference coefficients
@@ -950,22 +967,26 @@ return partial_t_f_outgoing_wave + k * rinv*rinv*rinv;
 """
         self.generate_CFunction()
     def generate_upwind_prefunc(self) -> None:
+        self.upwind_prefunc=""
+        
         for i in range(3):
             # Do not generate FD1_arbitrary_upwind_xj_dirn() if the symbolic expression for dxj/dr == 0!
             if not check_zero(self.rfm.Jac_dUrfm_dDSphUD[i][0]):
-                self.prefunc += self.upwind_setup_func(
+                self.upwind_prefunc += self.upwind_setup_func(
                     dirn=i,
                     radiation_BC_fd_order=self.radiation_BC_fd_order,
                     fp_type=self.fp_type,
                 ).CFunction.full_function
     
     def generate_r_and_partial_xi_partial_r_derivs_prefunc(self) -> None:
+        self.r_and_partial_xi_partial_r_derivs_prefunc=""        
         self.r_and_partial_xi_partial_r_derivs_prefunc += self.r_and_partial_xi_partial_r_derivs_prefunc_setup_func(
             CoordSystem=self.CoordSystem,
             fp_type=self.fp_type,
-        )
+        ).CFunction.full_function
         
     def generate_compute_partial_r_f_prefunc(self):
+        self.compute_partial_r_f_prefunc=""
         self.compute_partial_r_f_prefunc += self.compute_partial_r_f_setup_func(
             CoordSystem=self.CoordSystem, radiation_BC_fd_order=self.radiation_BC_fd_order
         )
@@ -975,7 +996,7 @@ return partial_t_f_outgoing_wave + k * rinv*rinv*rinv;
         self.generate_r_and_partial_xi_partial_r_derivs_prefunc()
         self.generate_compute_partial_r_f_prefunc()
         
-        self.prefunc += self.upwind_prefunc
+        self.prefunc = self.upwind_prefunc
         self.prefunc += self.r_and_partial_xi_partial_r_derivs_prefunc
         self.prefunc += self.compute_partial_r_f_prefunc
         
