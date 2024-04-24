@@ -122,8 +122,7 @@ class GPU_Kernel:
 const size_t threads_in_x_dir = {threads_per_block[0]};
 const size_t threads_in_y_dir = {threads_per_block[1]};
 const size_t threads_in_z_dir = {threads_per_block[2]};
-dim3 threads_per_block(threads_in_x_dir, threads_in_y_dir, threads_in_z_dir);
-"""
+dim3 threads_per_block(threads_in_x_dir, threads_in_y_dir, threads_in_z_dir);"""
 
             blocks_per_grid = self.launch_dict["blocks_per_grid"]
             if len(blocks_per_grid) > 0:
