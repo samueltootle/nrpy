@@ -25,22 +25,29 @@ class register_CFunction_griddata_free(base_free.base_register_CFunction_griddat
 """
         if enable_rfm_precompute:
             self.body += "  rfm_precompute_free(commondata, &griddata[grid].params, &griddata[grid].rfmstruct);\n"
+            'cudaCheckErrors(free, "rfmFree failed")\n;'
         
         if enable_CurviBCs:
             self.body += r"""
   cudaFree(griddata[grid].bcstruct.inner_bc_array);
+  cudaCheckErrors(free, "bcstruct inner_bc_arrayFree failed");
   for(int ng=0;ng<NGHOSTS*3;ng++) { 
     cudaFree(griddata[grid].bcstruct.pure_outer_bc_array[ng]); 
+    cudaCheckErrors(free, "bcstruct pure_outer_bc_arrayFree failed");
   }
 """
         self.body += r"""
 
   MoL_free_memory_y_n_gfs(&griddata[grid].gridfuncs);
+  cudaCheckErrors(free, "MoLFree failed");
   cudaFreeHost(griddata_host[grid].gridfuncs.y_n_gfs);
+  cudaCheckErrors(free, "bcstruct Host-ynFree failed");
   cudaFreeHost(griddata_host[grid].gridfuncs.diagnostic_output_gfs);
+  cudaCheckErrors(free, "bcstruct Host-non-ynFree failed");
   if(enable_free_non_y_n_gfs) {
     for(int i=0;i<3;i++) { 
         cudaFree(griddata[grid].xx[i]);
+        cudaCheckErrors(free, "griddata-xxFree failed");
         free(griddata_host[grid].xx[i]);
     }
   }
@@ -49,7 +56,9 @@ class register_CFunction_griddata_free(base_free.base_register_CFunction_griddat
 """
         self.body += """
   cudaFree(d_gridfunctions_f_infinity);
+  cudaCheckErrors(free, "d_gridfunctions_f_infinityFree failed");
   cudaFree(d_gridfunctions_wavespeed);
+  cudaCheckErrors(free, "d_gridfunctions_wavespeedFree failed");
   free(griddata);
   free(griddata_host);
 """
