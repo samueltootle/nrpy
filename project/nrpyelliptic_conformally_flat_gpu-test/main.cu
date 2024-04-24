@@ -42,20 +42,20 @@ int main(int argc, const char *argv[]) {
     numerical_grids_and_timestep(&commondata, griddata, griddata_host, calling_for_first_time);
   }
 
-  // for (int grid = 0; grid < commondata.NUMGRIDS; grid++) {
-  //   // Step 2: Initial data are set on y_n_gfs gridfunctions. Allocate storage for them first.
-  //   MoL_malloc_y_n_gfs(&commondata, &griddata[grid].params, &griddata[grid].gridfuncs);
-  //   // cpyDevicetoHost__malloc_y_n_gfs(&commondata, &griddata[grid].params, &griddata_host[grid].gridfuncs);
-  // }
+  for (int grid = 0; grid < commondata.NUMGRIDS; grid++) {
+    // Step 2: Initial data are set on y_n_gfs gridfunctions. Allocate storage for them first.
+    MoL_malloc_y_n_gfs(&commondata, &griddata[grid].params, &griddata[grid].gridfuncs);
+    // cpyDevicetoHost__malloc_y_n_gfs(&commondata, &griddata[grid].params, &griddata_host[grid].gridfuncs);
+  }
 
-  // // Step 3: Finalize initialization: set up initial data, etc.
-  // initial_data(&commondata, griddata);
+  // Step 3: Finalize initialization: set up initial data, etc.
+  initial_data(&commondata, griddata);
 
-  // // Step 4: Allocate storage for non-y_n gridfunctions, needed for the Runge-Kutta-like timestepping
-  // for (int grid = 0; grid < commondata.NUMGRIDS; grid++) {
-  //   MoL_malloc_non_y_n_gfs(&commondata, &griddata[grid].params, &griddata[grid].gridfuncs);
-  //   // cpyDevicetoHost__malloc_diag_gfs(&commondata, &griddata[grid].params, &griddata_host[grid].gridfuncs);
-  // }
+  // Step 4: Allocate storage for non-y_n gridfunctions, needed for the Runge-Kutta-like timestepping
+  for (int grid = 0; grid < commondata.NUMGRIDS; grid++) {
+    MoL_malloc_non_y_n_gfs(&commondata, &griddata[grid].params, &griddata[grid].gridfuncs);
+    // cpyDevicetoHost__malloc_diag_gfs(&commondata, &griddata[grid].params, &griddata_host[grid].gridfuncs);
+  }
   // // Step 4.a: Set AUXEVOL gridfunctions that will never change in time.
   // initialize_constant_auxevol(&commondata, griddata);
 
@@ -89,7 +89,7 @@ int main(int argc, const char *argv[]) {
   // Step 6: Free all allocated memory
   {
     const bool enable_free_non_y_n_gfs = true;
-    // griddata_free(&commondata, griddata, griddata_host, enable_free_non_y_n_gfs);
+    griddata_free(&commondata, griddata, griddata_host, enable_free_non_y_n_gfs);
   }
   return 0;
 }
