@@ -714,7 +714,7 @@ class setup_Cfunction_FD1_arbitrary_upwind:
         dirn: int,
         radiation_BC_fd_order: int = -1,
         fp_type: str = "double",
-    ) -> str:
+    ) -> None:
         self.dirn=dirn
         self.radiation_BC_fd_order=radiation_BC_fd_order
         self.fp_type=fp_type
@@ -726,9 +726,11 @@ class setup_Cfunction_FD1_arbitrary_upwind:
 
         par.set_parval_from_str("fd_order", radiation_BC_fd_order)
 
+        self.include_CodeParameters_h=True
         self.includes: List[str] = []
         self.desc = "Compute 1st derivative finite-difference derivative with arbitrary upwind"
         self.cfunc_type = "static inline REAL"
+        self.cfunc_decorators = ""
         self.name = f"FD1_arbitrary_upwind_x{dirn}_dirn"
         self.params = """const commondata_struct *restrict commondata, const params_struct *restrict params,
     const REAL *restrict gf,  const int i0,const int i1,const int i2, const int offset"""
@@ -784,8 +786,9 @@ class setup_Cfunction_FD1_arbitrary_upwind:
             cfunc_type=self.cfunc_type,
             name=self.name,
             params=self.params,
-            include_CodeParameters_h=True,
+            include_CodeParameters_h=self.include_CodeParameters_h,
             body=self.body,
+            cfunc_decorators=self.cfunc_decorators,
         )
 
 
@@ -867,11 +870,7 @@ const REAL partial_x0_partial_r, const REAL partial_x1_partial_r, const REAL par
 
 
 # radiation_bcs(): Put it all together, for a single outer boundary point.
-def setup_Cfunction_radiation_bcs(
-    CoordSystem: str,
-    radiation_BC_fd_order: int = -1,
-    fp_type: str = "double",
-) -> str:
+class setup_Cfunction_radiation_bcs:
     """
     Generate C code to apply radiation boundary conditions in a given coordinate system.
 
@@ -880,35 +879,43 @@ def setup_Cfunction_radiation_bcs(
     :param fp_type: Floating point type, e.g., "double".
     :return: A string containing the generated C code for the function.
     """
-    includes: List[str] = []
-    prefunc = ""
-    rfm = refmetric.reference_metric[CoordSystem]
-    for i in range(3):
-        # Do not generate FD1_arbitrary_upwind_xj_dirn() if the symbolic expression for dxj/dr == 0!
-        if not check_zero(rfm.Jac_dUrfm_dDSphUD[i][0]):
-            prefunc += setup_Cfunction_FD1_arbitrary_upwind(
-                dirn=i,
-                radiation_BC_fd_order=radiation_BC_fd_order,
-                fp_type=fp_type,
-            ).CFunction.full_function
-    prefunc += setup_Cfunction_r_and_partial_xi_partial_r_derivs(
-        CoordSystem=CoordSystem,
-        fp_type=fp_type,
-    )
-    prefunc += setup_Cfunction_compute_partial_r_f(
-        CoordSystem=CoordSystem, radiation_BC_fd_order=radiation_BC_fd_order
-    )
-    desc = r"""*** Apply radiation BCs to all outer boundaries. ***
+    def __init__(
+        self,
+        CoordSystem: str,
+        radiation_BC_fd_order: int = -1,
+        fp_type: str = "double",
+    ) -> str:
+        self.CoordSystem=CoordSystem
+        self.radiation_BC_fd_order=radiation_BC_fd_order
+        self.fp_type=fp_type
+        
+        self.cfunc_decorators=""
+        self.include_CodeParameters_h=True
+        self.includes: List[str] = []
+        self.prefunc = ""
+        self.rfm = refmetric.reference_metric[self.CoordSystem]
+        
+        # These functions can be replaced to generate different prefunc strings
+        self.upwind_setup_func = setup_Cfunction_FD1_arbitrary_upwind
+        self.r_and_partial_xi_partial_r_derivs_prefunc_setup_func = setup_Cfunction_r_and_partial_xi_partial_r_derivs
+        self.compute_partial_r_f_setup_func = setup_Cfunction_compute_partial_r_f
+        
+        # Initialize prefunc strings
+        self.upwind_prefunc=""
+        self.r_and_partial_xi_partial_r_derivs_prefunc=""        
+        self.compute_partial_r_f_prefunc=""
+        
+        self.desc = r"""*** Apply radiation BCs to all outer boundaries. ***
 """
-    cfunc_type = "static inline REAL"
-    name = "radiation_bcs"
-    params = """const commondata_struct *restrict commondata, const params_struct *restrict params,
-    const bc_struct *restrict bcstruct,REAL *restrict xx[3],
-    const REAL *restrict gfs, REAL *restrict gfs_rhss,
-    const int which_gf, const REAL gf_wavespeed, const REAL gf_f_infinity,
-    const int dest_i0,const int dest_i1,const int dest_i2,
-    const short FACEi0,const short FACEi1,const short FACEi2"""
-    body = r"""// Nearest "interior" neighbor of this gridpoint, based on current face
+        self.cfunc_type = "static inline REAL"
+        self.name = "radiation_bcs"
+        self.params = """const commondata_struct *restrict commondata, const params_struct *restrict params,
+        const bc_struct *restrict bcstruct,REAL *restrict xx[3],
+        const REAL *restrict gfs, REAL *restrict gfs_rhss,
+        const int which_gf, const REAL gf_wavespeed, const REAL gf_f_infinity,
+        const int dest_i0,const int dest_i1,const int dest_i2,
+        const short FACEi0,const short FACEi1,const short FACEi2"""
+        self.body = r"""// Nearest "interior" neighbor of this gridpoint, based on current face
 const int dest_i0_int=dest_i0+1*FACEi0, dest_i1_int=dest_i1+1*FACEi1, dest_i2_int=dest_i2+1*FACEi2;
 REAL r, partial_x0_partial_r,partial_x1_partial_r,partial_x2_partial_r;
 REAL r_int, partial_x0_partial_r_int,partial_x1_partial_r_int,partial_x2_partial_r_int;
@@ -941,19 +948,49 @@ const REAL partial_t_f_outgoing_wave = -c * (partial_r_f + (f - f_infinity) * ri
 
 return partial_t_f_outgoing_wave + k * rinv*rinv*rinv;
 """
-
-    cf = cfc.CFunction(
-        subdirectory=CoordSystem,
-        includes=includes,
-        prefunc=prefunc,
-        desc=desc,
-        cfunc_type=cfunc_type,
-        name=name,
-        params=params,
-        include_CodeParameters_h=True,
-        body=body,
-    )
-    return cf.full_function
+        self.generate_CFunction()
+    def generate_upwind_prefunc(self) -> None:
+        for i in range(3):
+            # Do not generate FD1_arbitrary_upwind_xj_dirn() if the symbolic expression for dxj/dr == 0!
+            if not check_zero(self.rfm.Jac_dUrfm_dDSphUD[i][0]):
+                self.prefunc += self.upwind_setup_func(
+                    dirn=i,
+                    radiation_BC_fd_order=self.radiation_BC_fd_order,
+                    fp_type=self.fp_type,
+                ).CFunction.full_function
+    
+    def generate_r_and_partial_xi_partial_r_derivs_prefunc(self) -> None:
+        self.r_and_partial_xi_partial_r_derivs_prefunc += self.r_and_partial_xi_partial_r_derivs_prefunc_setup_func(
+            CoordSystem=self.CoordSystem,
+            fp_type=self.fp_type,
+        )
+        
+    def generate_compute_partial_r_f_prefunc(self):
+        self.compute_partial_r_f_prefunc += self.compute_partial_r_f_setup_func(
+            CoordSystem=self.CoordSystem, radiation_BC_fd_order=self.radiation_BC_fd_order
+        )
+        
+    def generate_CFunction(self):
+        self.generate_upwind_prefunc()
+        self.generate_r_and_partial_xi_partial_r_derivs_prefunc()
+        self.generate_compute_partial_r_f_prefunc()
+        
+        self.prefunc += self.upwind_prefunc
+        self.prefunc += self.r_and_partial_xi_partial_r_derivs_prefunc
+        self.prefunc += self.compute_partial_r_f_prefunc
+        
+        self.CFunction = cfc.CFunction(
+            subdirectory=self.CoordSystem,
+            includes=self.includes,
+            prefunc=self.prefunc,
+            desc=self.desc,
+            cfunc_type=self.cfunc_type,
+            name=self.name,
+            params=self.params,
+            include_CodeParameters_h=self.include_CodeParameters_h,
+            body=self.body,
+            cfunc_decorators=self.cfunc_decorators,
+        )
 
 
 # apply_bcs_outerradiation_and_inner():
@@ -983,7 +1020,7 @@ class base_register_CFunction_apply_bcs_outerradiation_and_inner:
             CoordSystem=CoordSystem,
             radiation_BC_fd_order=radiation_BC_fd_order,
             fp_type=fp_type,
-        )
+        ).CFunction.full_function
         self.desc = """This function is responsible for applying boundary conditions (BCs) to both pure outer and inner
 boundary points. In the first step, it parallelizes the task using OpenMP and starts by applying BCs to
 the outer boundary points layer-by-layer, prioritizing the faces in the order x0, x1, x2. The second step
