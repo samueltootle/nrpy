@@ -351,27 +351,58 @@ class register_CFunction_apply_bcs_inner_only(
         self.body = r"""
   // Unpack bc_info from bcstruct
   const bc_info_struct *bc_info = &bcstruct->bc_info;
-
-  // collapse(2) results in a nice speedup here, esp in 2D. Two_BHs_collide goes from
-  //    5550 M/hr to 7264 M/hr on a Ryzen 9 5950X running on all 16 cores with core affinity.
-#pragma omp parallel for collapse(2)  // spawn threads and distribute across them
-  for(int which_gf=0;which_gf<NUM_EVOL_GFS;which_gf++) {
-    for(int pt=0;pt<bc_info->num_inner_boundary_points;pt++) {
-      const int dstpt = bcstruct->inner_bc_array[pt].dstpt;
-      const int srcpt = bcstruct->inner_bc_array[pt].srcpt;
-      gfs[IDX4pt(which_gf, dstpt)] = bcstruct->inner_bc_array[pt].parity[evol_gf_parity[which_gf]] * gfs[IDX4pt(which_gf, srcpt)];
-    } // END for(int pt=0;pt<num_inner_pts;pt++)
-  } // END for(int which_gf=0;which_gf<NUM_EVOL_GFS;which_gf++)
+  const innerpt_bc_struct *restrict inner_bc_array = bcstruct->inner_bc_array;
+  const int num_inner_boundary_points = bc_info->num_inner_boundary_points;
 """
+        # Specify kernel launch body
+        kernel_body = ""
+        for i in range(3):
+            kernel_body+=f"int const Nxx_plus_2NGHOSTS{i} = d_params.Nxx_plus_2NGHOSTS{i};\n"
+        kernel_body += """  
+// Thread indices
+// Global data index - expecting a 1D dataset
+const int tid0 = threadIdx.x + blockIdx.x*blockDim.x;
 
-        
+// Thread strides
+const int stride0 = blockDim.x * gridDim.x;
+    
+for (int pt = tid0; pt < num_inner_boundary_points; pt+=stride0) {
+      const int dstpt = inner_bc_array[pt].dstpt;
+      const int srcpt = inner_bc_array[pt].srcpt;
+      gfs[IDX4pt(which_gf, dstpt)] = inner_bc_array[pt].parity[d_evol_gf_parity[which_gf]] * gfs[IDX4pt(which_gf, srcpt)];
+  } // END for(int pt=0;pt<num_inner_pts;pt++)
+"""
+        # Generate a GPU Kernel
+        device_kernel = gputils.GPU_Kernel(
+            kernel_body,
+            {
+                'num_inner_boundary_points' : 'const int',
+                'which_gf' : 'const int',
+                'inner_bc_array' : 'const innerpt_bc_struct *restrict',
+                'gfs' : 'REAL *restrict'
+            },
+            f"{self.name}_gpu",
+            launch_dict= {
+                'blocks_per_grid' : ["(num_inner_boundary_points + threads_in_x_dir -1) / threads_in_x_dir"],
+                'threads_per_block' : ["32"],
+                'stream' : f"params->grid_idx % nstreams"
+            },
+            # fp_type=self.fp_type,
+            comments=f"GPU Kernel to apply extrapolation BCs to inner boundary points only.",
+        )
+        # Add device Kernel to prefunc
+        self.prefunc = device_kernel.CFunction.full_function
+        self.body+=device_kernel.launch_block + "\n\n"
+        self.body+="for (int which_gf = 0; which_gf < NUM_EVOL_GFS; which_gf++) {\n"
+        self.body+=device_kernel.c_function_call() + "}"
         cfc.register_CFunction(
+            prefunc=self.prefunc,
             includes=self.includes,
             desc=self.desc,
             cfunc_type=self.cfunc_type,
             name=self.name,
             params=self.params,
-            include_CodeParameters_h=True,
+            include_CodeParameters_h=False,
             body=self.body,
         )
 
