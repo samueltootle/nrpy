@@ -16,7 +16,7 @@ import nrpy.params as par
 import nrpy.reference_metric as refmetric
 import nrpy.c_codegen as ccg
 import nrpy.c_function as cfc
-
+from nrpy.helpers.expr_tree import get_unique_expression_symbols
 from nrpy.equations.nrpyelliptic.ConformallyFlat_RHSs import (
     HyperbolicRelaxationCurvilinearRHSs,
 )
@@ -165,14 +165,20 @@ class base_register_CFunction_variable_wavespeed_gfs_all_points:
             "commondata_struct *restrict commondata, griddata_struct *restrict griddata"
         )
 
-        rfm = refmetric.reference_metric[self.CoordSystem]
+        self.rfm = refmetric.reference_metric[self.CoordSystem]
         dxx0, dxx1, dxx2 = sp.symbols("dxx0 dxx1 dxx2", real=True)
+        expr_list = [
+            self.rfm.scalefactor_orthog[0] * dxx0,
+            self.rfm.scalefactor_orthog[1] * dxx1,
+            self.rfm.scalefactor_orthog[2] * dxx2,
+        ]
+        self.unique_symbols = []
+        for expr in expr_list:
+            self.unique_symbols += get_unique_expression_symbols(expr, exclude=[f'xx{i}' for i in range(3)])
+        self.unique_symbols = sorted(list(set(self.unique_symbols)))
+        
         self.dsmin_computation_str = ccg.c_codegen(
-            [
-                rfm.scalefactor_orthog[0] * dxx0,
-                rfm.scalefactor_orthog[1] * dxx1,
-                rfm.scalefactor_orthog[2] * dxx2,
-            ],
+            expr_list,
             ["const REAL dsmin0", "const REAL dsmin1", "const REAL dsmin2"],
             include_braces=False,
             fp_type=self.fp_type,

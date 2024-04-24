@@ -200,7 +200,7 @@ class gpu_register_CFunction_auxevol_gfs_single_point(
     ) -> None:
         super().__init__(CoordSystem, fp_type=fp_type)
 
-        self.cfunc_type = """__device__ __host__ void"""
+        self.cfunc_type = """__device__ void"""
         self.params = r"""const REAL xx0, const REAL xx1, const REAL xx2, REAL *restrict psi_background, REAL *restrict ADD_times_AUU
 """
         param_refs = ["AMAX", "SINHWAA", "bScale"]
@@ -304,9 +304,9 @@ class gpu_register_CFunction_auxevol_gfs_all_points(
                 'x0' : 'const REAL *restrict',
                 'x1' : 'const REAL *restrict',
                 'x2' : 'const REAL *restrict',
-                'in_gfs' : 'REAL *restrict'
+                'in_gfs' : 'REAL *restrict',
             },
-            'auxevol_gfs_all_points_gpu',
+            f'{self.name}_gpu',
             launch_dict= {
                 'blocks_per_grid' : [],
                 'threads_per_block' : ["32", "NGHOSTS"],
@@ -319,11 +319,11 @@ class gpu_register_CFunction_auxevol_gfs_all_points(
         self.body = r"""for(int grid=0; grid<commondata->NUMGRIDS; grid++) {
   // Unpack griddata struct:
   params_struct *restrict params = &griddata[grid].params;
+#include "set_CodeParameters.h"
   REAL *restrict x0 = griddata[grid].xx[0];
   REAL *restrict x1 = griddata[grid].xx[1];
   REAL *restrict x2 = griddata[grid].xx[2];
   REAL *restrict in_gfs = griddata[grid].gridfuncs.auxevol_gfs;
-#include "set_CodeParameters.h"
 """
         self.body += f"{self.device_kernel.launch_block}"
         self.body += f"{self.device_kernel.c_function_call()}"
@@ -385,24 +385,48 @@ class gpu_register_CFunction_variable_wavespeed_gfs_all_points(
   // Unpack griddata struct:
   params_struct *restrict params = &griddata[grid].params;
 #include "set_CodeParameters.h"
-  REAL *restrict xx[3];
-  for (int ww = 0; ww < 3; ww++)
-    xx[ww] = griddata[grid].xx[ww];
+  REAL *restrict x0 = griddata[grid].xx[0];
+  REAL *restrict x1 = griddata[grid].xx[1];
+  REAL *restrict x2 = griddata[grid].xx[2];
   REAL *restrict in_gfs = griddata[grid].gridfuncs.auxevol_gfs;
 """
-
-        self.body += lp.simple_loop(
+        self.loop_body = lp.simple_loop(
             loop_body="\n" + self.dsmin_computation_str,
             read_xxs=True,
             loop_region="interior",
             fp_type=self.fp_type,
         ).full_loop_body
-
+        kernel_body = "// Temporary parameters\n"
+        for sym in self.unique_symbols:
+            kernel_body += f"const REAL {sym} = d_params.{sym};\n" 
+        # Put loop_body into a device kernel
+        self.device_kernel = gputils.GPU_Kernel(
+            kernel_body+self.loop_body,
+            {
+                'x0' : 'const REAL *restrict',
+                'x1' : 'const REAL *restrict',
+                'x2' : 'const REAL *restrict',
+                'in_gfs' : 'REAL *restrict',
+                'dt' : 'const REAL',
+                'MINIMUM_GLOBAL_WAVESPEED' : 'const REAL',
+            },
+            f'{self.name}_gpu',
+            launch_dict= {
+                'blocks_per_grid' : [],
+                'threads_per_block' : ["32", "NGHOSTS"],
+                'stream' : "default"
+            },
+            fp_type=self.fp_type,
+            comments="GPU Kernel to initialize auxillary grid functions at all grid points.",
+        )
+        self.body += f"{self.device_kernel.launch_block}"
+        self.body += f"{self.device_kernel.c_function_call()}"
         # We must close the loop that was opened in the line 'for(int grid=0; grid<commondata->NUMGRIDS; grid++) {'
         self.body += r"""} // END LOOP for(int grid=0; grid<commondata->NUMGRIDS; grid++)
                 """
 
         cfc.register_CFunction(
+            prefunc=self.device_kernel.CFunction.full_function,
             includes=self.includes,
             desc=self.desc,
             cfunc_type=self.cfunc_type,
@@ -804,7 +828,7 @@ class gpu_register_CFunction_rhs_eval(
             read_xxs=not enable_rfm_precompute,
             fp_type=fp_type,
         )
-        self.loop_body = self.simple_loop.full_loop_body
+        self.loop_body = self.simple_loop.full_loop_body.replace("const REAL f", "[[maybe_unused]] const REAL f")
         self.kernel_comments="GPU Kernel to evaluate RHS on the interior."
         self.params_dict_coord = {f"x{i}" : "const REAL *restrict" for i in range(3)}
         self.body=""
