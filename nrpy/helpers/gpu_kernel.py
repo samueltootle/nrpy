@@ -344,64 +344,79 @@ def register_CFunction_cpyDevicetoHost__malloc_host_diag_gfs() -> None:
         subdirectory="CUDA_utils",
     )
 
-def register_CFunction_find_global_minimum() -> None:
-    """
-    Register C function for finding the global minimum of an array
-
-    :return: None.
-    """
-    includes = ["BHaH_defines.h"]
-    desc = r"""Find array global minimum."""
-    cfunc_type = "__host__ REAL"
-    name = "find_global__min"
-    params = "REAL * data, uint const data_length"
-    
-    body = """
-    // This can be tested up to 1024
-    uint threadCount = 32;
-    
-    // Number of blocks
-    uint blockCount = (data_length + threadCount - 1) / threadCount;
-    
-    // CUDA atomics other than cas are only
-    // compatible with (u)int.  To be generic
-    // we use unsigned long long to be able to handle
-    // 64 bit floats
-    using ull = unsigned long long int;
-    ull * h_min = (ull*)malloc(sizeof(ull));
-    ull * d_min;
-    *h_min = (unsigned long long int)0xFFFFFFFFU;
-    
-    cudaMalloc(&d_min, sizeof(ull));
-    cudaCheckErrors(cudaMalloc, "cudaMalloc failure"); // error checking
-
-    cudaMemcpy(d_min, h_min, sizeof(ull), cudaMemcpyHostToDevice);
-    cudaCheckErrors(cudaMemcpy, "cudaCopyTo failure"); // error checking
-    
-    find_min__cuda<<<blockCount, threadCount>>>(data, d_min, data_length);
-    cudaCheckErrors(find_min_cu, "cudaKernel - find_min_cu failed"); // error checking
-    
-    cudaMemcpy(h_min, d_min, sizeof(REAL), cudaMemcpyDeviceToHost);
-    cudaCheckErrors(cudaMemcpy, "cudaCopyFrom failure"); // error checking
-
-    cudaFree(d_min);
-    cudaCheckErrors(cudaFree, "cudaFree failure"); // error checking
-
-    // Recast back to result pointer type
-    REAL * res = (REAL *) h_min;
-    return *res;
+class CUDA_reductions:
+    def __init__ (
+        self,
+        reduction_type="minimum",
+        cfunc_decorators="__host__",
+        cfunc_type="REAL",
+        fp_type = "double",
+    )->None:
+        self.reduction_type = reduction_type
+        self.cfunc_decorators=cfunc_decorators
+        self.cfunc_type=cfunc_type
+        self.fp_type = fp_type
+        
+        self.type_dict = {
+            "double" : 'unsigned long long',
+            "float" : 'unsigned long',
+        }
+        
+        self.initial_value_dict = {
+            'sum' : '0U',
+            'maximum' : '0U',
+            'minimum' : '0xFFFFFFFFU',            
+        }
+        
+        # Define local reductions
+        def minimum_reduction(cmp_var):
+            return f"""
+if(local_reduced > {cmp_var}) {{
+    local_reduced = {cmp_var};
+}}
 """
-    prefunc = """
+        def maximum_reduction(cmp_var):
+            return f"""
+if(local_reduced < {cmp_var}) {{
+    local_reduced = {cmp_var};
+}}
+"""
+        def sum_reduction(cmp_var):
+            return f"local_reduced += {cmp_var};"
+        # End local reduction definitions
+        
+        # Store local reductions for later use in substitution
+        self.reduction_dict = {
+            'sum' : sum_reduction,
+            'minimum' : minimum_reduction,
+            'maximum' : maximum_reduction,
+        }
+        
+        self.atomic_operations = {
+            'sum' : 'atomicAdd',
+            'minimum' : 'atomicMin',
+            'maximum' : 'atomicMax'
+        }
+        
+        if self.reduction_type not in self.initial_value_dict:
+            raise ValueError(f"{self.reduction_type} is not a defined reduction. Choose from {self.initial_value_dict.keys()}")
+        self.includes = ["BHaH_defines.h"]
+        self.desc = f"""Find array global {self.reduction_type}."""
+        self.name = f"find_global__{self.reduction_type}"
+        self.params = "REAL * data, uint const data_length"
+        
+        self.kernel_name = f"{self.name}__cuda"
+        self.prefunc = f"""
 __global__
-static void find_min__cuda(REAL * data, unsigned long long int * min, uint const data_length) {    
+static void {self.kernel_name}(REAL * data, {self.type_dict[self.fp_type]} int * min, uint const data_length) {{
     // shared data between all warps
     // Assumes one block = 32 warps = 32 * 32 threads
     // As of today, the standard maximum threads per
     // block is 1024 = 32 * 32
     __shared__ REAL shared_data[32];
 
-    // largest value for uint
-    REAL REDUCTION_LIMIT = (REAL) 0xFFFFFFFFU;
+    // Some initial value
+    REAL REDUCTION_LIMIT = (REAL) {self.initial_value_dict[self.reduction_type]};
 
     // Global data index - expecting a 1D dataset
     uint idx = threadIdx.x + blockDim.x * blockIdx.x;
@@ -409,8 +424,8 @@ static void find_min__cuda(REAL * data, unsigned long long int * min, uint const
     // thread index
     uint tid = threadIdx.x;
 
-    // local thread minimum - set to something large
-    REAL local_min = REDUCTION_LIMIT;
+    // local thread reduction
+    REAL local_reduced = REDUCTION_LIMIT;
 
     // warp mask - says all threads are involved in shuffle
     // 0xFFFFFFFFU in binary is 32 1's.
@@ -422,59 +437,147 @@ static void find_min__cuda(REAL * data, unsigned long long int * min, uint const
     uint warpID = threadIdx.x / warpSize;
 
     // Stride through data for each thread
-    while(idx < data_length) {
-        if(local_min > data[idx]) 
-            local_min = data[idx];
+    while(idx < data_length) {{
+        {self.reduction_dict[self.reduction_type]("data[idx]")}
         // idx stride
         idx += gridDim.x * blockDim.x;
-    }
-
+    }}
     // Shuffle down kernel
-    for(int offset = warpSize / 2; offset > 0; offset >>= 1) {
-        REAL shfl = __shfl_down_sync(mask, local_min, offset);
-        if(local_min > shfl) 
-            local_min = shfl;
-    }
+    for(int offset = warpSize / 2; offset > 0; offset >>= 1) {{
+        REAL shfl = __shfl_down_sync(mask, local_reduced, offset);
+        {self.reduction_dict[self.reduction_type]("shfl")}
+    }}
     // Shuffle results in lane 0 have the shuffle result
-    if(lane == 0) shared_data[warpID] = local_min;
+    if(lane == 0) shared_data[warpID] = local_reduced;
     
     // Make sure all warps in the block are synchronized
     __syncthreads();
-    unsigned long long int* address_as_ull;
+    {self.type_dict[self.fp_type]} int* address_as_ull;
     // Since there is only 32 partial reductions, we only
     // have one warp worth of work
-    if(warpID == 0) {
+    if(warpID == 0) {{
         // Check to make sure we had 32 blocks of data
-        if(tid < blockDim.x / warpSize) {
-            local_min = shared_data[lane];
-        } else {
-            local_min = REDUCTION_LIMIT;
-        }
+        if(tid < blockDim.x / warpSize) {{
+            local_reduced = shared_data[lane];
+        }} else {{
+            local_reduced = REDUCTION_LIMIT;
+        }}
         
         // Shuffle down kernel
-        for(int offset = warpSize / 2; offset > 0; offset >>= 1) {
-            REAL shfl = __shfl_down_sync(mask, local_min, offset);
-            if(local_min > shfl) 
-                local_min = shfl;
-        }
-        address_as_ull = (unsigned long long int*)&local_min;
-        if(tid == 0) {
-            atomicMin((unsigned long long int *)min, (unsigned long long int)*address_as_ull);
-        }
-    }
-}
+        for(int offset = warpSize / 2; offset > 0; offset >>= 1) {{
+            REAL shfl = __shfl_down_sync(mask, local_reduced, offset);
+            {self.reduction_dict[self.reduction_type]("shfl")}
+        }}
+        address_as_ull = ({self.type_dict[self.fp_type]} int*)&local_reduced;
+        if(tid == 0) {{
+            {self.atomic_operations[self.reduction_type]}(({self.type_dict[self.fp_type]} int *)min, ({self.type_dict[self.fp_type]} int)*address_as_ull);
+        }}
+    }}
+}}
 """
+        
+        self.body = f"""
+    // This can be tested up to 1024
+    uint threadCount = 32;
+    
+    // Number of blocks
+    uint blockCount = (data_length + threadCount - 1) / threadCount;
+    
+    // CUDA atomics other than cas are only
+    // compatible with (u)int.  To be generic
+    // we use {self.type_dict[self.fp_type]} to be able to handle
+    // {self.fp_type} precision variables
+    using ull = {self.type_dict[self.fp_type]} int;
+    ull * h_reduced = (ull*)malloc(sizeof(ull));
+    ull * d_reduced;
+    *h_reduced = (ull){self.initial_value_dict[self.reduction_type]};
+    
+    cudaMalloc(&d_reduced, sizeof(ull));
+    cudaCheckErrors(cudaMalloc, "cudaMalloc failure"); // error checking
+
+    cudaMemcpy(d_reduced, h_reduced, sizeof(ull), cudaMemcpyHostToDevice);
+    cudaCheckErrors(cudaMemcpy, "cudaCopyTo failure"); // error checking
+    
+    {self.name}__cuda<<<blockCount, threadCount>>>(data, d_reduced, data_length);
+    cudaCheckErrors(find_min_cu, "cudaKernel - find_min_cu failed"); // error checking
+    
+    cudaMemcpy(h_reduced, d_reduced, sizeof(REAL), cudaMemcpyDeviceToHost);
+    cudaCheckErrors(cudaMemcpy, "cudaCopyFrom failure"); // error checking
+
+    cudaFree(d_reduced);
+    cudaCheckErrors(cudaFree, "cudaFree failure"); // error checking
+
+    // Recast back to result pointer type
+    REAL * res = (REAL *) h_reduced;
+    return *res;
+"""
+        self.CFunction = None
+        
+    def generate_CFunction(self) -> None:
+        "Generate CFunction from initialized parameters."
+        
+        self.CFunction = cfc.CFunction(
+            prefunc=self.prefunc,
+            includes=self.includes,
+            desc=self.desc,
+            cfunc_type=self.cfunc_type,
+            CoordSystem_for_wrapper_func="",
+            name=self.name,
+            params=self.params,
+            include_CodeParameters_h=False,
+            body=self.body,
+            subdirectory="CUDA_utils",
+        )
+
+def register_CFunction_find_global_minimum(fp_type = "double") -> None:
+    """
+    Register C function for finding the global minimum of an array
+
+    :return: None.
+    """
+    reduction = CUDA_reductions(
+        reduction_type="minimum",
+        cfunc_decorators="__host__",
+        cfunc_type="REAL",
+        fp_type = fp_type,
+    )
 
     cfc.register_CFunction(
-        prefunc=prefunc,
-        includes=includes,
-        desc=desc,
-        cfunc_type=cfunc_type,
+        prefunc=reduction.prefunc,
+        includes=reduction.includes,
+        desc=reduction.desc,
+        cfunc_type=reduction.cfunc_type,
         CoordSystem_for_wrapper_func="",
-        name=name,
-        params=params,
+        name=reduction.name,
+        params=reduction.params,
         include_CodeParameters_h=False,
-        body=body,
+        body=reduction.body,
+        subdirectory="CUDA_utils",
+    )
+    
+def register_CFunction_find_global_sum(fp_type = "double") -> None:
+    """
+    Register C function for finding the global sum of an array
+
+    :return: None.
+    """
+    reduction = CUDA_reductions(
+        reduction_type="sum",
+        cfunc_decorators="__host__",
+        cfunc_type="REAL",
+        fp_type = fp_type,
+    )
+
+    cfc.register_CFunction(
+        prefunc=reduction.prefunc,
+        includes=reduction.includes,
+        desc=reduction.desc,
+        cfunc_type=reduction.cfunc_type,
+        CoordSystem_for_wrapper_func="",
+        name=reduction.name,
+        params=reduction.params,
+        include_CodeParameters_h=False,
+        body=reduction.body,
         subdirectory="CUDA_utils",
     )
 
