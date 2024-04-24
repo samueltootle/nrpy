@@ -391,6 +391,7 @@ class register_CFunction_MoL_step_forward_in_time(
         if enable_simd:
             self.includes += [os.path.join("SIMD", "SIMD_intrinsics.h")]
         self.single_RK_substep_input_symbolic = single_RK_substep_input_symbolic
+        self.gf_alias_prefix = "[[maybe_unused]]"
         self.setup_gf_aliases()
         self.generate_RK_steps()
         

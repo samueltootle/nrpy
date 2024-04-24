@@ -108,9 +108,9 @@ class simple_loop(base_sl.base_simple_loop):
         
         if self.read_xxs:
             self.read_rfm_xx_arrays = [
-                "const REAL xx0 = x0[i0];",
-                "const REAL xx1 = x1[i1];",
-                "const REAL xx2 = x2[i2];",
+                "[[maybe_unused]] const REAL xx0 = x0[i0];",
+                "[[maybe_unused]] const REAL xx1 = x1[i1];",
+                "[[maybe_unused]] const REAL xx2 = x2[i2];",
             ]
         elif self.enable_rfm_precompute:
             self.read_rfm_xx_arrays = [
