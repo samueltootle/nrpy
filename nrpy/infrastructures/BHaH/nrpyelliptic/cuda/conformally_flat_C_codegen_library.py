@@ -129,7 +129,8 @@ class gpu_register_CFunction_initial_guess_all_points(
             comments="GPU Kernel to initialize all grid points.",
         )
         
-        self.body += r"""for(int grid=0; grid<commondata->NUMGRIDS; grid++) {
+        # FIXME should be +=
+        self.body = r"""for(int grid=0; grid<commondata->NUMGRIDS; grid++) {
   // Unpack griddata struct:
   params_struct *restrict params = &griddata[grid].params;
   REAL *restrict x0 = griddata[grid].xx[0];
@@ -671,40 +672,40 @@ class gpu_register_CFunction_diagnostics(
   const REAL integration_radius = 1000;
 
   // Compute l2-norm of Hamiltonian constraint violation
-  const REAL residual_H = compute_L2_norm_of_gridfunction(commondata, griddata, integration_radius, RESIDUAL_HGF, diagnostic_output_gfs);
+  //const REAL residual_H = compute_L2_norm_of_gridfunction(commondata, griddata, integration_radius, RESIDUAL_HGF, diagnostic_output_gfs);
 
   // Update residual to be used in stop condition
-  commondata->log10_current_residual = residual_H;
+  //commondata->log10_current_residual = residual_H;
 
   // Output l2-norm of Hamiltonian constraint violation to file
-  {
-    char filename[256];
-    sprintf(filename, "residual_l2_norm.txt");
-    FILE *outfile = (nn == 0) ? fopen(filename, "w") : fopen(filename, "a");
-    if (!outfile) {
-      fprintf(stderr, "Error: Cannot open file %s for writing.\n", filename);
-      exit(1);
-    }
-    fprintf(outfile, "%6d %10.4e %.17e\n", nn, time, residual_H);
-    fclose(outfile);
-  }
+  // {
+  //   char filename[256];
+  //   sprintf(filename, "residual_l2_norm.txt");
+  //   FILE *outfile = (nn == 0) ? fopen(filename, "w") : fopen(filename, "a");
+  //   if (!outfile) {
+  //     fprintf(stderr, "Error: Cannot open file %s for writing.\n", filename);
+  //     exit(1);
+  //   }
+  //   fprintf(outfile, "%6d %10.4e %.17e\n", nn, time, residual_H);
+  //   fclose(outfile);
+  // }
 
   // Grid data output
-  const int n_step = commondata->nn, outevery = commondata->diagnostics_output_every;
-  if (n_step % outevery == 0) {
-    // Set reference metric grid xx
-    REAL *restrict xx[3];
-    for (int ww = 0; ww < 3; ww++)
-        xx[ww] = griddata[grid].xx[ww];
+  //const int n_step = commondata->nn, outevery = commondata->diagnostics_output_every;
+  //if (n_step % outevery == 0) {
+  //  // Set reference metric grid xx
+  //  REAL *restrict xx[3];
+  //  for (int ww = 0; ww < 3; ww++)
+  //      xx[ww] = griddata[grid].xx[ww];
 
-    // 1D output
-    diagnostics_nearest_1d_y_axis(commondata, params, xx, &griddata[grid].gridfuncs);
-    diagnostics_nearest_1d_z_axis(commondata, params, xx, &griddata[grid].gridfuncs);
+  //  // 1D output
+  //  diagnostics_nearest_1d_y_axis(commondata, params, xx, &griddata[grid].gridfuncs);
+  //  diagnostics_nearest_1d_z_axis(commondata, params, xx, &griddata[grid].gridfuncs);
 
-    // 2D output
-    diagnostics_nearest_2d_xy_plane(commondata, params, xx, &griddata[grid].gridfuncs);
-    diagnostics_nearest_2d_yz_plane(commondata, params, xx, &griddata[grid].gridfuncs);
-  }
+  //  // 2D output
+  //  diagnostics_nearest_2d_xy_plane(commondata, params, xx, &griddata[grid].gridfuncs);
+  //  diagnostics_nearest_2d_yz_plane(commondata, params, xx, &griddata[grid].gridfuncs);
+  //}
 """
         if enable_progress_indicator:
             self.body += "progress_indicator(commondata, griddata);"
@@ -712,7 +713,6 @@ class gpu_register_CFunction_diagnostics(
   if (commondata->time + commondata->dt > commondata->t_final)
     printf("\n");
 """
-        self.body="// need to implement\n"
         cfc.register_CFunction(
             includes=self.includes,
             desc=self.desc,
