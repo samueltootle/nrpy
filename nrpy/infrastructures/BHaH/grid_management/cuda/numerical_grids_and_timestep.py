@@ -97,11 +97,11 @@ class register_CFunction_numerical_grid_params_Nxx_dxx_xx(
   const int index  = blockIdx.x * blockDim.x + threadIdx.x;
   const int stride = blockDim.x * gridDim.x;
 
-  REAL const& xxmin{i} = d_params.xxmin{i};
+  REAL const xxmin{i} = d_params.xxmin{i};
 
-  REAL const& dxx{i} = d_params.dxx{i};
+  REAL const dxx{i} = d_params.dxx{i};
 
-  REAL const& Nxx_plus_2NGHOSTS{i} = d_params.Nxx_plus_2NGHOSTS{i};
+  REAL const Nxx_plus_2NGHOSTS{i} = d_params.Nxx_plus_2NGHOSTS{i};
 
   constexpr REAL onehalf = 1.0 / 2.0;
 
