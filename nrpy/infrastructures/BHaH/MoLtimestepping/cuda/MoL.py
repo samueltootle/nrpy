@@ -134,8 +134,10 @@ class RKFunction(base_MoL.RKFunction):
         self.body = ""
         self.params: str = "params_struct *restrict params, "
         kernel_body: str = ""
+        N_str = ""
         for i in ["0", "1", "2"]:
             kernel_body += f"const int Nxx_plus_2NGHOSTS{i} = d_params.Nxx_plus_2NGHOSTS{i};\n"
+            N_str +=f"Nxx_plus_2NGHOSTS{i} *"
         kernel_body += "const int Ntot = Nxx_plus_2NGHOSTS0*Nxx_plus_2NGHOSTS1*Nxx_plus_2NGHOSTS2*NUM_EVOL_GFS;\n\n"
         kernel_body += (
             "// Kernel thread/stride setup\n"
@@ -175,8 +177,8 @@ class RKFunction(base_MoL.RKFunction):
             kernel_params,
             f"{self.name}_gpu",
             launch_dict= {
-                'blocks_per_grid' : [],
-                'threads_per_block' : ["64"],
+                'blocks_per_grid' : ["(Ntot + threads_in_x_dir - 1) / threads_in_x_dir"],
+                'threads_per_block' : ["32"],
                 'stream' : f"params->grid_idx % nstreams"
             },
             fp_type=self.fp_type,
@@ -194,6 +196,7 @@ class RKFunction(base_MoL.RKFunction):
         # Store CFunction
         for i in range(3):
             self.body+=f"const int Nxx_plus_2NGHOSTS{i} = params->Nxx_plus_2NGHOSTS{i};\n"
+        self.body += "const int Ntot = Nxx_plus_2NGHOSTS0*Nxx_plus_2NGHOSTS1*Nxx_plus_2NGHOSTS2*NUM_EVOL_GFS;\n\n"
         self.body+=self.device_kernel.launch_block
         self.body+=self.device_kernel.c_function_call()
         self.CFunction = cfc.CFunction(
