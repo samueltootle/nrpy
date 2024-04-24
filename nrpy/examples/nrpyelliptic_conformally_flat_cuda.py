@@ -160,7 +160,8 @@ par.adjust_CodeParam_default("t_final", t_final)
 gputils.register_CFunction_cpyHosttoDevice_params__constant()
 gputils.register_CFunction_cpyHosttoDevice_commondata__constant()
 gputils.register_CFunction_cpyDevicetoHost__grid()
-gputils.register_CFunction_find_global_minimum()
+gputils.register_CFunction_find_global_minimum(fp_type=fp_type)
+gputils.register_CFunction_find_global_sum(fp_type=fp_type)
 
 # Generate functions to set initial guess
 nrpyellClib.register_CFunction_initial_guess_single_point(fp_type=fp_type)
@@ -225,9 +226,9 @@ nrpyellClib.register_CFunction_compute_residual_all_points(
 )
 
 # Generate diagnostics functions
-# nrpyellClib.register_CFunction_compute_L2_norm_of_gridfunction(
-#     CoordSystem=CoordSystem, fp_type=fp_type
-# )
+nrpyellClib.register_CFunction_compute_L2_norm_of_gridfunction(
+    CoordSystem=CoordSystem, fp_type=fp_type
+)
 
 # Register function to check for stop conditions
 nrpyellClib.register_CFunction_check_stop_conditions()
