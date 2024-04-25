@@ -204,7 +204,6 @@ class gpu_register_CFunction_auxevol_gfs_single_point(
         self.cfunc_type = """__device__ void"""
         self.params = r"""const REAL xx0, const REAL xx1, const REAL xx2, REAL *restrict psi_background, REAL *restrict ADD_times_AUU
 """
-        param_refs = ["AMAX", "SINHWAA", "bScale"]
         commondata_refs = [
             "zPunc",
             "P0_x",
@@ -224,8 +223,9 @@ class gpu_register_CFunction_auxevol_gfs_single_point(
         ]
         
         self.body = "// Temporary variables to needed parameters and commondata.\n"
-        for p in param_refs:
-            self.body += f"const REAL {p} = d_params.{p};\n"
+        for p in self.unique_symbols:
+            if p not in commondata_refs:
+                self.body += f"const REAL {p} = d_params.{p};\n"
         for cd in commondata_refs:
             self.body += f"const REAL {cd} = d_commondata.{cd};\n"
         self.body += "\n\n"
@@ -531,6 +531,7 @@ class register_CFunction_compute_L2_norm_of_gridfunction(
     ) -> None:
 
         super().__init__(CoordSystem, fp_type=fp_type)
+        self.fp_type = "double"
         self.includes += ['BHaH_function_prototypes.h']
         reduction_loop_body = ccg.c_codegen(
             self.expr_list,
