@@ -40,10 +40,10 @@ class register_CFunction_griddata_free(base_free.base_register_CFunction_griddat
 
   MoL_free_memory_y_n_gfs(&griddata[grid].gridfuncs);
   cudaCheckErrors(free, "MoLFree failed");
-  cudaFreeHost(griddata_host[grid].gridfuncs.y_n_gfs);
-  cudaCheckErrors(free, "bcstruct Host-ynFree failed");
-  cudaFreeHost(griddata_host[grid].gridfuncs.diagnostic_output_gfs);
-  cudaCheckErrors(free, "bcstruct Host-non-ynFree failed");
+  //cudaFreeHost(griddata_host[grid].gridfuncs.y_n_gfs);
+  //cudaCheckErrors(free, "bcstruct Host-ynFree failed");
+  //cudaFreeHost(griddata_host[grid].gridfuncs.diagnostic_output_gfs);
+  //cudaCheckErrors(free, "bcstruct Host-non-ynFree failed");
   if(enable_free_non_y_n_gfs) {
     for(int i=0;i<3;i++) { 
         cudaFree(griddata[grid].xx[i]);
