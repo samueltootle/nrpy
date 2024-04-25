@@ -317,7 +317,8 @@ class gpu_register_CFunction_auxevol_gfs_all_points(
             comments="GPU Kernel to initialize auxillary grid functions at all grid points.",
         )
         
-        self.body = r"""for(int grid=0; grid<commondata->NUMGRIDS; grid++) {
+        self.body = r"""cpyHosttoDevice_commondata__constant(commondata);
+        for(int grid=0; grid<commondata->NUMGRIDS; grid++) {
   // Unpack griddata struct:
   params_struct *restrict params = &griddata[grid].params;
 #include "set_CodeParameters.h"
@@ -530,12 +531,9 @@ class register_CFunction_compute_L2_norm_of_gridfunction(
     ) -> None:
 
         super().__init__(CoordSystem, fp_type=fp_type)
-
-        loop_body = ccg.c_codegen(
-            [
-                self.rfm.xxSph[0],
-                self.rfm.detgammahat,
-            ],
+        self.includes += ['BHaH_function_prototypes.h']
+        reduction_loop_body = ccg.c_codegen(
+            self.expr_list,
             [
                 "const REAL r",
                 "const REAL sqrtdetgamma",
@@ -543,46 +541,89 @@ class register_CFunction_compute_L2_norm_of_gridfunction(
             include_braces=False,
             fp_type=self.fp_type,
         )
+        
+        l2_squared_dv_memaccess = gri.BHaHGridFunction.access_gf(
+            "l2_squared_dv"
+        ).replace("in_gfs", "aux_gfs")
+        l2_dv_memaccess = gri.BHaHGridFunction.access_gf(
+            "l2_dv"
+        ).replace("in_gfs", "aux_gfs")
 
-        loop_body += r"""
-if(r < integration_radius) {
-  const REAL gf_of_x = in_gf[IDX4(gf_index, i0, i1, i2)];
+        reduction_loop_body += fr"""
+if(r < integration_radius) {{
+  const REAL gf_of_x = in_gfs[IDX4(gf_index, i0, i1, i2)];
   const REAL dV = sqrtdetgamma * dxx0 * dxx1 * dxx2;
-  squared_sum += gf_of_x * gf_of_x * dV;
-  volume_sum  += dV;
-} // END if(r < integration_radius)
+  {l2_squared_dv_memaccess} = gf_of_x * gf_of_x * dV;
+  {l2_dv_memaccess} = dV;
+}} // END if(r < integration_radius)
 """
         self.body += r"""
   // Unpack grid parameters assuming a single grid
   const int grid = 0;
   params_struct *restrict params = &griddata[grid].params;
 #include "set_CodeParameters.h"
-
-  // Define reference metric grid
-  REAL *restrict xx[3];
-  for (int ww = 0; ww < 3; ww++)
-    xx[ww] = griddata[grid].xx[ww];
+  const int Nxx_plus_2NGHOSTS_tot = Nxx_plus_2NGHOSTS0 * Nxx_plus_2NGHOSTS1 * Nxx_plus_2NGHOSTS2;
+  REAL *restrict x0 = griddata[grid].xx[0];
+  REAL *restrict x1 = griddata[grid].xx[1];
+  REAL *restrict x2 = griddata[grid].xx[2];
+  REAL *restrict in_gfs = griddata[grid].gridfuncs.diagnostic_output_gfs;
+  REAL *restrict aux_gfs = griddata[grid].gridfuncs.diagnostic_output_gfs2;
+  
+  // Since we're performing sums, make sure arrays are zero'd
+  cudaMemset(aux_gfs, 0, sizeof(REAL) * NUM_EVOL_GFS * Nxx_plus_2NGHOSTS_tot);
 
   // Set summation variables to compute l2-norm
-  REAL squared_sum = 0.0;
-  REAL volume_sum  = 0.0;
+
 
 """
 
-        self.body += lp.simple_loop(
-            loop_body="\n" + loop_body,
+        self.loop_body = lp.simple_loop(
+            loop_body="\n" + reduction_loop_body,
             read_xxs=True,
             loop_region="interior",
-            OMP_custom_pragma=r"#pragma omp parallel for reduction(+:squared_sum,volume_sum)",
             fp_type=self.fp_type,
         ).full_loop_body
 
+        kernel_body = "// Temporary parameters\n"
+        
+        # Add symbols that are hard coded into reduction_loop_body
+        self.unique_symbols += [f"dxx{i}" for i in range(3)]
+        for sym in self.unique_symbols:
+            kernel_body += f"const REAL {sym} = d_params.{sym};\n" 
+
+        # Put loop_body into a device kernel
+        self.device_kernel = gputils.GPU_Kernel(
+            kernel_body+self.loop_body,
+            {
+                'x0' : 'const REAL *restrict',
+                'x1' : 'const REAL *restrict',
+                'x2' : 'const REAL *restrict',
+                'in_gfs' : 'const REAL *restrict',
+                'aux_gfs' : 'REAL *restrict',
+                'integration_radius' : 'const REAL',
+                'gf_index' : 'const int',
+            },
+            f'{self.name}_gpu',
+            launch_dict= {
+                'blocks_per_grid' : [],
+                'threads_per_block' : ["32", "NGHOSTS"],
+                'stream' : "default"
+            },
+            fp_type=self.fp_type,
+            comments="GPU Kernel to compute L2 quantities pointwise (not summed).",
+        )
+        self.body += f"{self.device_kernel.launch_block}"
+        self.body += f"{self.device_kernel.c_function_call()}"
+
         self.body += r"""
+  REAL squared_sum = find_global__sum(&aux_gfs[IDX4(L2_SQUARED_DVGF, 0, 0, 0)], Nxx_plus_2NGHOSTS_tot);
+  REAL volume_sum = find_global__sum(&aux_gfs[IDX4(L2_DVGF, 0, 0, 0)], Nxx_plus_2NGHOSTS_tot);
   // Compute and output the log of the l2-norm.
   return log10(1e-16 + sqrt(squared_sum / volume_sum));  // 1e-16 + ... avoids log10(0)
 """
 
         cfc.register_CFunction(
+            prefunc=self.device_kernel.CFunction.full_function,
             includes=self.includes,
             desc=self.desc,
             cfunc_type=self.cfunc_type,
