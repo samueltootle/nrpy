@@ -709,10 +709,10 @@ class gpu_register_CFunction_diagnostics(
   const REAL integration_radius = 1000;
 
   // Compute l2-norm of Hamiltonian constraint violation
-  //const REAL residual_H = compute_L2_norm_of_gridfunction(commondata, griddata, integration_radius, RESIDUAL_HGF, diagnostic_output_gfs);
+  const REAL residual_H = compute_L2_norm_of_gridfunction(commondata, griddata, integration_radius, RESIDUAL_HGF, diagnostic_output_gfs);
 
   // Update residual to be used in stop condition
-  //commondata->log10_current_residual = residual_H;
+  commondata->log10_current_residual = residual_H;
 
   // Output l2-norm of Hamiltonian constraint violation to file
   // {
