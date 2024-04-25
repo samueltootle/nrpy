@@ -237,7 +237,25 @@ class base_register_CFunction_compute_L2_norm_of_gridfunction:
                     const REAL integration_radius, const int gf_index, const REAL *restrict in_gf"""
 
         self.rfm = refmetric.reference_metric[CoordSystem]
+        self.expr_list = [
+            self.rfm.xxSph[0],
+            self.rfm.detgammahat,
+        ]
+        self.unique_symbols = []
+        for expr in self.expr_list:
+            self.unique_symbols += get_unique_expression_symbols(expr, exclude=[f'xx{i}' for i in range(3)])
+        self.unique_symbols = sorted(list(set(self.unique_symbols)))
         self.body = ""
+        
+        # Register residual as AUX gridfunction
+        if "l2_squared_dv" not in gri.glb_gridfcs_dict:
+            _l2_squared_dv = gri.register_gridfunctions(
+                "l2_squared_dv", group="AUX", gf_array_name="aux_gfs"
+            )[0]
+        if "l2_dV" not in gri.glb_gridfcs_dict:
+            _l2_dv = gri.register_gridfunctions(
+                "l2_dV", group="AUX", gf_array_name="aux_gfs"
+            )[0]
 
 
 # Define diagnostics function
