@@ -406,9 +406,10 @@ if(local_reduced < {cmp_var}) {{
         self.params = "REAL * data, uint const data_length"
         
         self.kernel_name = f"{self.name}__cuda"
+        self.recast_type = f"({self.type_dict[self.fp_type]} int *)" if not self.reduction_type == "sum" else ""
         self.prefunc = f"""
 __global__
-static void {self.kernel_name}(REAL * data, {self.type_dict[self.fp_type]} int * min, uint const data_length) {{
+static void {self.kernel_name}(REAL * data, REAL * min, uint const data_length) {{
     // shared data between all warps
     // Assumes one block = 32 warps = 32 * 32 threads
     // As of today, the standard maximum threads per
@@ -448,11 +449,13 @@ static void {self.kernel_name}(REAL * data, {self.type_dict[self.fp_type]} int *
         {self.reduction_dict[self.reduction_type]("shfl")}
     }}
     // Shuffle results in lane 0 have the shuffle result
-    if(lane == 0) shared_data[warpID] = local_reduced;
+    if(lane == 0) {{
+        shared_data[warpID] = local_reduced;
+    }}
     
     // Make sure all warps in the block are synchronized
     __syncthreads();
-    {self.type_dict[self.fp_type]} int* address_as_ull;
+    
     // Since there is only 32 partial reductions, we only
     // have one warp worth of work
     if(warpID == 0) {{
@@ -468,9 +471,8 @@ static void {self.kernel_name}(REAL * data, {self.type_dict[self.fp_type]} int *
             REAL shfl = __shfl_down_sync(mask, local_reduced, offset);
             {self.reduction_dict[self.reduction_type]("shfl")}
         }}
-        address_as_ull = ({self.type_dict[self.fp_type]} int*)&local_reduced;
         if(tid == 0) {{
-            {self.atomic_operations[self.reduction_type]}(({self.type_dict[self.fp_type]} int *)min, ({self.type_dict[self.fp_type]} int)*address_as_ull);
+            {self.atomic_operations[self.reduction_type]}({self.recast_type}min, *({self.recast_type}&local_reduced));
         }}
     }}
 }}
@@ -487,7 +489,7 @@ static void {self.kernel_name}(REAL * data, {self.type_dict[self.fp_type]} int *
     // compatible with (u)int.  To be generic
     // we use {self.type_dict[self.fp_type]} to be able to handle
     // {self.fp_type} precision variables
-    using ull = {self.type_dict[self.fp_type]} int;
+    using ull = REAL;
     ull * h_reduced = (ull*)malloc(sizeof(ull));
     ull * d_reduced;
     *h_reduced = (ull){self.initial_value_dict[self.reduction_type]};
