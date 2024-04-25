@@ -210,6 +210,7 @@ def Cfunction__EigenCoord_set_x0x1x2_inbounds__i0i1i2_inbounds_single_pt(
     params = """const commondata_struct *restrict commondata, const params_struct *restrict params, REAL *restrict xx[3],
 const int i0, const int i1, const int i2,
 REAL x0x1x2_inbounds[3], int i0i1i2_inbounds[3]"""
+    type_literal = "" if fp_type == "double" else "f"
     body = r"""
   // This is a 3-step algorithm:
   // Step 1: (x0,x1,x2) -> (Cartx,Carty,Cartz)
@@ -284,19 +285,19 @@ REAL Cartz = xCart[2];
         ["Cart_to_xx0_inbounds", "Cart_to_xx1_inbounds", "Cart_to_xx2_inbounds"],
         fp_type=fp_type,
     )
-    body += r"""
+    body += rf"""
   // Next compute xxmin[i]. By definition,
-  //    xx[i][j] = xxmin[i] + ((REAL)(j-NGHOSTS) + (1.0/2.0))*dxxi;
-  // -> xxmin[i] = xx[i][0] - ((REAL)(0-NGHOSTS) + (1.0/2.0))*dxxi
-  const REAL xxmin[3] = {
-    xx[0][0] - ((REAL)(0-NGHOSTS) + (1.0/2.0))*dxx0,
-    xx[1][0] - ((REAL)(0-NGHOSTS) + (1.0/2.0))*dxx1,
-    xx[2][0] - ((REAL)(0-NGHOSTS) + (1.0/2.0))*dxx2 };
+  //    xx[i][j] = xxmin[i] + ((REAL)(j-NGHOSTS) + (1.0{type_literal}/2.0{type_literal}))*dxxi;
+  // -> xxmin[i] = xx[i][0] - ((REAL)(0-NGHOSTS) + (1.0{type_literal}/2.0{type_literal}))*dxxi
+  const REAL xxmin[3] = {{
+    xx[0][0] - ((REAL)(0-NGHOSTS) + (1.0{type_literal}/2.0{type_literal}))*dxx0,
+    xx[1][0] - ((REAL)(0-NGHOSTS) + (1.0{type_literal}/2.0{type_literal}))*dxx1,
+    xx[2][0] - ((REAL)(0-NGHOSTS) + (1.0{type_literal}/2.0{type_literal}))*dxx2 }};
 
-  // Finally compute i{0,1,2}_inbounds (add 0.5 to account for rounding down)
-  const int i0_inbounds = (int)( (Cart_to_xx0_inbounds - xxmin[0] - (1.0/2.0)*dxx0 + ((REAL)NGHOSTS)*dxx0)/dxx0 + 0.5 );
-  const int i1_inbounds = (int)( (Cart_to_xx1_inbounds - xxmin[1] - (1.0/2.0)*dxx1 + ((REAL)NGHOSTS)*dxx1)/dxx1 + 0.5 );
-  const int i2_inbounds = (int)( (Cart_to_xx2_inbounds - xxmin[2] - (1.0/2.0)*dxx2 + ((REAL)NGHOSTS)*dxx2)/dxx2 + 0.5 );
+  // Finally compute i{{0,1,2}}_inbounds (add 0.5 to account for rounding down)
+  const int i0_inbounds = (int)( (Cart_to_xx0_inbounds - xxmin[0] - (1.0{type_literal}/2.0{type_literal})*dxx0 + ((REAL)NGHOSTS)*dxx0)/dxx0 + 0.5{type_literal} );
+  const int i1_inbounds = (int)( (Cart_to_xx1_inbounds - xxmin[1] - (1.0{type_literal}/2.0{type_literal})*dxx1 + ((REAL)NGHOSTS)*dxx1)/dxx1 + 0.5{type_literal} );
+  const int i2_inbounds = (int)( (Cart_to_xx2_inbounds - xxmin[2] - (1.0{type_literal}/2.0{type_literal})*dxx2 + ((REAL)NGHOSTS)*dxx2)/dxx2 + 0.5{type_literal} );
 """
 
     # Restore reference_metric::CoordSystem back to the original CoordSystem
