@@ -359,7 +359,7 @@ class CUDA_reductions:
         
         self.type_dict = {
             "double" : 'unsigned long long',
-            "float" : 'unsigned long',
+            "float" : 'unsigned',
         }
         
         self.initial_value_dict = {
