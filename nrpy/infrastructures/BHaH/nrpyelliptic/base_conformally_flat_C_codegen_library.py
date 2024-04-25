@@ -98,6 +98,10 @@ class base_register_CFunction_auxevol_gfs_single_point:
         self.psi_background, self.ADD_times_AUU = (
             compute_psi_background_and_ADD_times_AUU(CoordSystem)
         )
+        self.unique_symbols = []
+        for expr in [self.psi_background, self.ADD_times_AUU]:
+            self.unique_symbols += get_unique_expression_symbols(expr, exclude=[f'xx{i}' for i in range(3)])
+        self.unique_symbols = sorted(list(set(self.unique_symbols)))
 
         self.includes = ["BHaH_defines.h"]
 
