@@ -35,7 +35,7 @@ from nrpy.infrastructures.BHaH.grid_management.cuda import xx_tofrom_Cart
 par.set_parval_from_str("Infrastructure", "BHaH")
 
 # Code-generation-time parameters:
-project_name = "nrpyelliptic_conformally_flat_gpu2"
+project_name = "nrpyelliptic_conformally_flat_gpu"
 fp_type = "double"
 grid_physical_size = 1.0e6
 t_final = grid_physical_size  # This parameter is effectively not used in NRPyElliptic
@@ -54,7 +54,7 @@ def get_log10_residual_tolerance(fp_type_str: str = "double") -> float:
     if fp_type_str == "double":
         res = -15.8
     elif fp_type_str == "float":
-        res = -8.0
+        res = -10
     else:
         raise ValueError(f"residual tolerence not defined for {fp_type_str} precision")
     return res
@@ -71,7 +71,7 @@ CoordSystem = "SinhSymTP"
 Nxx_dict = {
     "SinhSymTP": [128, 128, 16],
     "SinhCylindricalv2": [128, 16, 256],
-    "SinhSpherical": [128, 64, 16],
+    "SinhSpherical": [128, 128, 16],
 }
 # Set parameters specific to SinhSymTP coordinates
 AMAX = grid_physical_size
@@ -363,13 +363,13 @@ post_MoL_step_forward_in_time = r"""    check_stop_conditions(&commondata, gridd
     if (commondata.stop_relaxation) {
       // Force a checkpoint when stop condition is reached.
       commondata.checkpoint_every = 1e-4*commondata.dt;
-      write_checkpoint(&commondata, griddata);
+      //write_checkpoint(&commondata, griddata);
       break;
     }
 """
 main.register_CFunction_main_c(
     initial_data_desc="",
-    pre_MoL_step_forward_in_time="write_checkpoint(&commondata, griddata);\n",
+    pre_MoL_step_forward_in_time="// write_checkpoint(&commondata, griddata);\n",
     post_MoL_step_forward_in_time=post_MoL_step_forward_in_time,
     MoL_method=MoL_method,
     boundary_conditions_desc=boundary_conditions_desc,
