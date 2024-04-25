@@ -542,12 +542,8 @@ class register_CFunction_compute_L2_norm_of_gridfunction(
             fp_type=self.fp_type,
         )
         
-        l2_squared_dv_memaccess = gri.BHaHGridFunction.access_gf(
-            "l2_squared_dv"
-        ).replace("in_gfs", "aux_gfs")
-        l2_dv_memaccess = gri.BHaHGridFunction.access_gf(
-            "l2_dv"
-        ).replace("in_gfs", "aux_gfs")
+        l2_squared_dv_memaccess = 'aux_gfs[IDX4(L2_SQUARED_DVGF, i0, i1, i2)]'
+        l2_dv_memaccess = 'aux_gfs[IDX4(L2_DVGF, i0, i1, i2)]'
 
         reduction_loop_body += fr"""
 if(r < integration_radius) {{

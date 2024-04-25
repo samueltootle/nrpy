@@ -35,7 +35,7 @@ from nrpy.infrastructures.BHaH.grid_management.cuda import xx_tofrom_Cart
 par.set_parval_from_str("Infrastructure", "BHaH")
 
 # Code-generation-time parameters:
-project_name = "nrpyelliptic_conformally_flat_gpu"
+project_name = "nrpyelliptic_conformally_flat_gpu2"
 fp_type = "double"
 grid_physical_size = 1.0e6
 t_final = grid_physical_size  # This parameter is effectively not used in NRPyElliptic
@@ -353,6 +353,10 @@ Bdefines_h.output_BHaH_defines_h(
     project_dir=project_dir,
     enable_simd=enable_simd,
     REAL_means=fp_type,
+    supplemental_defines_dict={
+        'ADDITIONAL DIAGNOSTICS' : "#define L2_DVGF 0\n"
+"#define L2_SQUARED_DVGF 1\n"
+}
 )
 # Define post_MoL_step_forward_in_time string for main function
 post_MoL_step_forward_in_time = r"""    check_stop_conditions(&commondata, griddata);
