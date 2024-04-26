@@ -667,6 +667,7 @@ class gpu_register_CFunction_diagnostics(
             default_diagnostics_out_every,
             out_quantities_dict=out_quantities_dict,
         )
+        self.params+=", griddata_struct *restrict griddata_host"
 
         # This has to be here to avoid type issues with mypy
         # An error will throw in super().__init__() if out_quantities_dict != dict
@@ -689,6 +690,10 @@ class gpu_register_CFunction_diagnostics(
 
         self.body = r"""  // Output progress to stderr
   progress_indicator(commondata, griddata);
+  cudaEvent_t start[NUM_HOST_DIAG];
+  for(int i = 0; i < NUM_HOST_DIAG; ++i) {
+    cudaEventCreateWithFlags(&start[i], cudaEventDisableTiming);
+  }
 
   // Since this version of NRPyElliptic is unigrid, we simply set the grid index to 0
   const int grid = 0;
@@ -702,10 +707,19 @@ class gpu_register_CFunction_diagnostics(
   params_struct *restrict params = &griddata[grid].params;
   const rfm_struct *restrict rfmstruct = &griddata[grid].rfmstruct;
 #include "set_CodeParameters.h"
+  REAL *restrict host_y_n_gfs = griddata_host[grid].gridfuncs.y_n_gfs;
+  REAL *restrict host_diag_gfs = griddata_host[grid].gridfuncs.diagnostic_output_gfs;
+  size_t streamid = cpyDevicetoHost__gf(commondata, params, host_y_n_gfs, y_n_gfs, UUGF, UUGF);
+  cudaEventRecord(start[0], streams[streamid]);
 
   // Compute Hamiltonian constraint violation and store it at diagnostic_output_gfs
   compute_residual_all_points(commondata, params, rfmstruct, auxevol_gfs, y_n_gfs, diagnostic_output_gfs);
-
+  cudaEventSynchronize(start[0]);
+  cudaEventDestroy(start[0]);
+  cudaDeviceSynchronize();
+  streamid = cpyDevicetoHost__gf(commondata, params, host_diag_gfs, diagnostic_output_gfs, RESIDUAL_HGF, RESIDUAL_HGF);
+  cudaEventRecord(start[1], streams[streamid]);
+  
   // Set integration radius for l2-norm computation
   const REAL integration_radius = 1000;
 
@@ -716,34 +730,36 @@ class gpu_register_CFunction_diagnostics(
   commondata->log10_current_residual = residual_H;
 
   // Output l2-norm of Hamiltonian constraint violation to file
-  // {
-  //   char filename[256];
-  //   sprintf(filename, "residual_l2_norm.txt");
-  //   FILE *outfile = (nn == 0) ? fopen(filename, "w") : fopen(filename, "a");
-  //   if (!outfile) {
-  //     fprintf(stderr, "Error: Cannot open file %s for writing.\n", filename);
-  //     exit(1);
-  //   }
-  //   fprintf(outfile, "%6d %10.4e %.17e\n", nn, time, residual_H);
-  //   fclose(outfile);
-  // }
-
+  {
+    char filename[256];
+    sprintf(filename, "residual_l2_norm.txt");
+    FILE *outfile = (nn == 0) ? fopen(filename, "w") : fopen(filename, "a");
+    if (!outfile) {
+      fprintf(stderr, "Error: Cannot open file %s for writing.\n", filename);
+      exit(1);
+    }
+    fprintf(outfile, "%6d %10.4e %.17e\n", nn, time, residual_H);
+    fclose(outfile);
+  }
+  cudaEventSynchronize(start[1]);
+  cudaEventDestroy(start[1]);
+  cudaDeviceSynchronize();
   // Grid data output
-  //const int n_step = commondata->nn, outevery = commondata->diagnostics_output_every;
-  //if (n_step % outevery == 0) {
-  //  // Set reference metric grid xx
-  //  REAL *restrict xx[3];
-  //  for (int ww = 0; ww < 3; ww++)
-  //      xx[ww] = griddata[grid].xx[ww];
+  const int n_step = commondata->nn, outevery = commondata->diagnostics_output_every;
+  if (n_step % outevery == 0) {
+    // Set reference metric grid xx
+    REAL *restrict xx[3];
+    for (int ww = 0; ww < 3; ww++)
+        xx[ww] = griddata_host[grid].xx[ww];
 
-  //  // 1D output
-  //  diagnostics_nearest_1d_y_axis(commondata, params, xx, &griddata[grid].gridfuncs);
-  //  diagnostics_nearest_1d_z_axis(commondata, params, xx, &griddata[grid].gridfuncs);
+    // 1D output
+    diagnostics_nearest_1d_y_axis(commondata, params, xx, &griddata_host[grid].gridfuncs);
+    diagnostics_nearest_1d_z_axis(commondata, params, xx, &griddata_host[grid].gridfuncs);
 
-  //  // 2D output
-  //  diagnostics_nearest_2d_xy_plane(commondata, params, xx, &griddata[grid].gridfuncs);
-  //  diagnostics_nearest_2d_yz_plane(commondata, params, xx, &griddata[grid].gridfuncs);
-  //}
+    // 2D output
+    diagnostics_nearest_2d_xy_plane(commondata, params, xx, &griddata_host[grid].gridfuncs);
+    diagnostics_nearest_2d_yz_plane(commondata, params, xx, &griddata_host[grid].gridfuncs);
+  }
 """
         if enable_progress_indicator:
             self.body += "progress_indicator(commondata, griddata);"
