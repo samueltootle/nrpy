@@ -35,8 +35,8 @@ from nrpy.infrastructures.BHaH.grid_management.cuda import xx_tofrom_Cart
 par.set_parval_from_str("Infrastructure", "BHaH")
 
 # Code-generation-time parameters:
-project_name = "nrpyelliptic_conformally_flat_gpu"
-fp_type = "double"
+project_name = "nrpyelliptic_conformally_flat_gpu_float"
+fp_type = "float"
 grid_physical_size = 1.0e6
 t_final = grid_physical_size  # This parameter is effectively not used in NRPyElliptic
 nn_max = 10000  # Sets the maximum number of relaxation steps
@@ -157,9 +157,7 @@ par.adjust_CodeParam_default("t_final", t_final)
 #########################################################
 # STEP 2: Declare core C functions & register each to
 #         cfc.CFunction_dict["function_name"]
-gputils.register_CFunction_cpyHosttoDevice_params__constant()
-gputils.register_CFunction_cpyHosttoDevice_commondata__constant()
-gputils.register_CFunction_cpyDevicetoHost__grid()
+gputils.register_CFunctions_HostDevice__operations()
 gputils.register_CFunction_find_global_minimum(fp_type=fp_type)
 gputils.register_CFunction_find_global_sum(fp_type=fp_type)
 
@@ -354,9 +352,12 @@ Bdefines_h.output_BHaH_defines_h(
     enable_simd=enable_simd,
     REAL_means=fp_type,
     supplemental_defines_dict={
-        'ADDITIONAL DIAGNOSTICS' : "#define L2_DVGF 0\n"
-"#define L2_SQUARED_DVGF 1\n"
-}
+        'ADDITIONAL GPU DIAGNOSTICS'  : "#define L2_DVGF 0\n"
+                                        "#define L2_SQUARED_DVGF 1\n",
+        'ADDITIONAL HOST DIAGNOSTICS' : "#define HOST_RESIDUAL_HGF 0\n"
+                                        "#define HOST_UUGF 1\n"
+                                        "#define NUM_HOST_DIAG 2\n",
+    }
 )
 # Define post_MoL_step_forward_in_time string for main function
 post_MoL_step_forward_in_time = r"""    check_stop_conditions(&commondata, griddata);
