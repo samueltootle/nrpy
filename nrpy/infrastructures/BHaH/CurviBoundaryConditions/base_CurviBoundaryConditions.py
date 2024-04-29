@@ -726,9 +726,7 @@ class setup_Cfunction_FD1_arbitrary_upwind:
     :param radiation_BC_fd_order: Finite difference order for radiation boundary condition.
                                   If -1, will use default finite difference order.
     :param fp_type: Floating point type, e.g., "double".
-    :return: The full C function as a string.
     """
-
     def __init__(
         self,
         dirn: int,

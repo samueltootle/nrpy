@@ -34,11 +34,9 @@ _ = par.CodeParameter("REAL", __name__, "t_final", 10.0, commondata=True)
 # fmt: on
 
 # Update core_modules to use correct key for ordering
-for i, key in enumerate(BHaH_defines_h.core_modules_list):
+for idx, key in enumerate(BHaH_defines_h.core_modules_list):
     if "nrpy.infrastructures.BHaH.MoLtimestepping" in key:
-        BHaH_defines_h.core_modules_list[i] = (
-            str(__name__)
-        )
+        BHaH_defines_h.core_modules_list[idx] = str(__name__)
 
 
 class register_CFunction_MoL_malloc(base_MoL.base_register_CFunction_MoL_malloc):
@@ -92,9 +90,11 @@ class register_CFunction_MoL_malloc(base_MoL.base_register_CFunction_MoL_malloc)
             body=self.body,
         )
 
+
 class RKFunction(base_MoL.RKFunction):
     """
-    CUDA overload of RKFUNCTION
+    CUDA overload of RKFUNCTION.
+
     :param fp_type_alias: Infrastructure-specific alias for the C/C++ floating point data type. E.g., 'REAL' or 'CCTK_REAL'.
     :param operator: The operator with respect to which the derivative is taken.
     :param RK_lhs_list: List of LHS expressions for RK substep.
@@ -127,8 +127,8 @@ class RKFunction(base_MoL.RKFunction):
             fp_type=fp_type,
             rational_const_alias=rational_const_alias,
         )
-        self.device_kernel = None
-        
+        self.device_kernel: gputils.GPU_Kernel
+
     def CFunction_RK_substep_function(self) -> None:
         """Generate a C function based on the given RK substep expression lists."""
         self.body = ""
@@ -136,8 +136,10 @@ class RKFunction(base_MoL.RKFunction):
         kernel_body: str = ""
         N_str = ""
         for i in ["0", "1", "2"]:
-            kernel_body += f"const int Nxx_plus_2NGHOSTS{i} = d_params.Nxx_plus_2NGHOSTS{i};\n"
-            N_str +=f"Nxx_plus_2NGHOSTS{i} *"
+            kernel_body += (
+                f"const int Nxx_plus_2NGHOSTS{i} = d_params.Nxx_plus_2NGHOSTS{i};\n"
+            )
+            N_str += f"Nxx_plus_2NGHOSTS{i} *"
         kernel_body += "const int Ntot = Nxx_plus_2NGHOSTS0*Nxx_plus_2NGHOSTS1*Nxx_plus_2NGHOSTS2*NUM_EVOL_GFS;\n\n"
         kernel_body += (
             "// Kernel thread/stride setup\n"
@@ -168,24 +170,22 @@ class RKFunction(base_MoL.RKFunction):
                 self.params += f"{var_type} *restrict {lhs_var},"
         self.params += f"const {var_type} dt"
 
-        kernel_params = {
-            k : "REAL *restrict" for k in self.param_vars
-        }
-        kernel_params['dt'] = 'const REAL'
+        kernel_params = {k: "REAL *restrict" for k in self.param_vars}
+        kernel_params["dt"] = "const REAL"
         self.device_kernel = gputils.GPU_Kernel(
             kernel_body + self.loop_body.replace("commondata->dt", "dt") + "\n}\n",
             kernel_params,
             f"{self.name}_gpu",
-            launch_dict= {
-                'blocks_per_grid' : ["(Ntot + threads_in_x_dir - 1) / threads_in_x_dir"],
-                'threads_per_block' : ["32"],
-                'stream' : f"params->grid_idx % nstreams"
+            launch_dict={
+                "blocks_per_grid": ["(Ntot + threads_in_x_dir - 1) / threads_in_x_dir"],
+                "threads_per_block": ["32"],
+                "stream": "params->grid_idx % nstreams",
             },
             fp_type=self.fp_type,
             comments=f"GPU Kernel to compute RK substep {self.rk_step}.",
         )
         prefunc = self.device_kernel.CFunction.full_function
-        
+
         # if self.enable_simd:
         #     self.body += self.loop_body.replace("commondata->dt", "DT")
         #     for j, el in enumerate(self.RK_lhs_list):
@@ -194,11 +194,13 @@ class RKFunction(base_MoL.RKFunction):
         #     self.body += self.loop_body.replace("commondata->dt", "dt")
         # self.body += "}\n"
         # Store CFunction
-        for i in range(3):
-            self.body+=f"const int Nxx_plus_2NGHOSTS{i} = params->Nxx_plus_2NGHOSTS{i};\n"
+        for j in range(3):
+            self.body += (
+                f"const int Nxx_plus_2NGHOSTS{j} = params->Nxx_plus_2NGHOSTS{j};\n"
+            )
         self.body += "const int Ntot = Nxx_plus_2NGHOSTS0*Nxx_plus_2NGHOSTS1*Nxx_plus_2NGHOSTS2*NUM_EVOL_GFS;\n\n"
-        self.body+=self.device_kernel.launch_block
-        self.body+=self.device_kernel.c_function_call()
+        self.body += self.device_kernel.launch_block
+        self.body += self.device_kernel.c_function_call()
         self.CFunction = cfc.CFunction(
             prefunc=prefunc,
             includes=self.includes,
@@ -208,6 +210,7 @@ class RKFunction(base_MoL.RKFunction):
             params=self.params,
             body=self.body,
         )
+
 
 # single_RK_substep_input_symbolic() performs necessary replacements to
 #   define C code for a single RK substep
@@ -247,6 +250,7 @@ def single_RK_substep_input_symbolic(
     :param post_post_rhs_string: String to be used after the post-RHS phase.
     :param fp_type: Floating point type, e.g., "double".
     :param additional_comments: additional comments to append to auto-generated comment block.
+    :param rational_const_alias: Provide additional/alternative alias to const for rational definitions
 
     :return: A string containing the generated C code.
 
@@ -318,6 +322,7 @@ def single_RK_substep_input_symbolic(
         )
 
     return body
+
 
 ########################################################################################################################
 # EXAMPLE
@@ -397,9 +402,9 @@ class register_CFunction_MoL_step_forward_in_time(
         self.gf_alias_prefix = "[[maybe_unused]]"
         self.setup_gf_aliases()
         self.generate_RK_steps()
-        
+
         self.register_final_code()
-    
+
     def register_final_code(self) -> None:
         """
         Generate remaining body of the code and register function.
@@ -581,16 +586,16 @@ class register_CFunctions(base_MoL.base_register_CFunctions):
         griddata_commondata.register_griddata_commondata(
             __name__, "MoL_gridfunctions_struct gridfuncs", "MoL gridfunctions"
         )
-        
+
         # Step 3.b: Create MoL_timestepping struct:
         self.BHaH_MoL_body = self.BHaH_MoL_body.replace("REAL *restrict ", "REAL * ")
 
         # Add OpenMP specific Loop
-#         self.BHaH_MoL_body += """
-# #define LOOP_ALL_GFS_GPS(ii) \
-# _Pragma("omp parallel for") \
-#   for(int (ii)=0;(ii)<Nxx_plus_2NGHOSTS0*Nxx_plus_2NGHOSTS1*Nxx_plus_2NGHOSTS2*NUM_EVOL_GFS;(ii)++)
-# """
+        #         self.BHaH_MoL_body += """
+        # #define LOOP_ALL_GFS_GPS(ii) \
+        # _Pragma("omp parallel for") \
+        #   for(int (ii)=0;(ii)<Nxx_plus_2NGHOSTS0*Nxx_plus_2NGHOSTS1*Nxx_plus_2NGHOSTS2*NUM_EVOL_GFS;(ii)++)
+        # """
         BHaH_defines_h.register_BHaH_defines(__name__, self.BHaH_MoL_body)
 
 

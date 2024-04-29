@@ -8,15 +8,14 @@ Author: Zachariah B. Etienne
         sdtootle **at** gmail **dot** com
 """
 
-from typing import List
+from typing import List, Dict, Any
 import sympy as sp
 import sympy.codegen.ast as sp_ast
 
 import nrpy.c_codegen as ccg
-import nrpy.c_function as cfc
-import nrpy.reference_metric as refmetric
 from nrpy.helpers.generic import superfast_uniq
 from nrpy.infrastructures.BHaH import rfm_precompute
+
 
 class ReferenceMetricPrecompute(rfm_precompute.ReferenceMetricPrecompute):
     """
@@ -29,15 +28,15 @@ class ReferenceMetricPrecompute(rfm_precompute.ReferenceMetricPrecompute):
 
     def __init__(self, CoordSystem: str, fp_type: str = "double"):
         super().__init__(CoordSystem, fp_type=fp_type)
-        self.rfm_struct__define_kernel_dict = dict()
+        self.rfm_struct__define_kernel_dict: Dict[sp.Expr, Any]
         # rfmstruct stores pointers to (so far) 1D arrays. The rfm_struct__malloc string allocates space for the arrays.
         self.rfm_struct__malloc = ""
         self.rfm_struct__freemem = ""
 
         # readvr_str reads the arrays from memory as needed
         self.readvr_str = ["", "", ""]
-        self.readvr_SIMD_outer_str = None
-        self.readvr_SIMD_inner_str = None
+        self.readvr_SIMD_outer_str = ["", "", ""]
+        self.readvr_SIMD_inner_str = ["", "", ""]
 
         which_freevar: int = 0
         fp_ccg_type = ccg.fp_type_to_sympy_type[fp_type]
@@ -59,7 +58,7 @@ class ReferenceMetricPrecompute(rfm_precompute.ReferenceMetricPrecompute):
                 self.rfm_struct__freemem += f"""cudaFree(rfmstruct->{self.freevars_uniq_xx_indep[which_freevar]});
                 cudaCheckErrors(free, "cudaFree failed");
                 """
-                
+
                 output_define_and_readvr = False
                 for dirn in range(3):
                     if (
@@ -78,13 +77,13 @@ class ReferenceMetricPrecompute(rfm_precompute.ReferenceMetricPrecompute):
                             f"  {key}[i{dirn}] = {sp.ccode(self.freevars_uniq_vals[which_freevar], type_aliases=sp_type_alias)};\n"
                             "}"
                         )
-                        
+
                         self.rfm_struct__define_kernel_dict[key] = {
-                            'body' : kernel_body,
-                            'expr' : self.freevars_uniq_vals[which_freevar],
-                            'coord': f'x{dirn}',
+                            "body": kernel_body,
+                            "expr": self.freevars_uniq_vals[which_freevar],
+                            "coord": f"x{dirn}",
                         }
-                        
+
                         # These have to be passed to kernel as rfm_{freevar}
                         self.readvr_str[
                             dirn

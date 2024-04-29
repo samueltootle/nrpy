@@ -18,14 +18,14 @@ import nrpy.helpers.gpu_kernel as gputils
 import nrpy.infrastructures.BHaH.loop_utilities.cuda.simple_loop as lp
 
 # fmt: off
-for i in range(3):
-    _ = par.CodeParameter("int", __name__, f"Nxx_plus_2NGHOSTS{i}", add_to_parfile=False, add_to_set_CodeParameters_h=True)
-    _ = par.CodeParameter("int", __name__, f"Nxx{i}", 64)
+for idx in range(3):
+    _ = par.CodeParameter("int", __name__, f"Nxx_plus_2NGHOSTS{idx}", add_to_parfile=False, add_to_set_CodeParameters_h=True)
+    _ = par.CodeParameter("int", __name__, f"Nxx{idx}", 64)
     # reference_metric sets xxmin and xxmax below.
-    _ = par.CodeParameter("REAL", __name__, f"xxmin{i}", -10.0, add_to_parfile=False, add_to_set_CodeParameters_h=True)
-    _ = par.CodeParameter("REAL", __name__, f"xxmax{i}", 10.0, add_to_parfile=False, add_to_set_CodeParameters_h=True)
-    _ = par.CodeParameter("REAL", __name__, f"invdxx{i}", add_to_parfile=False, add_to_set_CodeParameters_h=True)
-    _ = par.CodeParameter("REAL", __name__, f"dxx{i}", add_to_parfile=False, add_to_set_CodeParameters_h=True)
+    _ = par.CodeParameter("REAL", __name__, f"xxmin{idx}", -10.0, add_to_parfile=False, add_to_set_CodeParameters_h=True)
+    _ = par.CodeParameter("REAL", __name__, f"xxmax{idx}", 10.0, add_to_parfile=False, add_to_set_CodeParameters_h=True)
+    _ = par.CodeParameter("REAL", __name__, f"invdxx{idx}", add_to_parfile=False, add_to_set_CodeParameters_h=True)
+    _ = par.CodeParameter("REAL", __name__, f"dxx{idx}", add_to_parfile=False, add_to_set_CodeParameters_h=True)
 _ = par.CodeParameter("REAL", __name__, "convergence_factor", 1.0, commondata=True)
 _ = par.CodeParameter("int", __name__, "CoordSystem_hash", commondata=False, add_to_parfile=False)
 _ = par.CodeParameter("int", __name__, "grid_idx", commondata=False, add_to_parfile=False)
@@ -55,11 +55,11 @@ class register_CFunction_numerical_grid_params_Nxx_dxx_xx(
         Nxx_dict: Dict[str, List[int]],
     ) -> None:
         super().__init__(CoordSystem, grid_physical_size, Nxx_dict)
-        
+
         self.params.replace("REAL *restrict xx[3]", "REAL * xx[3]")
         self.params = "const commondata_struct *restrict commondata, params_struct *restrict params, REAL * xx[3], const int Nx[3], const bool grid_is_resized"
-        self.prefunc=""
-        self.body+="""
+        self.prefunc = ""
+        self.body += """
     // Allocate device storage
     cudaMalloc(&xx[0], sizeof(REAL) * Nxx_plus_2NGHOSTS0);
     cudaCheckErrors(malloc, "Malloc failed");
@@ -110,15 +110,13 @@ class register_CFunction_numerical_grid_params_Nxx_dxx_xx(
 """
             xx0_kernel = gputils.GPU_Kernel(
                 kernel_body,
-                {
-                    f"xx{i}" : "REAL *restrict"
-                },
+                {f"xx{i}": "REAL *restrict"},
                 f"initialize_grid_xx{i}_gpu",
-                launch_dict= {
-                    'blocks_per_grid' : [],
-                    'threads_per_block' : ["64"],
-                    'stream' : "default"
-                }
+                launch_dict={
+                    "blocks_per_grid": [],
+                    "threads_per_block": ["64"],
+                    "stream": "default",
+                },
             )
             self.prefunc += xx0_kernel.CFunction.full_function
         cfc.register_CFunction(
@@ -163,7 +161,7 @@ const int Nxx_tot = (Nxx_plus_2NGHOSTS0)*(Nxx_plus_2NGHOSTS1)*(Nxx_plus_2NGHOSTS
   cudaCheckErrors(cudaMalloc, "cudaMalloc failure"); // error checking
 """
         # lp_body = "REAL ds_min = 1e38;\n"
-        lp_body = "REAL dsmin0, dsmin1, dsmin2;\n"+self.min_body_compute
+        lp_body = "REAL dsmin0, dsmin1, dsmin2;\n" + self.min_body_compute
         lp_body += """
   int idx = IDX3(i0,i1,i2);
   ds_min[idx] = MIN(dsmin0, MIN(dsmin1, dsmin2));
@@ -171,27 +169,27 @@ const int Nxx_tot = (Nxx_plus_2NGHOSTS0)*(Nxx_plus_2NGHOSTS1)*(Nxx_plus_2NGHOSTS
         self.loop_body = ""
         for param_sym in self.unique_symbols:
             self.loop_body += f"const REAL {param_sym} = d_params.{param_sym};\n"
-        self.loop_body+=lp.simple_loop(
+        self.loop_body += lp.simple_loop(
             loop_body=lp_body,
             read_xxs=True,
             loop_region="all points",
             fp_type=self.fp_type,
         ).full_loop_body
-        
+
         # Put loop_body into a device kernel
         self.device_kernel = gputils.GPU_Kernel(
             self.loop_body,
             {
-                'x0' : 'const REAL *restrict',
-                'x1' : 'const REAL *restrict',
-                'x2' : 'const REAL *restrict',
-                'ds_min' : 'REAL *restrict'
+                "x0": "const REAL *restrict",
+                "x1": "const REAL *restrict",
+                "x2": "const REAL *restrict",
+                "ds_min": "REAL *restrict",
             },
-            'compute_ds_min__gpu',
-            launch_dict= {
-                'blocks_per_grid' : [],
-                'threads_per_block' : ["64"],
-                'stream' : "default"
+            "compute_ds_min__gpu",
+            launch_dict={
+                "blocks_per_grid": [],
+                "threads_per_block": ["64"],
+                "stream": "default",
             },
             fp_type=self.fp_type,
             comments="GPU Kernel to compute local ds_min per grid point.",
@@ -244,8 +242,10 @@ class register_CFunction_numerical_grids_and_timestep(
             enable_rfm_precompute=enable_rfm_precompute,
             enable_CurviBCs=enable_CurviBCs,
         )
-        self.params  = "commondata_struct *restrict commondata, griddata_struct *restrict griddata, "
-        self.params += "griddata_struct *restrict griddata_host, bool calling_for_first_time"
+        self.params = "commondata_struct *restrict commondata, griddata_struct *restrict griddata, "
+        self.params += (
+            "griddata_struct *restrict griddata_host, bool calling_for_first_time"
+        )
         self.body = r"""
     // Step 1.a: Set each CodeParameter in griddata.params to default, for MAXNUMGRIDS grids.
     params_struct_set_to_default(commondata, griddata);"""

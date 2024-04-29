@@ -5,9 +5,10 @@ Author: Samuel D. Tootle
 Email: sdtootle **at** gmail **dot** com
 """
 
+from typing import Any
 import nrpy.infrastructures.BHaH.loop_utilities.base_simple_loop as base_sl
 from nrpy.infrastructures.BHaH.grid_management.cuda import rfm_precompute
-from typing import Any
+
 
 class simple_loop(base_sl.base_simple_loop):
     """
@@ -23,7 +24,6 @@ class simple_loop(base_sl.base_simple_loop):
     :param OMP_custom_pragma: Enable loop parallelization using OpenMP with custom pragma
     :param OMP_collapse: Specifies the number of nested loops to collapse
     :param fp_type: Floating point type, e.g., "double".
-    :return: The complete loop code as a string.
     :raises ValueError: If `loop_region` is unsupported or if `read_xxs` and `enable_rfm_precompute` are both enabled.
 
     Doctests:
@@ -91,7 +91,7 @@ class simple_loop(base_sl.base_simple_loop):
         enable_rfm_precompute: bool = False,
         fp_type: str = "double",
         **_: Any,
-    ) -> str:
+    ) -> None:
         super().__init__(
             loop_body,
             read_xxs=read_xxs,
@@ -105,7 +105,7 @@ class simple_loop(base_sl.base_simple_loop):
         self.rfmp = rfm_precompute.ReferenceMetricPrecompute(
             CoordSystem, fp_type=fp_type
         )
-        
+
         if self.read_xxs:
             self.read_rfm_xx_arrays = [
                 "[[maybe_unused]] const REAL xx0 = x0[i0];",
@@ -119,7 +119,7 @@ class simple_loop(base_sl.base_simple_loop):
                 self.rfmp.readvr_str[2],
             ]
         self.initialize_based_on__read_rfm_xx_arrays()
-        
+
         self.increment = ["stride2", "stride1", "stride0"]
         self.gen_loop_body()
         self.full_loop_body = f"""

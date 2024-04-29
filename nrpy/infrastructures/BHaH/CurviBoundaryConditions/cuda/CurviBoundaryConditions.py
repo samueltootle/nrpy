@@ -1,12 +1,11 @@
 """
-Module providing functions for setting up Curvilinear boundary conditions for CUDA codes
+Module providing functions for setting up Curvilinear boundary conditions for CUDA codes.
 
-
-Authors: Zachariah B. Etienne
+Authors: Samuel D. Tootle
+         sdtootle **at** gmail **dot** com
+         Zachariah B. Etienne
          zachetie **at** gmail **dot** com
          Terrence Pierre Jacques
-         Samuel D. Tootle
-         sdtootle **at** gmail **dot** com
 """
 
 # Step P1: Import needed NRPy+ core modules:
@@ -19,35 +18,51 @@ import nrpy.infrastructures.BHaH.CurviBoundaryConditions.base_CurviBoundaryCondi
 import nrpy.helpers.gpu_kernel as gputils
 import nrpy.reference_metric as refmetric  # NRPy+: Reference metric support
 from nrpy.validate_expressions.validate_expressions import check_zero
+
 _ = par.CodeParameter(
     "char[50]", __name__, "outer_bc_type", "radiation", commondata=True
 )
 
 # Update core_modules to use correct key for ordering
-for i, key in enumerate(BHaH_defines_h.core_modules_list):
+for idx, key in enumerate(BHaH_defines_h.core_modules_list):
     if "nrpy.infrastructures.BHaH.CurviBoundaryConditions" in key:
-        BHaH_defines_h.core_modules_list[i] = (
-            str(__name__)
-        )
+        BHaH_defines_h.core_modules_list[idx] = str(__name__)
 
-class setup_Cfunction_FD1_arbitrary_upwind(base_cbc_classes.setup_Cfunction_FD1_arbitrary_upwind):
-    
+
+class setup_Cfunction_FD1_arbitrary_upwind(
+    base_cbc_classes.setup_Cfunction_FD1_arbitrary_upwind
+):
+    """
+    Generate the C function for computing the 1st derivative finite-difference.
+
+    Supports arbitrary upwind for a given direction and order.
+
+    :param dirn: Direction in which to compute the derivative.
+    :param radiation_BC_fd_order: Finite difference order for radiation boundary condition.
+                                  If -1, will use default finite difference order.
+    :param fp_type: Floating point type, e.g., "double".
+    """
+
     def __init__(
-        self, dirn: int,
+        self,
+        dirn: int,
         radiation_BC_fd_order: int = -1,
         fp_type: str = "double",
     ) -> None:
-        super().__init__(dirn, radiation_BC_fd_order=radiation_BC_fd_order, fp_type=fp_type)
+        super().__init__(
+            dirn, radiation_BC_fd_order=radiation_BC_fd_order, fp_type=fp_type
+        )
         self.include_CodeParameters_h = False
         self.cfunc_decorators = "__device__"
         self.params = """const REAL *restrict gf,  const int i0,const int i1,const int i2, const int offset"""
-        
+
         new_header = ""
         for i in range(3):
-            new_header+=f"[[maybe_unused]] int const Nxx_plus_2NGHOSTS{i} = d_params.Nxx_plus_2NGHOSTS{i};\n"
-        new_header +=f"REAL const invdxx{dirn} = d_params.invdxx{dirn};\n"
+            new_header += f"[[maybe_unused]] int const Nxx_plus_2NGHOSTS{i} = d_params.Nxx_plus_2NGHOSTS{i};\n"
+        new_header += f"REAL const invdxx{dirn} = d_params.invdxx{dirn};\n"
         self.body = new_header + self.body
         self.generate_CFunction()
+
 
 # bcstruct_set_up():
 #      This function is documented in desc= and body= fields below.
@@ -59,6 +74,9 @@ class register_CFunction_bcstruct_set_up(
 
     This function prescribes how inner and outer boundary points on the
     computational grid are filled, based on the given coordinate system (CoordSystem).
+
+    Note: all the work is done on the CPU (host) using raw loops or OMP loops, however,
+    data is transferred asynchronously between host and the CUDA device asynchronously.
 
     :param CoordSystem: The coordinate system for which to set up boundary conditions.
     :param fp_type: Floating point type, e.g., "double".
@@ -301,7 +319,8 @@ class register_CFunction_bcstruct_set_up(
       cudaFreeHost(bcstruct->pure_outer_bc_array[i]);
     delete bcstruct;
 """
-        self.prefunc = """
+        self.prefunc = (
+            """
 static void cpy_pure_outer_bc_array(bc_struct *restrict bcstruct_h, bc_struct *restrict bcstruct_d,
   const int idx, const int idx2d) {
     const int streamid = idx2d % nstreams;
@@ -342,7 +361,9 @@ static void cpy_pure_outer_bc_array(bc_struct *restrict bcstruct_h, bc_struct *r
           cudaMemcpyHostToDevice, streams[streamid]);
     cudaCheckErrors(cudaMemcpy, "Memcpy failed - pure_outer_bc_array Face2");
   }
-""" + self.prefunc
+"""
+            + self.prefunc
+        )
         cfc.register_CFunction(
             includes=self.includes,
             prefunc=self.prefunc,
@@ -376,8 +397,8 @@ class register_CFunction_apply_bcs_inner_only(
         # Specify kernel launch body
         kernel_body = ""
         for i in range(3):
-            kernel_body+=f"[[maybe_unused]] int const Nxx_plus_2NGHOSTS{i} = d_params.Nxx_plus_2NGHOSTS{i};\n"
-        kernel_body += """  
+            kernel_body += f"[[maybe_unused]] int const Nxx_plus_2NGHOSTS{i} = d_params.Nxx_plus_2NGHOSTS{i};\n"
+        kernel_body += """
 // Thread indices
 // Global data index - expecting a 1D dataset
 const int tid0 = threadIdx.x + blockIdx.x*blockDim.x;
@@ -395,25 +416,27 @@ for (int pt = tid0; pt < num_inner_boundary_points; pt+=stride0) {
         device_kernel = gputils.GPU_Kernel(
             kernel_body,
             {
-                'num_inner_boundary_points' : 'const int',
-                'which_gf' : 'const int',
-                'inner_bc_array' : 'const innerpt_bc_struct *restrict',
-                'gfs' : 'REAL *restrict'
+                "num_inner_boundary_points": "const int",
+                "which_gf": "const int",
+                "inner_bc_array": "const innerpt_bc_struct *restrict",
+                "gfs": "REAL *restrict",
             },
             f"{self.name}_gpu",
-            launch_dict= {
-                'blocks_per_grid' : ["(num_inner_boundary_points + threads_in_x_dir -1) / threads_in_x_dir"],
-                'threads_per_block' : ["32"],
-                'stream' : f"params->grid_idx % nstreams"
+            launch_dict={
+                "blocks_per_grid": [
+                    "(num_inner_boundary_points + threads_in_x_dir -1) / threads_in_x_dir"
+                ],
+                "threads_per_block": ["32"],
+                "stream": "params->grid_idx % nstreams",
             },
             # fp_type=self.fp_type,
-            comments=f"GPU Kernel to apply extrapolation BCs to inner boundary points only.",
+            comments="GPU Kernel to apply extrapolation BCs to inner boundary points only.",
         )
         # Add device Kernel to prefunc
         self.prefunc = device_kernel.CFunction.full_function
-        self.body+=device_kernel.launch_block + "\n\n"
-        self.body+="for (int which_gf = 0; which_gf < NUM_EVOL_GFS; which_gf++) {\n"
-        self.body+=device_kernel.c_function_call() + "}"
+        self.body += device_kernel.launch_block + "\n\n"
+        self.body += "for (int which_gf = 0; which_gf < NUM_EVOL_GFS; which_gf++) {\n"
+        self.body += device_kernel.c_function_call() + "}"
         cfc.register_CFunction(
             prefunc=self.prefunc,
             includes=self.includes,
@@ -436,7 +459,7 @@ class register_CFunction_apply_bcs_outerextrap_and_inner(
 
     def __init__(self) -> None:
         super().__init__()
-        self.prefunc=""
+        self.prefunc = ""
         self.body = r"""
   ////////////////////////////////////////////////////////
   // STEP 1 of 2: Apply BCs to pure outer boundary points.
@@ -472,21 +495,20 @@ class register_CFunction_apply_bcs_outerextrap_and_inner(
             include_CodeParameters_h=False,
             body=self.body,
         )
-        
+
     def generate_prefunc__apply_bcs_outerextrap_and_inner_only(self) -> None:
         """
         Generate the prefunction string for apply_bcs_outerextrap_and_inner.
-        
+
         This requires a function that will launch the device kernel as well
         as the device kernel itself.
         """
-        
         # Header details for function that will launch the GPU kernel
         desc = "Apply BCs to pure boundary points"
         params = "const params_struct *restrict params, const bc_struct *restrict bcstruct, REAL *restrict gfs"
         name = "apply_bcs_outerextrap_and_inner_only"
         cfunc_type = "static void"
-        
+
         # Start specifying the function body for launching the kernel
         kernel_launch_body = """
 const bc_info_struct *bc_info = &bcstruct->bc_info;
@@ -497,12 +519,12 @@ const bc_info_struct *bc_info = &bcstruct->bc_info;
         const outerpt_bc_struct *restrict pure_outer_bc_array = bcstruct->pure_outer_bc_array[gz_idx];
         int num_pure_outer_boundary_points = bc_info->num_pure_outer_boundary_points[which_gz][dirn];
       """
-        
+
         # Specify kernel launch body
         kernel_body = ""
         for i in range(3):
-            kernel_body+=f"[[maybe_unused]] int const Nxx_plus_2NGHOSTS{i} = d_params.Nxx_plus_2NGHOSTS{i};\n"
-        kernel_body += """  
+            kernel_body += f"[[maybe_unused]] int const Nxx_plus_2NGHOSTS{i} = d_params.Nxx_plus_2NGHOSTS{i};\n"
+        kernel_body += """
 // Thread indices
 // Global data index - expecting a 1D dataset
 const int tid0 = threadIdx.x + blockIdx.x*blockDim.x;
@@ -534,28 +556,30 @@ for (int idx2d = tid0; idx2d < num_pure_outer_boundary_points; idx2d+=stride0) {
         device_kernel = gputils.GPU_Kernel(
             kernel_body,
             {
-                'num_pure_outer_boundary_points' : 'const int',
-                'which_gz' : 'const int',
-                'dirn' : 'const int',
-                'pure_outer_bc_array' : 'const outerpt_bc_struct *restrict',
-                'gfs' : 'REAL *restrict'
+                "num_pure_outer_boundary_points": "const int",
+                "which_gz": "const int",
+                "dirn": "const int",
+                "pure_outer_bc_array": "const outerpt_bc_struct *restrict",
+                "gfs": "REAL *restrict",
             },
             f"{name}_gpu",
-            launch_dict= {
-                'blocks_per_grid' : ["(num_pure_outer_boundary_points + threads_in_x_dir -1) / threads_in_x_dir"],
-                'threads_per_block' : ["32"],
-                'stream' : f"params->grid_idx % nstreams"
+            launch_dict={
+                "blocks_per_grid": [
+                    "(num_pure_outer_boundary_points + threads_in_x_dir -1) / threads_in_x_dir"
+                ],
+                "threads_per_block": ["32"],
+                "stream": "params->grid_idx % nstreams",
             },
             # fp_type=self.fp_type,
-            comments=f"GPU Kernel to apply extrapolation BCs to pure points.",
+            comments="GPU Kernel to apply extrapolation BCs to pure points.",
         )
         # Add device Kernel to prefunc
         self.prefunc += device_kernel.CFunction.full_function
         # Add launch configuration to Launch kernel body
-        kernel_launch_body+=device_kernel.launch_block
-        kernel_launch_body+=device_kernel.c_function_call()
+        kernel_launch_body += device_kernel.launch_block
+        kernel_launch_body += device_kernel.c_function_call()
         # Close the launch kernel
-        kernel_launch_body+="""
+        kernel_launch_body += """
       }
     }
   }
@@ -569,11 +593,14 @@ for (int idx2d = tid0; idx2d < num_pure_outer_boundary_points; idx2d+=stride0) {
             params=params,
             body=kernel_launch_body,
         )
-        
+
         # Append Launch kernel to prefunc
         self.prefunc += kernel_launch_CFunction.full_function
 
-class setup_Cfunction_r_and_partial_xi_partial_r_derivs(base_cbc_classes.setup_Cfunction_r_and_partial_xi_partial_r_derivs):
+
+class setup_Cfunction_r_and_partial_xi_partial_r_derivs(
+    base_cbc_classes.setup_Cfunction_r_and_partial_xi_partial_r_derivs
+):
     """
     Generate C code to compute the radial coordinate r(x0, x1, x2) and its derivatives.
 
@@ -582,24 +609,20 @@ class setup_Cfunction_r_and_partial_xi_partial_r_derivs(base_cbc_classes.setup_C
 
     :param CoordSystem: The coordinate system for which to compute r and its derivatives.
     :param fp_type: Floating point type, e.g., "double".
-    :return: A string containing the generated C code for the function.
     """
-    
-    def __init__(
-        self,
-        CoordSystem: str, fp_type: str = "double"
-    ) -> str:
+
+    def __init__(self, CoordSystem: str, fp_type: str = "double") -> None:
         super().__init__(CoordSystem, fp_type=fp_type)
-        self.CFunction = None
+        self.CFunction: cfc.CFunction
         self.include_CodeParameters_h = False
-        self.cfunc_decorators="__device__"
-        
+        self.cfunc_decorators = "__device__"
+
         self.desc = "Compute r(xx0,xx1,xx2) and partial_r x^i."
         self.cfunc_type = "static inline void"
         self.name = "r_and_partial_xi_partial_r_derivs"
         self.params = """const REAL xx0,const REAL xx1,const REAL xx2, REAL *r,
         REAL *partial_x0_partial_r,REAL *partial_x1_partial_r,REAL *partial_x2_partial_r"""
-        
+
         new_header = ""
         for param_sym in self.unique_symbols:
             new_header += f"const REAL {param_sym} = d_params.{param_sym};\n"
@@ -607,22 +630,21 @@ class setup_Cfunction_r_and_partial_xi_partial_r_derivs(base_cbc_classes.setup_C
         self.generate_CFunction()
 
 
-class setup_Cfunction_compute_partial_r_f(base_cbc_classes.setup_Cfunction_compute_partial_r_f):
+class setup_Cfunction_compute_partial_r_f(
+    base_cbc_classes.setup_Cfunction_compute_partial_r_f
+):
     """
     Set up a C function for computing the partial derivative of f with respect to r.
 
     :param CoordSystem: Coordinate system to be used for the computation
     :param radiation_BC_fd_order: Order of finite difference for radiation boundary conditions, default is -1
-    :return: A C function for computing the partial derivative
-    """    
-    def __init__(
-        self,
-        CoordSystem: str, radiation_BC_fd_order: int = -1
-    ) -> str:
+    """
+
+    def __init__(self, CoordSystem: str, radiation_BC_fd_order: int = -1) -> None:
         super().__init__(CoordSystem, radiation_BC_fd_order=radiation_BC_fd_order)
-        self.include_CodeParameters_h=False
-        self.cfunc_decorators="__device__"
-        
+        self.include_CodeParameters_h = False
+        self.cfunc_decorators = "__device__"
+
         self.desc = "Compute \\partial_r f"
         self.cfunc_type = "static inline REAL"
         self.name = "compute_partial_r_f"
@@ -643,11 +665,12 @@ const REAL partial_x0_partial_r, const REAL partial_x1_partial_r, const REAL par
   const int FD1_stencil_radius = {self.FD1_stencil_radius};
   """
         for i in range(3):
-            self.tmp_definitions+=f"[[maybe_unused]] int const Nxx_plus_2NGHOSTS{i} = d_params.Nxx_plus_2NGHOSTS{i};\n"
+            self.tmp_definitions += f"[[maybe_unused]] int const Nxx_plus_2NGHOSTS{i} = d_params.Nxx_plus_2NGHOSTS{i};\n"
         self.tmp_definitions += "const int ntot = Nxx_plus_2NGHOSTS0*Nxx_plus_2NGHOSTS1*Nxx_plus_2NGHOSTS2;\n"
         self.generate_CFunction()
 
-    def regenerate_body(self):
+    def regenerate_body(self) -> None:
+        """Regerate function body based on class parameters."""
         rfm = refmetric.reference_metric[self.CoordSystem]
         self.body = ""
         for i in range(3):
@@ -664,6 +687,7 @@ const REAL partial_x0_partial_r, const REAL partial_x1_partial_r, const REAL par
                 )
         self.body += "  return partial_x0_partial_r*partial_x0_f + partial_x1_partial_r*partial_x1_f + partial_x2_partial_r*partial_x2_f;\n"
 
+
 class setup_Cfunction_radiation_bcs(base_cbc_classes.setup_Cfunction_radiation_bcs):
     """
     Generate C code to apply radiation boundary conditions in a given coordinate system.
@@ -671,27 +695,31 @@ class setup_Cfunction_radiation_bcs(base_cbc_classes.setup_Cfunction_radiation_b
     :param CoordSystem: The coordinate system to use.
     :param radiation_BC_fd_order: Finite differencing order to use. Default is -1.
     :param fp_type: Floating point type, e.g., "double".
-    :return: A string containing the generated C code for the function.
     """
+
     def __init__(
         self,
         CoordSystem: str,
         radiation_BC_fd_order: int = -1,
         fp_type: str = "double",
-    ) -> str:
-        super().__init__(CoordSystem, radiation_BC_fd_order=radiation_BC_fd_order, fp_type=fp_type)
+    ) -> None:
+        super().__init__(
+            CoordSystem, radiation_BC_fd_order=radiation_BC_fd_order, fp_type=fp_type
+        )
         self.cfunc_decorators = "__device__"
-        self.include_CodeParameters_h=False
+        self.include_CodeParameters_h = False
         self.params = """REAL *restrict xx[3],
         const REAL *restrict gfs, REAL *restrict gfs_rhss,
         const int which_gf, const REAL gf_wavespeed, const REAL gf_f_infinity,
         const int dest_i0,const int dest_i1,const int dest_i2,
         const short FACEi0,const short FACEi1,const short FACEi2"""
-        
+
         self.upwind_setup_func = setup_Cfunction_FD1_arbitrary_upwind
-        self.r_and_partial_xi_partial_r_derivs_prefunc_setup_func = setup_Cfunction_r_and_partial_xi_partial_r_derivs
+        self.r_and_partial_xi_partial_r_derivs_prefunc_setup_func = (
+            setup_Cfunction_r_and_partial_xi_partial_r_derivs
+        )
         self.compute_partial_r_f_setup_func = setup_Cfunction_compute_partial_r_f
-        
+
         self.function_calls = """
 r_and_partial_xi_partial_r_derivs(xx[0][dest_i0],xx[1][dest_i1],xx[2][dest_i2],
                                   &r, &partial_x0_partial_r, &partial_x1_partial_r,  &partial_x2_partial_r);
@@ -706,10 +734,10 @@ const REAL partial_r_f_int = compute_partial_r_f(xx,gfs, which_gf,dest_i0_int,de
 """
         Nxx_definitions = ""
         for i in range(3):
-            Nxx_definitions+=f"[[maybe_unused]] int const Nxx_plus_2NGHOSTS{i} = d_params.Nxx_plus_2NGHOSTS{i};\n"
-        self.variable_defs +=Nxx_definitions
+            Nxx_definitions += f"[[maybe_unused]] int const Nxx_plus_2NGHOSTS{i} = d_params.Nxx_plus_2NGHOSTS{i};\n"
+        self.variable_defs += Nxx_definitions
         self.generate_CFunction()
-      
+
 
 # apply_bcs_outerradiation_and_inner():
 #   Apply radiation BCs at outer boundary points, and
@@ -772,7 +800,7 @@ class register_CFunction_apply_bcs_outerradiation_and_inner(
   //              STEP 2 OF 2.
   apply_bcs_inner_only(commondata, params, bcstruct, rhs_gfs); // <- apply inner BCs to RHS gfs only
 """
-        
+
         cfc.register_CFunction(
             includes=self.includes,
             prefunc=self.prefunc,
@@ -784,21 +812,23 @@ class register_CFunction_apply_bcs_outerradiation_and_inner(
             include_CodeParameters_h=False,
             body=self.body,
         )
+
     def generate_prefunc__apply_bcs_pure_only(self) -> None:
         """
         Generate the prefunction string for apply_bcs_pure_only.
-        
+
         This requires a function that will launch the device kernel as well
         as the device kernel itself.
         """
-        
         # Header details for function that will launch the GPU kernel
         desc = "Apply BCs to pure boundary points"
-        params = "const params_struct *restrict params, const bc_struct *restrict bcstruct,"
+        params = (
+            "const params_struct *restrict params, const bc_struct *restrict bcstruct,"
+        )
         params += "REAL *restrict xx[3], REAL *restrict gfs, REAL *restrict rhs_gfs"
         name = "apply_bcs_pure_only"
         cfunc_type = "static void"
-        
+
         # Start specifying the function body for launching the kernel
         kernel_launch_body = """
 const bc_info_struct *bc_info = &bcstruct->bc_info;
@@ -812,12 +842,12 @@ REAL *restrict x2 = xx[2];
         const outerpt_bc_struct *restrict pure_outer_bc_array = bcstruct->pure_outer_bc_array[gz_idx];
         int num_pure_outer_boundary_points = bc_info->num_pure_outer_boundary_points[which_gz][dirn];
       """
-        
+
         # Specify kernel launch body
         kernel_body = ""
         for i in range(3):
-            kernel_body+=f"[[maybe_unused]] int const Nxx_plus_2NGHOSTS{i} = d_params.Nxx_plus_2NGHOSTS{i};\n"
-        kernel_body += """  
+            kernel_body += f"[[maybe_unused]] int const Nxx_plus_2NGHOSTS{i} = d_params.Nxx_plus_2NGHOSTS{i};\n"
+        kernel_body += """
 // Thread indices
 // Global data index - expecting a 1D dataset
 const int tid0 = threadIdx.x + blockIdx.x*blockDim.x;
@@ -846,32 +876,34 @@ for (int idx2d = tid0; idx2d < num_pure_outer_boundary_points; idx2d+=stride0) {
         device_kernel = gputils.GPU_Kernel(
             kernel_body,
             {
-                'num_pure_outer_boundary_points' : 'const int',
-                'which_gz' : 'const int',
-                'dirn' : 'const int',
-                'pure_outer_bc_array' : 'const outerpt_bc_struct *restrict',
-                'gfs' : 'REAL *restrict',
-                'rhs_gfs' : 'REAL *restrict',
-                'x0' : 'REAL *restrict',
-                'x1' : 'REAL *restrict',
-                'x2' : 'REAL *restrict',
+                "num_pure_outer_boundary_points": "const int",
+                "which_gz": "const int",
+                "dirn": "const int",
+                "pure_outer_bc_array": "const outerpt_bc_struct *restrict",
+                "gfs": "REAL *restrict",
+                "rhs_gfs": "REAL *restrict",
+                "x0": "REAL *restrict",
+                "x1": "REAL *restrict",
+                "x2": "REAL *restrict",
             },
             f"{name}_gpu",
-            launch_dict= {
-                'blocks_per_grid' : ["(num_pure_outer_boundary_points + threads_in_x_dir -1) / threads_in_x_dir"],
-                'threads_per_block' : ["32"],
-                'stream' : f"params->grid_idx % nstreams"
+            launch_dict={
+                "blocks_per_grid": [
+                    "(num_pure_outer_boundary_points + threads_in_x_dir -1) / threads_in_x_dir"
+                ],
+                "threads_per_block": ["32"],
+                "stream": "params->grid_idx % nstreams",
             },
             # fp_type=self.fp_type,
-            comments=f"GPU Kernel to apply radiation BCs to pure points.",
+            comments="GPU Kernel to apply radiation BCs to pure points.",
         )
         # Add device Kernel to prefunc
         self.prefunc += device_kernel.CFunction.full_function
         # Add launch configuration to Launch kernel body
-        kernel_launch_body+=device_kernel.launch_block
-        kernel_launch_body+=device_kernel.c_function_call()
+        kernel_launch_body += device_kernel.launch_block
+        kernel_launch_body += device_kernel.c_function_call()
         # Close the launch kernel
-        kernel_launch_body+="""
+        kernel_launch_body += """
       }
     }
   }
@@ -885,9 +917,10 @@ for (int idx2d = tid0; idx2d < num_pure_outer_boundary_points; idx2d+=stride0) {
             params=params,
             body=kernel_launch_body,
         )
-        
+
         # Append Launch kernel to prefunc
         self.prefunc += kernel_launch_CFunction.full_function
+
 
 class CurviBoundaryConditions_register_C_functions(
     base_cbc_classes.base_CurviBoundaryConditions_register_C_functions
@@ -919,8 +952,12 @@ class CurviBoundaryConditions_register_C_functions(
             set_parity_on_auxevol=set_parity_on_auxevol,
             fp_type=fp_type,
         )
-        self.CBC_BHd_str = self.CBC_BHd_str.replace("outerpt_bc_struct *restrict", "outerpt_bc_struct *")
-        self.CBC_BHd_str = self.CBC_BHd_str.replace("innerpt_bc_struct *restrict", "innerpt_bc_struct *")
+        self.CBC_BHd_str = self.CBC_BHd_str.replace(
+            "outerpt_bc_struct *restrict", "outerpt_bc_struct *"
+        )
+        self.CBC_BHd_str = self.CBC_BHd_str.replace(
+            "innerpt_bc_struct *restrict", "innerpt_bc_struct *"
+        )
         # self.post_register_BHAH_header(self)
         for CoordSystem in self.list_of_CoordSystems:
             # Register C function to set up the boundary condition struct.

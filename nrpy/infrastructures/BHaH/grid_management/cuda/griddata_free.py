@@ -6,6 +6,8 @@ Author: Samuel D. Tootle
 """
 
 import nrpy.infrastructures.BHaH.grid_management.base_griddata_free as base_free
+
+
 class register_CFunction_griddata_free(base_free.base_register_CFunction_griddata_free):
     """
     Register the C function griddata_free() to free all memory within the griddata struct.
@@ -13,7 +15,8 @@ class register_CFunction_griddata_free(base_free.base_register_CFunction_griddat
 
     :param enable_rfm_precompute: A flag to enable/disable rfm_precompute_free within the C function body.
     :param enable_CurviBCs: A flag to enable/disable freeing CurviBCs within the C function body.
-    """    
+    """
+
     def __init__(
         self,
         enable_rfm_precompute: bool,
@@ -25,8 +28,8 @@ class register_CFunction_griddata_free(base_free.base_register_CFunction_griddat
 """
         if enable_rfm_precompute:
             self.body += "  rfm_precompute_free(commondata, &griddata[grid].params, &griddata[grid].rfmstruct);\n"
-            'cudaCheckErrors(free, "rfmFree failed")\n;'
-        
+            self.body += '  cudaCheckErrors(free, "rfmFree failed")\n;'
+
         if enable_CurviBCs:
             self.body += r"""
   cudaFree(griddata[grid].bcstruct.inner_bc_array);

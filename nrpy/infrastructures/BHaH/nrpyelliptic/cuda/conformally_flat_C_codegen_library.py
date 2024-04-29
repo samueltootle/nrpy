@@ -97,7 +97,7 @@ class gpu_register_CFunction_initial_guess_all_points(
         self,
         enable_checkpointing: bool = False,
         fp_type: str = "double",
-        **_ : Any,
+        **_: Any,
     ) -> None:
 
         super().__init__(enable_checkpointing, fp_type=fp_type)
@@ -109,26 +109,26 @@ class gpu_register_CFunction_initial_guess_all_points(
             loop_region="all points",
             fp_type=self.fp_type,
         ).full_loop_body
-        
+
         # Put loop_body into a device kernel
         self.device_kernel = gputils.GPU_Kernel(
             self.loop_body,
             {
-                'x0' : 'const REAL *restrict',
-                'x1' : 'const REAL *restrict',
-                'x2' : 'const REAL *restrict',
-                'in_gfs' : 'REAL *restrict'
+                "x0": "const REAL *restrict",
+                "x1": "const REAL *restrict",
+                "x2": "const REAL *restrict",
+                "in_gfs": "REAL *restrict",
             },
-            'initial_guess_all_points_gpu',
-            launch_dict= {
-                'blocks_per_grid' : [],
-                'threads_per_block' : ["32", "NGHOSTS"],
-                'stream' : "default"
+            "initial_guess_all_points_gpu",
+            launch_dict={
+                "blocks_per_grid": [],
+                "threads_per_block": ["32", "NGHOSTS"],
+                "stream": "default",
             },
             fp_type=self.fp_type,
             comments="GPU Kernel to initialize all grid points.",
         )
-        
+
         # FIXME should be +=
         self.body = r"""for(int grid=0; grid<commondata->NUMGRIDS; grid++) {
   // Unpack griddata struct:
@@ -158,7 +158,7 @@ class gpu_register_CFunction_initial_guess_all_points(
 def register_CFunction_initial_guess_all_points(
     enable_checkpointing: bool = False,
     fp_type: str = "double",
-    **_ : Any,
+    **_kwargs: Any,
 ) -> Union[None, pcg.NRPyEnv_type]:
     """
     Support function for gpu_register_CFunction_initial_guess_all_points.
@@ -166,8 +166,8 @@ def register_CFunction_initial_guess_all_points(
     points and retain compatibility with parallel_codegen.
 
     :param enable_checkpointing: Attempt to read from a checkpoint file before generating initial guess.
-    :param OMP_collapse: Degree of GPU loop collapsing.
     :param fp_type: Floating point type, e.g., "double".
+    :param _kwargs: capture unused arguments from openmp-like calls
 
     :return: None if in registration phase, else the updated NRPy environment.
     """
@@ -219,9 +219,9 @@ class gpu_register_CFunction_auxevol_gfs_single_point(
             "S1_y",
             "S1_z",
             "bare_mass_0",
-            "bare_mass_1"
+            "bare_mass_1",
         ]
-        
+
         self.body = "// Temporary variables to needed parameters and commondata.\n"
         for p in self.unique_symbols:
             if p not in commondata_refs:
@@ -286,7 +286,7 @@ class gpu_register_CFunction_auxevol_gfs_all_points(
     def __init__(
         self,
         fp_type: str = "double",
-        **_ : Any,
+        **_: Any,
     ) -> None:
         super().__init__(fp_type=fp_type)
         self.loop_body = lp.simple_loop(
@@ -297,26 +297,26 @@ class gpu_register_CFunction_auxevol_gfs_all_points(
             loop_region="all points",
             fp_type=self.fp_type,
         ).full_loop_body
-        
+
         # Put loop_body into a device kernel
         self.device_kernel = gputils.GPU_Kernel(
             self.loop_body,
             {
-                'x0' : 'const REAL *restrict',
-                'x1' : 'const REAL *restrict',
-                'x2' : 'const REAL *restrict',
-                'in_gfs' : 'REAL *restrict',
+                "x0": "const REAL *restrict",
+                "x1": "const REAL *restrict",
+                "x2": "const REAL *restrict",
+                "in_gfs": "REAL *restrict",
             },
-            f'{self.name}_gpu',
-            launch_dict= {
-                'blocks_per_grid' : [],
-                'threads_per_block' : ["32", "NGHOSTS"],
-                'stream' : "default"
+            f"{self.name}_gpu",
+            launch_dict={
+                "blocks_per_grid": [],
+                "threads_per_block": ["32", "NGHOSTS"],
+                "stream": "default",
             },
             fp_type=self.fp_type,
             comments="GPU Kernel to initialize auxillary grid functions at all grid points.",
         )
-        
+
         self.body = r"""cpyHosttoDevice_commondata__constant(commondata);
         for(int grid=0; grid<commondata->NUMGRIDS; grid++) {
   // Unpack griddata struct:
@@ -344,15 +344,15 @@ class gpu_register_CFunction_auxevol_gfs_all_points(
 
 def register_CFunction_auxevol_gfs_all_points(
     fp_type: str = "double",
-    **_ : Any,
+    **_kwargs: Any,
 ) -> Union[None, pcg.NRPyEnv_type]:
     """
     Support function for gpu_register_CFunction_auxevol_gfs_single_point.
     Facilitates generating a function for the AUXEVOL grid functions at all points
     and retain compatibility with parallel_codegen.
 
-    :param OMP_collapse: Degree of GPU loop collapsing.
     :param fp_type: Floating point type, e.g., "double".
+    :param _kwargs: capture unused arguments from openmp-like calls
 
     :return: None if in registration phase, else the updated NRPy environment.
     """
@@ -400,23 +400,23 @@ class gpu_register_CFunction_variable_wavespeed_gfs_all_points(
         ).full_loop_body
         kernel_body = "// Temporary parameters\n"
         for sym in self.unique_symbols:
-            kernel_body += f"const REAL {sym} = d_params.{sym};\n" 
+            kernel_body += f"const REAL {sym} = d_params.{sym};\n"
         # Put loop_body into a device kernel
         self.device_kernel = gputils.GPU_Kernel(
-            kernel_body+self.loop_body,
+            kernel_body + self.loop_body,
             {
-                'x0' : 'const REAL *restrict',
-                'x1' : 'const REAL *restrict',
-                'x2' : 'const REAL *restrict',
-                'in_gfs' : 'REAL *restrict',
-                'dt' : 'const REAL',
-                'MINIMUM_GLOBAL_WAVESPEED' : 'const REAL',
+                "x0": "const REAL *restrict",
+                "x1": "const REAL *restrict",
+                "x2": "const REAL *restrict",
+                "in_gfs": "REAL *restrict",
+                "dt": "const REAL",
+                "MINIMUM_GLOBAL_WAVESPEED": "const REAL",
             },
-            f'{self.name}_gpu',
-            launch_dict= {
-                'blocks_per_grid' : [],
-                'threads_per_block' : ["32", "NGHOSTS"],
-                'stream' : "default"
+            f"{self.name}_gpu",
+            launch_dict={
+                "blocks_per_grid": [],
+                "threads_per_block": ["32", "NGHOSTS"],
+                "stream": "default",
             },
             fp_type=self.fp_type,
             comments="GPU Kernel to initialize auxillary grid functions at all grid points.",
@@ -532,7 +532,7 @@ class register_CFunction_compute_L2_norm_of_gridfunction(
 
         super().__init__(CoordSystem, fp_type=fp_type)
         self.fp_type = "double"
-        self.includes += ['BHaH_function_prototypes.h']
+        self.includes += ["BHaH_function_prototypes.h"]
         reduction_loop_body = ccg.c_codegen(
             self.expr_list,
             [
@@ -542,11 +542,11 @@ class register_CFunction_compute_L2_norm_of_gridfunction(
             include_braces=False,
             fp_type=self.fp_type,
         )
-        
-        l2_squared_dv_memaccess = 'aux_gfs[IDX4(L2_SQUARED_DVGF, i0, i1, i2)]'
-        l2_dv_memaccess = 'aux_gfs[IDX4(L2_DVGF, i0, i1, i2)]'
 
-        reduction_loop_body += fr"""
+        l2_squared_dv_memaccess = "aux_gfs[IDX4(L2_SQUARED_DVGF, i0, i1, i2)]"
+        l2_dv_memaccess = "aux_gfs[IDX4(L2_DVGF, i0, i1, i2)]"
+
+        reduction_loop_body += rf"""
 if(r < integration_radius) {{
   const REAL gf_of_x = in_gfs[IDX4(gf_index, i0, i1, i2)];
   const REAL dV = sqrtdetgamma * dxx0 * dxx1 * dxx2;
@@ -582,29 +582,29 @@ if(r < integration_radius) {{
         ).full_loop_body
 
         kernel_body = "// Temporary parameters\n"
-        
+
         # Add symbols that are hard coded into reduction_loop_body
         self.unique_symbols += [f"dxx{i}" for i in range(3)]
         for sym in self.unique_symbols:
-            kernel_body += f"const REAL {sym} = d_params.{sym};\n" 
+            kernel_body += f"const REAL {sym} = d_params.{sym};\n"
 
         # Put loop_body into a device kernel
         self.device_kernel = gputils.GPU_Kernel(
-            kernel_body+self.loop_body,
+            kernel_body + self.loop_body,
             {
-                'x0' : 'const REAL *restrict',
-                'x1' : 'const REAL *restrict',
-                'x2' : 'const REAL *restrict',
-                'in_gfs' : 'const REAL *restrict',
-                'aux_gfs' : 'REAL *restrict',
-                'integration_radius' : 'const REAL',
-                'gf_index' : 'const int',
+                "x0": "const REAL *restrict",
+                "x1": "const REAL *restrict",
+                "x2": "const REAL *restrict",
+                "in_gfs": "const REAL *restrict",
+                "aux_gfs": "REAL *restrict",
+                "integration_radius": "const REAL",
+                "gf_index": "const int",
             },
-            f'{self.name}_gpu',
-            launch_dict= {
-                'blocks_per_grid' : [],
-                'threads_per_block' : ["32", "NGHOSTS"],
-                'stream' : "default"
+            f"{self.name}_gpu",
+            launch_dict={
+                "blocks_per_grid": [],
+                "threads_per_block": ["32", "NGHOSTS"],
+                "stream": "default",
             },
             fp_type=self.fp_type,
             comments="GPU Kernel to compute L2 quantities pointwise (not summed).",
@@ -667,7 +667,7 @@ class gpu_register_CFunction_diagnostics(
             default_diagnostics_out_every,
             out_quantities_dict=out_quantities_dict,
         )
-        self.params+=", griddata_struct *restrict griddata_host"
+        self.params += ", griddata_struct *restrict griddata_host"
 
         # This has to be here to avoid type issues with mypy
         # An error will throw in super().__init__() if out_quantities_dict != dict
@@ -882,29 +882,34 @@ class gpu_register_CFunction_rhs_eval(
             read_xxs=not enable_rfm_precompute,
             fp_type=fp_type,
         )
-        self.loop_body = self.simple_loop.full_loop_body.replace("const REAL f", "[[maybe_unused]] const REAL f")
-        self.kernel_comments="GPU Kernel to evaluate RHS on the interior."
-        self.params_dict_coord = {f"x{i}" : "const REAL *restrict" for i in range(3)}
-        self.body=""
-        
+        self.loop_body = self.simple_loop.full_loop_body.replace(
+            "const REAL f", "[[maybe_unused]] const REAL f"
+        )
+        self.kernel_comments = "GPU Kernel to evaluate RHS on the interior."
+        self.params_dict_coord = {f"x{i}": "const REAL *restrict" for i in range(3)}
+        self.body = ""
+
         if enable_rfm_precompute:
-            
-            self.params_dict_coord = {f'{rfm_f.replace("REAL *restrict ","")[:-1]}' : 'const REAL *restrict' for rfm_f in self.simple_loop.rfmp.BHaH_defines_list}
-            params_dict = {f"rfm_{k}" : v for k,v in self.params_dict_coord.items()}
-            params_dict['auxevol_gfs'] = 'const REAL *restrict'
-            params_dict['in_gfs'] = 'const REAL *restrict'
-            params_dict['rhs_gfs'] = 'REAL *restrict'
-            params_dict['eta_damping'] = 'const REAL'
-        
+
+            self.params_dict_coord = {
+                f'{rfm_f.replace("REAL *restrict ","")[:-1]}': "const REAL *restrict"
+                for rfm_f in self.simple_loop.rfmp.BHaH_defines_list
+            }
+            params_dict = {f"rfm_{k}": v for k, v in self.params_dict_coord.items()}
+            params_dict["auxevol_gfs"] = "const REAL *restrict"
+            params_dict["in_gfs"] = "const REAL *restrict"
+            params_dict["rhs_gfs"] = "REAL *restrict"
+            params_dict["eta_damping"] = "const REAL"
+
             # Put loop_body into a device kernel
             self.device_kernel = gputils.GPU_Kernel(
                 self.loop_body,
                 params_dict,
-                'rhs_eval_gpu',
-                launch_dict= {
-                    'blocks_per_grid' : [],
-                    'threads_per_block' : ["32", "NGHOSTS"],
-                    'stream' : "default"
+                "rhs_eval_gpu",
+                launch_dict={
+                    "blocks_per_grid": [],
+                    "threads_per_block": ["32", "NGHOSTS"],
+                    "stream": "default",
                 },
                 fp_type=fp_type,
                 comments=self.kernel_comments,
@@ -913,10 +918,9 @@ class gpu_register_CFunction_rhs_eval(
                 self.body += f"{v} rfm_{k} = rfmstruct->{k};\n"
         else:
             raise ValueError(
-                    "rhs_eval without rfm_precompute has not been implemented."
-                )
-        
-        
+                "rhs_eval without rfm_precompute has not been implemented."
+            )
+
         self.body += f"{self.device_kernel.launch_block}"
         self.body += f"{self.device_kernel.c_function_call()}"
         cfc.register_CFunction(
@@ -936,7 +940,7 @@ def register_CFunction_rhs_eval(
     CoordSystem: str,
     enable_rfm_precompute: bool,
     fp_type: str = "double",
-    **_ : Any,
+    **_kwargs: Any,
 ) -> Union[None, pcg.NRPyEnv_type]:
     """
 
@@ -946,18 +950,15 @@ def register_CFunction_rhs_eval(
 
     :param CoordSystem: The coordinate system.
     :param enable_rfm_precompute: Whether to enable reference metric precomputation.
-    :param enable_simd: Whether to enable SIMD.
-    :param OMP_collapse: Level of GPU loop collapsing.
     :param fp_type: Floating point type, e.g., "double".
+    :param _kwargs: capture unused arguments from openmp-like calls
 
     :return: None if in registration phase, else the updated NRPy environment.
     """
     if pcg.pcg_registration_phase():
         pcg.register_func_call(f"{__name__}.{cast(FT, cf()).f_code.co_name}", locals())
         return None
-    gpu_register_CFunction_rhs_eval(
-        CoordSystem, enable_rfm_precompute, fp_type=fp_type
-    )
+    gpu_register_CFunction_rhs_eval(CoordSystem, enable_rfm_precompute, fp_type=fp_type)
 
     return cast(pcg.NRPyEnv_type, pcg.NRPyEnv())
 
@@ -993,7 +994,7 @@ class gpu_register_CFunction_compute_residual_all_points(
         super().__init__(
             CoordSystem=CoordSystem, enable_rfm_precompute=enable_rfm_precompute
         )
-        self.body=""
+        self.body = ""
         if enable_simd:
             self.includes += [str(Path("simd") / "simd_intrinsics.h")]
 
@@ -1017,20 +1018,25 @@ class gpu_register_CFunction_compute_residual_all_points(
             fp_type=fp_type,
         )
         self.kernel_body = self.simple_loop.full_loop_body
-        self.params_dict_coord = {f'{rfm_f.replace("REAL *restrict ","")[:-1]}' : 'const REAL *restrict' for rfm_f in self.simple_loop.rfmp.BHaH_defines_list}
-        params_dict = {f"rfm_{k}" : v for k,v in self.params_dict_coord.items()}
-        params_dict['auxevol_gfs'] = 'const REAL *restrict'
-        params_dict['in_gfs'] = 'const REAL *restrict'
-        params_dict['aux_gfs'] = 'REAL *restrict'
-        self.kernel_body = self.kernel_body.replace("const REAL f", "[[maybe_unused]] const REAL f")
+        self.params_dict_coord = {
+            f'{rfm_f.replace("REAL *restrict ","")[:-1]}': "const REAL *restrict"
+            for rfm_f in self.simple_loop.rfmp.BHaH_defines_list
+        }
+        params_dict = {f"rfm_{k}": v for k, v in self.params_dict_coord.items()}
+        params_dict["auxevol_gfs"] = "const REAL *restrict"
+        params_dict["in_gfs"] = "const REAL *restrict"
+        params_dict["aux_gfs"] = "REAL *restrict"
+        self.kernel_body = self.kernel_body.replace(
+            "const REAL f", "[[maybe_unused]] const REAL f"
+        )
         self.device_kernel = gputils.GPU_Kernel(
             self.kernel_body,
             params_dict,
             f"{self.name}_gpu",
-            launch_dict= {
-                'blocks_per_grid' : [],
-                'threads_per_block' : ["32", "NGHOSTS"],
-                'stream' : "default"
+            launch_dict={
+                "blocks_per_grid": [],
+                "threads_per_block": ["32", "NGHOSTS"],
+                "stream": "default",
             },
             fp_type=fp_type,
             comments="GPU Kernel to compute the residual throughout the grid.",
@@ -1038,8 +1044,8 @@ class gpu_register_CFunction_compute_residual_all_points(
         self.prefunc = self.device_kernel.CFunction.full_function
         for k, v in self.params_dict_coord.items():
             self.body += f"{v} rfm_{k} = rfmstruct->{k};\n"
-        self.body+=self.device_kernel.launch_block + "\n\n"
-        self.body+=self.device_kernel.c_function_call()
+        self.body += self.device_kernel.launch_block + "\n\n"
+        self.body += self.device_kernel.c_function_call()
         cfc.register_CFunction(
             prefunc=self.prefunc,
             include_CodeParameters_h=True,

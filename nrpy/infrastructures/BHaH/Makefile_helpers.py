@@ -44,6 +44,7 @@ def output_CFunctions_function_prototypes_and_construct_Makefile(
     :param create_lib: Whether to create a library. Defaults to False.
     :param include_dirs: List of include directories. Must be a list.
     :param clang_format_options: Options for the clang-format tool. Defaults to "-style={BasedOnStyle: LLVM, ColumnLimit: 150}".
+    :param code_ext: set what the file extension is for each code file.
 
     :raises SystemExit: Exits if errors are encountered.
     :raises FileNotFoundError: If the specified C compiler is not found.
@@ -149,7 +150,7 @@ def output_CFunctions_function_prototypes_and_construct_Makefile(
         "fast": "-O3 -funroll-loops -march=native -g -Wall -Wno-unused-variable -std=gnu99",
         # DEBUGCFLAGS: OpenMP requires -fopenmp, and when disabling -fopenmp, unknown pragma warnings appear. -Wunknown-pragmas silences these warnings
         "debug": "-O2 -g -Wall -Wno-unused-variable -Wno-unknown-pragmas",
-        "nvcc" : "-Xcompiler -fopenmp -Xcompiler -g -O2 -arch=native -O2 -Xcompiler=-march=native -Xcompiler -Wall --forward-unknown-to-host-compiler --Werror cross-execution-space-call --relocatable-device-code=true -allow-unsupported-compiler",
+        "nvcc": "-Xcompiler -fopenmp -Xcompiler -g -O2 -arch=native -O2 -Xcompiler=-march=native -Xcompiler -Wall --forward-unknown-to-host-compiler --Werror cross-execution-space-call --relocatable-device-code=true -allow-unsupported-compiler",
     }
 
     if CC == "gcc":
@@ -240,11 +241,11 @@ def output_CFunctions_function_prototypes_and_construct_Makefile(
 
     # Below code is responsible for either writing a Makefile or a backup shell script depending on the conditions
     Makefile_str = (
-        rf"CC = {CC}  # Locally overwrites CC to {CC}\n" \
-            if CC == "nvcc" else \
-                f"CC ?= {CC}  # assigns the value CC to {CC} only if environment variable CC is not already set\n"
+        rf"CC = {CC}  # Locally overwrites CC to {CC}\n"
+        if CC == "nvcc"
+        else f"CC ?= {CC}  # assigns the value CC to {CC} only if environment variable CC is not already set\n"
     )
-    
+
     Makefile_str += f"""
 {CFLAGS_str}
 {INCLUDEDIRS_str}
@@ -261,7 +262,7 @@ ifeq ($(COMPILER_SUPPORTS_OPENMP), YES)
 endif
 """
     else:
-        Makefile_str+= """
+        Makefile_str += """
 OPENMP_FLAG = -fopenmp
 CFLAGS += $(OPENMP_FLAG)
 LDFLAGS += $(OPENMP_FLAG)

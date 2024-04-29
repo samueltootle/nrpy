@@ -1,5 +1,5 @@
 """
-Module that provides the utilities for generating GPU Kernels
+Module that provides the utilities for generating GPU Kernels.
 
 Authors: Samuel D. Tootle; sdtootle **at** gmail **dot** com
 """
@@ -112,8 +112,8 @@ class GPU_Kernel:
             body=self.body,
         )
 
-    def generate_launch_block(self):
-        "Generate preceding launch block definitions for kernel function call."
+    def generate_launch_block(self) -> None:
+        """Generate preceding launch block definitions for kernel function call."""
         if not self.launch_dict is None:
             threads_per_block = self.launch_dict["threads_per_block"]
             for _ in range(3 - len(threads_per_block)):
@@ -131,7 +131,7 @@ dim3 threads_per_block(threads_in_x_dir, threads_in_y_dir, threads_in_z_dir);"""
                 blocks_per_grid_str = ",".join(map(str, blocks_per_grid))
                 grid_def_str = f"dim3 blocks_per_grid({blocks_per_grid_str});"
             else:
-                grid_def_str = f"""dim3 blocks_per_grid(
+                grid_def_str = """dim3 blocks_per_grid(
     (Nxx_plus_2NGHOSTS0 + threads_in_x_dir - 1) / threads_in_x_dir,
     (Nxx_plus_2NGHOSTS1 + threads_in_y_dir - 1) / threads_in_y_dir,
     (Nxx_plus_2NGHOSTS2 + threads_in_z_dir - 1) / threads_in_z_dir
@@ -144,7 +144,7 @@ dim3 threads_per_block(threads_in_x_dir, threads_in_y_dir, threads_in_z_dir);"""
                     self.launch_dict["stream"] == ""
                     or self.launch_dict["stream"] == "default"
                 ):
-                    stream_def_str = f"size_t streamid = params->grid_idx % nstreams;"
+                    stream_def_str = "size_t streamid = params->grid_idx % nstreams;"
                 else:
                     stream_def_str = f"size_t streamid = {self.launch_dict['stream']};"
 
@@ -170,11 +170,11 @@ dim3 threads_per_block(threads_in_x_dir, threads_in_y_dir, threads_in_z_dir);"""
             if not stream_def_str is None:
                 self.launch_block += f"{stream_def_str}"
 
-            self.launch_settings = f"<<<blocks_per_grid,threads_per_block"
+            self.launch_settings = "<<<blocks_per_grid,threads_per_block"
             if not sm_def_str is None:
-                self.launch_settings += f",sm"
+                self.launch_settings += ",sm"
             if not stream_def_str is None:
-                self.launch_settings += f",streams[streamid]"
+                self.launch_settings += ",streams[streamid]"
             self.launch_settings += ">>>("
 
     def c_function_call(self) -> str:
@@ -183,7 +183,6 @@ dim3 threads_per_block(threads_in_x_dir, threads_in_y_dir, threads_in_z_dir);"""
 
         :return: The C function call as a string.
         """
-
         c_function_call: str = self.name + self.launch_settings
         for p in self.params_dict:
             c_function_call += f"{p}, "
@@ -197,12 +196,7 @@ dim3 threads_per_block(threads_in_x_dir, threads_in_y_dir, threads_in_z_dir);"""
 
 # Define functions to copy params to device
 def register_CFunction_cpyHosttoDevice_params__constant() -> None:
-    """
-    Register C function for copying params to __constant__ space on device.
-
-    :return: None.
-    """
-
+    """Register C function for copying params to __constant__ space on device."""
     includes = ["BHaH_defines.h"]
 
     desc = r"""Copy parameters to GPU __constant__."""
@@ -222,14 +216,10 @@ def register_CFunction_cpyHosttoDevice_params__constant() -> None:
         subdirectory="CUDA_utils",
     )
 
+
 # Define functions to copy params to device
 def register_CFunction_cpyHosttoDevice_commondata__constant() -> None:
-    """
-    Register C function for copying commondata to __constant__ space on device.
-
-    :return: None.
-    """
-
+    """Register C function for copying commondata to __constant__ space on device."""
     includes = ["BHaH_defines.h"]
 
     desc = r"""Copy parameters to GPU __constant__."""
@@ -250,8 +240,11 @@ def register_CFunction_cpyHosttoDevice_commondata__constant() -> None:
     )
 
 
-def generate_CFunction_mallocHostgrid() -> GPU_Kernel:
-
+def generate_CFunction_mallocHostgrid() -> str:
+    """
+    Generate the kernel that allocates Host side storage.
+    :returns: Full kernel function string
+    """
     desc = r"""Allocate griddata_struct[grid].xx for host."""
     name = "mallocHostgrid"
     params_dict = {
@@ -275,11 +268,7 @@ def generate_CFunction_mallocHostgrid() -> GPU_Kernel:
 
 
 def register_CFunction_cpyDevicetoHost__grid() -> None:
-    """
-    Register C function for copying grid from device to host.
-
-    :return: None.
-    """
+    """Register C function for copying grid from device to host."""
     includes = ["BHaH_defines.h"]
     prefunc = generate_CFunction_mallocHostgrid()
     desc = r"""Copy griddata_struct[grid].xx from GPU to host."""
@@ -312,12 +301,9 @@ def register_CFunction_cpyDevicetoHost__grid() -> None:
         subdirectory="CUDA_utils",
     )
 
-def register_CFunction_cpyDevicetoHost__malloc_host_gfs() -> None:
-    """
-    Register C function for allocating sufficient Host storage for diagnostics GFs.
 
-    :return: None.
-    """
+def register_CFunction_cpyDevicetoHost__malloc_host_gfs() -> None:
+    """Register C function for allocating sufficient Host storage for diagnostics GFs."""
     includes = ["BHaH_defines.h"]
     desc = r"""Allocate Host storage for diagnostics GFs."""
     cfunc_type = "__host__ void"
@@ -347,13 +333,10 @@ def register_CFunction_cpyDevicetoHost__malloc_host_gfs() -> None:
         body=body,
         subdirectory="CUDA_utils",
     )
-    
-def register_CFunction_cpyDevicetoHost__gf() -> None:
-    """
-    Register C function for asynchronously copying data from device to host.
 
-    :return: None.
-    """
+
+def register_CFunction_cpyDevicetoHost__gf() -> None:
+    """Register C function for asynchronously copying data from device to host."""
     includes = ["BHaH_defines.h"]
     desc = r"""Asynchronously copying a grid function from device to host."""
     cfunc_type = "__host__ size_t"
@@ -388,7 +371,9 @@ def register_CFunction_cpyDevicetoHost__gf() -> None:
         subdirectory="CUDA_utils",
     )
 
+
 def register_CFunctions_HostDevice__operations() -> None:
+    """Generate all of the Host to/from Device specific functions."""
     register_CFunction_cpyHosttoDevice_commondata__constant()
     register_CFunction_cpyHosttoDevice_params__constant()
 
@@ -396,69 +381,88 @@ def register_CFunctions_HostDevice__operations() -> None:
     register_CFunction_cpyDevicetoHost__gf()
     register_CFunction_cpyDevicetoHost__malloc_host_gfs()
 
+
 class CUDA_reductions:
-    def __init__ (
+    """
+    Provides a template for generating CUDA compatible reductions.
+
+    :param reduction_type: Specify the reduction type to generate
+    :param cfunc_decorators: Set decorators for the reduction (e.g. template, __host__, inline)
+    :param cfunc_type: Return type of the function
+    :param fp_type: Floating point precision of the data
+    """
+
+    def __init__(
         self,
-        reduction_type="minimum",
-        cfunc_decorators="__host__",
-        cfunc_type="REAL",
-        fp_type = "double",
-    )->None:
+        reduction_type: str = "minimum",
+        cfunc_decorators: str = "__host__",
+        cfunc_type: str = "REAL",
+        fp_type: str = "double",
+    ) -> None:
         self.reduction_type = reduction_type
-        self.cfunc_decorators=cfunc_decorators
-        self.cfunc_type=cfunc_type
+        self.cfunc_decorators = cfunc_decorators
+        self.cfunc_type = cfunc_type
         self.fp_type = fp_type
-        
+
         self.type_dict = {
-            "double" : 'unsigned long long',
-            "float" : 'unsigned',
+            "double": "unsigned long long",
+            "float": "unsigned",
         }
-        
+
         self.initial_value_dict = {
-            'sum' : '0U',
-            'maximum' : '0U',
-            'minimum' : '0xFFFFFFFFU',            
+            "sum": "0U",
+            "maximum": "0U",
+            "minimum": "0xFFFFFFFFU",
         }
-        
+
         # Define local reductions
-        def minimum_reduction(cmp_var):
+        def minimum_reduction(cmp_var: str) -> str:
             return f"""
 if(local_reduced > {cmp_var}) {{
     local_reduced = {cmp_var};
 }}
 """
-        def maximum_reduction(cmp_var):
+
+        def maximum_reduction(cmp_var: str) -> str:
             return f"""
 if(local_reduced < {cmp_var}) {{
     local_reduced = {cmp_var};
 }}
 """
-        def sum_reduction(cmp_var):
+
+        def sum_reduction(cmp_var: str) -> str:
             return f"local_reduced += {cmp_var};"
+
         # End local reduction definitions
-        
+
         # Store local reductions for later use in substitution
         self.reduction_dict = {
-            'sum' : sum_reduction,
-            'minimum' : minimum_reduction,
-            'maximum' : maximum_reduction,
+            "sum": sum_reduction,
+            "minimum": minimum_reduction,
+            "maximum": maximum_reduction,
         }
-        
+
         self.atomic_operations = {
-            'sum' : 'atomicAdd',
-            'minimum' : 'atomicMin',
-            'maximum' : 'atomicMax'
+            "sum": "atomicAdd",
+            "minimum": "atomicMin",
+            "maximum": "atomicMax",
         }
-        
+
         if self.reduction_type not in self.initial_value_dict:
-            raise ValueError(f"{self.reduction_type} is not a defined reduction. Choose from {self.initial_value_dict.keys()}")
+            raise ValueError(
+                f"{self.reduction_type} is not a defined reduction. Choose from {self.initial_value_dict.keys()}"
+            )
         self.includes = ["BHaH_defines.h"]
         self.desc = f"""Find array global {self.reduction_type}."""
         self.name = f"find_global__{self.reduction_type}"
         self.params = "REAL * data, uint const data_length"
-        
+
         self.kernel_name = f"{self.name}__cuda"
-        self.recast_type = f"({self.type_dict[self.fp_type]} int *)" if not self.reduction_type == "sum" else ""
+        self.recast_type = (
+            f"({self.type_dict[self.fp_type]} int *)"
+            if self.reduction_type != "sum"
+            else ""
+        )
         self.prefunc = f"""
 __global__
 static void {self.kernel_name}(REAL * data, REAL * min, uint const data_length) {{
@@ -529,7 +533,7 @@ static void {self.kernel_name}(REAL * data, REAL * min, uint const data_length) 
     }}
 }}
 """
-        
+
         self.body = f"""
     // This can be tested up to 1024
     uint threadCount = 32;
@@ -565,11 +569,10 @@ static void {self.kernel_name}(REAL * data, REAL * min, uint const data_length) 
     REAL * res = (REAL *) h_reduced;
     return *res;
 """
-        self.CFunction = None
-        
+        self.CFunction: cfc.CFunction
+
     def generate_CFunction(self) -> None:
-        "Generate CFunction from initialized parameters."
-        
+        """Generate CFunction from initialized parameters."""
         self.CFunction = cfc.CFunction(
             prefunc=self.prefunc,
             includes=self.includes,
@@ -583,17 +586,18 @@ static void {self.kernel_name}(REAL * data, REAL * min, uint const data_length) 
             subdirectory="CUDA_utils",
         )
 
-def register_CFunction_find_global_minimum(fp_type = "double") -> None:
-    """
-    Register C function for finding the global minimum of an array
 
-    :return: None.
+def register_CFunction_find_global_minimum(fp_type: str = "double") -> None:
+    """
+    Register C function for finding the global minimum of an array.
+
+    :param fp_type: Floating point type of the data
     """
     reduction = CUDA_reductions(
         reduction_type="minimum",
         cfunc_decorators="__host__",
         cfunc_type="REAL",
-        fp_type = fp_type,
+        fp_type=fp_type,
     )
 
     cfc.register_CFunction(
@@ -608,18 +612,18 @@ def register_CFunction_find_global_minimum(fp_type = "double") -> None:
         body=reduction.body,
         subdirectory="CUDA_utils",
     )
-    
-def register_CFunction_find_global_sum(fp_type = "double") -> None:
-    """
-    Register C function for finding the global sum of an array
 
-    :return: None.
+
+def register_CFunction_find_global_sum(fp_type: str = "double") -> None:
+    """
+    Register C function for finding the global sum of an array.
+    :param fp_type: Floating point type of the data
     """
     reduction = CUDA_reductions(
         reduction_type="sum",
         cfunc_decorators="__host__",
         cfunc_type="REAL",
-        fp_type = fp_type,
+        fp_type=fp_type,
     )
 
     cfc.register_CFunction(
@@ -634,6 +638,7 @@ def register_CFunction_find_global_sum(fp_type = "double") -> None:
         body=reduction.body,
         subdirectory="CUDA_utils",
     )
+
 
 if __name__ == "__main__":
     import doctest
