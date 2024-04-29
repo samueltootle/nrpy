@@ -37,6 +37,7 @@ class ReferenceMetricPrecompute(rfm_precompute.ReferenceMetricPrecompute):
         self.readvr_str = ["", "", ""]
         self.readvr_SIMD_outer_str = ["", "", ""]
         self.readvr_SIMD_inner_str = ["", "", ""]
+        self.rfm_struct__define_kernel_dict = {}
 
         which_freevar: int = 0
         fp_ccg_type = ccg.fp_type_to_sympy_type[fp_type]
