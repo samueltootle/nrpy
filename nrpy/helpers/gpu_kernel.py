@@ -32,13 +32,14 @@ class GPU_Kernel:
     ... )
     >>> print(kernel.c_function_call())
     basic_assignment_gpu<<<blocks_per_grid,threads_per_block>>>(x, in);
+    cudaCheckErrors(cudaKernel, "basic_assignment_gpu failure");
     <BLANKLINE>
     >>> print(kernel.CFunction.full_function)
     /*
      * GPU Kernel: basic_assignment_gpu.
      *
      */
-    __global__ static void basic_assignment_gpu([ 'x', 'in' ]) { *x = in; }
+    __global__ static void basic_assignment_gpu(REAL *restrict x, const REAL in) { *x = in; }
     <BLANKLINE>
     >>> print(kernel.launch_block)
     <BLANKLINE>
@@ -46,7 +47,6 @@ class GPU_Kernel:
     const size_t threads_in_y_dir = 28;
     const size_t threads_in_z_dir = 1;
     dim3 threads_per_block(threads_in_x_dir, threads_in_y_dir, threads_in_z_dir);
-    <BLANKLINE>
     dim3 blocks_per_grid(32,1,1);
     <BLANKLINE>
     >>> kernel = GPU_Kernel(
@@ -64,14 +64,12 @@ class GPU_Kernel:
     const size_t threads_in_y_dir = 28;
     const size_t threads_in_z_dir = 1;
     dim3 threads_per_block(threads_in_x_dir, threads_in_y_dir, threads_in_z_dir);
-    <BLANKLINE>
-    dim3 grid_blocks(
+    dim3 blocks_per_grid(
         (Nxx_plus_2NGHOSTS0 + threads_in_x_dir - 1) / threads_in_x_dir,
         (Nxx_plus_2NGHOSTS1 + threads_in_y_dir - 1) / threads_in_y_dir,
         (Nxx_plus_2NGHOSTS2 + threads_in_z_dir - 1) / threads_in_z_dir
     );
     <BLANKLINE>
-
     """
 
     def __init__(
