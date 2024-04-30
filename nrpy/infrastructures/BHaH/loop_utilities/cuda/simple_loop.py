@@ -127,9 +127,9 @@ class simple_loop(base_sl.base_simple_loop):
   const int Nxx_plus_2NGHOSTS1 = d_params.Nxx_plus_2NGHOSTS1;
   const int Nxx_plus_2NGHOSTS2 = d_params.Nxx_plus_2NGHOSTS2;
   
-  [[maybe_unused]] const int invdxx0 = d_params.invdxx0;
-  [[maybe_unused]] const int invdxx1 = d_params.invdxx1;
-  [[maybe_unused]] const int invdxx2 = d_params.invdxx2;
+  [[maybe_unused]] const REAL invdxx0 = d_params.invdxx0;
+  [[maybe_unused]] const REAL invdxx1 = d_params.invdxx1;
+  [[maybe_unused]] const REAL invdxx2 = d_params.invdxx2;
   
   const int tid0  = blockIdx.x * blockDim.x + threadIdx.x;
   const int tid1  = blockIdx.y * blockDim.y + threadIdx.y;
