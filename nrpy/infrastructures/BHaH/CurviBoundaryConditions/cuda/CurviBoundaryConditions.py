@@ -944,7 +944,6 @@ class CurviBoundaryConditions_register_C_functions(
         fp_type: str = "double",
     ) -> None:
         # Without doing double precision when setting CurviBCs, many of the bcstruct setup will error out
-        fp_type = "double"
         super().__init__(
             list_of_CoordSystems,
             radiation_BC_fd_order=radiation_BC_fd_order,
