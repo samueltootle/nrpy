@@ -554,6 +554,8 @@ if(r < integration_radius) {{
   {l2_dv_memaccess} = dV;
 }} // END if(r < integration_radius)
 """
+        if fp_type == "float":
+            reduction_loop_body = reduction_loop_body.replace("REAL", "double")
         self.body += r"""
   // Unpack grid parameters assuming a single grid
   const int grid = 0;
