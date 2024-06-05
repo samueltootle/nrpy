@@ -49,10 +49,6 @@ __global__ static void rk_substep_1_gpu(float *restrict k_odd_gfs, float *restri
   // Kernel thread/stride setup
   const int tid0 = threadIdx.x + blockIdx.x * blockDim.x;
   const int stride0 = blockDim.x * gridDim.x;
-
-  // Need to expand dt since it's currently REAL (double)
-  // float dt_exp, dt_exp_rem;
-  // expansion_math::float2<float> dt = expansion_math::split<float>(dt_);
   
   constexpr REAL RK_Rational_1_6_ = 1.0 / 6.0;
   constexpr expansion_math::float2<float> RK_Rational_1_6 = expansion_math::split<float>(RK_Rational_1_6_);
@@ -60,72 +56,39 @@ __global__ static void rk_substep_1_gpu(float *restrict k_odd_gfs, float *restri
   constexpr REAL RK_Rational_1_2_ = 1.0 / 2.0;
   constexpr expansion_math::float2<float> RK_Rational_1_2 = expansion_math::split<float>(RK_Rational_1_2_);
 
-  // if(tid0 == 0) printf("%d\n", stride0);
-  for (int j = 2u * tid0 + 1; j < 2 * Ntot; j += 2*stride0) {
-    // const REAL k_odd_gfsL = k_odd_gfs[i];
-    // const REAL y_n_gfsL = y_n_gfs[i];    
-    // int j = 2u * i + 1;
-    // We need four variables, the primary expansion storage and its remainder 
-    // for calcuations related to dt and dt_remainder
-    // float exp_tmp_dt, exp_rem_tmp_dt, exp_tmp_dtR, exp_rem_tmp_dtR;
+  for (int j = 2U * tid0; j < 2 * Ntot - 1; j += 2U * stride0) {
     const expansion_math::float2<float> rhs_exp_c(k_odd_gfs[j], k_odd_gfs[j+1]);
     const expansion_math::float2<float> y_exp_c(y_n_gfs[j], y_n_gfs[j+1]);
     
     // Original calculataion: RK_Rational_1_6 * dt * k_odd_gfsL;
     // this becomes:
     // = RK_Rational_1_6<expanded> * dt<expanded> * k_odd_gfsL<expanded>
-    //
-    // f := RK_Rational_1_6<expanded>
-    // S := f * dt<expanded> = f.value * dt<expanded> + f.remainder * dt<expanded>
-    expansion_math::float2<float> tmp_res1 = expansion_math::grow_expansion(
-      expansion_math::scale_expansion(dt.value, dt.remainder, RK_Rational_1_6.value),
-      expansion_math::scale_expansion(dt.value, dt.remainder, RK_Rational_1_6.remainder)
+    expansion_math::float2<float> tmp_res = expansion_math::scale_expansion(
+      dt, expansion_math::scale_expansion(rhs_exp_c, RK_Rational_1_6)
     );
-
-    // K := k_odd_gfsL<expanded>
-    // res = S * K = S.value * K + S.remainder * K
-    expansion_math::float2<float> tmp_res2 = expansion_math::grow_expansion(
-      expansion_math::scale_expansion(rhs_exp_c.value, rhs_exp_c.remainder, tmp_res1.value),
-      expansion_math::scale_expansion(rhs_exp_c.value, rhs_exp_c.remainder, tmp_res1.remainder)
-    );
-
-    // = double(res.value) + double(res.remainder)
-    // y_nplus1_running_total_gfs[i] = expansion_math::recast_sum<double>(tmp_res2);
-    y_nplus1_running_total_gfs[j] = tmp_res2.value;
-    y_nplus1_running_total_gfs[j+1] = tmp_res2.remainder;
+    y_nplus1_running_total_gfs[j] = tmp_res.value;
+    y_nplus1_running_total_gfs[j+1] = tmp_res.remainder;
 
     // Repeat the methodology as above
     // Original calculataion: RK_Rational_1_2 * dt * k_odd_gfsL + y_n_gfsL;
     // this becomes:
     // = RK_Rational_1_2<expanded> * dt<expanded> * k_odd_gfsL<expanded> + y_n_gfsL<expanded>
-    //
-    // f := RK_Rational_1_2<expanded>
-    // S1 := f * dt<expanded> = f.value * dt<expanded> + f.remainder * dt<expanded>
-    tmp_res1 = expansion_math::grow_expansion(
-      expansion_math::scale_expansion(dt.value, dt.remainder, RK_Rational_1_2.value),
-      expansion_math::scale_expansion(dt.value, dt.remainder, RK_Rational_1_2.remainder)
+    tmp_res = expansion_math::grow_expansion(
+      y_exp_c, expansion_math::scale_expansion(
+        RK_Rational_1_2, expansion_math::scale_expansion(
+          dt, rhs_exp_c
+        )
+      )
     );
 
-    // K := k_odd_gfsL<expanded>
-    // S2 := S1.value * K + S1.remainder * K
-    tmp_res2 = expansion_math::grow_expansion(
-      expansion_math::scale_expansion(rhs_exp_c.value, rhs_exp_c.remainder, tmp_res1.value),
-      expansion_math::scale_expansion(rhs_exp_c.value, rhs_exp_c.remainder, tmp_res1.remainder)
-    );
-
-    // y := y_n_gfsL
-    // res = S2 + y
-    tmp_res1 = expansion_math::grow_expansion(tmp_res2, y_exp_c);
-
-    // k_odd_gfs[i] = expansion_math::recast_sum<double>(tmp_res1);
-    k_odd_gfs[j] = tmp_res1.value;
-    k_odd_gfs[j+1] = tmp_res1.remainder;
+    k_odd_gfs[j] = tmp_res.value;
+    k_odd_gfs[j+1] = tmp_res.remainder;
   }
 }
 
 __global__ static void compare(float *restrict k_odd_exp, float *restrict y_nplus1_exp, REAL *restrict k_odd_gfs, REAL *restrict y_nplus1_running_total_gfs) {
   const int i = 1899333;
-  const int j = 2u * i + 1;
+  const int j = 2u * i;
   REAL ref = y_nplus1_running_total_gfs[i];
   REAL cmp = expansion_math::recast_sum<double>(expansion_math::float2<float>(y_nplus1_exp[j], y_nplus1_exp[j+1]));
   printf("\nyn+1 - %1.15e, %1.15e\n", ref, cmp);
@@ -146,7 +109,7 @@ __global__ static void cpy_back(float *restrict gf_in, REAL *restrict gf_out) {
   const uint stride0 = blockDim.x * gridDim.x;
 
   for (uint i = tid0; i < Ntot; i += stride0) {
-    uint j = 2U * i + 1U;
+    uint j = 2U * i;
     gf_out[i] = expansion_math::recast_sum<double>(
       expansion_math::float2<float>(gf_in[j], gf_in[j+1])
     );
@@ -164,7 +127,7 @@ __global__ static void decompose_gf(REAL *restrict gf_in, float *restrict gf_out
   const uint stride0 = blockDim.x * gridDim.x;
 
   for (uint i = tid0; i < Ntot; i += stride0) {
-    uint j = 2U * i + 1U;
+    uint j = 2U * i;
     const expansion_math::float2<float> gf_exp_c = expansion_math::split<float>(gf_in[i]);
     gf_out[j] = gf_exp_c.value;
     gf_out[j+1] = gf_exp_c.remainder;
@@ -177,7 +140,7 @@ static void rk1_gpu_launcher(params_struct *restrict params, float *restrict k_o
   const int Nxx_plus_2NGHOSTS2 = params->Nxx_plus_2NGHOSTS2;
   const int Ntot = Nxx_plus_2NGHOSTS0 * Nxx_plus_2NGHOSTS1 * Nxx_plus_2NGHOSTS2 * NUM_EVOL_GFS;
   
-  const size_t threads_in_x_dir = 64;
+  const size_t threads_in_x_dir = 96;
   const size_t threads_in_y_dir = 1;
   const size_t threads_in_z_dir = 1;
   dim3 threads_per_block(threads_in_x_dir, threads_in_y_dir, threads_in_z_dir);
@@ -223,8 +186,8 @@ static void rk_substep_1(params_struct *restrict params, REAL *restrict k_odd_gf
   rk1_gpu_launcher(params, k_odd_exp, y_n_exp, y_nplus1_exp, dt);
   // rk_substep_1_gpu<<<blocks_per_grid, threads_per_block, sm, streams[streamid]>>>(k_odd_gfs, y_n_gfs, y_nplus1_running_total_gfs, dt);
   cudaCheckErrors(cudaKernel, "rk_substep_1_gpu failure");
-  // rk_substep_1_double_gpu<<<blocks_per_grid, threads_per_block, sm, streams[streamid]>>>(k_odd_gfs, y_n_gfs, y_nplus1_running_total_gfs, dt_);
-  // cudaCheckErrors(cudaKernel, "rk_substep_1_gpu failure");
+  rk_substep_1_double_gpu<<<blocks_per_grid, threads_per_block, sm, streams[streamid]>>>(k_odd_gfs, y_n_gfs, y_nplus1_running_total_gfs, dt_);
+  cudaCheckErrors(cudaKernel, "rk_substep_1_gpu failure");
   // compare<<<1,1,sm,streams[streamid]>>>(k_odd_exp, y_nplus1_exp, k_odd_gfs, y_nplus1_running_total_gfs);
   // cudaCheckErrors(cudaKernel, "compare failure");
   cpy_back<<<blocks_per_grid, threads_per_block, sm, streams[streamid]>>>(k_odd_exp, k_odd_gfs);
