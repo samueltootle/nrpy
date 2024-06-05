@@ -5,7 +5,7 @@
  * GPU Kernel: rk_substep_1_gpu.
  * GPU Kernel to compute RK substep 1.
  */
-__global__ static void rk_substep_1_gpu(REAL *restrict k_odd_gfs, REAL *restrict y_n_gfs, REAL *restrict y_nplus1_running_total_gfs, const double dt) {
+__global__ static void rk_substep_1_gpu(REAL *restrict k_odd_gfs, REAL *restrict y_n_gfs, REAL *restrict y_nplus1_running_total_gfs, const double dt_) {
   const int Nxx_plus_2NGHOSTS0 = d_params.Nxx_plus_2NGHOSTS0;
   const int Nxx_plus_2NGHOSTS1 = d_params.Nxx_plus_2NGHOSTS1;
   const int Nxx_plus_2NGHOSTS2 = d_params.Nxx_plus_2NGHOSTS2;
@@ -15,51 +15,83 @@ __global__ static void rk_substep_1_gpu(REAL *restrict k_odd_gfs, REAL *restrict
   const int tid0 = threadIdx.x + blockIdx.x * blockDim.x;
   const int stride0 = blockDim.x * gridDim.x;
 
-  float dt_exp, dt_exp_rem;
-  split<double>(dt, dt_exp, dt_exp_rem);
+  // Need to expand dt since it's currently REAL (double)
+  // float dt_exp, dt_exp_rem;
+  expansion_math::float2<float> dt = expansion_math::split<float>(dt_);
+  
+  constexpr REAL RK_Rational_1_6_ = 1.0 / 6.0;
+  constexpr expansion_math::float2<float> RK_Rational_1_6 = expansion_math::split<float>(RK_Rational_1_6_);
+
+  constexpr REAL RK_Rational_1_2_ = 1.0 / 2.0;
+  constexpr expansion_math::float2<float> RK_Rational_1_2 = expansion_math::split<float>(RK_Rational_1_2_);
 
   for (int i = tid0; i < Ntot; i += stride0) {
     const REAL k_odd_gfsL = k_odd_gfs[i];
-    const REAL y_n_gfsL = y_n_gfs[i];
-    constexpr REAL RK_Rational_1_6 = 1.0 / 6.0;
-    constexpr REAL RK_Rational_1_2 = 1.0 / 2.0;
+    const REAL y_n_gfsL = y_n_gfs[i];    
     
-    float exp_tmp_dt, exp_rem_tmp_dt, exp_tmp_dtR, exp_rem_tmp_dtR;
-    split<double>(k_odd_gfsL, exp_tmp_dt, exp_rem_tmp_dt);
-    float const exp_tmp_c = exp_tmp_dt;
-    float const exp_rem_tmp_c = exp_rem_tmp_dt;
-    exp_tmp_dtR = exp_tmp_c;
-    exp_rem_tmp_dtR = exp_rem_tmp_c;
+    // We need four variables, the primary expansion storage and its remainder 
+    // for calcuations related to dt and dt_remainder
+    // float exp_tmp_dt, exp_rem_tmp_dt, exp_tmp_dtR, exp_rem_tmp_dtR;
+    const expansion_math::float2<float> rhs_exp_c = expansion_math::split<float>(k_odd_gfsL);
+    const expansion_math::float2<float> y_exp_c = expansion_math::split<float>(y_n_gfsL);
     
-    // y_nplus1_running_total_gfs[i] = RK_Rational_1_6 * dt * k_odd_gfsL;
-    scale_expansion(&exp_tmp_dt, &exp_rem_tmp_dt , RK_Rational_1_6 * dt_exp);
-    scale_expansion(&exp_tmp_dtR, &exp_rem_tmp_dtR , RK_Rational_1_6 * dt_exp_rem);
-    y_nplus1_running_total_gfs[i] = static_cast<double>(exp_tmp_dt) + static_cast<double>(exp_rem_tmp_dt)
-                                  + static_cast<double>(exp_tmp_dtR) + static_cast<double>(exp_rem_tmp_dtR);
-    // if(i == 1916329){
-    //   printf("%1.15e - %1.15e\n", static_cast<double>(exp_tmp_dt) + static_cast<double>(exp_rem_tmp_dt), static_cast<double>(exp_tmp_dtR) + static_cast<double>(exp_rem_tmp_dtR));
-    // }
-    double old1 = RK_Rational_1_6 * dt * k_odd_gfsL;
+    // Original calculataion: RK_Rational_1_6 * dt * k_odd_gfsL;
+    // this becomes:
+    // = RK_Rational_1_6<expanded> * dt<expanded> * k_odd_gfsL<expanded>
+    //
+    // f := RK_Rational_1_6<expanded>
+    // S := f * dt<expanded> = f.value * dt<expanded> + f.remainder * dt<expanded>
+    expansion_math::float2<float> tmp_res1 = expansion_math::grow_expansion(
+      expansion_math::scale_expansion(dt.value, dt.remainder, RK_Rational_1_6.value),
+      expansion_math::scale_expansion(dt.value, dt.remainder, RK_Rational_1_6.remainder)
+    );
 
-    // Reset to original split values
-    exp_tmp_dt = exp_tmp_c;
-    exp_rem_tmp_dt = exp_rem_tmp_c;
-    exp_tmp_dtR = exp_tmp_c;
-    exp_rem_tmp_dtR = exp_rem_tmp_c;
+    // K := k_odd_gfsL<expanded>
+    // res = S * K = S.value * K + S.remainder * K
+    expansion_math::float2<float> tmp_res2 = expansion_math::grow_expansion(
+      expansion_math::scale_expansion(rhs_exp_c.value, rhs_exp_c.remainder, tmp_res1.value),
+      expansion_math::scale_expansion(rhs_exp_c.value, rhs_exp_c.remainder, tmp_res1.remainder)
+    );
 
-    daxpy(&exp_tmp_dt, &exp_rem_tmp_dt, RK_Rational_1_2 * dt_exp, y_n_gfsL);
-    daxpy(&exp_tmp_dtR, &exp_rem_tmp_dtR, RK_Rational_1_2 * dt_exp_rem, y_n_gfsL);
+    // = double(res.value) + double(res.remainder)
+    y_nplus1_running_total_gfs[i] = expansion_math::recast_sum<double>(tmp_res2);
 
-    k_odd_gfs[i] = static_cast<double>(exp_tmp_dt) + static_cast<double>(exp_rem_tmp_dt) 
-                 + static_cast<double>(exp_tmp_dtR) + static_cast<double>(exp_rem_tmp_dtR);
-    double old2 = RK_Rational_1_2 * dt * k_odd_gfsL + y_n_gfsL;
+    // Repeat the methodology as above
+    // Original calculataion: RK_Rational_1_2 * dt * k_odd_gfsL + y_n_gfsL;
+    // this becomes:
+    // = RK_Rational_1_2<expanded> * dt<expanded> * k_odd_gfsL<expanded> + y_n_gfsL<expanded>
+    //
+    // f := RK_Rational_1_2<expanded>
+    // S1 := f * dt<expanded> = f.value * dt<expanded> + f.remainder * dt<expanded>
+    tmp_res1 = expansion_math::grow_expansion(
+      expansion_math::scale_expansion(dt.value, dt.remainder, RK_Rational_1_2.value),
+      expansion_math::scale_expansion(dt.value, dt.remainder, RK_Rational_1_2.remainder)
+    );
 
-    // if(i == 1916329){
+    // K := k_odd_gfsL<expanded>
+    // S2 := S1.value * K + S1.remainder * K
+    tmp_res2 = expansion_math::grow_expansion(
+      expansion_math::scale_expansion(rhs_exp_c.value, rhs_exp_c.remainder, tmp_res1.value),
+      expansion_math::scale_expansion(rhs_exp_c.value, rhs_exp_c.remainder, tmp_res1.remainder)
+    );
+
+    // y := y_n_gfsL
+    // res = S2 + y
+    tmp_res1 = expansion_math::grow_expansion(tmp_res2, y_exp_c);
+
+    k_odd_gfs[i] = expansion_math::recast_sum<double>(tmp_res1);
+
+    // if(i == 576065){
+    //   double old1 = RK_Rational_1_6_ * dt_ * k_odd_gfsL;
+    //   double old2 = RK_Rational_1_2_ * dt_ * k_odd_gfsL + y_n_gfsL;
+      
     //   // float tmp1, tmp2;
-    //   // split<double>(old, tmp1, tmp2);
+    //   // expansion_math::split<double>(old2, tmp1, tmp2);
     //   // double tmp3 = static_cast<double>(tmp1) + static_cast<double>(tmp2);
     //   // printf("dt: %1.15e - %1.15e, %1.15e - %1.15e\n", dt, dt_exp, dt_exp_rem, static_cast<double>(dt_exp) + static_cast<double>(dt_exp_rem));
+    //   // printf("%1.15f - %1.15f, %1.15f %1.15e, %1.15e - %1.15e, %1.15e\n", k_odd_gfsL, expansion_math::recast_sum<double>(rhs_exp_c), y_nplus1_running_total_gfs[i], old1, k_odd_gfs[i], old2);
     //   printf("%1.15e, %1.15e - %1.15e, %1.15e\n", y_nplus1_running_total_gfs[i], old1, k_odd_gfs[i], old2);
+    //   // printf("%d, %1.15e - %1.15e, %1.15e\n\n", i, old2, tmp1, tmp2);
     // }
   }
 }
@@ -83,6 +115,7 @@ static void rk_substep_1(params_struct *restrict params, REAL *restrict k_odd_gf
   size_t streamid = params->grid_idx % nstreams;
   rk_substep_1_gpu<<<blocks_per_grid, threads_per_block, sm, streams[streamid]>>>(k_odd_gfs, y_n_gfs, y_nplus1_running_total_gfs, dt);
   cudaCheckErrors(cudaKernel, "rk_substep_1_gpu failure");
+  cudaDeviceSynchronize();
 }
 
 /*
