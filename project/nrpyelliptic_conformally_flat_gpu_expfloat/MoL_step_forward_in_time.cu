@@ -7,9 +7,9 @@
  */
 #define vecsize 1
 __global__ static void rk_substep_1_double_gpu(REAL *restrict k_odd_gfs, REAL *restrict y_n_gfs, REAL *restrict y_nplus1_running_total_gfs, const REAL dt) {
-  const int Nxx_plus_2NGHOSTS0 = 256; //d_params.Nxx_plus_2NGHOSTS0;
-  const int Nxx_plus_2NGHOSTS1 = 256; //d_params.Nxx_plus_2NGHOSTS1;
-  const int Nxx_plus_2NGHOSTS2 = 16;   //d_params.Nxx_plus_2NGHOSTS2;
+  const int Nxx_plus_2NGHOSTS0 = d_params.Nxx_plus_2NGHOSTS0;
+  const int Nxx_plus_2NGHOSTS1 = d_params.Nxx_plus_2NGHOSTS1;
+  const int Nxx_plus_2NGHOSTS2 = d_params.Nxx_plus_2NGHOSTS2;
   const int Ntot = Nxx_plus_2NGHOSTS0 * Nxx_plus_2NGHOSTS1 * Nxx_plus_2NGHOSTS2 * NUM_EVOL_GFS;
 
   // Kernel thread/stride setup
@@ -53,7 +53,6 @@ __global__ static void rk_substep_1_gpu(float *restrict k_odd_gfs, float *restri
 
   // Kernel thread/stride setup
   const int tid0 = threadIdx.x + blockIdx.x * blockDim.x;
-  const int stride0 = blockDim.x * gridDim.x;
   
   constexpr REAL RK_Rational_1_6_ = 1.0 / 6.0;
   constexpr expansion_math::float2<float> RK_Rational_1_6 = expansion_math::split<float>(RK_Rational_1_6_);
@@ -61,8 +60,7 @@ __global__ static void rk_substep_1_gpu(float *restrict k_odd_gfs, float *restri
   constexpr REAL RK_Rational_1_2_ = 1.0 / 2.0;
   constexpr expansion_math::float2<float> RK_Rational_1_2 = expansion_math::split<float>(RK_Rational_1_2_);
 
-  // for (int j = 2U * tid0; j < 2 * Ntot - 1; j += 2U * stride0) {
-  size_t vec_size = vecsize;
+  size_t vec_size = 2U * vecsize;
   size_t start_idx = tid0 * vec_size;
   size_t j = start_idx;
 
@@ -98,15 +96,47 @@ __global__ static void rk_substep_1_gpu(float *restrict k_odd_gfs, float *restri
 }
 
 __global__ static void compare(float *restrict k_odd_exp, float *restrict y_nplus1_exp, REAL *restrict k_odd_gfs, REAL *restrict y_nplus1_running_total_gfs) {
-  const int i = 1899333;
-  const int j = 2u * i;
-  REAL ref = y_nplus1_running_total_gfs[i];
-  REAL cmp = expansion_math::recast_sum<double>(expansion_math::float2<float>(y_nplus1_exp[j], y_nplus1_exp[j+1]));
-  printf("\nyn+1 - %1.15e, %1.15e\n", ref, cmp);
+  // const int i = 2117538; //1899333;
+  // const int j = 2u * i;
+  // REAL ref = y_nplus1_running_total_gfs[i];
+  // REAL cmp = expansion_math::recast_sum<double>(expansion_math::float2<float>(y_nplus1_exp[j], y_nplus1_exp[j+1]));
+  // printf("\nyn+1 - %1.15e, %1.15e\n", ref, cmp);
   
-  ref = k_odd_gfs[i];
-  cmp = expansion_math::recast_sum<double>(expansion_math::float2<float>(k_odd_exp[j], k_odd_exp[j+1]));
-  printf("kodd - %1.15e, %1.15e\n", ref, cmp);
+  // ref = k_odd_gfs[i];
+  // cmp = expansion_math::recast_sum<double>(expansion_math::float2<float>(k_odd_exp[j], k_odd_exp[j+1]));
+  // printf("kodd - %1.15e, %1.15e\n", ref, cmp);
+  
+  const int Nxx_plus_2NGHOSTS0 = d_params.Nxx_plus_2NGHOSTS0;
+  const int Nxx_plus_2NGHOSTS1 = d_params.Nxx_plus_2NGHOSTS1;
+  const int Nxx_plus_2NGHOSTS2 = d_params.Nxx_plus_2NGHOSTS2;
+  const int Ntot = Nxx_plus_2NGHOSTS0 * Nxx_plus_2NGHOSTS1 * Nxx_plus_2NGHOSTS2 * NUM_EVOL_GFS;
+
+  // Kernel thread/stride setup
+  const int tid0 = threadIdx.x + blockIdx.x * blockDim.x;
+
+  size_t vec_size = vecsize;
+  size_t i = tid0 * vec_size;
+  
+  if(i < Ntot) {
+    size_t j = 2U * i;
+    REAL ref = y_nplus1_running_total_gfs[i];
+    REAL cmp = expansion_math::recast_sum<double>(expansion_math::float2<float>(y_nplus1_exp[j], y_nplus1_exp[j+1]));
+    if(std::fabs(ref) > 0) {
+      REAL rel = std::fabs(1.0 - cmp / ref);
+      if(rel > 1e-13) {
+        printf("Failure at %d; %1.15e, %1.15e, %1.15e\n", i, ref, cmp, rel);
+      }
+    }
+
+    ref = k_odd_gfs[i];
+    cmp = expansion_math::recast_sum<double>(expansion_math::float2<float>(k_odd_exp[j], k_odd_exp[j+1]));
+    if(std::fabs(ref) > 0) {
+      REAL rel = std::fabs(1.0 - cmp / ref);
+      if(rel > 1e-13) {
+        printf("Failure at %d; %1.15e, %1.15e, %1.15e\n", i, ref, cmp, rel);
+      }
+    }
+  }
 }
 
 __global__ static void cpy_back(float *restrict gf_in, REAL *restrict gf_out) {
@@ -145,22 +175,6 @@ __global__ static void decompose_gf(REAL *restrict gf_in, float *restrict gf_out
   }
 }
 
-static void rk1_gpu_launcher(params_struct *restrict params, float *restrict k_odd_gfs, float *restrict y_n_gfs, float *restrict y_nplus1_running_total_gfs, const expansion_math::float2<float> dt) {
-  const int Nxx_plus_2NGHOSTS0 = params->Nxx_plus_2NGHOSTS0;
-  const int Nxx_plus_2NGHOSTS1 = params->Nxx_plus_2NGHOSTS1;
-  const int Nxx_plus_2NGHOSTS2 = params->Nxx_plus_2NGHOSTS2;
-  const int Ntot = Nxx_plus_2NGHOSTS0 * Nxx_plus_2NGHOSTS1 * Nxx_plus_2NGHOSTS2 * NUM_EVOL_GFS;
-  
-  const size_t threads_in_x_dir = 96;
-  const size_t threads_in_y_dir = 1;
-  const size_t threads_in_z_dir = 1;
-  dim3 threads_per_block(threads_in_x_dir, threads_in_y_dir, threads_in_z_dir);
-  dim3 blocks_per_grid((Ntot + threads_in_x_dir - 1) / threads_in_x_dir, 1, 1);
-  size_t sm = 0;
-  size_t streamid = params->grid_idx % nstreams;
-  rk_substep_1_gpu<<<blocks_per_grid, threads_per_block, sm, streams[streamid]>>>(k_odd_gfs, y_n_gfs, y_nplus1_running_total_gfs, dt);
-}
-
 /*
  * Runge-Kutta function for substep 1.
  */
@@ -183,30 +197,38 @@ static void rk_substep_1(params_struct *restrict params, REAL *restrict k_odd_gf
   cudaMalloc(&y_nplus1_exp, sizeof(float) * NUM_EVOL_GFS * Ntot * 2U);
   cudaCheckErrors(malloc, "Malloc failed");
 
-  const size_t threads_in_x_dir = 32;
+  const size_t threads_in_x_dir = 96;
   const size_t threads_in_y_dir = 1;
   const size_t threads_in_z_dir = 1;
   dim3 threads_per_block(threads_in_x_dir, threads_in_y_dir, threads_in_z_dir);
-  dim3 blocks_per_grid((Ntot + threads_in_x_dir - 1) / threads_in_x_dir, 1, 1);
+  dim3 blocks_per_grid((Ntot + threads_in_x_dir - 1) / threads_in_x_dir / vecsize, 1, 1);
   size_t sm = 0;
   size_t streamid = params->grid_idx % nstreams;
   
+  // Decompose REAL into floats and store in the new arrays
   decompose_gf<<<blocks_per_grid, threads_per_block, sm, streams[streamid]>>>(k_odd_gfs, k_odd_exp);
   decompose_gf<<<blocks_per_grid, threads_per_block, sm, streams[streamid]>>>(y_n_gfs, y_n_exp);
   decompose_gf<<<blocks_per_grid, threads_per_block, sm, streams[streamid]>>>(y_nplus1_running_total_gfs, y_nplus1_exp);
-  rk1_gpu_launcher(params, k_odd_exp, y_n_exp, y_nplus1_exp, dt);
-  // rk_substep_1_gpu<<<blocks_per_grid, threads_per_block, sm, streams[streamid]>>>(k_odd_gfs, y_n_gfs, y_nplus1_running_total_gfs, dt);
+  
+  // Run exansion kernel
+  rk_substep_1_gpu<<<blocks_per_grid, threads_per_block, sm, streams[streamid]>>>(k_odd_exp, y_n_exp, y_nplus1_exp, dt);
   cudaCheckErrors(cudaKernel, "rk_substep_1_gpu failure");
+  // Run old double kernel
   rk_substep_1_double_gpu<<<blocks_per_grid, threads_per_block, sm, streams[streamid]>>>(k_odd_gfs, y_n_gfs, y_nplus1_running_total_gfs, dt_);
   cudaCheckErrors(cudaKernel, "rk_substep_1_gpu failure");
-  // compare<<<1,1,sm,streams[streamid]>>>(k_odd_exp, y_nplus1_exp, k_odd_gfs, y_nplus1_running_total_gfs);
-  // cudaCheckErrors(cudaKernel, "compare failure");
+  
+  // Ensure solutions are equivalent
+  compare<<<blocks_per_grid,threads_per_block,sm,streams[streamid]>>>(k_odd_exp, y_nplus1_exp, k_odd_gfs, y_nplus1_running_total_gfs);
+  cudaCheckErrors(cudaKernel, "compare failure");
+
+  // Overwrite data with exansion computed data
   cpy_back<<<blocks_per_grid, threads_per_block, sm, streams[streamid]>>>(k_odd_exp, k_odd_gfs);
   cudaCheckErrors(cudaKernel, "cpyback failure");
   cpy_back<<<blocks_per_grid, threads_per_block, sm, streams[streamid]>>>(y_n_exp, y_n_gfs);
   cudaCheckErrors(cudaKernel, "cpyback failure");
   cpy_back<<<blocks_per_grid, threads_per_block, sm, streams[streamid]>>>(y_nplus1_exp, y_nplus1_running_total_gfs);
   cudaCheckErrors(cudaKernel, "cpyback failure");
+  // Free expansion arrays
   cudaFree(k_odd_exp);
   cudaFree(y_n_exp);
   cudaFree(y_nplus1_exp);
@@ -496,3 +518,75 @@ void MoL_step_forward_in_time(commondata_struct *restrict commondata, griddata_s
   // Finally, increment the timestep n:
   commondata->nn++;
 }
+
+
+// __global__ static void rk_substep_1_gpu(float *restrict k_odd_gfs, float *restrict y_n_gfs, float *restrict y_nplus1_running_total_gfs, const expansion_math::float2<float> dt) {
+//   const int Nxx_plus_2NGHOSTS0 = d_params.Nxx_plus_2NGHOSTS0;
+//   const int Nxx_plus_2NGHOSTS1 = d_params.Nxx_plus_2NGHOSTS1;
+//   const int Nxx_plus_2NGHOSTS2 = d_params.Nxx_plus_2NGHOSTS2;
+//   const int Ntot = Nxx_plus_2NGHOSTS0 * Nxx_plus_2NGHOSTS1 * Nxx_plus_2NGHOSTS2 * NUM_EVOL_GFS;
+
+//   // Kernel thread/stride setup
+//   const int tid0 = threadIdx.x + blockIdx.x * blockDim.x;
+//   // const int stride0 = blockDim.x * gridDim.x;
+  
+//   constexpr REAL RK_Rational_1_6_ = 1.0 / 6.0;
+//   constexpr expansion_math::float2<float> RK_Rational_1_6 = expansion_math::split<float>(RK_Rational_1_6_);
+
+//   constexpr REAL RK_Rational_1_2_ = 1.0 / 2.0;
+//   constexpr expansion_math::float2<float> RK_Rational_1_2 = expansion_math::split<float>(RK_Rational_1_2_);
+
+//   // Number of double precision calculations!
+//   constexpr size_t vec_size = vecsize;
+//   // Number of single precision elements
+//   constexpr size_t ary_size = vecsize * 2U; 
+
+//   const size_t start_idx = tid0 * ary_size;
+//   size_t j = start_idx;
+
+//   float data[2][ary_size];
+//   for(int i = 0; i < ary_size && j < 2U * Ntot - 1; ++i) {
+//     j = i + start_idx;
+//     data[0][i] = k_odd_gfs[j];
+//     data[1][i] = y_n_gfs[j];
+//   }
+//   j = start_idx;
+//   for (int i = 0; i < ary_size && j < 2U * Ntot - 1; i += 2U) {
+//     j = i + start_idx;
+//     const expansion_math::float2<float> rhs_exp_c(data[0][i], data[0][i+1]);
+//     const expansion_math::float2<float> y_exp_c(data[1][i], data[1][i+1]);
+    
+//     // Original calculataion: RK_Rational_1_6 * dt * k_odd_gfsL;
+//     // this becomes:
+//     // = RK_Rational_1_6<expanded> * dt<expanded> * k_odd_gfsL<expanded>
+//     expansion_math::float2<float> tmp_res = expansion_math::scale_expansion(
+//       dt, expansion_math::scale_expansion(rhs_exp_c, RK_Rational_1_6)
+//     );
+//     data[1][i] = tmp_res.value;
+//     data[1][i+1] = tmp_res.remainder;
+
+//     // Repeat the methodology as above
+//     // Original calculataion: RK_Rational_1_2 * dt * k_odd_gfsL + y_n_gfsL;
+//     // this becomes:
+//     // = RK_Rational_1_2<expanded> * dt<expanded> * k_odd_gfsL<expanded> + y_n_gfsL<expanded>
+//     tmp_res = expansion_math::grow_expansion(
+//       y_exp_c, expansion_math::scale_expansion(
+//         RK_Rational_1_2, expansion_math::scale_expansion(
+//           dt, rhs_exp_c
+//         )
+//       )
+//     );
+
+//     data[0][i] = tmp_res.value;
+//     data[0][i+1] = tmp_res.remainder;
+//     if(j == 1899333){
+//       printf("%1.15e, %1.15e - %1.15e, %1.15e\n",data[1][i], data[1][i+1], data[0][i], data[0][i+1]);
+//     }
+//   }
+
+//   for(int i = 0; i < ary_size && j < 2U * Ntot - 1; ++i) {
+//     j = start_idx + i;
+//     k_odd_gfs[j] = data[0][i];
+//     y_nplus1_running_total_gfs[j] = data[1][i];
+//   }
+// }
