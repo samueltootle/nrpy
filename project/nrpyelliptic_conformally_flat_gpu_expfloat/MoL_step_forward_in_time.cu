@@ -5,24 +5,29 @@
  * GPU Kernel: rk_substep_1_gpu.
  * GPU Kernel to compute RK substep 1.
  */
+#define vecsize 1
 __global__ static void rk_substep_1_double_gpu(REAL *restrict k_odd_gfs, REAL *restrict y_n_gfs, REAL *restrict y_nplus1_running_total_gfs, const REAL dt) {
-  const int Nxx_plus_2NGHOSTS0 = d_params.Nxx_plus_2NGHOSTS0;
-  const int Nxx_plus_2NGHOSTS1 = d_params.Nxx_plus_2NGHOSTS1;
-  const int Nxx_plus_2NGHOSTS2 = d_params.Nxx_plus_2NGHOSTS2;
+  const int Nxx_plus_2NGHOSTS0 = 256; //d_params.Nxx_plus_2NGHOSTS0;
+  const int Nxx_plus_2NGHOSTS1 = 256; //d_params.Nxx_plus_2NGHOSTS1;
+  const int Nxx_plus_2NGHOSTS2 = 16;   //d_params.Nxx_plus_2NGHOSTS2;
   const int Ntot = Nxx_plus_2NGHOSTS0 * Nxx_plus_2NGHOSTS1 * Nxx_plus_2NGHOSTS2 * NUM_EVOL_GFS;
 
   // Kernel thread/stride setup
   const int tid0 = threadIdx.x + blockIdx.x * blockDim.x;
-  const int stride0 = blockDim.x * gridDim.x;
+  // const int stride0 = blockDim.x * gridDim.x;
+  size_t vec_size = vecsize;
+  size_t start_idx = tid0 * vec_size;
+  size_t idx = start_idx;
 
-  for (int i = tid0; i < Ntot; i += stride0) {
-    const REAL k_odd_gfsL = k_odd_gfs[i];
-    const REAL y_n_gfsL = y_n_gfs[i];
+  for (int i = 0; i < vec_size && idx < Ntot; i ++) {
+    idx = start_idx + i;
+    const REAL k_odd_gfsL = k_odd_gfs[idx];
+    const REAL y_n_gfsL = y_n_gfs[idx];
     constexpr REAL RK_Rational_1_6 = 1.0 / 6.0;
     constexpr REAL RK_Rational_1_2 = 1.0 / 2.0;
     
-    y_nplus1_running_total_gfs[i] = RK_Rational_1_6 * dt * k_odd_gfsL;
-    k_odd_gfs[i] = RK_Rational_1_2 * dt * k_odd_gfsL + y_n_gfsL;
+    y_nplus1_running_total_gfs[idx] = RK_Rational_1_6 * dt * k_odd_gfsL;
+    k_odd_gfs[idx] = RK_Rational_1_2 * dt * k_odd_gfsL + y_n_gfsL;
 
     // if(i == 1899333){
     // if(k_odd_gfs[i] > 0) {
@@ -56,7 +61,13 @@ __global__ static void rk_substep_1_gpu(float *restrict k_odd_gfs, float *restri
   constexpr REAL RK_Rational_1_2_ = 1.0 / 2.0;
   constexpr expansion_math::float2<float> RK_Rational_1_2 = expansion_math::split<float>(RK_Rational_1_2_);
 
-  for (int j = 2U * tid0; j < 2 * Ntot - 1; j += 2U * stride0) {
+  // for (int j = 2U * tid0; j < 2 * Ntot - 1; j += 2U * stride0) {
+  size_t vec_size = vecsize;
+  size_t start_idx = tid0 * vec_size;
+  size_t j = start_idx;
+
+  for (int i = 0; i < vec_size && j < 2 * Ntot - 1; i += 2U) {
+    j = i + start_idx;
     const expansion_math::float2<float> rhs_exp_c(k_odd_gfs[j], k_odd_gfs[j+1]);
     const expansion_math::float2<float> y_exp_c(y_n_gfs[j], y_n_gfs[j+1]);
     
