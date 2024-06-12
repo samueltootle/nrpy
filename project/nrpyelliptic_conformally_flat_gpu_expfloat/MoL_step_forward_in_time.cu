@@ -191,12 +191,12 @@ static void rk_substep_1(params_struct *restrict params, REAL *restrict k_odd_gf
   cudaCheckErrors(cudaKernel, "compare failure");
 
   // Overwrite data with exansion computed data
-  cpy_back<<<blocks_per_grid, threads_per_block, sm, streams[streamid]>>>(k_odd_exp, k_odd_gfs);
-  cudaCheckErrors(cudaKernel, "cpyback failure");
-  cpy_back<<<blocks_per_grid, threads_per_block, sm, streams[streamid]>>>(y_n_exp, y_n_gfs);
-  cudaCheckErrors(cudaKernel, "cpyback failure");
-  cpy_back<<<blocks_per_grid, threads_per_block, sm, streams[streamid]>>>(y_nplus1_exp, y_nplus1_running_total_gfs);
-  cudaCheckErrors(cudaKernel, "cpyback failure");
+  // cpy_back<<<blocks_per_grid, threads_per_block, sm, streams[streamid]>>>(k_odd_exp, k_odd_gfs);
+  // cudaCheckErrors(cudaKernel, "cpyback failure");
+  // cpy_back<<<blocks_per_grid, threads_per_block, sm, streams[streamid]>>>(y_n_exp, y_n_gfs);
+  // cudaCheckErrors(cudaKernel, "cpyback failure");
+  // cpy_back<<<blocks_per_grid, threads_per_block, sm, streams[streamid]>>>(y_nplus1_exp, y_nplus1_running_total_gfs);
+  // cudaCheckErrors(cudaKernel, "cpyback failure");
   // Free expansion arrays
   cudaFree(k_odd_exp);
   cudaFree(y_n_exp);

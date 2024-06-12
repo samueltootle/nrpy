@@ -388,6 +388,14 @@ __global__ static void rhs_eval_expansion_gpu(const float *restrict rfm_f0_of_xx
         constexpr expansion_math::float2<float> FDPart1_Rational_5_504 = expansion_math::split<float>(FDPart1_Rational_5_504_);
         constexpr REAL FDPart1_Rational_1_1260_ = 1.0 / 1260.0;
         constexpr expansion_math::float2<float> FDPart1_Rational_1_1260 = expansion_math::split<float>(FDPart1_Rational_1_1260_);
+        
+        const expansion_math::float2<float> uu_dD0 = invdxx0 * (FDPart1_Rational_1_1260 * (-uu_i0m5 + uu_i0p5) + FDPart1_Rational_5_21 * (uu_i0m2 - uu_i0p2) +
+                                       FDPart1_Rational_5_504 * (uu_i0m4 - uu_i0p4) + FDPart1_Rational_5_6 * (-uu_i0m1 + uu_i0p1) +
+                                       FDPart1_Rational_5_84 * (-uu_i0m3 + uu_i0p3));
+        const expansion_math::float2<float> uu_dD1 = invdxx1 * (FDPart1_Rational_1_1260 * (-uu_i1m5 + uu_i1p5) + FDPart1_Rational_5_21 * (uu_i1m2 - uu_i1p2) +
+                                       FDPart1_Rational_5_504 * (uu_i1m4 - uu_i1p4) + FDPart1_Rational_5_6 * (-uu_i1m1 + uu_i1p1) +
+                                       FDPart1_Rational_5_84 * (-uu_i1m3 + uu_i1p3));
+        
         constexpr REAL FDPart1_Rational_5269_1800_ = 5269.0 / 1800.0;
         constexpr expansion_math::float2<float> FDPart1_Rational_5269_1800 = expansion_math::split<float>(FDPart1_Rational_5269_1800_);
         constexpr REAL FDPart1_Rational_5_1008_ = 5.0 / 1008.0;
@@ -400,12 +408,7 @@ __global__ static void rhs_eval_expansion_gpu(const float *restrict rfm_f0_of_xx
         constexpr expansion_math::float2<float> FDPart1_Rational_5_126 = expansion_math::split<float>(FDPart1_Rational_5_126_);
 
         const expansion_math::float2<float> FDPart1tmp0 = -FDPart1_Rational_5269_1800 * uu;
-        const expansion_math::float2<float> uu_dD0 = invdxx0 * (FDPart1_Rational_1_1260 * (-uu_i0m5 + uu_i0p5) + FDPart1_Rational_5_21 * (uu_i0m2 - uu_i0p2) +
-                                       FDPart1_Rational_5_504 * (uu_i0m4 - uu_i0p4) + FDPart1_Rational_5_6 * (-uu_i0m1 + uu_i0p1) +
-                                       FDPart1_Rational_5_84 * (-uu_i0m3 + uu_i0p3));
-        const expansion_math::float2<float> uu_dD1 = invdxx1 * (FDPart1_Rational_1_1260 * (-uu_i1m5 + uu_i1p5) + FDPart1_Rational_5_21 * (uu_i1m2 - uu_i1p2) +
-                                       FDPart1_Rational_5_504 * (uu_i1m4 - uu_i1p4) + FDPart1_Rational_5_6 * (-uu_i1m1 + uu_i1p1) +
-                                       FDPart1_Rational_5_84 * (-uu_i1m3 + uu_i1p3));
+        
         const expansion_math::float2<float> uu_dDD00 =
             ((invdxx0) * (invdxx0)) * (FDPart1_Rational_1_3150 * (uu_i0m5 + uu_i0p5) + FDPart1_Rational_5_1008 * (-uu_i0m4 - uu_i0p4) +
                                        FDPart1_Rational_5_126 * (uu_i0m3 + uu_i0p3) + FDPart1_Rational_5_21 * (-uu_i0m2 - uu_i0p2) +
@@ -418,21 +421,22 @@ __global__ static void rhs_eval_expansion_gpu(const float *restrict rfm_f0_of_xx
             ((invdxx2) * (invdxx2)) * (FDPart1_Rational_1_3150 * (uu_i2m5 + uu_i2p5) + FDPart1_Rational_5_1008 * (-uu_i2m4 - uu_i2p4) +
                                        FDPart1_Rational_5_126 * (uu_i2m3 + uu_i2p3) + FDPart1_Rational_5_21 * (-uu_i2m2 - uu_i2p2) +
                                        FDPart1_Rational_5_3 * (uu_i2m1 + uu_i2p1) + FDPart1tmp0);
+        const expansion_math::float2<float> vv(in_gfs[IDX4F(VVGF, i0, i1, i2, 0)], in_gfs[IDX4F(VVGF, i0, i1, i2, 1)]);
 
         /*
          * NRPy+-Generated GF Access/FD Code, Step 2 of 2:
          * Evaluate SymPy expressions and write to main memory.
          */
+        const expansion_math::float2<float> resUU = -eta_damping * uu + vv;
+        rhs_gfs[IDX4F(UUGF, i0, i1, i2, 0)] = resUU.value;
+        rhs_gfs[IDX4F(UUGF, i0, i1, i2, 1)] = resUU.remainder;
+
         const expansion_math::float2<float> FDPart3tmp4 = ((f2_of_xx0) * (f2_of_xx0));
         const expansion_math::float2<float> FDPart3tmp1 = ((f0_of_xx0) * (f0_of_xx0)) + ((f4_of_xx1) * (f4_of_xx1));
         const expansion_math::float2<float> FDPart3tmp6 = FDPart3tmp4 / f0_of_xx0__D0;
         const expansion_math::float2<float> FDPart3tmp7 = expansion_math::float2<float>(2.0,0) / FDPart3tmp4;
         const expansion_math::float2<float> FDPart3tmp2 = (expansion_math::float2<float>(1.0,0) / (FDPart3tmp1));
         const expansion_math::float2<float> FDPart3tmp5 = (expansion_math::float2<float>(1.0,0) / ((FDPart3tmp1) * (FDPart3tmp1)));
-        const expansion_math::float2<float> vv(in_gfs[IDX4F(VVGF, i0, i1, i2, 0)], in_gfs[IDX4F(VVGF, i0, i1, i2, 1)]);
-        const expansion_math::float2<float> resUU = -eta_damping * uu + vv;
-        rhs_gfs[IDX4F(UUGF, i0, i1, i2, 0)] = resUU.value;
-        rhs_gfs[IDX4F(UUGF, i0, i1, i2, 1)] = resUU.remainder;
         
         constexpr REAL FDPart1_Rational_1_8_ = 1.0 / 8.0;
         constexpr expansion_math::float2<float> FDPart1_Rational_1_8 = expansion_math::split<float>(FDPart1_Rational_1_8_);
@@ -464,9 +468,6 @@ __global__ static void rhs_eval_expansion_gpu(const float *restrict rfm_f0_of_xx
              uu_dDD22 / (((f0_of_xx0) * (f0_of_xx0)) * ((f1_of_xx1) * (f1_of_xx1))));
         rhs_gfs[IDX4F(VVGF, i0, i1, i2, 0)] = resVV.value;
         rhs_gfs[IDX4F(VVGF, i0, i1, i2, 1)] = resVV.remainder;
-        if(IDX4(VVGF, i0, i1, i2) == 72698) {
-          printf("%1.15e, %1.15e\n", resVV.value, resVV.remainder);
-        }
       } // END LOOP: for (int i0 = tid0+NGHOSTS; i0 < Nxx_plus_2NGHOSTS0 - NGHOSTS; i0 += stride0)
     } // END LOOP: for (int i1 = tid1+NGHOSTS; i1 < Nxx_plus_2NGHOSTS1 - NGHOSTS; i1 += stride1)
   } // END LOOP: for (int i2 = tid2+NGHOSTS; i2 < Nxx_plus_2NGHOSTS2 - NGHOSTS; i2 += stride2)
@@ -838,12 +839,12 @@ void rhs_eval(const commondata_struct *restrict commondata, const params_struct 
   dim3 blocks_per_grid((Ntot + threads_in_x_dir - 1) / threads_in_x_dir / vecsize, 1, 1);
   size_t sm = 0;
   size_t streamid = params->grid_idx % nstreams;
-  printf("###############aux##################\n");
-  compare<<<blocks_per_grid, threads_per_block, sm, streams[streamid]>>>(auxgfs_exp, auxevol_gfs, NUM_AUXEVOL_GFS * Ntot);
-  cudaDeviceSynchronize();
-  printf("###############inputGFs##################\n");
-  compare<<<blocks_per_grid, threads_per_block, sm, streams[streamid]>>>(ingfs_exp, in_gfs, NUM_EVOL_GFS * Ntot);
-  cudaDeviceSynchronize();
+  // printf("###############aux##################\n");
+  // compare<<<blocks_per_grid, threads_per_block, sm, streams[streamid]>>>(auxgfs_exp, auxevol_gfs, NUM_AUXEVOL_GFS * Ntot);
+  // cudaDeviceSynchronize();
+  // printf("###############inputGFs##################\n");
+  // compare<<<blocks_per_grid, threads_per_block, sm, streams[streamid]>>>(ingfs_exp, in_gfs, NUM_EVOL_GFS * Ntot);
+  // cudaDeviceSynchronize();
   }
 
   // expansion RFM arrays
