@@ -421,8 +421,13 @@ class output_BHaH_defines_h(base_output_BHaH_defines_h):
         fin_NGHOSTS_add_one_for_upwinding_or_KO: bool = False,
         supplemental_defines_dict: Optional[Dict[str, str]] = None,
         clang_format_options: str = "-style={BasedOnStyle: LLVM, ColumnLimit: 150}",
+        expansion_form: bool = False,
         **kwargs: Any,
     ) -> None:
+        if expansion_form and not additional_includes is None:
+            additional_includes += ["expansion_math.h"]
+        elif expansion_form:
+            additional_includes = ["expansion_math.h"]
         super().__init__(
             project_dir,
             additional_includes=additional_includes,
@@ -447,6 +452,8 @@ class output_BHaH_defines_h(base_output_BHaH_defines_h):
   ( (i) + Nxx0 * ( (j) + Nxx1 * (k) ) )
 """
         self.gri_BHd_struct_str = self.gri_BHd_struct_str.replace("*restrict", "*")
+        if expansion_form:
+            self.gri_BHd_struct_str = self.gri_BHd_struct_str.replace("REAL *", "float *")
         self.register_define_blocks()
         self.generate_output_str()
 
