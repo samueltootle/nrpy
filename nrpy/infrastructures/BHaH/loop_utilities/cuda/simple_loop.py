@@ -90,6 +90,7 @@ class simple_loop(base_sl.base_simple_loop):
         CoordSystem: str = "Cartesian",
         enable_rfm_precompute: bool = False,
         fp_type: str = "double",
+        expansion_form: bool = False,
         **_: Any,
     ) -> None:
         super().__init__(
@@ -107,11 +108,18 @@ class simple_loop(base_sl.base_simple_loop):
         )
 
         if self.read_xxs:
-            self.read_rfm_xx_arrays = [
-                "[[maybe_unused]] const REAL xx0 = x0[i0];",
-                "[[maybe_unused]] const REAL xx1 = x1[i1];",
-                "[[maybe_unused]] const REAL xx2 = x2[i2];",
-            ]
+            if expansion_form:
+              self.read_rfm_xx_arrays = [
+                  "[[maybe_unused]] const expansion_math::float2<float> xx0(x0[i0], x0[i0+1]);",
+                  "[[maybe_unused]] const expansion_math::float2<float> xx1(x1[i1], x1[i1+1]);",
+                  "[[maybe_unused]] const expansion_math::float2<float> xx2(x2[i2], x2[i2+1]);",
+              ]
+            else:
+              self.read_rfm_xx_arrays = [
+                  "[[maybe_unused]] const REAL xx0 = x0[i0];",
+                  "[[maybe_unused]] const REAL xx1 = x1[i1];",
+                  "[[maybe_unused]] const REAL xx2 = x2[i2];",
+              ]
         elif self.enable_rfm_precompute:
             self.read_rfm_xx_arrays = [
                 self.rfmp.readvr_str[0],
@@ -120,17 +128,13 @@ class simple_loop(base_sl.base_simple_loop):
             ]
         self.initialize_based_on__read_rfm_xx_arrays()
 
-        self.increment = ["stride2", "stride1", "stride0"]
+        self.increment = ["stride2", "stride1", f"{int(expansion_form) + 1} * stride0"]
         self.gen_loop_body()
-        self.full_loop_body = f"""
+        kernel_setup = f"""
   const int Nxx_plus_2NGHOSTS0 = d_params.Nxx_plus_2NGHOSTS0;
   const int Nxx_plus_2NGHOSTS1 = d_params.Nxx_plus_2NGHOSTS1;
   const int Nxx_plus_2NGHOSTS2 = d_params.Nxx_plus_2NGHOSTS2;
-  
-  [[maybe_unused]] const REAL invdxx0 = d_params.invdxx0;
-  [[maybe_unused]] const REAL invdxx1 = d_params.invdxx1;
-  [[maybe_unused]] const REAL invdxx2 = d_params.invdxx2;
-  
+    
   const int tid0  = blockIdx.x * blockDim.x + threadIdx.x;
   const int tid1  = blockIdx.y * blockDim.y + threadIdx.y;
   const int tid2  = blockIdx.z * blockDim.z + threadIdx.z;
@@ -141,7 +145,22 @@ class simple_loop(base_sl.base_simple_loop):
   
   {self.full_loop_body}
 """
-
+        if expansion_form:
+          inv_constant_str = """[[maybe_unused]] expansion_math::float2<float> invdxx0 = expansion_math::split<float>(d_params.invdxx0);
+  [[maybe_unused]] expansion_math::float2<float> invdxx1 = expansion_math::split<float>(d_params.invdxx1);
+  [[maybe_unused]] expansion_math::float2<float> invdxx2 = expansion_math::split<float>(d_params.invdxx2);
+"""
+        else:
+          inv_constant_str = """[[maybe_unused]] const REAL invdxx0 = d_params.invdxx0;
+  [[maybe_unused]] const REAL invdxx1 = d_params.invdxx1;
+  [[maybe_unused]] const REAL invdxx2 = d_params.invdxx2;
+"""
+        self.full_loop_body = f"""{kernel_setup}
+  
+  {inv_constant_str}
+  
+  {self.full_loop_body}
+"""
 
 if __name__ == "__main__":
     import doctest
