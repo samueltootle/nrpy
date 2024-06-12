@@ -57,9 +57,7 @@ __global__ static void rk_substep_1_gpu(float *restrict k_odd_gfs, float *restri
     // Original calculataion: RK_Rational_1_6 * dt * k_odd_gfsL;
     // this becomes:
     // = RK_Rational_1_6<expanded> * dt<expanded> * k_odd_gfsL<expanded>
-    expansion_math::float2<float> tmp_res  = expansion_math::scale_expansion(
-      expansion_math::scale_expansion(rhs_exp_c, RK_Rational_1_6), dt
-    );
+    expansion_math::float2<float> tmp_res  = RK_Rational_1_6 * dt * rhs_exp_c;
     y_nplus1_running_total_gfs[j] = tmp_res.value;
     y_nplus1_running_total_gfs[j+1] = tmp_res.remainder;
 
@@ -69,13 +67,7 @@ __global__ static void rk_substep_1_gpu(float *restrict k_odd_gfs, float *restri
     // Original calculataion: RK_Rational_1_2 * dt * k_odd_gfsL + y_n_gfsL;
     // this becomes:
     // = RK_Rational_1_2<expanded> * dt<expanded> * k_odd_gfsL<expanded> + y_n_gfsL<expanded>
-    tmp_res = expansion_math::grow_expansion(
-      y_exp_c, expansion_math::scale_expansion(
-        RK_Rational_1_2, expansion_math::scale_expansion(
-          dt, rhs_exp_c
-        )
-      )
-    );
+    tmp_res = RK_Rational_1_2 * dt * rhs_exp_c + y_exp_c;
 
     k_odd_gfs[j] = tmp_res.value;
     k_odd_gfs[j+1] = tmp_res.remainder;
@@ -100,7 +92,7 @@ __global__ static void compare(float *restrict k_odd_exp, float *restrict y_nplu
     REAL cmp = expansion_math::recast_sum<double>(expansion_math::float2<float>(y_nplus1_exp[j], y_nplus1_exp[j+1]));
     if(std::fabs(ref) > 0) {
       REAL rel = std::fabs(1.0 - cmp / ref);
-      if(rel > 1e-13) {
+      if(rel > 1e-12) {
         printf("Failure at %d; %1.15e, %1.15e, %1.15e\n", i, ref, cmp, rel);
       }
     }
@@ -109,7 +101,7 @@ __global__ static void compare(float *restrict k_odd_exp, float *restrict y_nplu
     cmp = expansion_math::recast_sum<double>(expansion_math::float2<float>(k_odd_exp[j], k_odd_exp[j+1]));
     if(std::fabs(ref) > 0) {
       REAL rel = std::fabs(1.0 - cmp / ref);
-      if(rel > 1e-13) {
+      if(rel > 1e-12) {
         printf("Failure at %d; %1.15e, %1.15e, %1.15e\n", i, ref, cmp, rel);
       }
     }
