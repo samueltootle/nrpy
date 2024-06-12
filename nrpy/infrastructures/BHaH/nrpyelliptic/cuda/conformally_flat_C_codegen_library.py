@@ -35,19 +35,28 @@ class gpu_register_CFunction_initial_guess_single_point(
     :return None.
     """
 
-    def __init__(self, fp_type: str = "double") -> None:
+    def __init__(self, fp_type: str = "double", expansion_form: bool = False) -> None:
         super().__init__(fp_type=fp_type)
         self.cfunc_type = """__device__ __host__ void"""
         self.params = r"""const REAL xx0, const REAL xx1, const REAL xx2,  REAL *restrict uu_ID, REAL *restrict vv_ID
 """
-
-        self.body = ccg.c_codegen(
-            [sp.sympify(0), sp.sympify(0)],
-            ["*uu_ID", "*vv_ID"],
-            verbose=False,
-            include_braces=False,
-            fp_type=self.fp_type,
-        )
+        if expansion_form:
+            self.params.replace("REAL", "float")
+            self.body = ccg.c_codegen(
+                [sp.sympify(0), sp.sympify(0), sp.sympify(0), sp.sympify(0)],
+                ["*uu_ID", "*(uu_ID+1)", "*vv_ID", "*(vv_ID+1)"],
+                verbose=False,
+                include_braces=False,
+                fp_type=self.fp_type,
+            )       
+        else:
+            self.body = ccg.c_codegen(
+                [sp.sympify(0), sp.sympify(0)],
+                ["*uu_ID", "*vv_ID"],
+                verbose=False,
+                include_braces=False,
+                fp_type=self.fp_type,
+            )
 
         cfc.register_CFunction(
             includes=self.includes,
@@ -63,6 +72,7 @@ class gpu_register_CFunction_initial_guess_single_point(
 
 def register_CFunction_initial_guess_single_point(
     fp_type: str = "double",
+    expansion_form: bool = False,
 ) -> Union[None, pcg.NRPyEnv_type]:
     """
     Support function for gpu_register_CFunction_initial_guess_single_point.
@@ -76,7 +86,7 @@ def register_CFunction_initial_guess_single_point(
         pcg.register_func_call(f"{__name__}.{cast(FT, cf()).f_code.co_name}", locals())
         return None
 
-    gpu_register_CFunction_initial_guess_single_point(fp_type=fp_type)
+    gpu_register_CFunction_initial_guess_single_point(fp_type=fp_type, expansion_form=expansion_form)
 
     return cast(pcg.NRPyEnv_type, pcg.NRPyEnv())
 
@@ -97,10 +107,12 @@ class gpu_register_CFunction_initial_guess_all_points(
         self,
         enable_checkpointing: bool = False,
         fp_type: str = "double",
+        expansion_form: bool = False,
         **_: Any,
     ) -> None:
 
         super().__init__(enable_checkpointing, fp_type=fp_type)
+        array_type = "float" if expansion_form else "REAL"
         self.loop_body = lp.simple_loop(
             loop_body="initial_guess_single_point(xx0,xx1,xx2,"
             f"&{self.uu_gf_memaccess},"
@@ -108,16 +120,17 @@ class gpu_register_CFunction_initial_guess_all_points(
             read_xxs=True,
             loop_region="all points",
             fp_type=self.fp_type,
+            expansion_form=expansion_form,
         ).full_loop_body
 
         # Put loop_body into a device kernel
         self.device_kernel = gputils.GPU_Kernel(
             self.loop_body,
             {
-                "x0": "const REAL *restrict",
-                "x1": "const REAL *restrict",
-                "x2": "const REAL *restrict",
-                "in_gfs": "REAL *restrict",
+                "x0": f"const {array_type} *restrict",
+                "x1": f"const {array_type} *restrict",
+                "x2": f"const {array_type} *restrict",
+                "in_gfs": f" {array_type} *restrict",
             },
             "initial_guess_all_points_gpu",
             launch_dict={
@@ -130,13 +143,13 @@ class gpu_register_CFunction_initial_guess_all_points(
         )
 
         # FIXME should be +=
-        self.body = r"""for(int grid=0; grid<commondata->NUMGRIDS; grid++) {
+        self.body = rf"""for(int grid=0; grid<commondata->NUMGRIDS; grid++) {{
   // Unpack griddata struct:
   params_struct *restrict params = &griddata[grid].params;
-  REAL *restrict x0 = griddata[grid].xx[0];
-  REAL *restrict x1 = griddata[grid].xx[1];
-  REAL *restrict x2 = griddata[grid].xx[2];
-  REAL *restrict in_gfs = griddata[grid].gridfuncs.y_n_gfs;
+  {array_type} *restrict x0 = griddata[grid].xx[0];
+  {array_type} *restrict x1 = griddata[grid].xx[1];
+  {array_type} *restrict x2 = griddata[grid].xx[2];
+  {array_type} *restrict in_gfs = griddata[grid].gridfuncs.y_n_gfs;
 #include "set_CodeParameters.h"
 """
         self.body += f"{self.device_kernel.launch_block}"
@@ -158,6 +171,7 @@ class gpu_register_CFunction_initial_guess_all_points(
 def register_CFunction_initial_guess_all_points(
     enable_checkpointing: bool = False,
     fp_type: str = "double",
+    expansion_form: bool = False,
     **_kwargs: Any,
 ) -> Union[None, pcg.NRPyEnv_type]:
     """
@@ -175,7 +189,7 @@ def register_CFunction_initial_guess_all_points(
         pcg.register_func_call(f"{__name__}.{cast(FT, cf()).f_code.co_name}", locals())
         return None
     gpu_register_CFunction_initial_guess_all_points(
-        enable_checkpointing, fp_type=fp_type
+        enable_checkpointing, fp_type=fp_type, expansion_form=expansion_form,
     )
 
     return cast(pcg.NRPyEnv_type, pcg.NRPyEnv())
@@ -380,37 +394,43 @@ class gpu_register_CFunction_variable_wavespeed_gfs_all_points(
         self,
         CoordSystem: str,
         fp_type: str = "double",
+        expansion_form: bool = False,
     ) -> None:
         super().__init__(CoordSystem, fp_type=fp_type)
-
-        self.body = r"""for(int grid=0; grid<commondata->NUMGRIDS; grid++) {
+        array_type = "float" if expansion_form else "REAL"
+        self.body = rf"""for(int grid=0; grid<commondata->NUMGRIDS; grid++) {{
   // Unpack griddata struct:
   params_struct *restrict params = &griddata[grid].params;
 #include "set_CodeParameters.h"
-  REAL *restrict x0 = griddata[grid].xx[0];
-  REAL *restrict x1 = griddata[grid].xx[1];
-  REAL *restrict x2 = griddata[grid].xx[2];
-  REAL *restrict in_gfs = griddata[grid].gridfuncs.auxevol_gfs;
+  {array_type} *restrict x0 = griddata[grid].xx[0];
+  {array_type} *restrict x1 = griddata[grid].xx[1];
+  {array_type} *restrict x2 = griddata[grid].xx[2];
+  {array_type} *restrict in_gfs = griddata[grid].gridfuncs.auxevol_gfs;
 """
         self.loop_body = lp.simple_loop(
             loop_body="\n" + self.dsmin_computation_str,
             read_xxs=True,
             loop_region="interior",
             fp_type=self.fp_type,
+            expansion_form=expansion_form,
         ).full_loop_body
         kernel_body = "// Temporary parameters\n"
-        for sym in self.unique_symbols:
-            kernel_body += f"const REAL {sym} = d_params.{sym};\n"
+        if expansion_form:
+            for sym in self.unique_symbols:
+                kernel_body += f"const expansion_math::float2<float> {sym} = expansion_math::split<float>(d_params.{sym});\n"
+        else:
+            for sym in self.unique_symbols:
+                kernel_body += f"const REAL {sym} = d_params.{sym};\n"
         # Put loop_body into a device kernel
         self.device_kernel = gputils.GPU_Kernel(
             kernel_body + self.loop_body,
             {
-                "x0": "const REAL *restrict",
-                "x1": "const REAL *restrict",
-                "x2": "const REAL *restrict",
-                "in_gfs": "REAL *restrict",
-                "dt": "const REAL",
-                "MINIMUM_GLOBAL_WAVESPEED": "const REAL",
+                "x0": f"const {array_type} *restrict",
+                "x1": f"const {array_type} *restrict",
+                "x2": f"const {array_type} *restrict",
+                "in_gfs": f"{array_type} *restrict",
+                "dt": "const expansion_math::float2<float>" if expansion_form else "const REAL",
+                "MINIMUM_GLOBAL_WAVESPEED": "const expansion_math::float2<float>" if expansion_form else "const REAL",
             },
             f"{self.name}_gpu",
             launch_dict={
@@ -443,6 +463,7 @@ class gpu_register_CFunction_variable_wavespeed_gfs_all_points(
 def register_CFunction_variable_wavespeed_gfs_all_points(
     CoordSystem: str,
     fp_type: str = "double",
+    expansion_form: bool = False,
 ) -> Union[None, pcg.NRPyEnv_type]:
     """
     Support function for gpu_register_CFunction_variable_wavespeed_gfs_all_points.
@@ -455,7 +476,7 @@ def register_CFunction_variable_wavespeed_gfs_all_points(
     :return: None if in registration phase, else the updated NRPy environment.
     """
     gpu_register_CFunction_variable_wavespeed_gfs_all_points(
-        CoordSystem, fp_type=fp_type
+        CoordSystem, fp_type=fp_type, expansion_form=expansion_form
     )
 
     return cast(pcg.NRPyEnv_type, pcg.NRPyEnv())
