@@ -28,20 +28,6 @@ __global__ static void rk_substep_1_double_gpu(REAL *restrict k_odd_gfs, REAL *r
     
     y_nplus1_running_total_gfs[idx] = RK_Rational_1_6 * dt * k_odd_gfsL;
     k_odd_gfs[idx] = RK_Rational_1_2 * dt * k_odd_gfsL + y_n_gfsL;
-
-    // if(i == 1899333){
-    // if(k_odd_gfs[i] > 0) {
-      // double old1 = RK_Rational_1_6_ * dt_ * k_odd_gfsL;
-      // double old2 = RK_Rational_1_2_ * dt_ * k_odd_gfsL + y_n_gfsL;
-      
-      // float tmp1, tmp2;
-      // expansion_math::split<double>(old2, tmp1, tmp2);
-      // double tmp3 = static_cast<double>(tmp1) + static_cast<double>(tmp2);
-      // printf("dt: %1.15e - %1.15e, %1.15e - %1.15e\n", dt, dt_exp, dt_exp_rem, static_cast<double>(dt_exp) + static_cast<double>(dt_exp_rem));
-      // printf("%1.15f - %1.15f, %1.15f %1.15e, %1.15e - %1.15e, %1.15e\n", k_odd_gfsL, expansion_math::recast_sum<double>(rhs_exp_c), y_nplus1_running_total_gfs[i], old1, k_odd_gfs[i], old2);
-      // printf("%1.15e, %1.15e - %1.15e, %1.15e\n", y_nplus1_running_total_gfs[j], y_nplus1_running_total_gfs[j+1], k_odd_gfs[j], k_odd_gfs[j+1]);
-    //   printf("%d: %1.15e, %1.15e\n\n", i, k_odd_gfs[i], y_nplus1_running_total_gfs[i]);
-    // }
   }
 }
 
@@ -55,10 +41,10 @@ __global__ static void rk_substep_1_gpu(float *restrict k_odd_gfs, float *restri
   const int tid0 = threadIdx.x + blockIdx.x * blockDim.x;
   
   constexpr REAL RK_Rational_1_6_ = 1.0 / 6.0;
-  constexpr expansion_math::float2<float> RK_Rational_1_6 = expansion_math::split<float>(RK_Rational_1_6_);
+  static constexpr expansion_math::float2<float> RK_Rational_1_6 = expansion_math::split<float>(RK_Rational_1_6_);
 
   constexpr REAL RK_Rational_1_2_ = 1.0 / 2.0;
-  constexpr expansion_math::float2<float> RK_Rational_1_2 = expansion_math::split<float>(RK_Rational_1_2_);
+  static constexpr expansion_math::float2<float> RK_Rational_1_2 = expansion_math::split<float>(RK_Rational_1_2_);
 
   size_t vec_size = 2U * vecsize;
   size_t start_idx = tid0 * vec_size;
@@ -67,16 +53,17 @@ __global__ static void rk_substep_1_gpu(float *restrict k_odd_gfs, float *restri
   for (int i = 0; i < vec_size && j < 2 * Ntot - 1; i += 2U) {
     j = i + start_idx;
     const expansion_math::float2<float> rhs_exp_c(k_odd_gfs[j], k_odd_gfs[j+1]);
-    const expansion_math::float2<float> y_exp_c(y_n_gfs[j], y_n_gfs[j+1]);
     
     // Original calculataion: RK_Rational_1_6 * dt * k_odd_gfsL;
     // this becomes:
     // = RK_Rational_1_6<expanded> * dt<expanded> * k_odd_gfsL<expanded>
-    expansion_math::float2<float> tmp_res = expansion_math::scale_expansion(
-      dt, expansion_math::scale_expansion(rhs_exp_c, RK_Rational_1_6)
+    expansion_math::float2<float> tmp_res  = expansion_math::scale_expansion(
+      expansion_math::scale_expansion(rhs_exp_c, RK_Rational_1_6), dt
     );
     y_nplus1_running_total_gfs[j] = tmp_res.value;
     y_nplus1_running_total_gfs[j+1] = tmp_res.remainder;
+
+    const expansion_math::float2<float> y_exp_c(y_n_gfs[j], y_n_gfs[j+1]);
 
     // Repeat the methodology as above
     // Original calculataion: RK_Rational_1_2 * dt * k_odd_gfsL + y_n_gfsL;
@@ -95,17 +82,7 @@ __global__ static void rk_substep_1_gpu(float *restrict k_odd_gfs, float *restri
   }
 }
 
-__global__ static void compare(float *restrict k_odd_exp, float *restrict y_nplus1_exp, REAL *restrict k_odd_gfs, REAL *restrict y_nplus1_running_total_gfs) {
-  // const int i = 2117538; //1899333;
-  // const int j = 2u * i;
-  // REAL ref = y_nplus1_running_total_gfs[i];
-  // REAL cmp = expansion_math::recast_sum<double>(expansion_math::float2<float>(y_nplus1_exp[j], y_nplus1_exp[j+1]));
-  // printf("\nyn+1 - %1.15e, %1.15e\n", ref, cmp);
-  
-  // ref = k_odd_gfs[i];
-  // cmp = expansion_math::recast_sum<double>(expansion_math::float2<float>(k_odd_exp[j], k_odd_exp[j+1]));
-  // printf("kodd - %1.15e, %1.15e\n", ref, cmp);
-  
+__global__ static void compare(float *restrict k_odd_exp, float *restrict y_nplus1_exp, REAL *restrict k_odd_gfs, REAL *restrict y_nplus1_running_total_gfs) { 
   const int Nxx_plus_2NGHOSTS0 = d_params.Nxx_plus_2NGHOSTS0;
   const int Nxx_plus_2NGHOSTS1 = d_params.Nxx_plus_2NGHOSTS1;
   const int Nxx_plus_2NGHOSTS2 = d_params.Nxx_plus_2NGHOSTS2;
@@ -215,7 +192,7 @@ static void rk_substep_1(params_struct *restrict params, REAL *restrict k_odd_gf
   cudaCheckErrors(cudaKernel, "rk_substep_1_gpu failure");
   // Run old double kernel
   rk_substep_1_double_gpu<<<blocks_per_grid, threads_per_block, sm, streams[streamid]>>>(k_odd_gfs, y_n_gfs, y_nplus1_running_total_gfs, dt_);
-  cudaCheckErrors(cudaKernel, "rk_substep_1_gpu failure");
+  cudaCheckErrors(cudaKernel, "rk_substep_1_double_gpu failure");
   
   // Ensure solutions are equivalent
   compare<<<blocks_per_grid,threads_per_block,sm,streams[streamid]>>>(k_odd_exp, y_nplus1_exp, k_odd_gfs, y_nplus1_running_total_gfs);
