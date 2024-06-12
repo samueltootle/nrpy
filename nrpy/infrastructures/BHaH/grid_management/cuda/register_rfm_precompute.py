@@ -29,13 +29,13 @@ class register_CFunctions_rfm_precompute(base_register_CFunctions_rfm_precompute
     """
 
     def __init__(
-        self, list_of_CoordSystems: List[str], fp_type: str = "double"
+        self, list_of_CoordSystems: List[str], fp_type: str = "double", expansion_form: bool = False,
     ) -> None:
         super().__init__(list_of_CoordSystems, fp_type=fp_type)
 
         for CoordSystem in list_of_CoordSystems:
             rfm_precompute = ReferenceMetricPrecompute(
-                CoordSystem, fp_type=self.fp_type
+                CoordSystem, fp_type=self.fp_type, expansion_form=expansion_form
             )
 
             for funcs in [
@@ -66,15 +66,16 @@ class register_CFunctions_rfm_precompute(base_register_CFunctions_rfm_precompute
                 ("defines", rfm_precompute.rfm_struct__define_kernel_dict),
             ]:
 
+                array_type = "float" if expansion_form else "REAL"
                 desc = f"rfm_precompute_{func}: reference metric precomputed lookup arrays: {func}"
                 cfunc_type = "void"
                 name = "rfm_precompute_" + func
                 params = "const commondata_struct *restrict commondata, const params_struct *restrict params, rfm_struct *restrict rfmstruct"
-                params += ", REAL *restrict xx[3]"
+                params += f", {array_type} *restrict xx[3]"
 
                 body = " "
                 for i in range(3):
-                    body += f"[[maybe_unused]] const REAL *restrict x{i} = xx[{i}];\n"
+                    body += f"[[maybe_unused]] const {array_type} *restrict x{i} = xx[{i}];\n"
                 prefunc = ""
                 prefunc_defs = ""
                 for i, (key_sym, kernel_dict) in enumerate(kernel_dicts.items()):
@@ -85,14 +86,18 @@ class register_CFunctions_rfm_precompute(base_register_CFunctions_rfm_precompute
                     )
                     kernel_body = ""
                     kernel_body += "// Temporary parameters\n"
+                    # if expansion_form:
+                    #     for sym in unique_symbols:
+                    #         kernel_body += f"const expansion_math::float2<float> {sym} = expansion_math::split<float>(d_params.{sym});\n"
+                    # else:
                     for sym in unique_symbols:
                         kernel_body += f"const REAL {sym} = d_params.{sym};\n"
                     kernel_body += kernel_dict["body"]
                     device_kernel = gputils.GPU_Kernel(
                         kernel_body,
                         {
-                            f"{key_sym}": "REAL *restrict",
-                            f'{kernel_dict["coord"]}': "const REAL *restrict",
+                            f"{key_sym}": f"{array_type} *restrict",
+                            f'{kernel_dict["coord"]}': f"const {array_type} *restrict",
                         },
                         f"{name}__{key_sym}_gpu",
                         launch_dict={
@@ -105,7 +110,7 @@ class register_CFunctions_rfm_precompute(base_register_CFunctions_rfm_precompute
                     )
                     prefunc += device_kernel.CFunction.full_function
                     body += "{\n"
-                    body += f"REAL *restrict {key_sym} = rfmstruct->{key_sym};\n"
+                    body += f"{array_type} *restrict {key_sym} = rfmstruct->{key_sym};\n"
                     body += device_kernel.launch_block
                     body += device_kernel.c_function_call()
                     body += "}\n"
