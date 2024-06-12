@@ -35,8 +35,9 @@ from nrpy.infrastructures.BHaH.grid_management.cuda import xx_tofrom_Cart
 par.set_parval_from_str("Infrastructure", "BHaH")
 
 # Code-generation-time parameters:
-project_name = "nrpyelliptic_conformally_flat_gpu"
+project_name = "nrpyelliptic_conformally_flat_gpu_expfloatgen"
 fp_type = "double"
+expansion_form = True
 grid_physical_size = 1.0e6
 t_final = grid_physical_size  # This parameter is effectively not used in NRPyElliptic
 nn_max = 10000  # Sets the maximum number of relaxation steps
@@ -69,7 +70,7 @@ MINIMUM_GLOBAL_WAVESPEED = 0.7
 CFL_FACTOR = 1.0  # NRPyElliptic wave speed prescription assumes this parameter is ALWAYS set to 1
 CoordSystem = "SinhSymTP"
 Nxx_dict = {
-    "SinhSymTP": [128, 128, 16],
+    "SinhSymTP": [256, 256, 16],
     "SinhCylindricalv2": [128, 16, 256],
     "SinhSpherical": [128, 128, 16],
 }
@@ -162,16 +163,17 @@ gputils.register_CFunction_find_global_minimum(fp_type=fp_type)
 gputils.register_CFunction_find_global_sum(fp_type=fp_type)
 
 # Generate functions to set initial guess
-nrpyellClib.register_CFunction_initial_guess_single_point(fp_type=fp_type)
+nrpyellClib.register_CFunction_initial_guess_single_point(fp_type=fp_type, expansion_form=expansion_form)
 nrpyellClib.register_CFunction_initial_guess_all_points(
     OMP_collapse=OMP_collapse,
     enable_checkpointing=enable_checkpointing,
     fp_type=fp_type,
+    expansion_form=expansion_form,
 )
 
 # Generate function to set variable wavespeed
 nrpyellClib.register_CFunction_variable_wavespeed_gfs_all_points(
-    CoordSystem=CoordSystem, fp_type=fp_type
+    CoordSystem=CoordSystem, fp_type=fp_type, expansion_form=expansion_form
 )
 
 # Generate functions to set AUXEVOL gridfunctions
@@ -202,7 +204,7 @@ nrpyellClib.register_CFunction_diagnostics(
 
 if enable_rfm_precompute:
     rfm_precompute.register_CFunctions_rfm_precompute(
-        list_of_CoordSystems=[CoordSystem], fp_type=fp_type
+        list_of_CoordSystems=[CoordSystem], fp_type=fp_type, expansion_form=expansion_form
     )
 
 # Generate function to compute RHSs
@@ -358,6 +360,7 @@ Bdefines_h.output_BHaH_defines_h(
         "#define HOST_UUGF 1\n"
         "#define NUM_HOST_DIAG 2\n",
     },
+    expansion_form=expansion_form,
 )
 # Define post_MoL_step_forward_in_time string for main function
 post_MoL_step_forward_in_time = r"""    check_stop_conditions(&commondata, griddata);
