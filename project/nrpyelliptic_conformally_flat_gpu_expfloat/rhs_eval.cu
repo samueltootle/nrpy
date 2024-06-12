@@ -464,6 +464,9 @@ __global__ static void rhs_eval_expansion_gpu(const float *restrict rfm_f0_of_xx
              uu_dDD22 / (((f0_of_xx0) * (f0_of_xx0)) * ((f1_of_xx1) * (f1_of_xx1))));
         rhs_gfs[IDX4F(VVGF, i0, i1, i2, 0)] = resVV.value;
         rhs_gfs[IDX4F(VVGF, i0, i1, i2, 1)] = resVV.remainder;
+        if(IDX4(VVGF, i0, i1, i2) == 72698) {
+          printf("%1.15e, %1.15e\n", resVV.value, resVV.remainder);
+        }
       } // END LOOP: for (int i0 = tid0+NGHOSTS; i0 < Nxx_plus_2NGHOSTS0 - NGHOSTS; i0 += stride0)
     } // END LOOP: for (int i1 = tid1+NGHOSTS; i1 < Nxx_plus_2NGHOSTS1 - NGHOSTS; i1 += stride1)
   } // END LOOP: for (int i2 = tid2+NGHOSTS; i2 < Nxx_plus_2NGHOSTS2 - NGHOSTS; i2 += stride2)
@@ -612,66 +615,50 @@ __global__ static void rhs_eval_gpu(const REAL *restrict rfm_f0_of_xx0, const RE
   } // END LOOP: for (int i2 = tid2+NGHOSTS; i2 < Nxx_plus_2NGHOSTS2 - NGHOSTS; i2 += stride2)
 }
 
-__global__ static void compare(const float *restrict auxgfs_exp, const float *restrict ingfs_exp, const float *restrict rhsgfs_exp, 
-  const REAL *restrict auxgfs, const REAL *restrict ingfs, const REAL *restrict rhsgfs) {
- 
+#include <string>
+__global__ static void compare(const float *restrict gf_exp, const REAL *restrict gf, const int Ntot) {
+
+  // Kernel thread/stride setup
+  // const int tid0 = threadIdx.x + blockIdx.x * blockDim.x;
+
+  // size_t vec_size = vecsize;
+  // size_t i = tid0 * vec_size;
+  
   const int Nxx_plus_2NGHOSTS0 = d_params.Nxx_plus_2NGHOSTS0;
   const int Nxx_plus_2NGHOSTS1 = d_params.Nxx_plus_2NGHOSTS1;
   const int Nxx_plus_2NGHOSTS2 = d_params.Nxx_plus_2NGHOSTS2;
-  const int Ntot = Nxx_plus_2NGHOSTS0 * Nxx_plus_2NGHOSTS1 * Nxx_plus_2NGHOSTS2 * NUM_EVOL_GFS;
+  const int tid0 = blockIdx.x * blockDim.x + threadIdx.x;
+  const int tid1 = blockIdx.y * blockDim.y + threadIdx.y;
+  const int tid2 = blockIdx.z * blockDim.z + threadIdx.z;
 
-  // Kernel thread/stride setup
-  const int tid0 = threadIdx.x + blockIdx.x * blockDim.x;
+  const int stride0 = blockDim.x * gridDim.x;
+  const int stride1 = blockDim.y * gridDim.y;
+  const int stride2 = blockDim.z * gridDim.z;
 
-  size_t vec_size = vecsize;
-  size_t i = tid0 * vec_size;
-  
-  if(i < Ntot) {
-    size_t j = 2U * i;
-    REAL ref = auxgfs[i];
-    REAL cmp = expansion_math::recast_sum<double>(expansion_math::float2<float>(auxgfs_exp[j], auxgfs_exp[j+1]));
-    // if(std::fabs(ref) > 0) {
-    //   REAL rel = std::fabs(1.0 - cmp / ref);
-    //   if(rel > 1e-12) {
-    //     printf("ausgfs failure at %d; %1.15e, %1.15e, %1.15e\n", i, ref, cmp, rel);
-    //   }
-    // }
-
-    // ref = ingfs[i];
-    // cmp = expansion_math::recast_sum<double>(expansion_math::float2<float>(ingfs_exp[j], ingfs_exp[j+1]));
-    // if(std::fabs(ref) > 0) {
-    //   REAL rel = std::fabs(1.0 - cmp / ref);
-    //   if(rel > 1e-12) {
-    //     printf("ingfs failure at %d; %1.15e, %1.15e, %1.15e\n", i, ref, cmp, rel);
-    //   }
-    // } else if(!(std::fabs(cmp) > 0)) {
-    //   REAL rel = std::fabs(ref);
-    //   if(rel > 1e-12) {
-    //     printf("ingfs failure at %d; %1.15e, %1.15e, %1.15e\n", i, ref, cmp, rel);
-    //   }
-    // } else {
-    //   REAL rel = std::fabs(cmp);
-    //   if(rel > 1e-12) {
-    //     printf("ingfs failure at %d; %1.15e, %1.15e, %1.15e\n", i, ref, cmp, rel);
-    //   }
-    // }
-
-    ref = rhsgfs[i];
-    cmp = expansion_math::recast_sum<double>(expansion_math::float2<float>(rhsgfs_exp[j], rhsgfs_exp[j+1]));
-    if(std::fabs(ref) > 0 && std::fabs(cmp) > 0) {
-      REAL rel = std::fabs(1.0 - cmp / ref);
-      if(rel > 1e-12) {
-        printf("rhsgfs failure at %d; %1.15e, %1.15e, %1.15e\n", i, ref, cmp, rel);
-      }
-    } else if(!(std::fabs(cmp) > 0)) {
-      REAL rel = std::fabs(ref);
-      if(rel > 1e-12) {
-        printf("rhsgfs failure with cmp0 at %d; %1.15e, %1.15e, %1.15e\n", i, ref, cmp, rel);
-      }
-    } else {
-      REAL rel = std::fabs(cmp);
-      if(rel > 1e-12) {
-        printf("rhsgfs failure with ref0 at %d with; %1.15e, %1.15e, %1.15e\n", i, ref, cmp, rel);
+  // if(i < Ntot) {
+  for (int i2 = tid2 + NGHOSTS; i2 < Nxx_plus_2NGHOSTS2 - NGHOSTS; i2 += stride2) {
+    for (int i1 = tid1 + NGHOSTS; i1 < Nxx_plus_2NGHOSTS1 - NGHOSTS; i1 += stride1) {
+      for (int i0 = tid0 + NGHOSTS; i0 < Nxx_plus_2NGHOSTS0 - NGHOSTS; i0 += stride0) {
+        size_t i = IDX4(VVGF, i0, i1, i2);
+        size_t j = IDX4F(VVGF, i0, i1, i2, 0);
+        REAL ref = gf[i];
+        REAL cmp = expansion_math::recast_sum<double>(expansion_math::float2<float>(gf_exp[j], gf_exp[j+1]));
+        if(std::fabs(ref) > 0 && std::fabs(cmp)) {
+          REAL rel = std::fabs(1.0 - cmp / ref);
+          if(rel > 1e-12) {
+            printf("failure at %d; %1.15e, %1.15e, %1.15e\n", i, ref, cmp, rel);
+          }
+        } else if(!(std::fabs(cmp) > 0)) {
+          REAL rel = std::fabs(ref);
+          if(rel > 1e-12) {
+            printf("failure at %d for cmp == 0; %1.15e, %1.15e, %1.15e\n", i, ref, cmp, rel);
+          }
+        } else {
+          REAL rel = std::fabs(cmp);
+          if(rel > 1e-12) {
+            printf("failure at %d for rel == 0; %1.15e, %1.15e, %1.15e\n", i, ref, cmp, rel);
+          }
+        }
       }
     }
   }
@@ -829,7 +816,7 @@ __host__ static void setup_expansion_rfm(const params_struct *restrict params,
 void rhs_eval(const commondata_struct *restrict commondata, const params_struct *restrict params, const rfm_struct *restrict rfmstruct,
               const REAL *restrict auxevol_gfs, const REAL *restrict in_gfs, REAL *restrict rhs_gfs) {
 #include "set_CodeParameters.h"
-  const int Ntot = Nxx_plus_2NGHOSTS0 * Nxx_plus_2NGHOSTS1 * Nxx_plus_2NGHOSTS2 * NUM_EVOL_GFS;
+  const int Ntot = Nxx_plus_2NGHOSTS0 * Nxx_plus_2NGHOSTS1 * Nxx_plus_2NGHOSTS2;
   
   // expansion GF arrays
   float* rhsgfs_exp;
@@ -842,6 +829,22 @@ void rhs_eval(const commondata_struct *restrict commondata, const params_struct 
   cudaMalloc(&rhsgfs_exp, sizeof(float) * NUM_EVOL_GFS * Ntot * 2U);
   cudaCheckErrors(malloc, "Malloc failed");
   setup_expansion_gfs(params, auxevol_gfs, in_gfs, auxgfs_exp, ingfs_exp);
+
+  {
+  const size_t threads_in_x_dir = 96;
+  const size_t threads_in_y_dir = 1;
+  const size_t threads_in_z_dir = 1;
+  dim3 threads_per_block(threads_in_x_dir, threads_in_y_dir, threads_in_z_dir);
+  dim3 blocks_per_grid((Ntot + threads_in_x_dir - 1) / threads_in_x_dir / vecsize, 1, 1);
+  size_t sm = 0;
+  size_t streamid = params->grid_idx % nstreams;
+  printf("###############aux##################\n");
+  compare<<<blocks_per_grid, threads_per_block, sm, streams[streamid]>>>(auxgfs_exp, auxevol_gfs, NUM_AUXEVOL_GFS * Ntot);
+  cudaDeviceSynchronize();
+  printf("###############inputGFs##################\n");
+  compare<<<blocks_per_grid, threads_per_block, sm, streams[streamid]>>>(ingfs_exp, in_gfs, NUM_EVOL_GFS * Ntot);
+  cudaDeviceSynchronize();
+  }
 
   // expansion RFM arrays
   float* exp_f0_of_xx0;
@@ -963,7 +966,7 @@ setup_expansion_rfm(params,
   dim3 blocks_per_grid((Ntot + threads_in_x_dir - 1) / threads_in_x_dir / vecsize, 1, 1);
   size_t sm = 0;
   size_t streamid = params->grid_idx % nstreams;
-  compare<<<blocks_per_grid, threads_per_block, sm, streams[streamid]>>>(auxgfs_exp, ingfs_exp, rhsgfs_exp, auxevol_gfs, in_gfs, rhs_gfs);
+  compare<<<blocks_per_grid, threads_per_block, sm, streams[streamid]>>>(rhsgfs_exp, rhs_gfs, NUM_EVOL_GFS * Ntot);
   }
   // Free expansion GFs
   cudaFree(rhsgfs_exp);
