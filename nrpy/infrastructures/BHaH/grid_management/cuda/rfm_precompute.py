@@ -42,6 +42,9 @@ class ReferenceMetricPrecompute(rfm_precompute.ReferenceMetricPrecompute):
         which_freevar: int = 0
         fp_ccg_type = ccg.fp_type_to_sympy_type[fp_type]
         sp_type_alias = {sp_ast.real: fp_ccg_type}
+        if expansion_form:
+            self.BHaH_defines_list = [v.replace("REAL *", "float *") for v in self.BHaH_defines_list]
+        # print(self.BHaH_defines_list)
         # user_functions = {}
         # if expansion_form:
         #     user_functions = {
