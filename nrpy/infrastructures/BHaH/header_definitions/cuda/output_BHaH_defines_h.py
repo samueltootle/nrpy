@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Optional, Dict, List, Union, Any
 
 
-import nrpy.grid as gri
+import nrpy.grid as gri, nrpy.params as par
 from nrpy.helpers.generic import clang_format
 from nrpy.infrastructures.BHaH.header_definitions.base_output_BHaH_defines_h import (
     base_output_BHaH_defines_h,
@@ -461,6 +461,9 @@ class output_BHaH_defines_h(base_output_BHaH_defines_h):
         self.file_output_str += (
             f'\n#include "{gpu_defines.bhah_gpu_defines_filename}"\n'
         )
+        
+        if expansion_form:
+            par.glb_extras_dict['BHaH_defines']['reference_metric'].replace("REAL *", "float *")
 
         self.write_to_file()
 
