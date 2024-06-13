@@ -194,6 +194,7 @@ numericalgrids.register_CFunctions(
     enable_rfm_precompute=enable_rfm_precompute,
     enable_CurviBCs=True,
     fp_type=fp_type,
+    expansion_form=expansion_form,
 )
 xx_tofrom_Cart.register_CFunction_xx_to_Cart(CoordSystem=CoordSystem, fp_type=fp_type)
 
@@ -214,6 +215,7 @@ nrpyellClib.register_CFunction_rhs_eval(
     enable_simd=enable_simd,
     OMP_collapse=OMP_collapse,
     fp_type=fp_type,
+    expansion_form=expansion_form,
 )
 
 # Generate function to compute residuals
