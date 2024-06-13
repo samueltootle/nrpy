@@ -104,7 +104,7 @@ class simple_loop(base_sl.base_simple_loop):
         )
 
         self.rfmp = rfm_precompute.ReferenceMetricPrecompute(
-            CoordSystem, fp_type=fp_type
+            CoordSystem, fp_type=fp_type, expansion_form=expansion_form
         )
 
         if self.read_xxs:
@@ -142,8 +142,6 @@ class simple_loop(base_sl.base_simple_loop):
   const int stride0 = blockDim.x * gridDim.x;
   const int stride1 = blockDim.y * gridDim.y;
   const int stride2 = blockDim.z * gridDim.z;
-  
-  {self.full_loop_body}
 """
         if expansion_form:
           inv_constant_str = """[[maybe_unused]] expansion_math::float2<float> invdxx0 = expansion_math::split<float>(d_params.invdxx0);
