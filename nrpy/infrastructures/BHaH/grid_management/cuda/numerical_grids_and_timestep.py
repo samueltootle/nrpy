@@ -53,11 +53,12 @@ class register_CFunction_numerical_grid_params_Nxx_dxx_xx(
         CoordSystem: str,
         grid_physical_size: float,
         Nxx_dict: Dict[str, List[int]],
+        expansion_form: bool = False,
     ) -> None:
         super().__init__(CoordSystem, grid_physical_size, Nxx_dict)
 
-        self.params.replace("REAL *restrict xx[3]", "REAL * xx[3]")
-        self.params = "const commondata_struct *restrict commondata, params_struct *restrict params, REAL * xx[3], const int Nx[3], const bool grid_is_resized"
+        array_type = "float" if expansion_form else "REAL"
+        self.params = f"const commondata_struct *restrict commondata, params_struct *restrict params, {array_type} * xx[3], const int Nx[3], const bool grid_is_resized"
         self.prefunc = ""
         self.body += """
     // Allocate device storage
@@ -93,17 +94,36 @@ class register_CFunction_numerical_grid_params_Nxx_dxx_xx(
     cudaCheckErrors(initialize_grid_xx2_gpu, "kernel failed");
     """
         for i in range(3):
-            kernel_body = f"""
+            storage_type = "expansion_math::float2<float>" if expansion_form else "REAL"
+            if expansion_form:
+                kernel_body = f"""
   const int index  = blockIdx.x * blockDim.x + threadIdx.x;
   const int stride = blockDim.x * gridDim.x;
 
-  REAL const xxmin{i} = d_params.xxmin{i};
+  {storage_type} const xxmin{i} = expansion_math::split<float>(d_params.xxmin{i});
+  {storage_type} const dxx{i} = expansion_math::split<float>(d_params.dxx{i});
 
-  REAL const dxx{i} = d_params.dxx{i};
+  int const Nxx_plus_2NGHOSTS{i} = d_params.Nxx_plus_2NGHOSTS{i};
 
-  REAL const Nxx_plus_2NGHOSTS{i} = d_params.Nxx_plus_2NGHOSTS{i};
+  static constexpr {storage_type} onehalf = expansion_math::split<float>(1.0 / 2.0);
 
-  constexpr REAL onehalf = 1.0 / 2.0;
+  for (int j = index; j < 2 * Nxx_plus_2NGHOSTS{i}; j += 2 * stride){{
+    {storage_type} const res = xxmin{i} + ((REAL)(j - NGHOSTS) + onehalf) * dxx{i};
+    xx{i}[j] = res.value;
+    xx{i}[j+1] = res.remainder;
+  }}
+"""                
+            else:
+                kernel_body = f"""
+  const int index  = blockIdx.x * blockDim.x + threadIdx.x;
+  const int stride = blockDim.x * gridDim.x;
+
+  {storage_type} const xxmin{i} = d_params.xxmin{i};
+  {storage_type} const dxx{i} = d_params.dxx{i};
+
+  int const Nxx_plus_2NGHOSTS{i} = d_params.Nxx_plus_2NGHOSTS{i};
+
+  static constexpr REAL onehalf = 1.0 / 2.0;
 
   for (int j = index; j < Nxx_plus_2NGHOSTS{i}; j+=stride)
     xx{i}[j] = xxmin{i} + ((REAL)(j - NGHOSTS) + onehalf) * dxx{i};
@@ -330,6 +350,7 @@ def register_CFunctions(
     enable_rfm_precompute: bool = False,
     enable_CurviBCs: bool = False,
     fp_type: str = "double",
+    expansion_form: bool = False,
 ) -> None:
     """
     Register C functions related to coordinate systems and grid parameters.
@@ -346,6 +367,7 @@ def register_CFunctions(
             CoordSystem=CoordSystem,
             grid_physical_size=grid_physical_size,
             Nxx_dict=Nxx_dict,
+            expansion_form=expansion_form
         )
         register_CFunction_cfl_limited_timestep(
             CoordSystem=CoordSystem, fp_type=fp_type
