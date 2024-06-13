@@ -884,10 +884,11 @@ class gpu_register_CFunction_rhs_eval(
         CoordSystem: str,
         enable_rfm_precompute: bool,
         fp_type: str = "double",
+        expansion_form: bool = False,
     ) -> None:
 
         super().__init__(CoordSystem, enable_rfm_precompute)
-
+        array_type = "float" if expansion_form else "REAL"
         self.simple_loop = lp.simple_loop(
             loop_body=ccg.c_codegen(
                 [self.rhs.uu_rhs, self.rhs.vv_rhs],
@@ -904,25 +905,26 @@ class gpu_register_CFunction_rhs_eval(
             enable_rfm_precompute=enable_rfm_precompute,
             read_xxs=not enable_rfm_precompute,
             fp_type=fp_type,
+            expansion_form=expansion_form,
         )
         self.loop_body = self.simple_loop.full_loop_body.replace(
             "const REAL f", "[[maybe_unused]] const REAL f"
         )
         self.kernel_comments = "GPU Kernel to evaluate RHS on the interior."
-        self.params_dict_coord = {f"x{i}": "const REAL *restrict" for i in range(3)}
+        self.params_dict_coord = {f"x{i}": f"const {array_type} *restrict" for i in range(3)}
         self.body = ""
 
         if enable_rfm_precompute:
 
             self.params_dict_coord = {
-                f'{rfm_f.replace("REAL *restrict ","")[:-1]}': "const REAL *restrict"
+                f'{rfm_f.replace(f"{array_type} *restrict ","")[:-1]}': f"const {array_type} *restrict"
                 for rfm_f in self.simple_loop.rfmp.BHaH_defines_list
             }
             params_dict = {f"rfm_{k}": v for k, v in self.params_dict_coord.items()}
-            params_dict["auxevol_gfs"] = "const REAL *restrict"
-            params_dict["in_gfs"] = "const REAL *restrict"
-            params_dict["rhs_gfs"] = "REAL *restrict"
-            params_dict["eta_damping"] = "const REAL"
+            params_dict["auxevol_gfs"] = f"const {array_type} *restrict"
+            params_dict["in_gfs"] = f"const {array_type} *restrict"
+            params_dict["rhs_gfs"] = f"{array_type} *restrict"
+            params_dict["eta_damping"] = f"const REAL" if not expansion_form else "const expansion_math::float2<float>"
 
             # Put loop_body into a device kernel
             self.device_kernel = gputils.GPU_Kernel(
@@ -963,6 +965,7 @@ def register_CFunction_rhs_eval(
     CoordSystem: str,
     enable_rfm_precompute: bool,
     fp_type: str = "double",
+    expansion_form: bool = False,
     **_kwargs: Any,
 ) -> Union[None, pcg.NRPyEnv_type]:
     """
@@ -981,7 +984,7 @@ def register_CFunction_rhs_eval(
     if pcg.pcg_registration_phase():
         pcg.register_func_call(f"{__name__}.{cast(FT, cf()).f_code.co_name}", locals())
         return None
-    gpu_register_CFunction_rhs_eval(CoordSystem, enable_rfm_precompute, fp_type=fp_type)
+    gpu_register_CFunction_rhs_eval(CoordSystem, enable_rfm_precompute, fp_type=fp_type, expansion_form=expansion_form)
 
     return cast(pcg.NRPyEnv_type, pcg.NRPyEnv())
 
@@ -1013,6 +1016,7 @@ class gpu_register_CFunction_compute_residual_all_points(
         enable_simd: bool,
         OMP_collapse: int,
         fp_type: str = "double",
+        expansion_form: bool = False
     ) -> None:
         super().__init__(
             CoordSystem=CoordSystem, enable_rfm_precompute=enable_rfm_precompute
@@ -1039,16 +1043,18 @@ class gpu_register_CFunction_compute_residual_all_points(
             enable_rfm_precompute=enable_rfm_precompute,
             read_xxs=not enable_rfm_precompute,
             fp_type=fp_type,
+            expansion_form=expansion_form,
         )
         self.kernel_body = self.simple_loop.full_loop_body
+        array_type = "float" if expansion_form else "REAL"
         self.params_dict_coord = {
-            f'{rfm_f.replace("REAL *restrict ","")[:-1]}': "const REAL *restrict"
+            f'{rfm_f.replace(f"{array_type} *restrict ","")[:-1]}': f"const {array_type} *restrict"
             for rfm_f in self.simple_loop.rfmp.BHaH_defines_list
         }
         params_dict = {f"rfm_{k}": v for k, v in self.params_dict_coord.items()}
-        params_dict["auxevol_gfs"] = "const REAL *restrict"
-        params_dict["in_gfs"] = "const REAL *restrict"
-        params_dict["aux_gfs"] = "REAL *restrict"
+        params_dict["auxevol_gfs"] = f"const {array_type} *restrict"
+        params_dict["in_gfs"] = f"const {array_type} *restrict"
+        params_dict["aux_gfs"] = f"{array_type} *restrict"
         self.kernel_body = self.kernel_body.replace(
             "const REAL f", "[[maybe_unused]] const REAL f"
         )
