@@ -58,25 +58,26 @@ class register_CFunction_numerical_grid_params_Nxx_dxx_xx(
         super().__init__(CoordSystem, grid_physical_size, Nxx_dict)
 
         array_type = "float" if expansion_form else "REAL"
+        mallocfac = int(expansion_form) + 1
         self.params = f"const commondata_struct *restrict commondata, params_struct *restrict params, {array_type} * xx[3], const int Nx[3], const bool grid_is_resized"
         self.prefunc = ""
-        self.body += """
+        self.body += f"""
     // Allocate device storage
-    cudaMalloc(&xx[0], sizeof(REAL) * Nxx_plus_2NGHOSTS0);
+    cudaMalloc(&xx[0], sizeof({array_type}) * Nxx_plus_2NGHOSTS0 * {mallocfac});
     cudaCheckErrors(malloc, "Malloc failed");
-    cudaMalloc(&xx[1], sizeof(REAL) * Nxx_plus_2NGHOSTS1);
+    cudaMalloc(&xx[1], sizeof({array_type}) * Nxx_plus_2NGHOSTS1 * {mallocfac});
     cudaCheckErrors(malloc, "Malloc failed");
-    cudaMalloc(&xx[2], sizeof(REAL) * Nxx_plus_2NGHOSTS2);
+    cudaMalloc(&xx[2], sizeof({array_type}) * Nxx_plus_2NGHOSTS2 * {mallocfac});
     cudaCheckErrors(malloc, "Malloc failed");
     
     cpyHosttoDevice_params__constant(params);
     
     dim3 block_threads, grid_blocks;
-    auto set_grid_block = [&block_threads, &grid_blocks](auto Nx) {
+    auto set_grid_block = [&block_threads, &grid_blocks](auto Nx) {{
         size_t threads_in_x_dir = 32;
         block_threads = dim3(threads_in_x_dir, 1, 1);
         grid_blocks = dim3((Nx + threads_in_x_dir - 1)/threads_in_x_dir, 1, 1);
-    };
+    }};
     
     size_t streamid = params->grid_idx % nstreams;
     set_grid_block(Nxx_plus_2NGHOSTS0);
@@ -125,12 +126,13 @@ class register_CFunction_numerical_grid_params_Nxx_dxx_xx(
 
   static constexpr REAL onehalf = 1.0 / 2.0;
 
-  for (int j = index; j < Nxx_plus_2NGHOSTS{i}; j+=stride)
+  for (int j = index; j < Nxx_plus_2NGHOSTS{i}; j+=stride) {{
     xx{i}[j] = xxmin{i} + ((REAL)(j - NGHOSTS) + onehalf) * dxx{i};
+  }}
 """
             xx0_kernel = gputils.GPU_Kernel(
                 kernel_body,
-                {f"xx{i}": "REAL *restrict"},
+                {f"xx{i}": f"{array_type} *restrict"},
                 f"initialize_grid_xx{i}_gpu",
                 launch_dict={
                     "blocks_per_grid": [],
@@ -166,15 +168,20 @@ class register_CFunction_cfl_limited_timestep(
     :return: None.
     """
 
-    def __init__(self, CoordSystem: str, fp_type: str = "double") -> None:
+    def __init__(self, CoordSystem: str, fp_type: str = "double", expansion_form: bool = False) -> None:
         super().__init__(CoordSystem, fp_type=fp_type)
         # could be replaced by simple loop?
-        self.body = r"""
+        if expansion_form:
+            array_type = "float"
+            self.params = self.params.replace("REAL *restrict", "float *restrict")
+        else:
+            array_type = "REAL"
+        self.body = rf"""
 const int Nxx_tot = (Nxx_plus_2NGHOSTS0)*(Nxx_plus_2NGHOSTS1)*(Nxx_plus_2NGHOSTS2);
   REAL *ds_min;
-  REAL *restrict x0 = xx[0];
-  REAL *restrict x1 = xx[1];
-  REAL *restrict x2 = xx[2];
+  {array_type} *restrict x0 = xx[0];
+  {array_type} *restrict x1 = xx[1];
+  {array_type} *restrict x2 = xx[2];
 
   // We only loop over a single GF array length
   cudaMalloc(&ds_min,sizeof(REAL) * Nxx_tot);
@@ -194,15 +201,17 @@ const int Nxx_tot = (Nxx_plus_2NGHOSTS0)*(Nxx_plus_2NGHOSTS1)*(Nxx_plus_2NGHOSTS
             read_xxs=True,
             loop_region="all points",
             fp_type=self.fp_type,
+            collapse_expansion_coord=True,
+            # expansion_form=expansion_form,
         ).full_loop_body
 
         # Put loop_body into a device kernel
         self.device_kernel = gputils.GPU_Kernel(
             self.loop_body,
             {
-                "x0": "const REAL *restrict",
-                "x1": "const REAL *restrict",
-                "x2": "const REAL *restrict",
+                "x0": f"const {array_type} *restrict",
+                "x1": f"const {array_type} *restrict",
+                "x2": f"const {array_type} *restrict",
                 "ds_min": "REAL *restrict",
             },
             "compute_ds_min__gpu",
@@ -370,7 +379,7 @@ def register_CFunctions(
             expansion_form=expansion_form
         )
         register_CFunction_cfl_limited_timestep(
-            CoordSystem=CoordSystem, fp_type=fp_type
+            CoordSystem=CoordSystem, fp_type=fp_type, expansion_form=expansion_form
         )
     register_CFunction_numerical_grids_and_timestep(
         list_of_CoordSystems=list_of_CoordSystems,
