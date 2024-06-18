@@ -80,13 +80,13 @@ class base_register_CFunction_xx_to_Cart:
         # Suppose grid origin is at 1,1,1. Then the Cartesian gridpoint at 1,2,3 will be 2,3,4; hence
         # the xx_to_Cart[i]+gri.Cart_origin[i] below:
         self.rfm = refmetric.reference_metric[self.CoordSystem]
-        expr_list = [
+        self.expr_list = [
             self.rfm.xx_to_Cart[0] + gri.Cart_origin[0],
             self.rfm.xx_to_Cart[1] + gri.Cart_origin[1],
             self.rfm.xx_to_Cart[2] + gri.Cart_origin[2],
         ]
         self.unique_symbols = []
-        for expr in expr_list:
+        for expr in self.expr_list:
             self.unique_symbols += get_unique_expression_symbols(
                 expr, exclude=[f"xx{i}" for i in range(3)]
             )
@@ -96,7 +96,7 @@ REAL xx0 = xx[0][i0];
 REAL xx1 = xx[1][i1];
 REAL xx2 = xx[2][i2];
 """ + ccg.c_codegen(
-            expr_list,
+            self.expr_list,
             ["xCart[0]", "xCart[1]", "xCart[2]"],
             fp_type=self.fp_type,
         )
