@@ -196,7 +196,7 @@ numericalgrids.register_CFunctions(
     fp_type=fp_type,
     expansion_form=expansion_form,
 )
-xx_tofrom_Cart.register_CFunction_xx_to_Cart(CoordSystem=CoordSystem, fp_type=fp_type)
+xx_tofrom_Cart.register_CFunction_xx_to_Cart(CoordSystem=CoordSystem, fp_type=fp_type, expansion_form=expansion_form)
 
 nrpyellClib.register_CFunction_diagnostics(
     CoordSystem=CoordSystem,
