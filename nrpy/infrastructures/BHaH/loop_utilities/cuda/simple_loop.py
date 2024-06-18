@@ -91,6 +91,7 @@ class simple_loop(base_sl.base_simple_loop):
         enable_rfm_precompute: bool = False,
         fp_type: str = "double",
         expansion_form: bool = False,
+        collapse_expansion_coord: bool = True,
         **_: Any,
     ) -> None:
         super().__init__(
@@ -108,7 +109,13 @@ class simple_loop(base_sl.base_simple_loop):
         )
 
         if self.read_xxs:
-            if expansion_form:
+            if collapse_expansion_coord:
+              self.read_rfm_xx_arrays = [
+                  "[[maybe_unused]] const REAL xx0 = expansion_math::recast_sum<REAL>(expansion_math::float2<float>(x0[i0], x0[i0+1]));",
+                  "[[maybe_unused]] const REAL xx1 = expansion_math::recast_sum<REAL>(expansion_math::float2<float>(x1[i1], x1[i1+1]));",
+                  "[[maybe_unused]] const REAL xx2 = expansion_math::recast_sum<REAL>(expansion_math::float2<float>(x2[i2], x2[i2+1]));",
+              ]
+            elif expansion_form:
               self.read_rfm_xx_arrays = [
                   "[[maybe_unused]] const expansion_math::float2<float> xx0(x0[i0], x0[i0+1]);",
                   "[[maybe_unused]] const expansion_math::float2<float> xx1(x1[i1], x1[i1+1]);",
