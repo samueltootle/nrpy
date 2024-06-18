@@ -454,6 +454,9 @@ class output_BHaH_defines_h(base_output_BHaH_defines_h):
         self.gri_BHd_struct_str = self.gri_BHd_struct_str.replace("*restrict", "*")
         if expansion_form:
             self.gri_BHd_struct_str = self.gri_BHd_struct_str.replace("REAL *", "float *")
+            # Possibly dangerous...
+            for key, val in par.glb_extras_dict['BHaH_defines'].items():
+                par.glb_extras_dict['BHaH_defines'][key] = val.replace("REAL *", "float *")
         self.register_define_blocks()
         self.generate_output_str()
 
@@ -461,9 +464,6 @@ class output_BHaH_defines_h(base_output_BHaH_defines_h):
         self.file_output_str += (
             f'\n#include "{gpu_defines.bhah_gpu_defines_filename}"\n'
         )
-        
-        if expansion_form:
-            par.glb_extras_dict['BHaH_defines']['reference_metric'].replace("REAL *", "float *")
 
         self.write_to_file()
 
