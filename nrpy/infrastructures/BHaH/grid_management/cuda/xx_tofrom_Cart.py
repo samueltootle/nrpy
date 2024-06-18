@@ -112,7 +112,7 @@ class register_CFunction_xx_to_Cart(base_xx_classes.base_register_CFunction_xx_t
     :return: None.
     """
 
-    def __init__(self, CoordSystem: str, fp_type: str = "double") -> None:
+    def __init__(self, CoordSystem: str, fp_type: str = "double", expansion_form: bool = False) -> None:
         super().__init__(
             CoordSystem,
             fp_type=fp_type,
@@ -122,6 +122,20 @@ class register_CFunction_xx_to_Cart(base_xx_classes.base_register_CFunction_xx_t
         kernel_body = ""
         for sym in self.unique_symbols:
             kernel_body += f"const REAL {sym} = params->{sym};\n"
+        if expansion_form:
+            self.params = self.params.replace("REAL *restrict", "float *restrict")
+            self.body = """
+const expansion_math::float2<float> xx0_exp(xx[0][i0], xx[0][i0 + 1]);
+const expansion_math::float2<float> xx1_exp(xx[1][i1], xx[1][i1 + 1]);
+const expansion_math::float2<float> xx2_exp(xx[2][i2], xx[2][i2 + 1]);
+REAL xx0 = expansion_math::recast_sum<double>(xx0_exp);
+REAL xx1 = expansion_math::recast_sum<double>(xx1_exp);
+REAL xx2 = expansion_math::recast_sum<double>(xx2_exp);
+""" + ccg.c_codegen(
+            self.expr_list,
+            ["xCart[0]", "xCart[1]", "xCart[2]"],
+            fp_type=self.fp_type,
+        )
         self.body = kernel_body + self.body
         cfc.register_CFunction(
             includes=self.includes,
