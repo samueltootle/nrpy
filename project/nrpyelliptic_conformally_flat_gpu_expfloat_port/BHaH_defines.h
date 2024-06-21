@@ -13,6 +13,7 @@
 #include <string.h>  // String handling functions, such as strlen, strcmp, etc.
 #include <time.h>    // Time-related functions and types, such as time(), clock(),
 #define REAL double
+#include "expansion_math.h"
 
 #define MIN(A, B) (((A) < (B)) ? (A) : (B))
 #define MAX(A, B) (((A) > (B)) ? (A) : (B))
@@ -151,19 +152,19 @@ typedef struct __params_struct__ {
 //********************************************
 // Basic definitions for module reference_metric:
 typedef struct __rfmstruct__ {
-  REAL *f0_of_xx0;
-  REAL *f0_of_xx0__D0;
-  REAL *f0_of_xx0__DD00;
-  REAL *f0_of_xx0__DDD000;
-  REAL *f1_of_xx1;
-  REAL *f1_of_xx1__D1;
-  REAL *f1_of_xx1__DD11;
-  REAL *f2_of_xx0;
-  REAL *f2_of_xx0__D0;
-  REAL *f2_of_xx0__DD00;
-  REAL *f4_of_xx1;
-  REAL *f4_of_xx1__D1;
-  REAL *f4_of_xx1__DD11;
+  float *f0_of_xx0;
+  float *f0_of_xx0__D0;
+  float *f0_of_xx0__DD00;
+  float *f0_of_xx0__DDD000;
+  float *f1_of_xx1;
+  float *f1_of_xx1__D1;
+  float *f1_of_xx1__DD11;
+  float *f2_of_xx0;
+  float *f2_of_xx0__D0;
+  float *f2_of_xx0__DD00;
+  float *f4_of_xx1;
+  float *f4_of_xx1__D1;
+  float *f4_of_xx1__DD11;
 } rfm_struct;
 
 //********************************************
@@ -212,13 +213,13 @@ static const int8_t evol_gf_parity[2] = {0, 0};
 //********************************************
 // Basic definitions for module nrpy.infrastructures.BHaH.MoLtimestepping.cuda.MoL:
 typedef struct __MoL_gridfunctions_struct__ {
-  REAL *y_n_gfs;
-  REAL *y_nplus1_running_total_gfs;
-  REAL *k_odd_gfs;
-  REAL *k_even_gfs;
-  REAL *auxevol_gfs;
-  REAL *diagnostic_output_gfs;
-  REAL *diagnostic_output_gfs2;
+  float *y_n_gfs;
+  float *y_nplus1_running_total_gfs;
+  float *k_odd_gfs;
+  float *k_even_gfs;
+  float *auxevol_gfs;
+  float *diagnostic_output_gfs;
+  float *diagnostic_output_gfs2;
 } MoL_gridfunctions_struct;
 
 //********************************************
@@ -281,7 +282,7 @@ static const REAL gridfunctions_wavespeed[NUM_EVOL_GFS] = {1.0, 1.0};
 typedef struct __griddata__ {
   // griddata_struct stores data needed on each grid
   // xx[3] stores the uniform grid coordinates.
-  REAL *xx[3];
+  float *xx[3];
   // NRPy+ MODULE: nrpy.infrastructures.BHaH.CurviBoundaryConditions.cuda.CurviBoundaryConditions
   bc_struct bcstruct; // <- all data needed to perform boundary conditions in curvilinear coordinates
   // NRPy+ MODULE: nrpy.infrastructures.BHaH.MoLtimestepping.cuda.MoL

@@ -1,6 +1,5 @@
 #include "BHaH_defines.h"
 #include "BHaH_function_prototypes.h"
-#include "expansion_math.h"
 /*
  * GPU Kernel: rk_substep_1_gpu.
  * GPU Kernel to compute RK substep 1.

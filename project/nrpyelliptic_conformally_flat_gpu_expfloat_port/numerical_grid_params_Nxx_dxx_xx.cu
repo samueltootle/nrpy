@@ -19,7 +19,7 @@
  * - xx: Coordinate values for each (cell-centered) grid point.
  *
  */
-void numerical_grid_params_Nxx_dxx_xx(const commondata_struct *restrict commondata, params_struct *restrict params, REAL *xx[3], const int Nx[3],
+void numerical_grid_params_Nxx_dxx_xx(const commondata_struct *restrict commondata, params_struct *restrict params, float *xx[3], const int Nx[3],
                                       const bool grid_is_resized) {
   switch (params->CoordSystem_hash) {
   case SINHSYMTP:

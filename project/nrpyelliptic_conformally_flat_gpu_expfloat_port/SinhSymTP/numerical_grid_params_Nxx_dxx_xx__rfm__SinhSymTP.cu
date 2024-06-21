@@ -9,16 +9,20 @@ __global__ static void initialize_grid_xx0_gpu(REAL *restrict xx0) {
   const int index = blockIdx.x * blockDim.x + threadIdx.x;
   const int stride = blockDim.x * gridDim.x;
 
-  REAL const xxmin0 = d_params.xxmin0;
+  const expansion_math::float2<float> xxmin0 = expansion_math::split<float>(d_params.xxmin0);
 
-  REAL const dxx0 = d_params.dxx0;
+  const expansion_math::float2<float> dxx0 = expansion_math::split<float>(d_params.dxx0);
 
-  REAL const Nxx_plus_2NGHOSTS0 = d_params.Nxx_plus_2NGHOSTS0;
+  int const Nxx_plus_2NGHOSTS0 = d_params.Nxx_plus_2NGHOSTS0;
 
-  constexpr REAL onehalf = 1.0 / 2.0;
+  static constexpr REAL onehalf_ = 1.0 / 2.0;
+  static constexpr expansion_math::float2<float> onhalf = expansion_math::split<float>(onehalf_);
 
-  for (int j = index; j < Nxx_plus_2NGHOSTS0; j += stride)
-    xx0[j] = xxmin0 + ((REAL)(j - NGHOSTS) + onehalf) * dxx0;
+  for (int j = index; j < Nxx_plus_2NGHOSTS0; j += 2U * stride) {
+    const expansion_math::float2<float> res = xxmin0 + ((REAL)(j - NGHOSTS) + onehalf) * dxx0;
+    xx0[j  ] = res.value;
+    xx0[j+1] = res.remainder;
+  }
 }
 /*
  * GPU Kernel: initialize_grid_xx1_gpu.
@@ -29,16 +33,20 @@ __global__ static void initialize_grid_xx1_gpu(REAL *restrict xx1) {
   const int index = blockIdx.x * blockDim.x + threadIdx.x;
   const int stride = blockDim.x * gridDim.x;
 
-  REAL const xxmin1 = d_params.xxmin1;
+  const expansion_math::float2<float> xxmin1 = expansion_math::split<float>(d_params.xxmin1);
 
-  REAL const dxx1 = d_params.dxx1;
+  const expansion_math::float2<float> dxx1 = expansion_math::split<float>(d_params.dxx1);
 
-  REAL const Nxx_plus_2NGHOSTS1 = d_params.Nxx_plus_2NGHOSTS1;
+  int const Nxx_plus_2NGHOSTS1 = d_params.Nxx_plus_2NGHOSTS1;
 
-  constexpr REAL onehalf = 1.0 / 2.0;
+  static constexpr REAL onehalf_ = 1.0 / 2.0;
+  static constexpr expansion_math::float2<float> onhalf = expansion_math::split<float>(onehalf_);
 
-  for (int j = index; j < Nxx_plus_2NGHOSTS1; j += stride)
-    xx1[j] = xxmin1 + ((REAL)(j - NGHOSTS) + onehalf) * dxx1;
+  for (int j = index; j < Nxx_plus_2NGHOSTS1; j += 2U * stride) {
+    const expansion_math::float2<float> res = xxmin1 + ((REAL)(j - NGHOSTS) + onehalf) * dxx1;
+    xx1[j] = res.value;
+    xx1[j+1] = res.remainder;
+  }
 }
 /*
  * GPU Kernel: initialize_grid_xx2_gpu.
@@ -49,16 +57,20 @@ __global__ static void initialize_grid_xx2_gpu(REAL *restrict xx2) {
   const int index = blockIdx.x * blockDim.x + threadIdx.x;
   const int stride = blockDim.x * gridDim.x;
 
-  REAL const xxmin2 = d_params.xxmin2;
+  const expansion_math::float2<float> xxmin2 = expansion_math::split<float>(d_params.xxmin2);
 
-  REAL const dxx2 = d_params.dxx2;
+  const expansion_math::float2<float> dxx2 = expansion_math::split<float>(d_params.dxx2);
 
-  REAL const Nxx_plus_2NGHOSTS2 = d_params.Nxx_plus_2NGHOSTS2;
+  int const Nxx_plus_2NGHOSTS2 = d_params.Nxx_plus_2NGHOSTS2;
 
-  constexpr REAL onehalf = 1.0 / 2.0;
+  static constexpr REAL onehalf_ = 1.0 / 2.0;
+  static constexpr expansion_math::float2<float> onhalf = expansion_math::split<float>(onehalf_);
 
-  for (int j = index; j < Nxx_plus_2NGHOSTS2; j += stride)
-    xx2[j] = xxmin2 + ((REAL)(j - NGHOSTS) + onehalf) * dxx2;
+  for (int j = index; j < Nxx_plus_2NGHOSTS2; j += 2U * stride){
+    const expansion_math::float2<float> res = xxmin2 + ((REAL)(j - NGHOSTS) + onehalf) * dxx2;
+    xx2[j] = res.value;
+    xx2[j] = res.remainder;
+  }
 }
 
 /*
@@ -80,7 +92,7 @@ __global__ static void initialize_grid_xx2_gpu(REAL *restrict xx2) {
  * - xx: Coordinate values for each (cell-centered) grid point.
  *
  */
-void numerical_grid_params_Nxx_dxx_xx__rfm__SinhSymTP(const commondata_struct *restrict commondata, params_struct *restrict params, REAL *xx[3],
+void numerical_grid_params_Nxx_dxx_xx__rfm__SinhSymTP(const commondata_struct *restrict commondata, params_struct *restrict params, float *xx[3],
                                                       const int Nx[3], const bool grid_is_resized) {
   // Start by setting default values for Nxx.
   params->Nxx0 = 256;
@@ -134,11 +146,11 @@ void numerical_grid_params_Nxx_dxx_xx__rfm__SinhSymTP(const commondata_struct *r
   params->invdxx2 = ((REAL)params->Nxx2) / (params->xxmax2 - params->xxmin2);
 
   // Allocate device storage
-  cudaMalloc(&xx[0], sizeof(REAL) * Nxx_plus_2NGHOSTS0);
+  cudaMalloc(&xx[0], sizeof(REAL) * Nxx_plus_2NGHOSTS0 * 2);
   cudaCheckErrors(malloc, "Malloc failed");
-  cudaMalloc(&xx[1], sizeof(REAL) * Nxx_plus_2NGHOSTS1);
+  cudaMalloc(&xx[1], sizeof(REAL) * Nxx_plus_2NGHOSTS1 * 2);
   cudaCheckErrors(malloc, "Malloc failed");
-  cudaMalloc(&xx[2], sizeof(REAL) * Nxx_plus_2NGHOSTS2);
+  cudaMalloc(&xx[2], sizeof(REAL) * Nxx_plus_2NGHOSTS2 * 2);
   cudaCheckErrors(malloc, "Malloc failed");
 
   cpyHosttoDevice_params__constant(params);
