@@ -39,6 +39,7 @@ def register_CFunction_diagnostics_nearest_grid_center(
         "out0d-conv_factor%.2f.txt",
         "convergence_factor",
     ),
+    pointer_decorator: str = "",
 ) -> Union[None, pcg.NRPyEnv_type]:
     r"""
     Register C function for "0-dimensional" simulation diagnostics -- output data at gridpoint closest to grid center.
@@ -112,11 +113,12 @@ In SinhSymTP, this will be at i0_min,i1_mid,i2_mid (i2 == phi doesn't matter).""
         fprintf += f"{key[1]}, "
     fprintf = f"{fprintf[:-2]});\n"
 
+    pointer_flags+=" "
     body = rf"""
 // Unpack gridfuncs struct:
-const REAL *restrict y_n_gfs = gridfuncs->y_n_gfs;
-const REAL *restrict auxevol_gfs = gridfuncs->auxevol_gfs;
-const REAL *restrict diagnostic_output_gfs = gridfuncs->diagnostic_output_gfs;
+{pointer_decorator}const REAL *restrict y_n_gfs = gridfuncs->y_n_gfs;
+{pointer_decorator}const REAL *restrict auxevol_gfs = gridfuncs->auxevol_gfs;
+{pointer_decorator}const REAL *restrict diagnostic_output_gfs = gridfuncs->diagnostic_output_gfs;
 
 // Output to file diagnostic quantities at grid's *physical* center.
 char filename[256];
@@ -159,6 +161,7 @@ def register_CFunction_diagnostics_nearest_1d_axis(
         "out1d-AXIS-%s-conv_factor%.2f-t%08.2f.txt",
         "CoordSystemName, convergence_factor, time",
     ),
+    pointer_decorator: str = "",
 ) -> Union[None, pcg.NRPyEnv_type]:
     r"""
     Register C function for 1-dimensional simulation diagnostics at gridpoints closest to specified axis.
@@ -204,9 +207,9 @@ def register_CFunction_diagnostics_nearest_1d_axis(
 
     body = rf"""
 // Unpack gridfuncs struct:
-const REAL *restrict y_n_gfs = gridfuncs->y_n_gfs;
-const REAL *restrict auxevol_gfs = gridfuncs->auxevol_gfs;
-const REAL *restrict diagnostic_output_gfs = gridfuncs->diagnostic_output_gfs;
+{pointer_decorator}const REAL *restrict y_n_gfs = gridfuncs->y_n_gfs;
+{pointer_decorator}const REAL *restrict auxevol_gfs = gridfuncs->auxevol_gfs;
+{pointer_decorator}const REAL *restrict diagnostic_output_gfs = gridfuncs->diagnostic_output_gfs;
 
 // 1D output
 char filename[256];
@@ -243,6 +246,7 @@ def register_CFunction_diagnostics_nearest_2d_plane(
         "out2d-PLANE-%s-conv_factor%.2f-t%08.2f.txt",
         "CoordSystemName, convergence_factor, time",
     ),
+    pointer_decorator: str = "",
 ) -> Union[None, pcg.NRPyEnv_type]:
     r"""
     Register C function for 2-dimensional simulation diagnostics at gridpoints closest to the specified plane.
@@ -289,9 +293,9 @@ def register_CFunction_diagnostics_nearest_2d_plane(
 
     body = rf"""
 // Unpack gridfuncs struct:
-const REAL *restrict y_n_gfs = gridfuncs->y_n_gfs;
-const REAL *restrict auxevol_gfs = gridfuncs->auxevol_gfs;
-const REAL *restrict diagnostic_output_gfs = gridfuncs->diagnostic_output_gfs;
+{pointer_decorator}const REAL *restrict y_n_gfs = gridfuncs->y_n_gfs;
+{pointer_decorator}const REAL *restrict auxevol_gfs = gridfuncs->auxevol_gfs;
+{pointer_decorator}const REAL *restrict diagnostic_output_gfs = gridfuncs->diagnostic_output_gfs;
 
 // 1D output
 char filename[256];
