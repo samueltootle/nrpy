@@ -567,7 +567,7 @@ if(r < integration_radius) {{
   REAL *restrict x2 = griddata[grid].xx[2];
   REAL *restrict in_gfs = griddata[grid].gridfuncs.diagnostic_output_gfs;
   REAL *restrict aux_gfs = griddata[grid].gridfuncs.diagnostic_output_gfs2;
-  
+
   // Since we're performing sums, make sure arrays are zero'd
   cudaMemset(aux_gfs, 0, sizeof(REAL) * NUM_EVOL_GFS * Nxx_plus_2NGHOSTS_tot);
 
@@ -681,6 +681,7 @@ class gpu_register_CFunction_diagnostics(
                 out_quantities_dict=self.out_quantities_dict,
                 filename_tuple=axis_filename_tuple,
                 axis=axis,
+                pointer_decorator="[[maybe_unused]] "
             )
         for plane in ["xy", "yz"]:
             out012d.register_CFunction_diagnostics_nearest_2d_plane(
@@ -688,6 +689,7 @@ class gpu_register_CFunction_diagnostics(
                 out_quantities_dict=self.out_quantities_dict,
                 filename_tuple=plane_filename_tuple,
                 plane=plane,
+                pointer_decorator="[[maybe_unused]] "
             )
 
         self.body = r"""  // Output progress to stderr
@@ -721,7 +723,7 @@ class gpu_register_CFunction_diagnostics(
   cudaDeviceSynchronize();
   streamid = cpyDevicetoHost__gf(commondata, params, host_diag_gfs, diagnostic_output_gfs, RESIDUAL_HGF, RESIDUAL_HGF);
   cudaEventRecord(start[1], streams[streamid]);
-  
+
   // Set integration radius for l2-norm computation
   const REAL integration_radius = 1000;
 
