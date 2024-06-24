@@ -20,7 +20,7 @@ import nrpy.helpers.parallel_codegen as pcg
 import nrpy.helpers.gpu_kernel as gputils
 
 import nrpy.infrastructures.BHaH.header_definitions.cuda.output_BHaH_defines_h as Bdefines_h
-import nrpy.infrastructures.BHaH.checkpoints.openmp.checkpointing as chkpt
+import nrpy.infrastructures.BHaH.checkpoints.cuda.checkpointing as chkpt
 import nrpy.infrastructures.BHaH.cmdline_input_and_parfiles as cmdpar
 import nrpy.infrastructures.BHaH.CodeParameters as CPs
 import nrpy.infrastructures.BHaH.diagnostics.progress_indicator as progress
@@ -38,12 +38,13 @@ from nrpy.infrastructures.BHaH.grid_management.cuda import xx_tofrom_Cart
 par.set_parval_from_str("Infrastructure", "BHaH")
 
 # Code-generation-time parameters:
-project_name = "nrpyelliptic_conformally_flat_gpu_axi"
+project_name = "nrpyelliptic_conformally_flat_gpu_newchkpt"
 fp_type = "double"
 grid_physical_size = 1.0e6
 t_final = grid_physical_size  # This parameter is effectively not used in NRPyElliptic
 nn_max = 10000  # Sets the maximum number of relaxation steps
-
+Q = 5
+R = 512
 
 def get_log10_residual_tolerance(fp_type_str: str = "double") -> float:
     """
@@ -72,7 +73,7 @@ MINIMUM_GLOBAL_WAVESPEED = 0.7
 CFL_FACTOR = 1.0  # NRPyElliptic wave speed prescription assumes this parameter is ALWAYS set to 1
 CoordSystem = "SinhSymTP"
 Nxx_dict = {
-    "SinhSymTP": [128, 128, 16],
+    "SinhSymTP": [R, R, 16],
     "SinhCylindricalv2": [128, 16, 256],
     "SinhSpherical": [128, 128, 16],
 }
@@ -101,7 +102,7 @@ enable_simd = False
 parallel_codegen_enable = True
 boundary_conditions_desc = "outgoing radiation"
 # fmt: off
-initial_data_type = "axisymmetric"  # choices are: "gw150914", "axisymmetric", and "single_puncture"
+initial_data_type = "gw150914"  # choices are: "gw150914", "axisymmetric", and "single_puncture"
 
 def set_gw150914_params() -> Dict[str, Any]:
     """
@@ -159,22 +160,23 @@ def set_axisymmetric_params() -> Dict[str, Any]:
     """
     Set parameters for an axisymmetric BBH setup.
 
-    This setup by default uses the analytical estimate from 
+    This setup by default uses the analytical estimate from
     Kerr to compute bare masses unless the user specifies them
-    manually.  Thus, the solution will not produce a binary with 
-    accurate puncture masses as measured by an apparent horizon 
-    finder that match the expect puncture ADM masses.  
-    A future extension could include an iterative root finder 
+    manually.  Thus, the solution will not produce a binary with
+    accurate puncture masses as measured by an apparent horizon
+    finder that match the expect puncture ADM masses.
+    A future extension could include an iterative root finder
     to make this more robust.
 
     :return: Dictionary of parameters
     """
-    q = 36.0 / 29.0
+    global Q
+    q = Q
     M_total = 1.0
     distance = M_total * 5.0
 
-    S0_y_dimless = 0.31
-    S1_y_dimless = -0.46
+    S0_y_dimless = 0.0
+    S1_y_dimless = 0.0
     m0_adm = M_total * q   / (1.0 + q)
     m1_adm = M_total * 1.0 / (1.0 + q)
 
@@ -217,12 +219,12 @@ def set_single_puncture_params() -> Dict[str, Any]:
     """
     Set parameters for an axisymmetric BH setup.
 
-    This setup by default uses the analytical estimate from 
+    This setup by default uses the analytical estimate from
     Kerr to compute the bare mass unless the user specifies them
-    manually.  Thus, the solution will not produce a binary with 
-    accurate puncture masses as measured by an apparent horizon 
-    finder that match the expect puncture ADM mass.  
-    A future extension could include an iterative root finder 
+    manually.  Thus, the solution will not produce a binary with
+    accurate puncture masses as measured by an apparent horizon
+    finder that match the expect puncture ADM mass.
+    A future extension could include an iterative root finder
     to make this more robust.
 
     :return: Dictionary of parameters
@@ -238,7 +240,7 @@ def set_single_puncture_params() -> Dict[str, Any]:
     }
     return single_puncture_params
 # fmt: on
-
+# project_name += f"-q{Q}-R{R}"
 project_dir = os.path.join("project", project_name)
 
 # First clean the project directory, if it exists.
