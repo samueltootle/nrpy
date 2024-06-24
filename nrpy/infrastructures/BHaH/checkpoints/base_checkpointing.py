@@ -6,12 +6,13 @@ Provides checkpointing capabilities to BHaH simulations.
 Author: Zachariah B. Etienne
         zachetie **at** gmail **dot* com
         Samuel D. Tootle
-        sdtootle **at** gmail **dot** com        
+        sdtootle **at** gmail **dot** com
 """
 
 from typing import Tuple
 
 import nrpy.params as par
+import nrpy.c_function as cfc
 
 
 class base_register_CFunction_read_checkpoint:
@@ -75,4 +76,32 @@ class base_register_CFunction_write_checkpoint:
         self.body = rf"""
   char filename[256];
   snprintf(filename, 256, "{filename_tuple[0]}", {filename_tuple[1]});
+  const REAL currtime = commondata->time, currdt = commondata->dt, outevery = commondata->checkpoint_every;
+// Explanation of the if() below:
+// Step 1: round(currtime / outevery) rounds to the nearest integer multiple of currtime.
+// Step 2: Multiplying by outevery yields the exact time we should output again, t_out.
+// Step 3: If fabs(t_out - currtime) < 0.5 * currdt, then currtime is as close to t_out as possible!
+if (fabs(round(currtime / outevery) * outevery - currtime) < 0.5 * currdt) {{
+  FILE *cp_file = fopen(filename, "w+");
+  fwrite(commondata, sizeof(commondata_struct), 1, cp_file);
+  fprintf(stderr, "WRITING CHECKPOINT: cd struct size = %ld time=%e\n", sizeof(commondata_struct), commondata->time);
+  for(int grid=0; grid<commondata->NUMGRIDS; grid++) {{"""
+        self.loop_body = ""
+
+    def register(self) -> None:
+        "Register function."
+        self.body += self.loop_body
+        self.body += r"""  }
+  fclose(cp_file);
+  fprintf(stderr, "FINISHED WRITING CHECKPOINT\n");
+  }
 """
+        cfc.register_CFunction(
+            includes=self.includes,
+            desc=self.desc,
+            cfunc_type=self.cfunc_type,
+            name=self.name,
+            params=self.params,
+            include_CodeParameters_h=False,
+            body=self.body,
+        )

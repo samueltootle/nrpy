@@ -112,20 +112,10 @@ class register_CFunction_write_checkpoint(
             filename_tuple=filename_tuple,
         )
 
-        self.body += r"""const REAL currtime = commondata->time, currdt = commondata->dt, outevery = commondata->checkpoint_every;
-// Explanation of the if() below:
-// Step 1: round(currtime / outevery) rounds to the nearest integer multiple of currtime.
-// Step 2: Multiplying by outevery yields the exact time we should output again, t_out.
-// Step 3: If fabs(t_out - currtime) < 0.5 * currdt, then currtime is as close to t_out as possible!
-if (fabs(round(currtime / outevery) * outevery - currtime) < 0.5 * currdt) {
-  FILE *cp_file = fopen(filename, "w+");
-  fwrite(commondata, sizeof(commondata_struct), 1, cp_file);
-  fprintf(stderr, "WRITING CHECKPOINT: cd struct size = %ld time=%e\n", sizeof(commondata_struct), commondata->time);
-  for(int grid=0; grid<commondata->NUMGRIDS; grid++) {
-    fwrite(&griddata[grid].params, sizeof(params_struct), 1, cp_file);
+        self.loop_body = r"""fwrite(&griddata[grid].params, sizeof(params_struct), 1, cp_file);
     const int ntot = ( griddata[grid].params.Nxx_plus_2NGHOSTS0*
-                       griddata[grid].params.Nxx_plus_2NGHOSTS1*
-                       griddata[grid].params.Nxx_plus_2NGHOSTS2 );
+                      griddata[grid].params.Nxx_plus_2NGHOSTS1*
+                      griddata[grid].params.Nxx_plus_2NGHOSTS2 );
     // First we free up memory so we can malloc more: copy y_n_gfs to diagnostic_output_gfs & then free y_n_gfs.
 #pragma omp parallel for
     for(int i=0;i<ntot*NUM_EVOL_GFS;i++) griddata[grid].gridfuncs.diagnostic_output_gfs[i] = griddata[grid].gridfuncs.y_n_gfs[i];
@@ -157,20 +147,8 @@ if (fabs(round(currtime / outevery) * outevery - currtime) < 0.5 * currdt) {
     MoL_malloc_y_n_gfs(commondata, &griddata[grid].params, &griddata[grid].gridfuncs);
 #pragma omp parallel for
     for(int i=0;i<ntot*NUM_EVOL_GFS;i++) griddata[grid].gridfuncs.y_n_gfs[i] = griddata[grid].gridfuncs.diagnostic_output_gfs[i];
-  }
-  fclose(cp_file);
-  fprintf(stderr, "FINISHED WRITING CHECKPOINT\n");
-}
 """
-        cfc.register_CFunction(
-            includes=self.includes,
-            desc=self.desc,
-            cfunc_type=self.cfunc_type,
-            name=self.name,
-            params=self.params,
-            include_CodeParameters_h=False,
-            body=self.body,
-        )
+        self.register()
 
 
 def register_CFunctions(
