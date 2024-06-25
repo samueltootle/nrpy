@@ -33,21 +33,18 @@ class register_CFunction_read_checkpoint(
     ) -> None:
         super().__init__(filename_tuple=filename_tuple)
 
-        self.body += r"""  // If the checkpoint doesn't exist then return 0.
-  if (access(filename, F_OK) != 0)
-    return 0;
-
-  FILE *cp_file = fopen(filename, "r");
-  FREAD(commondata, sizeof(commondata_struct), 1, cp_file);
-  fprintf(stderr, "cd struct size = %ld time=%e\n", sizeof(commondata_struct), commondata->time);
-  for (int grid = 0; grid < commondata->NUMGRIDS; grid++) {
+        self.params += ", griddata_struct *restrict griddata_GPU"
+        self.loop_body = r"""
     FREAD(&griddata[grid].params, sizeof(params_struct), 1, cp_file);
+
+    // Copy params to griddata that is used with the device
+    memcpy(&griddata_GPU[grid].params, &griddata[grid].params, sizeof(params_struct));
 
     int count;
     FREAD(&count, sizeof(int), 1, cp_file);
 
-    int *restrict out_data_indices = (int *restrict)malloc(sizeof(int) * count);
-    REAL *restrict compact_out_data = (REAL *restrict)malloc(sizeof(REAL) * NUM_EVOL_GFS * count);
+    int * out_data_indices = (int *)malloc(sizeof(int) * count);
+    REAL * compact_out_data = (REAL *)malloc(sizeof(REAL) * NUM_EVOL_GFS * count);
 
     const int Nxx_plus_2NGHOSTS0 = griddata[grid].params.Nxx_plus_2NGHOSTS0;
     const int Nxx_plus_2NGHOSTS1 = griddata[grid].params.Nxx_plus_2NGHOSTS1;
@@ -57,8 +54,12 @@ class register_CFunction_read_checkpoint(
     FREAD(out_data_indices, sizeof(int), count, cp_file);
     FREAD(compact_out_data, sizeof(REAL), count * NUM_EVOL_GFS, cp_file);
 
-    MoL_malloc_y_n_gfs(commondata, &griddata[grid].params, &griddata[grid].gridfuncs);
-    int which_el = 0;
+    // Malloc for both GFs
+    CUDA__free_host_gfs(&griddata[grid].gridfuncs);
+    CUDA__malloc_host_gfs(commondata, &griddata[grid].params, &griddata[grid].gridfuncs);
+
+    MoL_free_memory_y_n_gfs(&griddata_GPU[grid].gridfuncs);
+    MoL_malloc_y_n_gfs(commondata, &griddata_GPU[grid].params, &griddata_GPU[grid].gridfuncs);
 #pragma omp parallel for
     for (int i = 0; i < count; i++) {
       for (int gf = 0; gf < NUM_EVOL_GFS; gf++) {
@@ -67,27 +68,23 @@ class register_CFunction_read_checkpoint(
     }
     free(out_data_indices);
     free(compact_out_data);
-  }
-  fclose(cp_file);
-  fprintf(stderr, "FINISHED WITH READING\n");
-
-  // Next set t_0 and n_0
-  commondata->t_0 = commondata->time;
-  commondata->nn_0 = commondata->nn;
-
-  return 1;
 """
-        cfc.register_CFunction(
-            includes=self.includes,
-            prefunc=self.prefunc,
-            desc=self.desc,
-            cfunc_type=self.cfunc_type,
-            name=self.name,
-            params=self.params,
-            include_CodeParameters_h=False,
-            body=self.body,
-        )
+        self.loop_body += """
 
+    // Set gridfunctions aliases for HOST data
+    REAL *restrict y_n_gfs = griddata[grid].gridfuncs.y_n_gfs;
+
+    // Set gridfunctions aliases for GPU data
+    REAL *restrict y_n_gfs_GPU = griddata_GPU[grid].gridfuncs.y_n_gfs;
+    for(int gf = 0; gf < NUM_EVOL_GFS; ++gf) {
+      cpyHosttoDevice__gf(commondata, &griddata[grid].params, y_n_gfs, y_n_gfs_GPU, gf, gf);
+    }
+"""
+        self.post_loop_body += """
+// local stream syncs?
+cudaDeviceSynchronize();
+"""
+        self.register()
 
 class register_CFunction_write_checkpoint(
     base_chkpt.base_register_CFunction_write_checkpoint
