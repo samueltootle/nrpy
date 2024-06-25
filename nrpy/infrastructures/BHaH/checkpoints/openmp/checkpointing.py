@@ -33,60 +33,7 @@ class register_CFunction_read_checkpoint(
     ) -> None:
         super().__init__(filename_tuple=filename_tuple)
 
-        self.body += r"""  // If the checkpoint doesn't exist then return 0.
-  if (access(filename, F_OK) != 0)
-    return 0;
-
-  FILE *cp_file = fopen(filename, "r");
-  FREAD(commondata, sizeof(commondata_struct), 1, cp_file);
-  fprintf(stderr, "cd struct size = %ld time=%e\n", sizeof(commondata_struct), commondata->time);
-  for (int grid = 0; grid < commondata->NUMGRIDS; grid++) {
-    FREAD(&griddata[grid].params, sizeof(params_struct), 1, cp_file);
-
-    int count;
-    FREAD(&count, sizeof(int), 1, cp_file);
-
-    int *restrict out_data_indices = (int *restrict)malloc(sizeof(int) * count);
-    REAL *restrict compact_out_data = (REAL *restrict)malloc(sizeof(REAL) * NUM_EVOL_GFS * count);
-
-    const int Nxx_plus_2NGHOSTS0 = griddata[grid].params.Nxx_plus_2NGHOSTS0;
-    const int Nxx_plus_2NGHOSTS1 = griddata[grid].params.Nxx_plus_2NGHOSTS1;
-    const int Nxx_plus_2NGHOSTS2 = griddata[grid].params.Nxx_plus_2NGHOSTS2;
-    const int ntot = griddata[grid].params.Nxx_plus_2NGHOSTS0 * griddata[grid].params.Nxx_plus_2NGHOSTS1 * griddata[grid].params.Nxx_plus_2NGHOSTS2;
-    fprintf(stderr, "Reading checkpoint: grid = %d | pts = %d / %d | %d\n", grid, count, ntot, Nxx_plus_2NGHOSTS2);
-    FREAD(out_data_indices, sizeof(int), count, cp_file);
-    FREAD(compact_out_data, sizeof(REAL), count * NUM_EVOL_GFS, cp_file);
-
-    MoL_malloc_y_n_gfs(commondata, &griddata[grid].params, &griddata[grid].gridfuncs);
-    int which_el = 0;
-#pragma omp parallel for
-    for (int i = 0; i < count; i++) {
-      for (int gf = 0; gf < NUM_EVOL_GFS; gf++) {
-        griddata[grid].gridfuncs.y_n_gfs[IDX4pt(gf, out_data_indices[i])] = compact_out_data[i * NUM_EVOL_GFS + gf];
-      }
-    }
-    free(out_data_indices);
-    free(compact_out_data);
-  }
-  fclose(cp_file);
-  fprintf(stderr, "FINISHED WITH READING\n");
-
-  // Next set t_0 and n_0
-  commondata->t_0 = commondata->time;
-  commondata->nn_0 = commondata->nn;
-
-  return 1;
-"""
-        cfc.register_CFunction(
-            includes=self.includes,
-            prefunc=self.prefunc,
-            desc=self.desc,
-            cfunc_type=self.cfunc_type,
-            name=self.name,
-            params=self.params,
-            include_CodeParameters_h=False,
-            body=self.body,
-        )
+        self.register()
 
 
 class register_CFunction_write_checkpoint(
