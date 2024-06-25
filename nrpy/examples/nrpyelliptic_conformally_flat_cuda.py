@@ -456,13 +456,13 @@ post_MoL_step_forward_in_time = r"""    check_stop_conditions(&commondata, gridd
     if (commondata.stop_relaxation) {
       // Force a checkpoint when stop condition is reached.
       commondata.checkpoint_every = 1e-4*commondata.dt;
-      //write_checkpoint(&commondata, griddata);
+      write_checkpoint(&commondata, griddata_host, griddata);
       break;
     }
 """
 main.register_CFunction_main_c(
     initial_data_desc="",
-    pre_MoL_step_forward_in_time="// write_checkpoint(&commondata, griddata);\n",
+    pre_MoL_step_forward_in_time="write_checkpoint(&commondata, griddata_host, griddata);\n",
     post_MoL_step_forward_in_time=post_MoL_step_forward_in_time,
     MoL_method=MoL_method,
     boundary_conditions_desc=boundary_conditions_desc,
