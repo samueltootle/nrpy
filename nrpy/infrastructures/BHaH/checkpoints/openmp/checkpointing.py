@@ -11,17 +11,28 @@ Author: Zachariah B. Etienne
 
 from typing import Tuple
 
-import nrpy.c_function as cfc
 import nrpy.infrastructures.BHaH.checkpoints.base_checkpointing as base_chkpt
 
 
 class register_CFunction_read_checkpoint(
     base_chkpt.base_register_CFunction_read_checkpoint
 ):
-    """
+    r"""
     Register read_checkpoint CFunction for reading checkpoints.
 
     :param filename_tuple: A tuple containing the filename format and the variables to be inserted into the filename.
+
+    DOCTEST:
+    >>> import nrpy.c_function as cfc, json
+    >>> from nrpy.helpers.generic import decompress_base64_to_string, diff_strings
+    >>> with open("nrpy/infrastructures/BHaH/checkpoints/tests/DOCTEST-openmp__register_CFunction_read_checkpoint.json",'r') as f:
+    ...     expected_str_dict = json.load(f)
+    >>> key = "default"
+    >>> _ = register_CFunction_read_checkpoint()
+    >>> registered_str = cfc.CFunction_dict["read_checkpoint"].full_function
+    >>> expected_str = decompress_base64_to_string(expected_str_dict[key])
+    >>> if registered_str != expected_str:
+    ...     raise ValueError(f"{key}: {diff_strings(expected_str, registered_str)}")
     """
 
     def __init__(
@@ -39,11 +50,23 @@ class register_CFunction_read_checkpoint(
 class register_CFunction_write_checkpoint(
     base_chkpt.base_register_CFunction_write_checkpoint
 ):
-    """
+    r"""
     Register write_checkpoint CFunction for writing checkpoints.
 
     :param filename_tuple: A tuple containing the filename format and the variables to be inserted into the filename.
     :param default_checkpoint_every: The default checkpoint interval in physical time units.
+
+    DOCTEST:
+    >>> import nrpy.c_function as cfc, json
+    >>> from nrpy.helpers.generic import decompress_base64_to_string, diff_strings
+    >>> with open("nrpy/infrastructures/BHaH/checkpoints/tests/DOCTEST-openmp__register_CFunction_write_checkpoint.json",'r') as f:
+    ...     expected_str_dict = json.load(f)
+    >>> key = "default"
+    >>> _ = register_CFunction_write_checkpoint()
+    >>> registered_str = cfc.CFunction_dict["write_checkpoint"].full_function
+    >>> expected_str = decompress_base64_to_string(expected_str_dict[key])
+    >>> if registered_str != expected_str:
+    ...     raise ValueError(f"\\n{key}: {diff_strings(expected_str, registered_str)}")
     """
 
     def __init__(
@@ -115,3 +138,16 @@ def register_CFunctions(
     register_CFunction_write_checkpoint(
         filename_tuple=filename_tuple, default_checkpoint_every=default_checkpoint_every
     )
+
+
+if __name__ == "__main__":
+    import doctest
+    import sys
+
+    results = doctest.testmod()
+
+    if results.failed > 0:
+        print(f"Doctest failed: {results.failed} of {results.attempted} test(s)")
+        sys.exit(1)
+    else:
+        print(f"Doctest passed: All {results.attempted} test(s) passed")

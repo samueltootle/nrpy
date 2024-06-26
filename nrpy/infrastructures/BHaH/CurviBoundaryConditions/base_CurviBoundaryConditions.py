@@ -12,20 +12,19 @@ Authors: Zachariah B. Etienne
 
 # Step P1: Import needed NRPy+ core modules:
 from typing import List, Tuple
+
 import sympy as sp  # SymPy: The Python computer algebra package upon which NRPy+ depends
 import sympy.codegen.ast as sp_ast
+
 import nrpy.c_codegen as ccg
 import nrpy.c_function as cfc
-import nrpy.params as par  # NRPy+: Parameter interface
+import nrpy.finite_difference as fin  # NRPy+: Finite-difference module
 import nrpy.grid as gri  # NRPy+: Functions having to do with numerical grids
 import nrpy.indexedexp as ixp  # NRPy+: Symbolic indexed expression (e.g., tensors, vectors, etc.) support
+import nrpy.params as par  # NRPy+: Parameter interface
 import nrpy.reference_metric as refmetric  # NRPy+: Reference metric support
-import nrpy.finite_difference as fin  # NRPy+: Finite-difference module
-
-# from nrpy.infrastructures.BHaH import griddata_commondata
-# from nrpy.infrastructures.BHaH import BHaH_defines_h
-from nrpy.validate_expressions.validate_expressions import check_zero
 from nrpy.helpers.expr_tree import get_unique_expression_symbols
+from nrpy.validate_expressions.validate_expressions import check_zero
 
 
 # Set unit-vector dot products (=parity) for each of the 10 parity condition types
@@ -217,7 +216,6 @@ def Cfunction__EigenCoord_set_x0x1x2_inbounds__i0i1i2_inbounds_single_pt(
 const int i0, const int i1, const int i2,
 REAL x0x1x2_inbounds[3], int i0i1i2_inbounds[3]"""
     type_alias = "double" if fp_type == "float" else "REAL"
-    type_literal = ""  # if fp_type == "double" else "f"
     body = r"""
   // This is a 3-step algorithm:
   // Step 1: (x0,x1,x2) -> (Cartx,Carty,Cartz)
@@ -287,26 +285,26 @@ REAL x0x1x2_inbounds[3], int i0i1i2_inbounds[3]"""
         )
     # Step 2.b: Output C code for the Eigen-Coordinate mapping from Cartesian->xx:
     body += f"  // Cart_to_xx for EigenCoordinate {rfm.CoordSystem} (orig coord = {rfm_orig.CoordSystem});\n"
-    xx_to_cart_body = ccg.c_codegen(
+    tmp_str = ccg.c_codegen(
         [rfm.Cart_to_xx[0], rfm.Cart_to_xx[1], rfm.Cart_to_xx[2]],
         ["Cart_to_xx0_inbounds", "Cart_to_xx1_inbounds", "Cart_to_xx2_inbounds"],
         fp_type=fp_type,
     )
-    xx_to_cart_body = xx_to_cart_body.replace("REAL", type_alias)
-    body += xx_to_cart_body
+    tmp_str = tmp_str.replace("REAL", type_alias)
+    body += tmp_str
     body += rf"""
   // Next compute xxmin[i]. By definition,
-  //    xx[i][j] = xxmin[i] + (({type_alias})(j-NGHOSTS) + (1.0{type_literal}/2.0{type_literal}))*dxxi;
-  // -> xxmin[i] = xx[i][0] - (({type_alias})(0-NGHOSTS) + (1.0{type_literal}/2.0{type_literal}))*dxxi
+  //    xx[i][j] = xxmin[i] + (({type_alias})(j-NGHOSTS) + (1.0/2.0))*dxxi;
+  // -> xxmin[i] = xx[i][0] - (({type_alias})(0-NGHOSTS) + (1.0/2.0))*dxxi
   const {type_alias} xxmin[3] = {{
-    xx[0][0] - (({type_alias})(0-NGHOSTS) + (1.0{type_literal}/2.0{type_literal}))*dxx0,
-    xx[1][0] - (({type_alias})(0-NGHOSTS) + (1.0{type_literal}/2.0{type_literal}))*dxx1,
-    xx[2][0] - (({type_alias})(0-NGHOSTS) + (1.0{type_literal}/2.0{type_literal}))*dxx2 }};
+    xx[0][0] - (({type_alias})(0-NGHOSTS) + (1.0/2.0))*dxx0,
+    xx[1][0] - (({type_alias})(0-NGHOSTS) + (1.0/2.0))*dxx1,
+    xx[2][0] - (({type_alias})(0-NGHOSTS) + (1.0/2.0))*dxx2 }};
 
   // Finally compute i{{0,1,2}}_inbounds (add 0.5 to account for rounding down)
-  const int i0_inbounds = (int)( (Cart_to_xx0_inbounds - xxmin[0] - (1.0{type_literal}/2.0{type_literal})*dxx0 + (({type_alias})NGHOSTS)*dxx0)/dxx0 + 0.5{type_literal} );
-  const int i1_inbounds = (int)( (Cart_to_xx1_inbounds - xxmin[1] - (1.0{type_literal}/2.0{type_literal})*dxx1 + (({type_alias})NGHOSTS)*dxx1)/dxx1 + 0.5{type_literal} );
-  const int i2_inbounds = (int)( (Cart_to_xx2_inbounds - xxmin[2] - (1.0{type_literal}/2.0{type_literal})*dxx2 + (({type_alias})NGHOSTS)*dxx2)/dxx2 + 0.5{type_literal} );
+  const int i0_inbounds = (int)( (Cart_to_xx0_inbounds - xxmin[0] - (1.0/2.0)*dxx0 + (({type_alias})NGHOSTS)*dxx0)/dxx0 + 0.5 );
+  const int i1_inbounds = (int)( (Cart_to_xx1_inbounds - xxmin[1] - (1.0/2.0)*dxx1 + (({type_alias})NGHOSTS)*dxx1)/dxx1 + 0.5 );
+  const int i2_inbounds = (int)( (Cart_to_xx2_inbounds - xxmin[2] - (1.0/2.0)*dxx2 + (({type_alias})NGHOSTS)*dxx2)/dxx2 + 0.5 );
 """
 
     # Restore reference_metric::CoordSystem back to the original CoordSystem
@@ -703,7 +701,7 @@ class setup_Cfunction_r_and_partial_xi_partial_r_derivs:
 #   for \partial_i f with arbitrary upwinding:
 def get_arb_offset_FD_coeffs_indices(
     FDORDER: int, offset: int, deriv: int
-) -> Tuple[List[float], List[int]]:
+) -> Tuple[List[sp.Number], List[int]]:
     """
     Generate finite-difference coefficients for partial derivatives with arbitrary upwinding.
 
@@ -787,10 +785,15 @@ class setup_Cfunction_FD1_arbitrary_upwind:
                 radiation_BC_fd_order, offset, 1
             )
 
+            # Build dictionary of coefficients to enable strong typing
+            # and assignment to Rational declarations.
             rational_dict = dict()
             for i, coeff in enumerate(coeffs):
                 if coeff == 0:
                     continue
+
+                # We store the absolute value in the dictionary to avoid
+                # duplicate assignments
                 sign = -1 if coeff <= 0 else 1
                 decl_coeff = coeff * sign
                 if decl_coeff in rational_dict:
@@ -809,23 +812,29 @@ class setup_Cfunction_FD1_arbitrary_upwind:
                 if coeff == 0:
                     continue
                 offset_str: str = str(indices[i])
+
+                # Build key since it's abs(coeff)
                 sign = -1 if coeff <= 0 else 1
                 decl_coeff = coeff * sign
 
-                sign = "-" if coeff < 0 else "+"
+                # ensure the correct sign is applied
+                # in the upwind algorithm
+                sign_str = "-" if coeff < 0 else "+"
+
                 if i > 0:
                     self.body += "          "
                 if offset_str == "0":
                     self.body += (
-                        f"{sign} {rational_dict[decl_coeff]}*gf[IDX3(i0,i1,i2)]\n"
+                        f"{sign_str} {rational_dict[decl_coeff]}*gf[IDX3(i0,i1,i2)]\n"
                     )
+
                 else:
                     if dirn == 0:
-                        self.body += f"{sign} {rational_dict[decl_coeff]}*gf[IDX3(i0+{offset_str},i1,i2)]\n"
+                        self.body += f"{sign_str} {rational_dict[decl_coeff]}*gf[IDX3(i0+{offset_str},i1,i2)]\n"
                     elif dirn == 1:
-                        self.body += f"{sign} {rational_dict[decl_coeff]}*gf[IDX3(i0,i1+{offset_str},i2)]\n"
+                        self.body += f"{sign_str} {rational_dict[decl_coeff]}*gf[IDX3(i0,i1+{offset_str},i2)]\n"
                     elif dirn == 2:
-                        self.body += f"{sign} {rational_dict[decl_coeff]}*gf[IDX3(i0,i1,i2+{offset_str})]\n"
+                        self.body += f"{sign_str} {rational_dict[decl_coeff]}*gf[IDX3(i0,i1,i2+{offset_str})]\n"
 
             self.body = self.body[:-1].replace("+-", "-") + f") * invdxx{dirn};\n }}\n"
 

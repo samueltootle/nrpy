@@ -5,39 +5,36 @@ Authors: Thiago Assumpção; assumpcaothiago **at** gmail **dot** com
          Zachariah B. Etienne; zachetie **at** gmail **dot* com
 """
 
+import os
+
 #########################################################
 # STEP 1: Import needed Python modules, then set codegen
 #         and compile-time parameters.
 import shutil
-import os
-from math import sqrt
-from typing import Any, Dict
-import nrpypn.eval_p_t_and_p_r as bbhp
 
-import nrpy.params as par
-from nrpy.helpers import simd
 import nrpy.helpers.parallel_codegen as pcg
-
-import nrpy.infrastructures.BHaH.header_definitions.openmp.output_BHaH_defines_h as Bdefines_h
 import nrpy.infrastructures.BHaH.checkpoints.openmp.checkpointing as chkpt
 import nrpy.infrastructures.BHaH.cmdline_input_and_parfiles as cmdpar
 import nrpy.infrastructures.BHaH.CodeParameters as CPs
+import nrpy.infrastructures.BHaH.CurviBoundaryConditions.openmp.CurviBoundaryConditions as cbc
 import nrpy.infrastructures.BHaH.diagnostics.progress_indicator as progress
 import nrpy.infrastructures.BHaH.grid_management.openmp.griddata_free as griddata_commondata
-import nrpy.infrastructures.BHaH.Makefile_helpers as Makefile
-import nrpy.infrastructures.BHaH.main_driver.openmp.main_c as main
-from nrpy.infrastructures.BHaH.MoLtimestepping.openmp import MoL
-import nrpy.infrastructures.BHaH.CurviBoundaryConditions.openmp.CurviBoundaryConditions as cbc
-import nrpy.infrastructures.BHaH.nrpyelliptic.openmp.conformally_flat_C_codegen_library as nrpyellClib
 import nrpy.infrastructures.BHaH.grid_management.openmp.numerical_grids_and_timestep as numericalgrids
 import nrpy.infrastructures.BHaH.grid_management.openmp.register_rfm_precompute as rfm_precompute
+import nrpy.infrastructures.BHaH.header_definitions.openmp.output_BHaH_defines_h as Bdefines_h
+import nrpy.infrastructures.BHaH.main_driver.openmp.main_c as main
+import nrpy.infrastructures.BHaH.Makefile_helpers as Makefile
+import nrpy.infrastructures.BHaH.nrpyelliptic.openmp.conformally_flat_C_codegen_library as nrpyellClib
+import nrpy.params as par
+from nrpy.helpers import simd
 from nrpy.infrastructures.BHaH import rfm_wrapper_functions
 from nrpy.infrastructures.BHaH.grid_management.openmp import xx_tofrom_Cart
+from nrpy.infrastructures.BHaH.MoLtimestepping.openmp import MoL
 
 par.set_parval_from_str("Infrastructure", "BHaH")
 
 # Code-generation-time parameters:
-project_name = "nrpyelliptic_conformally_flat_new"
+project_name = "nrpyelliptic_conformally_flat"
 fp_type = "double"
 grid_physical_size = 1.0e6
 t_final = grid_physical_size  # This parameter is effectively not used in NRPyElliptic
@@ -100,142 +97,49 @@ enable_simd = False
 parallel_codegen_enable = True
 boundary_conditions_desc = "outgoing radiation"
 # fmt: off
-initial_data_type = "axisymmetric"  # choices are: "gw150914", "axisymmetric", and "single_puncture"
+initial_data_type = "gw150914"  # choices are: "gw150914", "axisymmetric", and "single_puncture"
 
-def set_gw150914_params() -> Dict[str, Any]:
-    """
-    Set parameters consistent with GW150914.
-    Parameters are taken from http://einsteintoolkit.org/gallery/bbh/index.html
+q = 36.0 / 29.0
+Pr = -0.00084541526517121  # Radial linear momentum
+Pphi = 0.09530152296974252  # Azimuthal linear momentum
+S0_y_dimless = 0.31
+S1_y_dimless = -0.46
+m0_adm = q / (1.0 + q)
+m1_adm = 1.0 / (1.0 + q)
 
-    :return: Dictionary of parameters
-    """
-    q = 36.0 / 29.0
-    S0_y_dimless = 0.31
-    S1_y_dimless = -0.46
-    m0_adm = q / (1.0 + q)
-    m1_adm = 1.0 / (1.0 + q)
-
-    # Note, these momenta are the eccentricity reduced values
-    # as obtained from the ETK gallery example, see:
-    # http://einsteintoolkit.org/gallery/bbh/index.html
-    Pr = -0.00084541526517121  # Radial linear momentum
-    Pphi = 0.09530152296974252  # Azimuthal linear momentum
-
-
-    gw150914_params = {
-        "zPunc": 5.0,
-        "q": q,
-        "bare_mass_0": 0.51841993533587039,
-        "bare_mass_1": 0.39193567996522616,
-        "Pr": Pr,
-        "Pphi": Pphi,
-        "S0_y_dimless": S0_y_dimless,
-        "S1_y_dimless": S1_y_dimless,
-        "m0_adm": m0_adm,
-        "m1_adm": m1_adm,
-        "S0_y": S0_y_dimless * (m0_adm ** 2),
-        "S1_y": S1_y_dimless * (m1_adm ** 2),
-        "P0_x": Pphi,
-        "P0_z": Pr,
-        "P1_x": -Pphi,
-        "P1_z": -Pr,
-    }
-    return gw150914_params
-
-def compute_bare_mass(M: float, CHI: float) -> float:
-    """
-    Set analytical Kerr estimate of the bare puncture mass.
-
-    :param M: puncture ADM mass
-    :param CHI: dimensionless spin magnitude of the puncture
-    :return: bare mass
-    """
-    res: float = M * sqrt(0.5 * (1.0 + sqrt(1.0 - CHI**2.0)))
-    return res
+gw150914_params = {
+    "zPunc": 5.0,
+    "q": q,
+    "bare_mass_0": 0.51841993533587039,
+    "bare_mass_1": 0.39193567996522616,
+    "Pr": Pr,
+    "Pphi": Pphi,
+    "S0_y_dimless": S0_y_dimless,
+    "S1_y_dimless": S1_y_dimless,
+    "m0_adm": m0_adm,
+    "m1_adm": m1_adm,
+    "S0_y": S0_y_dimless * (m0_adm ** 2),
+    "S1_y": S1_y_dimless * (m1_adm ** 2),
+    "P0_x": Pphi,
+    "P0_z": Pr,
+    "P1_x": -Pphi,
+    "P1_z": -Pr,
+}
 
 
-def set_axisymmetric_params() -> Dict[str, Any]:
-    """
-    Set parameters for an axisymmetric BBH setup.
+axisymmetric_params = {
+    "zPunc": 5.0,
+    "bare_mass_0": 0.5,
+    "bare_mass_1": 0.5,
+    "S0_z": +0.2,
+    "S1_z": -0.2,
+}
 
-    This setup by default uses the analytical estimate from 
-    Kerr to compute bare masses unless the user specifies them
-    manually.  Thus, the solution will not produce a binary with 
-    accurate puncture masses as measured by an apparent horizon 
-    finder that match the expect puncture ADM masses.  
-    A future extension could include an iterative root finder 
-    to make this more robust.
-
-    :return: Dictionary of parameters
-    """
-    q = 36.0 / 29.0
-    M_total = 1.0
-    distance = M_total * 5.0
-
-    S0_y_dimless = 0.31
-    S1_y_dimless = -0.46
-    m0_adm = M_total * q   / (1.0 + q)
-    m1_adm = M_total * 1.0 / (1.0 + q)
-
-    bare_m0 = compute_bare_mass(m0_adm, S0_y_dimless)
-    bare_m1 = compute_bare_mass(m1_adm, S1_y_dimless)
-
-    # Compute 3.5PN estimates
-    Pphi, Pr = bbhp.eval__P_t__and__P_r(
-        q,
-        distance,
-        0.0,
-        S0_y_dimless,
-        0.0,
-        0.0,
-        S1_y_dimless,
-        0.0,
-    )
-
-    axisymmetric_params = {
-        "zPunc": distance,
-        "q": q,
-        "bare_mass_0": bare_m0,
-        "bare_mass_1": bare_m1,
-        "Pr": Pr,
-        "Pphi": Pphi,
-        "S0_y_dimless": S0_y_dimless,
-        "S1_y_dimless": S1_y_dimless,
-        "m0_adm": m0_adm,
-        "m1_adm": m1_adm,
-        "S0_y": S0_y_dimless * (m0_adm ** 2),
-        "S1_y": S1_y_dimless * (m1_adm ** 2),
-        "P0_x": Pphi,
-        "P0_z": Pr,
-        "P1_x": -Pphi,
-        "P1_z": -Pr,
-    }
-    return axisymmetric_params
-
-def set_single_puncture_params() -> Dict[str, Any]:
-    """
-    Set parameters for an axisymmetric BH setup.
-
-    This setup by default uses the analytical estimate from 
-    Kerr to compute the bare mass unless the user specifies them
-    manually.  Thus, the solution will not produce a binary with 
-    accurate puncture masses as measured by an apparent horizon 
-    finder that match the expect puncture ADM mass.  
-    A future extension could include an iterative root finder 
-    to make this more robust.
-
-    :return: Dictionary of parameters
-    """
-    coordinate_location = 0.0
-    m_adm = 0.5
-    S_z_dimless = 0.2
-    single_puncture_params = {
-        "zPunc": coordinate_location,
-        "bare_mass_0": compute_bare_mass(m_adm, S_z_dimless),
-        "m0_adm": m_adm,
-        "S0_z": S_z_dimless * m_adm**2.0,
-    }
-    return single_puncture_params
+single_puncture_params = {
+    "zPunc": 0.0,
+    "bare_mass_0": 0.5,
+    "S0_z": 0.2,
+}
 # fmt: on
 
 project_dir = os.path.join("project", project_name)
@@ -280,7 +184,7 @@ nrpyellClib.register_CFunction_initialize_constant_auxevol()
 
 numericalgrids.register_CFunctions(
     list_of_CoordSystems=[CoordSystem],
-    grid_physical_size=grid_physical_size,
+    list_of_grid_physical_sizes=[grid_physical_size],
     Nxx_dict=Nxx_dict,
     enable_rfm_precompute=enable_rfm_precompute,
     enable_CurviBCs=True,
@@ -393,22 +297,8 @@ if CoordSystem == "SinhSpherical":
     par.adjust_CodeParam_default("SINHW", SINHW)
 
 # Update parameters specific to initial data type
-if initial_data_type == "single_puncture":
-    puncture_params = set_single_puncture_params()
-    for param, value in puncture_params.items():
-        if param in [
-            "zPunc",
-            "bare_mass_0",
-            "S0_z",
-        ]:
-            par.adjust_CodeParam_default(param, value)
-else:
-    if initial_data_type == "gw150914":
-        puncture_params = set_gw150914_params()
-    elif initial_data_type == "axisymmetric":
-        puncture_params = set_axisymmetric_params()
-
-    for param, value in puncture_params.items():
+if initial_data_type == "gw150914":
+    for param, value in gw150914_params.items():
         if param in [
             "zPunc",
             "bare_mass_0",
@@ -422,12 +312,32 @@ else:
         ]:
             par.adjust_CodeParam_default(param, value)
 
+if initial_data_type == "single_puncture":
+    for param, value in single_puncture_params.items():
+        if param in [
+            "zPunc",
+            "bare_mass_0",
+            "S0_z",
+        ]:
+            par.adjust_CodeParam_default(param, value)
+
+if initial_data_type == "axisymmetric":
+    for param, value in axisymmetric_params.items():
+        if param in [
+            "zPunc",
+            "bare_mass_0",
+            "bare_mass_1",
+            "S0_z",
+            "S1_z",
+        ]:
+            par.adjust_CodeParam_default(param, value)
+
 #########################################################
 # STEP 3: Generate header files, register C functions and
 #         command line parameters, set up boundary conditions,
 #         and create a Makefile for this project.
 #         Project is output to project/[project_name]/
-CPs.write_CodeParameters_h_files(project_dir=project_dir, decorator="[[maybe_unused]]")
+CPs.write_CodeParameters_h_files(project_dir=project_dir)
 CPs.register_CFunctions_params_commondata_struct_set_to_default()
 cmdpar.generate_default_parfile(project_dir=project_dir, project_name=project_name)
 cmdpar.register_CFunction_cmdline_input_and_parfile_parser(
@@ -448,12 +358,12 @@ post_MoL_step_forward_in_time = r"""    check_stop_conditions(&commondata, gridd
     }
 """
 main.register_CFunction_main_c(
+    MoL_method=MoL_method,
     initial_data_desc="",
+    boundary_conditions_desc=boundary_conditions_desc,
+    post_non_y_n_auxevol_mallocs="initialize_constant_auxevol(&commondata, griddata);\n",
     pre_MoL_step_forward_in_time="write_checkpoint(&commondata, griddata);\n",
     post_MoL_step_forward_in_time=post_MoL_step_forward_in_time,
-    MoL_method=MoL_method,
-    boundary_conditions_desc=boundary_conditions_desc,
-    initialize_constant_auxevol=True,
 )
 griddata_commondata.register_CFunction_griddata_free(
     enable_rfm_precompute=enable_rfm_precompute, enable_CurviBCs=True
