@@ -396,6 +396,7 @@ class gpu_register_CFunction_variable_wavespeed_gfs_all_points(
             loop_body="\n" + self.dsmin_computation_str,
             read_xxs=True,
             loop_region="interior",
+            CoordSystem=self.CoordSystem,
             fp_type=self.fp_type,
         ).full_loop_body
         kernel_body = "// Temporary parameters\n"
