@@ -1,7 +1,7 @@
 """
 Base loop utilities for generating loops for use within the BHaH infrastructure.
 
-Authors: 
+Authors:
 Samuel Tootle
     Email: sdtootle **at** outlook **dot** com
 Zachariah B. Etienne
@@ -124,7 +124,7 @@ class base_simple_loop:
             from nrpy.infrastructures.BHaH import rfm_precompute
 
             self.rfmp = rfm_precompute.ReferenceMetricPrecompute(
-                CoordSystem, fp_type=fp_type
+                self.CoordSystem, fp_type=self.fp_type
             )
 
             self.read_rfm_xx_arrays = [
