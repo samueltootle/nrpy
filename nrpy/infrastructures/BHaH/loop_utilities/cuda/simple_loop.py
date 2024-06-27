@@ -6,6 +6,7 @@ Email: sdtootle **at** gmail **dot** com
 """
 
 from typing import Any
+
 import nrpy.infrastructures.BHaH.loop_utilities.base_simple_loop as base_sl
 from nrpy.infrastructures.BHaH.grid_management.cuda import rfm_precompute
 
@@ -30,6 +31,14 @@ class simple_loop(base_sl.base_simple_loop):
     >>> from nrpy.helpers.generic import clang_format
     >>> print(clang_format(simple_loop('// <INTERIOR>', loop_region="all points").full_loop_body))
     <BLANKLINE>
+    const int Nxx_plus_2NGHOSTS0 = d_params.Nxx_plus_2NGHOSTS0;
+    const int Nxx_plus_2NGHOSTS1 = d_params.Nxx_plus_2NGHOSTS1;
+    const int Nxx_plus_2NGHOSTS2 = d_params.Nxx_plus_2NGHOSTS2;
+    <BLANKLINE>
+    [[maybe_unused]] const REAL invdxx0 = d_params.invdxx0;
+    [[maybe_unused]] const REAL invdxx1 = d_params.invdxx1;
+    [[maybe_unused]] const REAL invdxx2 = d_params.invdxx2;
+    <BLANKLINE>
     const int tid0 = blockIdx.x * blockDim.x + threadIdx.x;
     const int tid1 = blockIdx.y * blockDim.y + threadIdx.y;
     const int tid2 = blockIdx.z * blockDim.z + threadIdx.z;
@@ -48,7 +57,15 @@ class simple_loop(base_sl.base_simple_loop):
     <BLANKLINE>
     >>> print(clang_format(simple_loop('// <INTERIOR>', loop_region="interior",
     ...       CoordSystem="SinhSymTP", enable_rfm_precompute=True).full_loop_body))
-    Setting up reference metric for CoordSystem = SinhSymTP.
+    Setting up reference_metric[SinhSymTP_rfm_precompute]...
+    <BLANKLINE>
+    const int Nxx_plus_2NGHOSTS0 = d_params.Nxx_plus_2NGHOSTS0;
+    const int Nxx_plus_2NGHOSTS1 = d_params.Nxx_plus_2NGHOSTS1;
+    const int Nxx_plus_2NGHOSTS2 = d_params.Nxx_plus_2NGHOSTS2;
+    <BLANKLINE>
+    [[maybe_unused]] const REAL invdxx0 = d_params.invdxx0;
+    [[maybe_unused]] const REAL invdxx1 = d_params.invdxx1;
+    [[maybe_unused]] const REAL invdxx2 = d_params.invdxx2;
     <BLANKLINE>
     const int tid0 = blockIdx.x * blockDim.x + threadIdx.x;
     const int tid1 = blockIdx.y * blockDim.y + threadIdx.y;
@@ -58,27 +75,27 @@ class simple_loop(base_sl.base_simple_loop):
     const int stride1 = blockDim.y * gridDim.y;
     const int stride2 = blockDim.z * gridDim.z;
     <BLANKLINE>
-    for (int i2 = tid2 + NGHOSTS; i2 < NGHOSTS + Nxx2; i2 += stride2) {
-      for (int i1 = tid1 + NGHOSTS; i1 < NGHOSTS + Nxx1; i1 += stride1) {
-        const REAL f1_of_xx1 = rfmstruct->f1_of_xx1[i1];
-        const REAL f1_of_xx1__D1 = rfmstruct->f1_of_xx1__D1[i1];
-        const REAL f1_of_xx1__DD11 = rfmstruct->f1_of_xx1__DD11[i1];
-        const REAL f4_of_xx1 = rfmstruct->f4_of_xx1[i1];
-        const REAL f4_of_xx1__D1 = rfmstruct->f4_of_xx1__D1[i1];
-        const REAL f4_of_xx1__DD11 = rfmstruct->f4_of_xx1__DD11[i1];
+    for (int i2 = tid2 + NGHOSTS; i2 < Nxx_plus_2NGHOSTS2 - NGHOSTS; i2 += stride2) {
+      for (int i1 = tid1 + NGHOSTS; i1 < Nxx_plus_2NGHOSTS1 - NGHOSTS; i1 += stride1) {
+        const REAL f1_of_xx1 = rfm_f1_of_xx1[i1];
+        const REAL f1_of_xx1__D1 = rfm_f1_of_xx1__D1[i1];
+        const REAL f1_of_xx1__DD11 = rfm_f1_of_xx1__DD11[i1];
+        const REAL f4_of_xx1 = rfm_f4_of_xx1[i1];
+        const REAL f4_of_xx1__D1 = rfm_f4_of_xx1__D1[i1];
+        const REAL f4_of_xx1__DD11 = rfm_f4_of_xx1__DD11[i1];
     <BLANKLINE>
-        for (int i0 = tid0 + NGHOSTS; i0 < NGHOSTS + Nxx0; i0 += stride0) {
-          const REAL f0_of_xx0 = rfmstruct->f0_of_xx0[i0];
-          const REAL f0_of_xx0__D0 = rfmstruct->f0_of_xx0__D0[i0];
-          const REAL f0_of_xx0__DD00 = rfmstruct->f0_of_xx0__DD00[i0];
-          const REAL f0_of_xx0__DDD000 = rfmstruct->f0_of_xx0__DDD000[i0];
-          const REAL f2_of_xx0 = rfmstruct->f2_of_xx0[i0];
-          const REAL f2_of_xx0__D0 = rfmstruct->f2_of_xx0__D0[i0];
-          const REAL f2_of_xx0__DD00 = rfmstruct->f2_of_xx0__DD00[i0];
+        for (int i0 = tid0 + NGHOSTS; i0 < Nxx_plus_2NGHOSTS0 - NGHOSTS; i0 += stride0) {
+          const REAL f0_of_xx0 = rfm_f0_of_xx0[i0];
+          const REAL f0_of_xx0__D0 = rfm_f0_of_xx0__D0[i0];
+          const REAL f0_of_xx0__DD00 = rfm_f0_of_xx0__DD00[i0];
+          const REAL f0_of_xx0__DDD000 = rfm_f0_of_xx0__DDD000[i0];
+          const REAL f2_of_xx0 = rfm_f2_of_xx0[i0];
+          const REAL f2_of_xx0__D0 = rfm_f2_of_xx0__D0[i0];
+          const REAL f2_of_xx0__DD00 = rfm_f2_of_xx0__DD00[i0];
           // <INTERIOR>
-        } // END LOOP: for (int i0 = tid0+NGHOSTS; i0 < NGHOSTS+Nxx0; i0 += stride0)
-      } // END LOOP: for (int i1 = tid1+NGHOSTS; i1 < NGHOSTS+Nxx1; i1 += stride1)
-    } // END LOOP: for (int i2 = tid2+NGHOSTS; i2 < NGHOSTS+Nxx2; i2 += stride2)
+        } // END LOOP: for (int i0 = tid0+NGHOSTS; i0 < Nxx_plus_2NGHOSTS0 - NGHOSTS; i0 += stride0)
+      } // END LOOP: for (int i1 = tid1+NGHOSTS; i1 < Nxx_plus_2NGHOSTS1 - NGHOSTS; i1 += stride1)
+    } // END LOOP: for (int i2 = tid2+NGHOSTS; i2 < Nxx_plus_2NGHOSTS2 - NGHOSTS; i2 += stride2)
     <BLANKLINE>
     """
 
@@ -101,11 +118,6 @@ class simple_loop(base_sl.base_simple_loop):
             loop_region=loop_region,
             cuda=True,
         )
-
-        self.rfmp = rfm_precompute.ReferenceMetricPrecompute(
-            CoordSystem, fp_type=fp_type
-        )
-
         if self.read_xxs:
             self.read_rfm_xx_arrays = [
                 "[[maybe_unused]] const REAL xx0 = x0[i0];",
@@ -113,6 +125,9 @@ class simple_loop(base_sl.base_simple_loop):
                 "[[maybe_unused]] const REAL xx2 = x2[i2];",
             ]
         elif self.enable_rfm_precompute:
+            self.rfmp = rfm_precompute.ReferenceMetricPrecompute(
+                self.CoordSystem, fp_type=fp_type
+            )
             self.read_rfm_xx_arrays = [
                 self.rfmp.readvr_str[0],
                 self.rfmp.readvr_str[1],
@@ -126,19 +141,19 @@ class simple_loop(base_sl.base_simple_loop):
   const int Nxx_plus_2NGHOSTS0 = d_params.Nxx_plus_2NGHOSTS0;
   const int Nxx_plus_2NGHOSTS1 = d_params.Nxx_plus_2NGHOSTS1;
   const int Nxx_plus_2NGHOSTS2 = d_params.Nxx_plus_2NGHOSTS2;
-  
+
   [[maybe_unused]] const REAL invdxx0 = d_params.invdxx0;
   [[maybe_unused]] const REAL invdxx1 = d_params.invdxx1;
   [[maybe_unused]] const REAL invdxx2 = d_params.invdxx2;
-  
+
   const int tid0  = blockIdx.x * blockDim.x + threadIdx.x;
   const int tid1  = blockIdx.y * blockDim.y + threadIdx.y;
   const int tid2  = blockIdx.z * blockDim.z + threadIdx.z;
-  
+
   const int stride0 = blockDim.x * gridDim.x;
   const int stride1 = blockDim.y * gridDim.y;
   const int stride2 = blockDim.z * gridDim.z;
-  
+
   {self.full_loop_body}
 """
 
