@@ -19,7 +19,7 @@ class register_CFunction_main_c(base_main.base_register_CFunction_main_c):
     :param initial_data_desc: Description for initial data, default is an empty string.
     :param boundary_conditions_desc: Description of the boundary conditions, default is an empty string.
     :param prefunc: String that appears before main(). DO NOT populate this, except when debugging, default is an empty string.
-    :param initialize_constant_auxevol: If set to True, `initialize_constant_auxevol` function will be called during the simulation initialization phase to set these constants. Default is False.
+    :param post_non_y_n_auxevol_mallocs: Function calls after memory is allocated for non y_n and auxevol gridfunctions, default is an empty string.
     :param pre_MoL_step_forward_in_time: Code for handling pre-right-hand-side operations, default is an empty string.
     :param post_MoL_step_forward_in_time: Code for handling post-right-hand-side operations, default is an empty string.
     :param clang_format_options: Clang formatting options, default is "-style={BasedOnStyle: LLVM, ColumnLimit: 150}".
@@ -32,7 +32,7 @@ class register_CFunction_main_c(base_main.base_register_CFunction_main_c):
         initial_data_desc: str = "",
         boundary_conditions_desc: str = "",
         prefunc: str = "",
-        initialize_constant_auxevol: bool = False,
+        post_non_y_n_auxevol_mallocs: str = "",
         pre_MoL_step_forward_in_time: str = "",
         post_MoL_step_forward_in_time: str = "",
         clang_format_options: str = "-style={BasedOnStyle: LLVM, ColumnLimit: 150}",
@@ -42,7 +42,7 @@ class register_CFunction_main_c(base_main.base_register_CFunction_main_c):
             initial_data_desc=initial_data_desc,
             boundary_conditions_desc=boundary_conditions_desc,
             prefunc=prefunc,
-            initialize_constant_auxevol=initialize_constant_auxevol,
+            post_non_y_n_auxevol_mallocs=post_non_y_n_auxevol_mallocs,
             pre_MoL_step_forward_in_time=pre_MoL_step_forward_in_time,
             post_MoL_step_forward_in_time=post_MoL_step_forward_in_time,
             clang_format_options=clang_format_options,
@@ -86,9 +86,9 @@ for(int grid=0; grid<commondata.NUMGRIDS; grid++) {
   MoL_malloc_non_y_n_gfs(&commondata, &griddata[grid].params, &griddata[grid].gridfuncs);
 }
 """
-        if self.initialize_constant_auxevol:
-            self.body += """// Step 4.a: Set AUXEVOL gridfunctions that will never change in time.
-initialize_constant_auxevol(&commondata, griddata);
+        if self.post_non_y_n_auxevol_mallocs:
+            self.body += f"""// Step 4.a: Functions called after memory for non-y_n and auxevol gridfunctions is allocated.
+{self.post_non_y_n_auxevol_mallocs}
 """
         self.body += """
 // Step 5: MAIN SIMULATION LOOP
