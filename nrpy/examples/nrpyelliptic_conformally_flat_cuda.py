@@ -38,13 +38,13 @@ from nrpy.infrastructures.BHaH.grid_management.cuda import xx_tofrom_Cart
 par.set_parval_from_str("Infrastructure", "BHaH")
 
 # Code-generation-time parameters:
-project_name = "nrpyelliptic_conformally_flat_gpu_newchkpt"
+project_name = "nrpyelliptic_conformally_flat_gpu"
 fp_type = "double"
 grid_physical_size = 1.0e6
 t_final = grid_physical_size  # This parameter is effectively not used in NRPyElliptic
 nn_max = 10000  # Sets the maximum number of relaxation steps
 Q = 5
-R = 512
+R = 128
 
 def get_log10_residual_tolerance(fp_type_str: str = "double") -> float:
     """
@@ -285,7 +285,7 @@ nrpyellClib.register_CFunction_initialize_constant_auxevol()
 
 numericalgrids.register_CFunctions(
     list_of_CoordSystems=[CoordSystem],
-    grid_physical_size=grid_physical_size,
+    list_of_grid_physical_sizes=[grid_physical_size],
     Nxx_dict=Nxx_dict,
     enable_rfm_precompute=enable_rfm_precompute,
     enable_CurviBCs=True,
@@ -462,11 +462,11 @@ post_MoL_step_forward_in_time = r"""    check_stop_conditions(&commondata, gridd
 """
 main.register_CFunction_main_c(
     initial_data_desc="",
+    post_non_y_n_auxevol_mallocs="initialize_constant_auxevol(&commondata, griddata);\n",
     pre_MoL_step_forward_in_time="write_checkpoint(&commondata, griddata_host, griddata);\n",
     post_MoL_step_forward_in_time=post_MoL_step_forward_in_time,
     MoL_method=MoL_method,
     boundary_conditions_desc=boundary_conditions_desc,
-    initialize_constant_auxevol=True,
 )
 griddata_commondata.register_CFunction_griddata_free(
     enable_rfm_precompute=enable_rfm_precompute, enable_CurviBCs=True
