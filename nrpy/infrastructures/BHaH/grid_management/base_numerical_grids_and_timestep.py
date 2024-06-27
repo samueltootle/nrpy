@@ -15,6 +15,7 @@ from typing import Dict, List
 import sympy as sp
 
 import nrpy.c_codegen as ccg
+import nrpy.c_function as cfc
 import nrpy.params as par
 import nrpy.reference_metric as refmetric
 from nrpy.helpers.expr_tree import get_unique_expression_symbols
@@ -232,4 +233,42 @@ class base_register_CFunction_numerical_grids_and_timestep:
         self.cfunc_type = "void"
         self.name = "numerical_grids_and_timestep"
         self.params = "commondata_struct *restrict commondata, griddata_struct *restrict griddata, bool calling_for_first_time"
-        self.body = ""
+        self.body = r"""
+    // Step 1.a: Set each CodeParameter in griddata.params to default, for MAXNUMGRIDS grids.
+    params_struct_set_to_default(commondata, griddata);"""
+        self.body += rf"""
+      if(strncmp(commondata->gridding_choice, "independent grid(s)", 200) == 0) {{
+        // Independent grids
+        bool grid_is_resized=false;
+        int Nx[3] = {{ -1, -1, -1 }};
+
+        // Step 1.b: Set commondata->NUMGRIDS to number of CoordSystems we have
+        commondata->NUMGRIDS = {len(self.list_of_CoordSystems)};
+
+        // Step 1.c: For each grid, set Nxx & Nxx_plus_2NGHOSTS, as well as dxx, invdxx, & xx based on grid_physical_size
+        int grid=0;
+    """
+        for which_CoordSystem, CoordSystem in enumerate(self.list_of_CoordSystems):
+            self.body += (
+                f"griddata[grid].params.CoordSystem_hash = {CoordSystem.upper()};\n"
+                f"griddata[grid].params.grid_idx = grid;\n"
+            )
+            self.body += f"griddata[grid].params.grid_physical_size = {list_of_grid_physical_sizes[which_CoordSystem]};\n"
+            self.body += "numerical_grid_params_Nxx_dxx_xx(commondata, &griddata[grid].params, griddata[grid].xx, Nx, grid_is_resized);\n"
+            self.body += "grid++;\n\n"
+        self.body += r"""}
+
+// Step 1.d: Allocate memory for and define reference-metric precomputation lookup tables
+"""
+
+    def register(self) -> None:
+        """Register C function."""
+        cfc.register_CFunction(
+            includes=self.includes,
+            desc=self.desc,
+            cfunc_type=self.cfunc_type,
+            name=self.name,
+            params=self.params,
+            include_CodeParameters_h=False,
+            body=self.body,
+        )

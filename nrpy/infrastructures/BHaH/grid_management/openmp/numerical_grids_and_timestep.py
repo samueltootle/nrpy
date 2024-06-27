@@ -146,32 +146,7 @@ class register_CFunction_numerical_grids_and_timestep(
             enable_rfm_precompute=enable_rfm_precompute,
             enable_CurviBCs=enable_CurviBCs,
         )
-        self.body = r"""
-    // Step 1.a: Set each CodeParameter in griddata.params to default, for MAXNUMGRIDS grids.
-    params_struct_set_to_default(commondata, griddata);"""
-        self.body += rf"""
-      if(strncmp(commondata->gridding_choice, "independent grid(s)", 200) == 0) {{
-        // Independent grids
-        bool grid_is_resized=false;
-        int Nx[3] = {{ -1, -1, -1 }};
 
-        // Step 1.b: Set commondata->NUMGRIDS to number of CoordSystems we have
-        commondata->NUMGRIDS = {len(list_of_CoordSystems)};
-
-        // Step 1.c: For each grid, set Nxx & Nxx_plus_2NGHOSTS, as well as dxx, invdxx, & xx based on grid_physical_size
-        int grid=0;
-    """
-        for which_CoordSystem, CoordSystem in enumerate(list_of_CoordSystems):
-            self.body += (
-                f"griddata[grid].params.CoordSystem_hash = {CoordSystem.upper()};\n"
-            )
-            self.body += f"griddata[grid].params.grid_physical_size = {list_of_grid_physical_sizes[which_CoordSystem]};\n"
-            self.body += "numerical_grid_params_Nxx_dxx_xx(commondata, &griddata[grid].params, griddata[grid].xx, Nx, grid_is_resized);\n"
-            self.body += "grid++;\n\n"
-        self.body += r"""}
-
-// Step 1.d: Allocate memory for and define reference-metric precomputation lookup tables
-"""
         if self.enable_rfm_precompute:
             self.body += r"""for(int grid=0; grid<commondata->NUMGRIDS; grid++) {
   rfm_precompute_malloc(commondata, &griddata[grid].params, &griddata[grid].rfmstruct);
@@ -207,15 +182,7 @@ if(calling_for_first_time) {
   commondata->time = 0.0;
 }
 """
-        cfc.register_CFunction(
-            includes=self.includes,
-            desc=self.desc,
-            cfunc_type=self.cfunc_type,
-            name=self.name,
-            params=self.params,
-            include_CodeParameters_h=False,
-            body=self.body,
-        )
+        self.register()
 
 
 def register_CFunctions(
