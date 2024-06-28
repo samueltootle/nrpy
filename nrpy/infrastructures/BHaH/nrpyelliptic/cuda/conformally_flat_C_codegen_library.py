@@ -695,10 +695,9 @@ class gpu_register_CFunction_diagnostics(
 
         self.body = r"""  // Output progress to stderr
   progress_indicator(commondata, griddata);
-  cudaEvent_t start[NUM_HOST_DIAG];
-  for(int i = 0; i < NUM_HOST_DIAG; ++i) {
-    cudaEventCreateWithFlags(&start[i], cudaEventDisableTiming);
-  }
+
+  // Grid data output
+  const int n_step = commondata->nn, outevery = commondata->diagnostics_output_every;
 
   // Since this version of NRPyElliptic is unigrid, we simply set the grid index to 0
   const int grid = 0;
@@ -714,16 +713,16 @@ class gpu_register_CFunction_diagnostics(
 #include "set_CodeParameters.h"
   REAL *restrict host_y_n_gfs = griddata_host[grid].gridfuncs.y_n_gfs;
   REAL *restrict host_diag_gfs = griddata_host[grid].gridfuncs.diagnostic_output_gfs;
-  size_t streamid = cpyDevicetoHost__gf(commondata, params, host_y_n_gfs, y_n_gfs, UUGF, UUGF);
-  cudaEventRecord(start[0], streams[streamid]);
+  if (n_step % outevery == 0) {
+    size_t streamid = cpyDevicetoHost__gf(commondata, params, host_y_n_gfs, y_n_gfs, UUGF, UUGF);
+  }
 
   // Compute Hamiltonian constraint violation and store it at diagnostic_output_gfs
   compute_residual_all_points(commondata, params, rfmstruct, auxevol_gfs, y_n_gfs, diagnostic_output_gfs);
-  cudaEventSynchronize(start[0]);
-  cudaEventDestroy(start[0]);
   cudaDeviceSynchronize();
-  streamid = cpyDevicetoHost__gf(commondata, params, host_diag_gfs, diagnostic_output_gfs, RESIDUAL_HGF, RESIDUAL_HGF);
-  cudaEventRecord(start[1], streams[streamid]);
+  if (n_step % outevery == 0) {
+    size_t streamid = cpyDevicetoHost__gf(commondata, params, host_diag_gfs, diagnostic_output_gfs, RESIDUAL_HGF, RESIDUAL_HGF);
+  }
 
   // Set integration radius for l2-norm computation
   const REAL integration_radius = 1000;
@@ -746,16 +745,16 @@ class gpu_register_CFunction_diagnostics(
     fprintf(outfile, "%6d %10.4e %.17e\n", nn, time, residual_H);
     fclose(outfile);
   }
-  cudaEventSynchronize(start[1]);
-  cudaEventDestroy(start[1]);
-  cudaDeviceSynchronize();
-  // Grid data output
-  const int n_step = commondata->nn, outevery = commondata->diagnostics_output_every;
+
+
   if (n_step % outevery == 0) {
     // Set reference metric grid xx
     REAL *restrict xx[3];
     for (int ww = 0; ww < 3; ww++)
         xx[ww] = griddata_host[grid].xx[ww];
+
+    // Ensure all device workers are done
+    cudaDeviceSynchronize();
 
     // 1D output
     diagnostics_nearest_1d_y_axis(commondata, params, xx, &griddata_host[grid].gridfuncs);
