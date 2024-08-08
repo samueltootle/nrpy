@@ -275,11 +275,11 @@ LDFLAGS += $(OPENMP_FLAG)
 
 all: {exec_or_library_name}
 
-%.o: %.cu $(COMMON_HEADERS)
+%.o: %.{code_ext} $(COMMON_HEADERS)
 	$(CC) $(CFLAGS) $(INCLUDEDIRS) -c $< -o $@
 
 {exec_or_library_name}: $(OBJ_FILES)
-	$(CC) {'$(CFLAGS) ' if CC == "nvcc" else ''}$^ -o $@ $(LDFLAGS)
+	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
 
 # Use $(RM) to be cross-platform compatible.
 clean:
