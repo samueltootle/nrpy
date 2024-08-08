@@ -191,8 +191,11 @@ class register_CFunction_MoL_step_forward_in_time(
             enable_simd=enable_simd,
             fp_type=fp_type,
         )
+        likwid_profiling = True
         if enable_simd:
             self.includes += [os.path.join("SIMD", "SIMD_intrinsics.h")]
+        if likwid_profiling:
+            self.includes += ["likwid.h"]
         self.setup_gf_aliases()
         self.generate_RK_steps()
         self.register_final_code()

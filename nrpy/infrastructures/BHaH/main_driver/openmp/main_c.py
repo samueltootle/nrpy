@@ -47,6 +47,15 @@ class register_CFunction_main_c(base_main.base_register_CFunction_main_c):
             post_MoL_step_forward_in_time=post_MoL_step_forward_in_time,
             clang_format_options=clang_format_options,
         )
+        likwid_profiling = True
+        if likwid_profiling:
+            self.includes += ["likwid.h"]
+            self.body = rf"""LIKWID_MARKER_INIT;
+            LIKWID_MARKER_THREADINIT;
+            {self.body.replace("return 0;", "")}
+            LIKWID_MARKER_CLOSE;
+            return 0;
+            """
 
         cfc.register_CFunction(
             includes=self.includes,

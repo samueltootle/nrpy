@@ -531,6 +531,8 @@ class openmp_register_CFunction_diagnostics(
             out_quantities_dict=out_quantities_dict,
         )
 
+        likwid_profiling = True
+
         # This has to be here to avoid type issues with mypy
         # An error will throw in super().__init__() if out_quantities_dict != dict
         self.out_quantities_dict: Dict[Tuple[str, str], str] = self.out_quantities_dict
@@ -567,8 +569,17 @@ class openmp_register_CFunction_diagnostics(
 #include "set_CodeParameters.h"
 
   // Compute Hamiltonian constraint violation and store it at diagnostic_output_gfs
-  compute_residual_all_points(commondata, params, rfmstruct, auxevol_gfs, y_n_gfs, diagnostic_output_gfs);
+"""
+        if likwid_profiling:
+            self.includes += ['likwid.h']
+            self.body += """LIKWID_MARKER_START(\"compute_residual_all_points\");
+            compute_residual_all_points(commondata, params, rfmstruct, auxevol_gfs, y_n_gfs, diagnostic_output_gfs);
+            LIKWID_MARKER_STOP(\"compute_residual_all_points\");
+"""
+        else:
+            self.body = r"compute_residual_all_points(commondata, params, rfmstruct, auxevol_gfs, y_n_gfs, diagnostic_output_gfs);\n"
 
+        self.body += r"""
   // Set integration radius for l2-norm computation
   const REAL integration_radius = 1000;
 
@@ -716,6 +727,7 @@ class openmp_register_CFunction_rhs_eval(
 
         if enable_simd:
             self.includes += [str(Path("simd") / "simd_intrinsics.h")]
+        likwid_profiling = True
 
         self.body = lp.simple_loop(
             loop_body=ccg.c_codegen(
@@ -736,6 +748,13 @@ class openmp_register_CFunction_rhs_eval(
             OMP_collapse=OMP_collapse,
             fp_type=fp_type,
         ).full_loop_body
+
+        if likwid_profiling:
+            self.includes += ["likwid.h"]
+            self.body = f"""LIKWID_MARKER_START("rhs_eval");
+            {self.body}
+            LIKWID_MARKER_STOP("rhs_eval");
+            """
 
         cfc.register_CFunction(
             include_CodeParameters_h=True,

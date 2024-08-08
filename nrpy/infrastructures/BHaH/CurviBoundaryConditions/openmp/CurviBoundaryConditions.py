@@ -372,7 +372,12 @@ class register_CFunction_apply_bcs_outerradiation_and_inner(
             radiation_BC_fd_order=radiation_BC_fd_order,
             fp_type=fp_type,
         )
-        self.body = r"""
+        likwid_profiling = True
+        self.body = ""
+        if likwid_profiling:
+          self.body = f"LIKWID_MARKER_START(\"{self.name}\");\n"
+
+        self.body += r"""
   // Unpack bc_info from bcstruct
   const bc_info_struct *bc_info = &bcstruct->bc_info;
 
@@ -426,6 +431,9 @@ class register_CFunction_apply_bcs_outerradiation_and_inner(
   //              STEP 2 OF 2.
   apply_bcs_inner_only(commondata, params, bcstruct, rhs_gfs); // <- apply inner BCs to RHS gfs only
 """
+        if likwid_profiling:
+          self.body+=f"LIKWID_MARKER_STOP(\"{self.name}\");\n\n"
+          self.includes += ["likwid.h"]
         cfc.register_CFunction(
             includes=self.includes,
             prefunc=self.prefunc,
