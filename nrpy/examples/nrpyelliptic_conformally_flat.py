@@ -67,8 +67,9 @@ eta_damping = 11.0
 MINIMUM_GLOBAL_WAVESPEED = 0.7
 CFL_FACTOR = 1.0  # NRPyElliptic wave speed prescription assumes this parameter is ALWAYS set to 1
 CoordSystem = "SinhSymTP"
+R = 1152
 Nxx_dict = {
-    "SinhSymTP": [128, 128, 16],
+    "SinhSymTP": [R, R, 16],
     "SinhCylindricalv2": [128, 16, 256],
     "SinhSpherical": [128, 64, 16],
 }
@@ -93,7 +94,7 @@ enable_rfm_precompute = True
 MoL_method = "RK4"
 fd_order = 10
 radiation_BC_fd_order = 6
-enable_simd = False
+enable_simd = True
 parallel_codegen_enable = True
 boundary_conditions_desc = "outgoing radiation"
 # fmt: off
@@ -141,7 +142,7 @@ single_puncture_params = {
     "S0_z": 0.2,
 }
 # fmt: on
-
+project_name += f"-P{R}"
 project_dir = os.path.join("project", project_name)
 
 # First clean the project directory, if it exists.
@@ -376,6 +377,9 @@ Makefile.output_CFunctions_function_prototypes_and_construct_Makefile(
     project_dir=project_dir,
     project_name=project_name,
     exec_or_library_name=project_name,
+    addl_CFLAGS=["-DLIKWID_PERFMON", "-pg", "-g"],
+    include_dirs=["${LIKWID_ROOT}/include"],
+    addl_libraries=["-L${LIKWID_ROOT}/lib", "-llikwid"]
 )
 print(
     f"Finished! Now go into project/{project_name} and type `make` to build, then ./{project_name} to run."
