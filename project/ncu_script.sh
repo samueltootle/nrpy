@@ -2,21 +2,45 @@
 
 workingdir="nrpyelliptic_conformally_flat_gpu-scaling-P128"
 stdoutputfile="cuda_profile.out"
+jsonoutputfile="cuda_scaling.json"
 
 cd $workingdir
 f1="SinhSymTP/numerical_grid_params_Nxx_dxx_xx__rfm__SinhSymTP.cu"
 f2="params_struct_set_to_default.cu"
 
-# cp ${f1} ${f1}.bak
-# cp ${f2} ${f2}.bak
-cp ${f1}.bak ${f1}
-cp ${f2}.bak ${f2}
+if [ -e "${f1}.bak" -a -e "${f1}.bak" ]; then
+  echo "Backup files exist. Overwriting local files to reset"
+  cp ${f1}.bak ${f1}
+  cp ${f2}.bak ${f2}
+else
+  echo "Backup files need to be created."
+  cp ${f1} ${f1}.bak
+  cp ${f2} ${f2}.bak
+  if [ -e "${f1}.bak" -a -e "${f1}.bak" ]; then
+    echo "Backup complete."
+  else
+    echo "Backup failed."
+    exit 101
+  fi
+fi
+
 cd -
 
-rm $stdoutputfile
+if [ -e "$stdoutputfile" ]; then
+  echo "Removing old profiling data, $stdoutputfile"
+  rm $stdoutputfile
+fi
+
+if [ -e "$jsonoutputfile" ]; then
+  echo "Removing old json data, $jsonoutputfile"
+  rm $jsonoutputfile
+fi
 
 pres=128
 pphi=16
+
+# Toggle printing header key information on first call
+header="--print_header"
 for RES in `seq 128 64 512`;do
   cd $workingdir
 
@@ -41,12 +65,11 @@ for RES in `seq 128 64 512`;do
     nrpyelliptic_conformally_flat_gpu-scaling-P128 > ../$stdoutputfile
 
   cd -
-  break
-  #python3 cuda_parse.py >> cuda_scaling.log
+
+  python3 cuda_parse.py --points $RES $header
 
   # Update previous resolutions to new ones
   pres=$RES
   pphi=$phires
+  header=""
 done
-
-
