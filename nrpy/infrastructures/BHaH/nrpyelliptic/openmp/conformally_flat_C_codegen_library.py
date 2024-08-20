@@ -531,7 +531,7 @@ class openmp_register_CFunction_diagnostics(
             out_quantities_dict=out_quantities_dict,
         )
 
-        likwid_profiling = True
+        likwid_profiling = False
 
         # This has to be here to avoid type issues with mypy
         # An error will throw in super().__init__() if out_quantities_dict != dict
@@ -727,7 +727,7 @@ class openmp_register_CFunction_rhs_eval(
 
         if enable_simd:
             self.includes += [str(Path("simd") / "simd_intrinsics.h")]
-        likwid_profiling = True
+        likwid_profiling = False
 
         self.body = lp.simple_loop(
             loop_body=ccg.c_codegen(
