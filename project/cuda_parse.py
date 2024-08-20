@@ -1,11 +1,21 @@
 # %%
-import csv
+import csv, argparse
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--print_header", action="store_true", default=False, help="Print CSV style header information")
+parser.add_argument("--file",
+                    "-f",
+                    type=str,
+                    help="CUDA NCU file to parse",
+                    default="/home/tootle/lib/nrpy/project/cuda_profile.out")
+args = parser.parse_args()
 
 # %%
-pathabs = "/home/tootle/lib/nrpy/project/cuda_profile.out"
+pathabs = args.file
 f = open(pathabs, 'r')
 csvreader = csv.reader(f, delimiter=',')
 
+# %%
 dict_keys = None
 for l in csvreader:
     if l[0] == 'ID':
@@ -15,79 +25,127 @@ for l in csvreader:
 if dict_keys is None:
     raise RuntimeError("No key row found starting with ID")
 
-data_dict = { k : [] for k in dict_keys }
-for l in csvreader:
-    # if len(l) == len(dict_keys):
-    for i, k in enumerate(dict_keys):
-        if len(l) <= len(dict_keys):
-            if i < len(l):
-                v = int(l[i]) if i == 0 else l[i]
-                data_dict[k] += [v]
-            else:
-                data_dict[k] += ['']
+dict_key_map = { key : i for i, key in enumerate(dict_keys) }
+
+# %%
+id_data_dict = { k : [] for k in dict_keys }
+data_dict = {}
+
+for iCSV, lCSV in enumerate(csvreader):
+    intermediate_dict = {}
+    idx = int(lCSV[dict_key_map['ID']])
+    kernel = lCSV[dict_key_map['Kernel Name']]
+    metric = lCSV[dict_key_map['Metric Name']]
+
+    try:
+        metric_val = float(lCSV[dict_key_map['Metric Value']].replace(",", ""))
+    except Exception as exp:
+        metric_val = lCSV[dict_key_map['Metric Value']]
+
+    # metric_val = lCSV[dict_key_map['Metric Value']]
+    metric_unit = lCSV[dict_key_map['Metric Unit']]
+    if idx in data_dict:
+        data_dict[idx][kernel].update({metric : { 'value' :  metric_val, 'unit' : metric_unit}})
+    else:
+        data_dict.update({
+            idx : {
+                kernel : {
+                    metric : { 'value' : metric_val, 'unit' : metric_unit}
+                }
+            }
+        })
 f.close()
 
-# id_data_dict = { k : [] for k in dict_keys }
-# data_dict = {}
-# for l in csvreader:
-#     if len(l) == len(dict_keys):
-#         for i, k in enumerate(dict_keys[1:]):
-#             v = int(l[i]) if i == 0 else l[i]
-#             id_data_dict[k] += [v]
-#         data_dict.update({ int(l[0]) : id_data_dict })
+# %%
+kernel_names = {
+    'H' : 'residual',
+    'RHS' : 'rhs',
+    'RK' : 'rk_substep',
+    'BC' : 'radiation'
+}
 
 scaling_dict = {
-    'ID' : [],
-    't'  : [],
-    'DP' : [],
-    'AI' : [],
+    'ID' : 0,
+    't'  : 0,
+    'DFLOPS' : 0,
+    'FFLOPS' : 0,
+    'DP' : 0,
+    'FP' : 0,
+    'DAI' : 0,
+    'FAI' : 0,
 }
-f.close()
-# table_started = False
-# raw_read = False
-# data_dict = dict()
-# region = str()
-# for l in f:
-#     if "TABLE" in l and "Metric" in l:
-#         table_started = True
-#         raw_read = False
-#         region = l.split(',')[1]
-#         if not region in data_dict.keys():
-#             data_dict[region] = dict()
-#     elif "Raw" in l:
-#         table_started = False
-#         raw_read = True
-#         region = l.split(',')[1]
-#         if not region in data_dict.keys():
-#             data_dict[region] = dict()
-#     elif table_started:
-#         data_dict_keys= ['DP', 'AI']
-#         for k in data_dict_keys:
-#             if k in l:
-#                 data_dict[region][k] = float(l.split(',')[1])
-#                 break
-#     elif raw_read:
-#         data_dict_keys= ['RDTSC', 'call count']
-#         for k in data_dict_keys:
-#             if k in l:
-#                 data_dict[region][k] = float(l.split(',')[1])
-#                 break
-# f.close()
 
+# %%
+all_scaling_dict = { k : scaling_dict.copy() for k in kernel_names }
+
+for id in data_dict:
+    found = False
+    for Key, filter in kernel_names.items():
+        kernel = list(data_dict[id].keys())[0]
+        if filter in kernel:
+            # print(kernel, filter)
+            found = True
+            break
+    if found is False:
+        continue
+
+    # Get duration in seconds
+    t = data_dict[id][kernel]['Duration']['value']
+    t_unit = data_dict[id][kernel]['Duration']['unit']
+    if t_unit == 'nsecond':
+        t = t * 1e-9
+    else:
+        raise RuntimeError(f"Time conversion not available for {t_unit}")
+    # End duration
+
+    # Compute FLOPS
+    dp_FLOPS = 0
+    fp_FLOPS = 0
+    for data_key in data_dict[id][kernel]:
+        if 'sm__sass' in data_key:
+            if 'dadd' in data_key or 'dmul' in data_key:
+                dp_FLOPS += data_dict[id][kernel][data_key]['value']
+            elif 'fadd' in data_key or 'fmul' in data_key:
+                fp_FLOPS += data_dict[id][kernel][data_key]['value']
+            elif 'dfma' in data_key:
+                dp_FLOPS += data_dict[id][kernel][data_key]['value'] * 2
+            elif 'ffma' in data_key:
+                fp_FLOPS += data_dict[id][kernel][data_key]['value'] * 2
+    # End compute FLOPS
+
+    # Compute Arithmetic intensity
+    Mem_throughput = data_dict[id][kernel]['Memory Throughput']['value']
+    Total_memory = Mem_throughput * t
+    DAI = dp_FLOPS / Total_memory
+    FAI = fp_FLOPS / Total_memory
+    # End compute Arithmetic intensity
+
+    all_scaling_dict[Key]['ID'] = id
+    all_scaling_dict[Key]['t'] = t
+    all_scaling_dict[Key]['DFLOPS'] = dp_FLOPS
+    all_scaling_dict[Key]['FFLOPS'] = fp_FLOPS
+    all_scaling_dict[Key]['DP'] = dp_FLOPS / t * 1e-9
+    all_scaling_dict[Key]['FP'] = fp_FLOPS / t * 1e-9
+    all_scaling_dict[Key]['DAI'] = DAI
+    all_scaling_dict[Key]['FAI'] = FAI
+
+# %%
+
+output_key_order = ['RHS', 'H', 'BC', 'RK']
+output_subkeys = ['Duration (ms)', 'Float GFLOPS/s', 'Float AI (FLOPS/byte)', 'Double GFLOPS/s', 'Double AI (FLOPS/byte)']
+header_elements = [f"{kernal_abrv} - {perf}" for kernal_abrv in output_key_order for perf in output_subkeys ]
+header_str = ",".join(header_elements)
+if args.print_header:
+    print(header_str)
+
+outstr = str()
+for k in output_key_order:
+    for K, I in all_scaling_dict.items():
+        if k in K:
+            t_ms = float(I['t']) * 1e3 # milliseconds
+            outstr +=f"{t_ms:1.3f}, {I['FP']}, {I['FAI']}, {I['DP']}, {I['DAI']}, "
+            break
+print(outstr)
 # # %%
 
-# output_key_order = ['rhs_eval', 'residual', 'apply', 'rk_substep_1']
-# header_elements = [ f"{Region} - {Key}" for Key in output_key_order for Region in list(data_dict.values())[0].keys()]
-# header_str = ",".join(header_elements)
-# #print(header_str)
-
-# outstr = str()
-# for k in output_key_order:
-#     for K, I in data_dict.items():
-#         if k in K:
-#             CC = float(I['call count'])
-#             t_ms = float(I['RDTSC']) * 1e3 / CC
-#             outstr +=f"{t_ms:1.3f}, {I['DP']}, {I['AI']}, "
-#             break
-# print(outstr)
-# # %%
+# %%
