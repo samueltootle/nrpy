@@ -115,7 +115,7 @@ class RKFunction(base_MoL.RKFunction):
         cfunc_type: str = "static void",
         rk_step: Union[int, None] = None,
         fp_type: str = "double",
-        rational_const_alias: str = "constexpr",
+        rational_const_alias: str = "static constexpr",
     ) -> None:
         super().__init__(
             fp_type_alias,
@@ -381,7 +381,7 @@ class register_CFunction_MoL_step_forward_in_time(
         enable_curviBCs: bool = False,
         enable_simd: bool = False,
         fp_type: str = "double",
-        rational_const_alias: str = "constexpr",
+        rational_const_alias: str = "static constexpr",
     ) -> None:
 
         super().__init__(

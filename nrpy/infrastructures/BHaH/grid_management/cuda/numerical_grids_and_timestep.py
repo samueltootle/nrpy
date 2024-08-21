@@ -102,7 +102,7 @@ class register_CFunction_numerical_grid_params_Nxx_dxx_xx(
 
   REAL const Nxx_plus_2NGHOSTS{i} = d_params.Nxx_plus_2NGHOSTS{i};
 
-  constexpr REAL onehalf = 1.0 / 2.0;
+  static constexpr REAL onehalf = 1.0 / 2.0;
 
   for (int j = index; j < Nxx_plus_2NGHOSTS{i}; j+=stride)
     xx{i}[j] = xxmin{i} + ((REAL)(j - NGHOSTS) + onehalf) * dxx{i};

@@ -878,7 +878,7 @@ class gpu_register_CFunction_rhs_eval(
                 ],
                 enable_fd_codegen=True,
                 fp_type=fp_type,
-                rational_const_alias="constexpr",
+                rational_const_alias="static constexpr",
             ),
             loop_region="interior",
             CoordSystem=CoordSystem,
