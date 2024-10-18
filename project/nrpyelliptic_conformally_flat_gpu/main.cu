@@ -60,8 +60,8 @@ int main(int argc, const char *argv[]) {
   initialize_constant_auxevol(&commondata, griddata);
 
   // Step 5: MAIN SIMULATION LOOP
-  while(commondata.time < commondata.t_final) { // Main loop to progress forward in time.
-  // for (int i = 0; i < 1; ++i) {
+  // while(commondata.time < commondata.t_final) { // Main loop to progress forward in time.
+  for (int i = 0; i < 1; ++i) {
     // Step 5.a: Main loop, part 1: Output diagnostics
     diagnostics(&commondata, griddata, griddata_host);
 
