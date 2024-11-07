@@ -372,7 +372,7 @@ class register_CFunction_apply_bcs_outerradiation_and_inner(
             radiation_BC_fd_order=radiation_BC_fd_order,
             fp_type=fp_type,
         )
-        likwid_profiling = False
+        likwid_profiling = True
         self.body = ""
         if likwid_profiling:
           self.body = f"LIKWID_MARKER_START(\"{self.name}\");\n"

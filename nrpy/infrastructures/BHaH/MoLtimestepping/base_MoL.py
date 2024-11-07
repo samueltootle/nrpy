@@ -100,7 +100,7 @@ class RKFunction:
     def CFunction_RK_substep_function(self) -> None:
         """Generate a C function based on the given RK substep expression lists."""
         self.body = ""
-        likwid_profiling = False
+        likwid_profiling = True
         if likwid_profiling:
             self.body = f"LIKWID_MARKER_START(\"{self.name}\");\n\n"
 
@@ -594,7 +594,7 @@ class base_register_CFunction_MoL_step_forward_in_time:
         self.enable_simd = enable_simd
 
         self.includes = ["BHaH_defines.h", "BHaH_function_prototypes.h"]
-        likwid_profiling = False
+        likwid_profiling = True
         if likwid_profiling:
             self.includes += ["likwid.h"]
 
