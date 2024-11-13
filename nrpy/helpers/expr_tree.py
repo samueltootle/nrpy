@@ -211,16 +211,8 @@ def get_unique_expression_symbols(
     if exclude is None:
         exclude = []
 
-    def get_expression_symbols__recursive(this_expr: sp.Basic) -> List[str]:
-        this_symbol_list = []
-        for arg in this_expr.args:
-            if isinstance(arg, sp.Symbol):
-                this_symbol_list += [str(arg)]
-            this_symbol_list += get_expression_symbols__recursive(arg)
-        return this_symbol_list
-
-    symbols = get_expression_symbols__recursive(expr)
-    return sorted([sym for sym in set(symbols) if not sym in exclude])
+    symbols = {str(sym) for sym in expr.free_symbols}
+    return sorted([sym for sym in symbols if not sym in exclude])
 
 
 if __name__ == "__main__":
