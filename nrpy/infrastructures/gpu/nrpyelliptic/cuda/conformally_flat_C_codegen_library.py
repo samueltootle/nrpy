@@ -36,7 +36,7 @@ class gpu_register_CFunction_initial_guess_single_point(
 
     def __init__(self, fp_type: str = "double") -> None:
         super().__init__(fp_type=fp_type)
-        self.cfunc_type = """__device__ __host__ void"""
+        self.cfunc_decorators= "__device__ __host__"
         self.params = r"""const REAL xx0, const REAL xx1, const REAL xx2,  REAL *restrict uu_ID, REAL *restrict vv_ID
 """
 
@@ -183,7 +183,8 @@ class gpu_register_CFunction_auxevol_gfs_single_point(
     ) -> None:
         super().__init__(CoordSystem, fp_type=fp_type)
 
-        self.cfunc_type = """__device__ void"""
+        self.cfunc_type = "void"
+        self.cfunc_decorators = "__device__"
         self.params = r"""const size_t streamid, const REAL xx0, const REAL xx1, const REAL xx2, REAL *restrict psi_background, REAL *restrict ADD_times_AUU
 """
         # Is there a better way to do this?

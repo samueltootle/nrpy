@@ -41,6 +41,7 @@ class base_register_CFunction_initial_guess_single_point:
 
         self.desc = r"""Compute initial guess at a single point."""
         self.cfunc_type = "void"
+        self.cfunc_decorators = ""
         self.name = "initial_guess_single_point"
         self.params = r"""const commondata_struct *restrict commondata, const params_struct *restrict params,
         const REAL xx0, const REAL xx1, const REAL xx2,  REAL *restrict uu_ID, REAL *restrict vv_ID
@@ -54,6 +55,7 @@ class base_register_CFunction_initial_guess_single_point:
             includes=self.includes,
             desc=self.desc,
             cfunc_type=self.cfunc_type,
+            cfunc_decorators=self.cfunc_decorators,
             CoordSystem_for_wrapper_func="",
             name=self.name,
             params=self.params,
@@ -138,6 +140,7 @@ class base_register_CFunction_auxevol_gfs_single_point:
 
         self.desc = r"""Compute AUXEVOL grid functions at a single point."""
         self.cfunc_type = "void"
+        self.cfunc_decorators = ""
         self.name = "auxevol_gfs_single_point"
         self.params = r"""const commondata_struct *restrict commondata, const params_struct *restrict params,
     const REAL xx0, const REAL xx1, const REAL xx2,  REAL *restrict psi_background, REAL *restrict ADD_times_AUU
@@ -151,6 +154,7 @@ class base_register_CFunction_auxevol_gfs_single_point:
             includes=self.includes,
             desc=self.desc,
             cfunc_type=self.cfunc_type,
+            cfunc_decorators=self.cfunc_decorators,
             CoordSystem_for_wrapper_func="",
             name=self.name,
             params=self.params,
