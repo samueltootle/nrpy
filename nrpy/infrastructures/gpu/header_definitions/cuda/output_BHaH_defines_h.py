@@ -98,10 +98,9 @@ class output_BHaH_gpu_defines_h:
         project_dir: str,
         additional_declarations_dict: Union[Dict[str, Any], None] = None,
         additional_macros_str: Union[str, None] = None,
-        clang_format_options: str = "-style={BasedOnStyle: LLVM, ColumnLimit: 150}",
         num_streams: int = 3,
         nghosts: Union[int, None] = None,
-        **_: Any,
+        clang_format_options: str = "-style={BasedOnStyle: LLVM, ColumnLimit: 150}",
     ) -> None:
         self.project_Path = Path(project_dir)
         self.num_streams = num_streams
@@ -269,7 +268,6 @@ class output_BHaH_gpu_global_init_h:
         project_dir: str,
         declarations_dict: Dict[str, Dict[str, str]],
         clang_format_options: str = "-style={BasedOnStyle: LLVM, ColumnLimit: 150}",
-        **_: Any,
     ) -> None:
         self.project_Path = Path(project_dir)
         self.declarations_dict = declarations_dict
@@ -383,7 +381,6 @@ class output_BHaH_defines_h(base_output_BHaH_defines_h):
     :param fin_NGHOSTS_add_one_for_upwinding_or_KO: Option to add one extra ghost zone for upwinding
     :param supplemental_defines_dict: Additional key-value pairs to be included in the output file
     :param clang_format_options: Options for clang formatting.
-    :param kwargs: Capture extra keyword arguments
 
     >>> from nrpy.infrastructures.gpu.MoLtimestepping.cuda import MoL
     >>> import nrpy.finite_difference as fin
@@ -413,9 +410,9 @@ class output_BHaH_defines_h(base_output_BHaH_defines_h):
         enable_rfm_precompute: bool = True,
         fin_NGHOSTS_add_one_for_upwinding_or_KO: bool = False,
         supplemental_defines_dict: Optional[Dict[str, str]] = None,
-        clang_format_options: str = "-style={BasedOnStyle: LLVM, ColumnLimit: 150}",
         enable_intrinsics: bool = True,
-        **kwargs: Any,
+        num_streams: int = 3,
+        clang_format_options: str = "-style={BasedOnStyle: LLVM, ColumnLimit: 150}",
     ) -> None:
         super().__init__(
             project_dir,
@@ -425,8 +422,8 @@ class output_BHaH_defines_h(base_output_BHaH_defines_h):
             enable_rfm_precompute=enable_rfm_precompute,
             fin_NGHOSTS_add_one_for_upwinding_or_KO=fin_NGHOSTS_add_one_for_upwinding_or_KO,
             supplemental_defines_dict=supplemental_defines_dict,
-            clang_format_options=clang_format_options,
             intrinsics_header="cuda_intrinsics.h",
+            clang_format_options=clang_format_options,
         )
         self.BHd_definitions_str += "\n#define restrict __restrict__\n"
         # Generate and write BHaH_gpu_defines.h to file
@@ -434,7 +431,6 @@ class output_BHaH_defines_h(base_output_BHaH_defines_h):
             self.project_dir,
             clang_format_options=self.clang_format_options,
             nghosts=self.NGHOSTS,
-            **kwargs,
         )
 
         self.gri_BHd_str += r"""

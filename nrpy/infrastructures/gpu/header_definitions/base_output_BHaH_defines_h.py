@@ -21,6 +21,7 @@ from nrpy.infrastructures.BHaH.BHaH_defines_h import (
 
 # The ordering of core_modules_list is based largely on data structure dependencies.
 # E.g., griddata_struct contains bc_struct.  Module names are parellel scheme dependent
+# Note: These are here such that they can be modified as needed by relevant modules (e.g. MoL)
 core_modules_list = [
     "general",
     "nrpy.infrastructures.BHaH.diagnostics.progress_indicator",
@@ -59,8 +60,8 @@ class base_output_BHaH_defines_h:
         enable_rfm_precompute: bool = True,
         fin_NGHOSTS_add_one_for_upwinding_or_KO: bool = False,
         supplemental_defines_dict: Optional[Dict[str, str]] = None,
-        clang_format_options: str = "-style={BasedOnStyle: LLVM, ColumnLimit: 150}",
         intrinsics_header: str = "cuda_intrinsics.h",
+        clang_format_options: str = "-style={BasedOnStyle: LLVM, ColumnLimit: 150}",
     ) -> None:
         self.project_dir = project_dir
         self.additional_includes = additional_includes
