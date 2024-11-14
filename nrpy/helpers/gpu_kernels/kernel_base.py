@@ -1,5 +1,5 @@
 """
-Module that provides the utilities for generating GPU Kernels.
+Module that provides the base functionality for generating GPU Kernels.
 
 Authors: Samuel D. Tootle; sdtootle **at** gmail **dot** com
 """
@@ -13,6 +13,10 @@ class GPU_Kernel:
     """
     Class to Generate GPU Kernel code.
 
+    While the current implementation is tuned with CUDA in mind, flexibility can easily
+    be added or obtained by inheriting and overloading the implementation specific
+    syntax.
+
     :param body: Kernel body
     :param params_dict: Dictionary storing function arguments as keys and types as Dictionary entry
     :param c_function_name: Kernel function name
@@ -22,6 +26,7 @@ class GPU_Kernel:
     :param comments: Additional comments to add to Function description
     :param launch_dict: Dictionary that stores kernel launch settings
     :param streamid_param: Toggle whether streamid is a kernel argument parameter
+    :param cuda_check_error: Add CUDA error checking after kernel call. Default is True
 
     >>> kernel = GPU_Kernel(
     ... "*x = in;",
@@ -86,6 +91,7 @@ class GPU_Kernel:
         comments: str = "",
         launch_dict: Union[Dict[str, Any], None] = None,
         streamid_param: bool = True,
+        cuda_check_error: bool = True,
     ) -> None:
         self.body = body
         self.decorators = decorators
@@ -95,6 +101,7 @@ class GPU_Kernel:
         self.name = c_function_name
         self.cfunc_type = f"{decorators} {cfunc_type}"
         self.fp_type = fp_type
+        self.cuda_check_error = cuda_check_error
 
         self.CFunction: cfc.CFunction
         self.desc: str = f"GPU Kernel: {self.name}.\n" + comments
@@ -189,17 +196,16 @@ dim3 threads_per_block(threads_in_x_dir, threads_in_y_dir, threads_in_z_dir);"""
         :return: The C function call as a string.
         """
         c_function_call: str = self.name
-        if self.decorators == "__global__":
-            c_function_call += self.launch_settings
-        else:
-            c_function_call += "("
+        c_function_call += self.launch_settings
 
         for p in self.params_dict:
             c_function_call += f"{p}, "
         c_function_call = c_function_call[:-2] + ");\n"
-        msg = f"{self.name} failure"
-        msg = f'cudaCheckErrors(cudaKernel, "{msg}")'
-        c_function_call += f"{msg};\n"
+
+        if self.cuda_check_error:
+            msg = f"{self.name} failure"
+            msg = f'cudaCheckErrors(cudaKernel, "{msg}")'
+            c_function_call += f"{msg};\n"
 
         return c_function_call
 
