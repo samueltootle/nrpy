@@ -21,6 +21,7 @@ class GPU_Kernel:
     :param fp_type: Floating point type, i.e. double, float, long double
     :param comments: Additional comments to add to Function description
     :param launch_dict: Dictionary that stores kernel launch settings
+    :param streamid_param: Toggle whether streamid is a kernel argument parameter
 
     >>> kernel = GPU_Kernel(
     ... "*x = in;",
@@ -117,68 +118,69 @@ class GPU_Kernel:
 
     def generate_launch_block(self) -> None:
         """Generate preceding launch block definitions for kernel function call."""
-        if not self.launch_dict is None:
-            threads_per_block = self.launch_dict["threads_per_block"]
-            for _ in range(3 - len(threads_per_block)):
-                threads_per_block += ["1"]
-            block_def_str = f"""
+        if self.launch_dict is None:
+            return
+        threads_per_block = self.launch_dict["threads_per_block"]
+        for _ in range(3 - len(threads_per_block)):
+            threads_per_block += ["1"]
+        block_def_str = f"""
 const size_t threads_in_x_dir = {threads_per_block[0]};
 const size_t threads_in_y_dir = {threads_per_block[1]};
 const size_t threads_in_z_dir = {threads_per_block[2]};
 dim3 threads_per_block(threads_in_x_dir, threads_in_y_dir, threads_in_z_dir);"""
 
-            blocks_per_grid = self.launch_dict["blocks_per_grid"]
-            if len(blocks_per_grid) > 0:
-                for _ in range(3 - len(blocks_per_grid)):
-                    blocks_per_grid += [1]
-                blocks_per_grid_str = ",".join(map(str, blocks_per_grid))
-                grid_def_str = f"dim3 blocks_per_grid({blocks_per_grid_str});"
-            else:
-                grid_def_str = """dim3 blocks_per_grid(
+        blocks_per_grid = self.launch_dict["blocks_per_grid"]
+        if len(blocks_per_grid) > 0:
+            for _ in range(3 - len(blocks_per_grid)):
+                blocks_per_grid += [1]
+            blocks_per_grid_str = ",".join(map(str, blocks_per_grid))
+            grid_def_str = f"dim3 blocks_per_grid({blocks_per_grid_str});"
+        else:
+            grid_def_str = """dim3 blocks_per_grid(
     (Nxx_plus_2NGHOSTS0 + threads_in_x_dir - 1) / threads_in_x_dir,
     (Nxx_plus_2NGHOSTS1 + threads_in_y_dir - 1) / threads_in_y_dir,
     (Nxx_plus_2NGHOSTS2 + threads_in_z_dir - 1) / threads_in_z_dir
 );"""
 
-            # Determine if the stream needs to be added to launch
-            stream_def_str = None
-            if "stream" in self.launch_dict:
-                if (
-                    self.launch_dict["stream"] == ""
-                    or self.launch_dict["stream"] == "default"
-                ):
-                    stream_def_str = "size_t streamid = params->grid_idx % nstreams;"
-                else:
-                    stream_def_str = f"size_t streamid = {self.launch_dict['stream']};"
+        # Determine if the stream needs to be added to launch
+        stream_def_str = None
+        if "stream" in self.launch_dict:
+            if (
+                self.launch_dict["stream"] == ""
+                or self.launch_dict["stream"] == "default"
+            ):
+                stream_def_str = "size_t streamid = params->grid_idx % nstreams;"
+            else:
+                stream_def_str = f"size_t streamid = {self.launch_dict['stream']};"
 
-            # Determine if the shared memory size needs to be added to launch
-            # If a stream is specified, we need to at least set SM to 0
-            sm_def_str = None
-            if "sm" in self.launch_dict or not stream_def_str is None:
-                if (
-                    not "sm" in self.launch_dict
-                    or self.launch_dict["sm"] == ""
-                    or self.launch_dict["sm"] == "default"
-                ):
-                    sm_def_str = "size_t sm = 0;"
-                    self.launch_dict["sm"] = 0
-                else:
-                    sm_def_str = f"size_t sm = {self.launch_dict['sm']};"
+        # Determine if the shared memory size needs to be added to launch
+        # If a stream is specified, we need to at least set SM to 0
+        sm_def_str = None
+        if "sm" in self.launch_dict or not stream_def_str is None:
+            if (
+                not "sm" in self.launch_dict
+                or self.launch_dict["sm"] == ""
+                or self.launch_dict["sm"] == "default"
+            ):
+                sm_def_str = "size_t sm = 0;"
+                self.launch_dict["sm"] = 0
+            else:
+                sm_def_str = f"size_t sm = {self.launch_dict['sm']};"
 
-            self.launch_block = f"""{block_def_str}
+        self.launch_block = f"""{block_def_str}
 {grid_def_str}
 """
-            if not sm_def_str is None:
-                self.launch_block += f"{sm_def_str}"
-            if not stream_def_str is None:
-                self.launch_block += f"{stream_def_str}"
+        if not sm_def_str is None:
+            self.launch_block += f"{sm_def_str}"
+        if not stream_def_str is None:
+            self.launch_block += f"{stream_def_str}"
 
-            self.launch_settings = "<<<blocks_per_grid,threads_per_block"
-            if not sm_def_str is None:
-                self.launch_settings += ",sm"
-            if not stream_def_str is None:
-                self.launch_settings += ",streams[streamid]"
-            self.launch_settings += ">>>("
+        self.launch_settings = "<<<blocks_per_grid,threads_per_block"
+        if not sm_def_str is None:
+            self.launch_settings += ",sm"
+        if not stream_def_str is None:
+            self.launch_settings += ",streams[streamid]"
+        self.launch_settings += ">>>("
 
     def c_function_call(self) -> str:
         """
