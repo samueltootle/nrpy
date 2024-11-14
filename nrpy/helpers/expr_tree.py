@@ -189,32 +189,6 @@ class ExprTree:
 
     __str__ = __repr__
 
-
-def get_unique_expression_symbols(
-    expr: sp.Expr, exclude: Union[List[str], None] = None
-) -> List[str]:
-    """
-    Get a unique list of expression symbols.
-
-    :param expr: Sympy expression
-    :param exclude: List of symbol names to exclude
-    :returns: List of unique symbols from the expression
-
-    DOCTEST:
-    >>> from sympy.abc import a, b
-    >>> from sympy import cos, sin
-    >>> xx0 = sp.Symbol('xx0')
-    >>> x = cos(a + b)**2 ++ xx0
-    >>> get_unique_expression_symbols(x, ["xx0"])
-    ['a', 'b']
-    """
-    if exclude is None:
-        exclude = []
-
-    symbols = {str(sym) for sym in expr.free_symbols}
-    return sorted([sym for sym in symbols if not sym in exclude])
-
-
 if __name__ == "__main__":
     import doctest
 
