@@ -23,7 +23,7 @@ from nrpy.equations.nrpyelliptic.ConformallyFlat_RHSs import (
 from nrpy.equations.nrpyelliptic.ConformallyFlat_SourceTerms import (
     compute_psi_background_and_ADD_times_AUU,
 )
-from nrpy.helpers.expr_tree import get_unique_expression_symbols
+from nrpy.helpers.expression_utils import get_unique_expression_symbols_as_strings
 
 
 # Define functions to set up initial guess
@@ -131,7 +131,7 @@ class base_register_CFunction_auxevol_gfs_single_point:
         )
         self.unique_symbols = []
         for expr in [self.psi_background, self.ADD_times_AUU]:
-            self.unique_symbols += get_unique_expression_symbols(
+            self.unique_symbols += get_unique_expression_symbols_as_strings(
                 expr, exclude=[f"xx{i}" for i in range(3)]
             )
         self.unique_symbols = sorted(list(set(self.unique_symbols)))
@@ -247,7 +247,7 @@ class base_register_CFunction_variable_wavespeed_gfs_all_points:
         ]
         self.unique_symbols = []
         for expr in expr_list:
-            self.unique_symbols += get_unique_expression_symbols(
+            self.unique_symbols += get_unique_expression_symbols_as_strings(
                 expr, exclude=[f"xx{i}" for i in range(3)]
             )
         self.unique_symbols = sorted(list(set(self.unique_symbols)))
@@ -353,7 +353,7 @@ class base_register_CFunction_compute_L2_norm_of_gridfunction:
         ]
         self.unique_symbols = []
         for expr in self.expr_list:
-            self.unique_symbols += get_unique_expression_symbols(
+            self.unique_symbols += get_unique_expression_symbols_as_strings(
                 expr, exclude=[f"xx{i}" for i in range(3)]
             )
         self.unique_symbols = sorted(list(set(self.unique_symbols)))

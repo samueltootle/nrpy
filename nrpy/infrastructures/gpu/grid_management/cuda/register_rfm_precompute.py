@@ -10,7 +10,7 @@ Authors: Samuel D. Tootle
 from typing import List
 
 import nrpy.helpers.gpu_kernels.kernel_base as gputils
-from nrpy.helpers.expr_tree import get_unique_expression_symbols
+from nrpy.helpers.expression_utils import get_unique_expression_symbols_as_strings
 from nrpy.infrastructures.gpu.grid_management.base_register_rfm_precompute import (
     base_register_CFunctions_rfm_precompute,
 )
@@ -79,7 +79,7 @@ class register_CFunctions_rfm_precompute(base_register_CFunctions_rfm_precompute
                 for i, (key_sym, kernel_dict) in enumerate(kernel_dicts.items()):
                     # prefunc_defs += f"REAL *restrict {key_sym} = rfmstruct->{key_sym};\n"
                     # These should all be in paramstruct?
-                    unique_symbols = get_unique_expression_symbols(
+                    unique_symbols = get_unique_expression_symbols_as_strings(
                         kernel_dict["expr"], exclude=[f"xx{j}" for j in range(3)]
                     )
                     kernel_body = ""

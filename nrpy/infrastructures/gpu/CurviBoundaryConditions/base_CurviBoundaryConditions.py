@@ -22,7 +22,7 @@ import nrpy.c_codegen as ccg
 import nrpy.c_function as cfc
 import nrpy.params as par  # NRPy+: Parameter interface
 import nrpy.reference_metric as refmetric  # NRPy+: Reference metric support
-from nrpy.helpers.expr_tree import get_unique_expression_symbols
+from nrpy.helpers.expression_utils import get_unique_expression_symbols_as_strings
 from nrpy.infrastructures.BHaH.CurviBoundaryConditions.CurviBoundaryConditions import (
     BHaH_defines_set_gridfunction_defines_with_parity_types,
     Cfunction__EigenCoord_set_x0x1x2_inbounds__i0i1i2_inbounds_single_pt,
@@ -260,7 +260,7 @@ class setup_Cfunction_r_and_partial_xi_partial_r_derivs:
         ]
         self.unique_symbols = []
         for expr in self.expr_list:
-            sub_list = get_unique_expression_symbols(
+            sub_list = get_unique_expression_symbols_as_strings(
                 expr, exclude=[f"xx{i}" for i in range(3)]
             )
             self.unique_symbols += sub_list

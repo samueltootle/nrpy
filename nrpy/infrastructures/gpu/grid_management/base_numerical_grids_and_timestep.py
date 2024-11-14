@@ -19,7 +19,7 @@ import nrpy.c_codegen as ccg
 import nrpy.c_function as cfc
 import nrpy.params as par
 import nrpy.reference_metric as refmetric
-from nrpy.helpers.expr_tree import get_unique_expression_symbols
+from nrpy.helpers.expression_utils import get_unique_expression_symbols_as_strings
 
 
 class base_register_CFunction_numerical_grid_params_Nxx_dxx_xx:
@@ -206,7 +206,7 @@ class base_register_CFunction_cfl_limited_timestep:
         # we need to include them in the function body
         self.unique_symbols = []
         for expr in self.min_expressions:
-            sub_list = get_unique_expression_symbols(
+            sub_list = get_unique_expression_symbols_as_strings(
                 expr, exclude=[f"xx{i}" for i in range(3)]
             )
             self.unique_symbols += sub_list

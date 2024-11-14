@@ -15,7 +15,7 @@ import nrpy.c_codegen as ccg
 import nrpy.c_function as cfc
 import nrpy.grid as gri
 import nrpy.reference_metric as refmetric
-from nrpy.helpers.expr_tree import get_unique_expression_symbols
+from nrpy.helpers.expression_utils import get_unique_expression_symbols_as_strings
 
 
 # Construct Cart_to_xx_and_nearest_i0i1i2() C function for
@@ -122,7 +122,7 @@ class base_register_CFunction_xx_to_Cart:
         ]
         self.unique_symbols = []
         for expr in expr_list:
-            self.unique_symbols += get_unique_expression_symbols(
+            self.unique_symbols += get_unique_expression_symbols_as_strings(
                 expr, exclude=[f"xx{i}" for i in range(3)]
             )
         self.unique_symbols = sorted(list(set(self.unique_symbols)))
