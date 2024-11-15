@@ -21,6 +21,7 @@ class CFunction:
     :param includes: A list of strings representing include files.
     :param prefunc: A string containing code above the core function declaration. Defaults to an empty string.
     :param desc: A description of the function.
+    :param cfunc_decorators: Optional decorators for CFunctions, e.g. CUDA identifiers, templates
     :param cfunc_type: The C type of the function (e.g., void, int). Default is "void".
     :param name: The name of the function.
     :param params: A string representing the function's input parameters. Defaults to an empty string.
@@ -33,7 +34,6 @@ class CFunction:
     :param ET_current_thorn_CodeParams_used: (ET only) List of CodeParameter names this function uses, for *this thorn's* param.ccl.
     :param ET_other_thorn_CodeParams_used: (ET only) List of CodeParameter names this function uses, for *other thorn's* param.ccl.
     :param clang_format_options: Options for the clang-format tool. Defaults to "-style={BasedOnStyle: LLVM, ColumnLimit: 150}".
-    :param cfunc_decorators: Optional decorators for CFunctions, e.g. CUDA identifiers, templates
 
     DocTests:
     >>> func = CFunction(desc="just a test... testing 1,2,3", name="main", params="", body="return 0;")
@@ -58,6 +58,7 @@ class CFunction:
         includes: Optional[List[str]] = None,
         prefunc: str = "",
         desc: str = "",
+        cfunc_decorators: str = "",
         cfunc_type: str = "void",
         name: str = "",
         params: str = "",
@@ -70,7 +71,6 @@ class CFunction:
         ET_current_thorn_CodeParams_used: Optional[List[str]] = None,
         ET_other_thorn_CodeParams_used: Optional[List[str]] = None,
         clang_format_options: str = "-style={BasedOnStyle: LLVM, ColumnLimit: 150}",
-        cfunc_decorators: str = "",
     ) -> None:
         for attribute in [(name, "name"), (desc, "desc"), (body, "body")]:
             if not attribute[0]:
@@ -100,10 +100,10 @@ class CFunction:
         self.ET_schedule_bins_entries = ET_schedule_bins_entries
         self.ET_current_thorn_CodeParams_used = ET_current_thorn_CodeParams_used
         self.ET_other_thorn_CodeParams_used = ET_other_thorn_CodeParams_used
-        self.clang_format_options = clang_format_options
         self.cfunc_decorators = (
             f"{cfunc_decorators} " if cfunc_decorators != "" else cfunc_decorators
         )
+        self.clang_format_options = clang_format_options
 
         self.function_prototype, self.raw_function, self.full_function = (
             self.generate_full_function()
@@ -250,6 +250,7 @@ def register_CFunction(
     includes: Optional[List[str]] = None,
     prefunc: str = "",
     desc: str = "",
+    cfunc_decorators: str = "",
     cfunc_type: str = "void",
     name: str = "",
     params: str = "",
@@ -262,7 +263,6 @@ def register_CFunction(
     ET_current_thorn_CodeParams_used: Optional[List[str]] = None,
     ET_other_thorn_CodeParams_used: Optional[List[str]] = None,
     clang_format_options: str = "-style={BasedOnStyle: LLVM, ColumnLimit: 150}",
-    cfunc_decorators: str = "",
 ) -> None:
     """
     Add a C function to a dictionary called CFunction_dict, using the provided parameters.
@@ -272,6 +272,7 @@ def register_CFunction(
     :param includes: A list of strings representing include files.
     :param prefunc: A string containing code above the core function declaration. Defaults to an empty string.
     :param desc: A description of the function.
+    :param cfunc_decorators: Optional decorators for CFunctions, e.g. CUDA identifiers, templates
     :param cfunc_type: The C/C++ type of the function (e.g., void, int). Default is "void".
     :param name: The name of the function.
     :param params: A string representing the function's input parameters. Defaults to an empty string.
@@ -284,7 +285,6 @@ def register_CFunction(
     :param ET_current_thorn_CodeParams_used: (ET only) List of CodeParameter names this function uses, for *this thorn's* param.ccl.
     :param ET_other_thorn_CodeParams_used: (ET only) List of CodeParameter names this function uses, for *other thorn's* param.ccl.
     :param clang_format_options: Options for the clang-format tool. Defaults to "-style={BasedOnStyle: LLVM, ColumnLimit: 150}".
-    :param cfunc_decorators: Optional decorators for CFunctions, e.g. CUDA identifiers, templates
 
     :raises ValueError: If the name is already registered in CFunction_dict.
 
@@ -315,8 +315,8 @@ def register_CFunction(
         ET_schedule_bins_entries=ET_schedule_bins_entries,
         ET_current_thorn_CodeParams_used=ET_current_thorn_CodeParams_used,
         ET_other_thorn_CodeParams_used=ET_other_thorn_CodeParams_used,
-        clang_format_options=clang_format_options,
         cfunc_decorators=cfunc_decorators,
+        clang_format_options=clang_format_options,
     )
 
 
