@@ -373,7 +373,7 @@ def register_CFunction_rhs_eval(
 
     includes = ["BHaH_defines.h"]
     if enable_simd:
-        includes += [str(Path("simd") / "simd_intrinsics.h")]
+        includes += [str(Path("intrinsics") / "simd_intrinsics.h")]
     desc = r"""Set RHSs for the BSSN evolution equations."""
     cfunc_type = "void"
     name = "rhs_eval"
@@ -639,7 +639,7 @@ def register_CFunction_Ricci_eval(
 
     includes = ["BHaH_defines.h"]
     if enable_simd:
-        includes += [str(Path("simd") / "simd_intrinsics.h")]
+        includes += [str(Path("intrinsics") / "simd_intrinsics.h")]
     desc = r"""Set Ricci tensor."""
     cfunc_type = "void"
     name = "Ricci_eval"
@@ -724,7 +724,7 @@ def register_CFunction_constraints(
 
     includes = ["BHaH_defines.h"]
     if enable_simd:
-        includes += [str(Path("simd") / "simd_intrinsics.h")]
+        includes += [str(Path("intrinsics") / "simd_intrinsics.h")]
     desc = r"""Evaluate BSSN constraints."""
     cfunc_type = "void"
     name = "constraints_eval"

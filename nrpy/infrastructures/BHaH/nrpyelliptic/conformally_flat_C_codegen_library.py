@@ -689,7 +689,7 @@ def register_CFunction_rhs_eval(
 
     includes = ["BHaH_defines.h"]
     if enable_simd:
-        includes += [str(Path("simd") / "simd_intrinsics.h")]
+        includes += [str(Path("intrinsics") / "simd_intrinsics.h")]
     desc = r"""Set RHSs for hyperbolic relaxation equation."""
     cfunc_type = "void"
     name = "rhs_eval"
@@ -763,7 +763,7 @@ def register_CFunction_compute_residual_all_points(
 
     includes = ["BHaH_defines.h"]
     if enable_simd:
-        includes += [str(Path("simd") / "simd_intrinsics.h")]
+        includes += [str(Path("intrinsics") / "simd_intrinsics.h")]
     desc = r"""Compute residual of the Hamiltonian constraint for the hyperbolic relaxation equation."""
     cfunc_type = "void"
     name = "compute_residual_all_points"
