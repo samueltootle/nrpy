@@ -44,6 +44,7 @@ class base_output_BHaH_defines_h:
     :param additional_includes: Additional header files to be included in the output
     :param REAL_means: The floating-point type to be used in the C code (default is "double")
     :param enable_intrinsics: Flag to enable hardware intrinsics
+    :param define_no_simd_UPWIND_ALG: Flag to #define a SIMD-less UPWIND_ALG. No need to define this if UPWIND_ALG() unused.
     :param enable_rfm_precompute: A boolean value reflecting whether reference metric precomputation is enabled.
     :param fin_NGHOSTS_add_one_for_upwinding_or_KO: Option to add one extra ghost zone for upwinding
     :param supplemental_defines_dict: Additional key-value pairs to be included in the output file
@@ -57,6 +58,7 @@ class base_output_BHaH_defines_h:
         additional_includes: Optional[List[str]] = None,
         REAL_means: str = "double",
         enable_intrinsics: bool = True,
+        define_no_simd_UPWIND_ALG: bool = True,
         enable_rfm_precompute: bool = True,
         fin_NGHOSTS_add_one_for_upwinding_or_KO: bool = False,
         supplemental_defines_dict: Optional[Dict[str, str]] = None,
@@ -120,10 +122,18 @@ class base_output_BHaH_defines_h:
     __typeof__(A) _a = (A); \
     _a * _a; \
 }})
+#ifndef MAYBE_UNUSED
+#if defined(__GNUC__) || defined(__clang__) || defined(__NVCC__)
+#define MAYBE_UNUSED __attribute__((unused))
+#else
+#define MAYBE_UNUSED
+#endif // END check for GCC, Clang, or NVCC
+#endif // END MAYBE_UNUSED
 """
         code_params_includes_define_type = False
         for CPname, CodeParam in par.glb_code_params_dict.items():
-            if CodeParam.cparam_type == "#define":
+            CPtype = CodeParam.cparam_type
+            if CPtype == "#define":
                 if not code_params_includes_define_type:
                     code_params_includes_define_type = True
                     self.BHd_definitions_str += (
@@ -148,29 +158,64 @@ class base_output_BHaH_defines_h:
         CCodelines_params_struct: List[str] = []
         CCodelines_commondata_struct: List[str] = []
 
+        # Helper function to format C declarations without using regex
+        def format_c_declaration(
+            cp_type: str, var_name: str, module: str, description: str
+        ) -> str:
+            """
+            Given a CodeParameter type, variable name, module, and description, return the correct C declaration string.
+            Handles both scalar and array types using simple string operations.
+
+            :param cp_type: The type of the C parameter (e.g., "REAL" or "int[8]").
+            :param var_name: The name of the variable.
+            :param module: The module name to be included in the comment.
+            :param description: A description of the parameter to be appended to the comment.
+                                If empty, only the module and variable name are included in the comment.
+
+            :return: A formatted C declaration string with an inline comment.
+            """
+            if "[" in cp_type and "]" in cp_type:
+                base_type, size_with_bracket = cp_type.split("[", 1)
+                size = size_with_bracket.split("]", 1)[0]
+                base_type = base_type.strip()
+                size = size.strip()
+                if base_type.startswith("char"):
+                    # Handle char arrays
+                    decl = f"  char {var_name}[{size}];"
+                else:
+                    decl = f"  {base_type} {var_name}[{size}];"
+            else:
+                decl = f"  {cp_type} {var_name};"
+
+            # Conditional comment based on description
+            if description:
+                comment = f" // {description} ({module})"
+            else:
+                comment = f" // ({module})"
+
+            return decl + comment + "\n"
+
         # Add all CodeParameters
         # Iterate through the global code parameters dictionary
         for CPname, CodeParam in par.glb_code_params_dict.items():
             CPtype = CodeParam.cparam_type
             if CPtype != "#define":
-                comment = f"  // {CodeParam.module}::{CPname}"
-                c_output = f"  {CPtype} {CPname};{comment}\n"
-                if "char" in CPtype and "[" in CPtype and "]" in CPtype:
-                    chararray_size = CPtype.split("[")[1].replace("]", "")
-                    c_output = f"char {CPname}[{chararray_size}];{comment}\n"
-
-                # Concatenate module and CPname for the comment
+                # All CodeParams have a description field
+                description = CodeParam.description.strip()
+                module = CodeParam.module
+                c_declaration = format_c_declaration(CPtype, CPname, module, description)
+                # Append c_declaration to the appropriate structure: commondata or params
                 if CodeParam.commondata:
-                    CCodelines_commondata_struct.append(c_output)
+                    CCodelines_commondata_struct.append(c_declaration)
                 else:
-                    CCodelines_params_struct.append(c_output)
+                    CCodelines_params_struct.append(c_declaration)
 
         if "commondata_struct" in par.glb_extras_dict:
             for module, item_list in par.glb_extras_dict["commondata_struct"].items():
                 for item in item_list:
                     c_code_line = f"  {item.c_declaration};"
                     if item.description != "":
-                        c_code_line += f"// <- {module}: {item.description}"
+                        c_code_line += f" // <- {module}: {item.description}"
                     CCodelines_commondata_struct.append(c_code_line + "\n")
 
         # Sort CCodelines_params_struct and append them to the par_BHd_str
@@ -197,9 +242,17 @@ class base_output_BHaH_defines_h:
 // Set the number of ghost zones
 // Note that upwinding in e.g., BSSN requires that NGHOSTS = fd_order/2 + 1 <- Notice the +1.
 #define NGHOSTS {self.NGHOSTS}
-#define NO_INLINE // Account for cases where NO_INLINE might appear in codegen
+
+// Declare NO_INLINE macro, used in FD functions. GCC v10+ compilations hang on complex RHS expressions (like BSSN) without this.
+#if defined(__GNUC__) || defined(__clang__) || defined(__INTEL_COMPILER)
+    #define NO_INLINE __attribute__((noinline))
+#elif defined(_MSC_VER)
+    #define NO_INLINE __declspec(noinline)
+#else
+    #define NO_INLINE // Fallback for unknown compilers
+#endif
 """
-            if not enable_intrinsics:
+            if not enable_intrinsics and define_no_simd_UPWIND_ALG:
                 self.fin_BHd_str += """
 // When enable_intrinsics = False, this is the UPWIND_ALG() macro:
 #define UPWIND_ALG(UpwindVecU) UpwindVecU > 0.0 ? 1.0 : 0.0\n"""
@@ -215,9 +268,9 @@ class base_output_BHaH_defines_h:
 //   consecutive values of "j" (fixing all other indices) are separated by
 //   Nxx_plus_2NGHOSTS0 elements in memory. Similarly, consecutive values of
 //   "k" are separated by Nxx_plus_2NGHOSTS0*Nxx_plus_2NGHOSTS1 in memory, etc.
-#define IDX4(g,i,j,k)                                                  \
-  ( (i) + Nxx_plus_2NGHOSTS0 * ( (j) + Nxx_plus_2NGHOSTS1 * ( (k) + Nxx_plus_2NGHOSTS2 * (g) ) ) )
-#define IDX4pt(g,idx) ( (idx) + (Nxx_plus_2NGHOSTS0*Nxx_plus_2NGHOSTS1*Nxx_plus_2NGHOSTS2) * (g) )
+#define IDX4(gf,i,j,k)                                                  \
+  ( (i) + Nxx_plus_2NGHOSTS0 * ( (j) + Nxx_plus_2NGHOSTS1 * ( (k) + Nxx_plus_2NGHOSTS2 * (gf) ) ) )
+#define IDX4pt(gf,idx) ( (idx) + (Nxx_plus_2NGHOSTS0*Nxx_plus_2NGHOSTS1*Nxx_plus_2NGHOSTS2) * (gf) )
 #define IDX3(i,j,k) ( (i) + Nxx_plus_2NGHOSTS0 * ( (j) + Nxx_plus_2NGHOSTS1 * ( (k) ) ) )
 #define LOOP_REGION(i0min,i0max, i1min,i1max, i2min,i2max)              \
   for(int i2=i2min;i2<i2max;i2++) for(int i1=i1min;i1<i1max;i1++) for(int i0=i0min;i0<i0max;i0++)
