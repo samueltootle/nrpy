@@ -19,13 +19,14 @@ from nrpy.infrastructures.BHaH import griddata_commondata
 # Note: These are here such that they can be modified as needed by relevant modules (e.g. MoL)
 core_modules_list = [
     "general",
+    "after_general",
     "nrpy.infrastructures.BHaH.diagnostics.progress_indicator",
     "commondata_struct",
     "params_struct",
     "finite_difference",
     "reference_metric",
-    "nrpy.infrastructures.BHaH.CurviBoundaryConditions.base_CurviBoundaryConditions",
-    "nrpy.infrastructures.BHaH.MoLtimestepping.base_MoL",
+    "nrpy.infrastructures.BHaH.CurviBoundaryConditions.CurviBoundaryConditions",
+    "nrpy.infrastructures.BHaH.MoLtimestepping.MoL",
     "nrpy.infrastructures.BHaH.interpolation.interpolation",
     "grid",
 ]
@@ -112,7 +113,6 @@ def register_BHaH_defines(module: str, BHaH_defines: str) -> None:
 def output_BHaH_defines_h(
     project_dir: str,
     additional_includes: Optional[List[str]] = None,
-    additional_definitiions: Optional[Dict[str, str]] = None,
     REAL_means: str = "double",
     restrict_pointer_type: str = "*restrict",
     enable_intrinsics: bool = True,
@@ -128,7 +128,6 @@ def output_BHaH_defines_h(
 
     :param project_dir: Directory where the project C code is output
     :param additional_includes: Additional header files to be included in the output
-    :param additional_definitiions: Additional user defined header definitions dictionary. Description : [Macros]
     :param REAL_means: The floating-point type to be used in the C code (default is "double")
     :param restrict_pointer_type: Allow modifications of restrict pointer type.  Default is *restrict
     :param enable_intrinsics: Flag to enable hardware intrinsics
@@ -409,11 +408,6 @@ _Pragma(__OMP_PRAGMA__)  \
     file_output_str += """
 #endif
 """
-    if additional_definitiions:
-        for description, macros in additional_definitiions.items():
-            file_output_str += f'// {description}\n'
-            for macro in macros:
-                file_output_str += f'{macro}\n'
 
     file_output_str=file_output_str.replace("*restrict", restrict_pointer_type)
 
