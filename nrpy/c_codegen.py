@@ -84,9 +84,9 @@ class CCodeGen:
         mem_alloc_style: Literal["210", "012"] = "210",
         upwind_control_vec: Union[List[sp.Symbol], sp.Symbol] = sp.Symbol("unset"),
         symbol_to_Rational_dict: Optional[Dict[sp.Basic, sp.Rational]] = None,
+        rational_const_alias: str = "static const",
         clang_format_enable: bool = False,
         clang_format_options: str = "-style={BasedOnStyle: LLVM, ColumnLimit: 150}",
-        rational_const_alias: str = "const",
     ) -> None:
         """
         Initialize the CCodeGen class with provided options for generating C code.
@@ -117,9 +117,9 @@ class CCodeGen:
         :param mem_alloc_style: Memory allocation style.
         :param upwind_control_vec: Upwind control vector as a symbol or list of symbols.
         :param symbol_to_Rational_dict: Dictionary mapping sympy symbols to their corresponding sympy Rationals.
+        :param rational_const_alias: Override default alias for specifying rational constness
         :param clang_format_enable: Boolean to enable clang formatting.
         :param clang_format_options: Options for clang formatting.
-        :param rational_const_alias: Override default alias for specifying rational constness
 
         :raises ValueError: If 'fp_type' is not recognized as a valid floating-point type.
         :raises ValueError: If SIMD optimizations are enabled but the floating-point type is not 'double'.
@@ -181,9 +181,9 @@ class CCodeGen:
         self.mem_alloc_style = mem_alloc_style
         self.upwind_control_vec = upwind_control_vec
         self.symbol_to_Rational_dict = symbol_to_Rational_dict
+        self.rational_const_alias = rational_const_alias
         self.clang_format_enable = clang_format_enable
         self.clang_format_options = clang_format_options
-        self.rational_const_alias = rational_const_alias
 
         self.fd_order = par.parval_from_str("finite_difference::fd_order")
 
@@ -310,11 +310,11 @@ def c_codegen(
     float blah = 1.0F*sinf(M_PI*x);
     <BLANKLINE>
     >>> print(c_codegen(x**5 + x**3 + x - 1/x, "REAL_SIMD_ARRAY blah", include_braces=False, verbose=False, enable_simd=True))
-    const double dbl_Integer_1 = 1.0;
-    const REAL_SIMD_ARRAY _Integer_1 = ConstSIMD(dbl_Integer_1);
+    static const double dbl_Integer_1 = 1.0;
+    const MAYBE_UNUSED REAL_SIMD_ARRAY _Integer_1 = ConstSIMD(dbl_Integer_1);
     <BLANKLINE>
-    const double dbl_NegativeOne_ = -1.0;
-    const REAL_SIMD_ARRAY _NegativeOne_ = ConstSIMD(dbl_NegativeOne_);
+    static const double dbl_NegativeOne_ = -1.0;
+    const MAYBE_UNUSED REAL_SIMD_ARRAY _NegativeOne_ = ConstSIMD(dbl_NegativeOne_);
     <BLANKLINE>
     REAL_SIMD_ARRAY blah = FusedMulAddSIMD(MulSIMD(x, x), x, FusedMulAddSIMD(MulSIMD(MulSIMD(MulSIMD(x, x), x), x), x, SubSIMD(x, DivSIMD(_Integer_1, x))));
     <BLANKLINE>
@@ -668,11 +668,13 @@ def c_codegen(
 
             for i, varname in enumerate(simd_const_varnms):
                 simd_RATIONAL_decls += (
-                    f"const double dbl{varname} = {simd_const_values[i]};\n"
+                    f"static const double dbl{varname} = {simd_const_values[i]};\n"
                 )
-                simd_RATIONAL_decls += (
-                    f"const REAL_SIMD_ARRAY {varname} = ConstSIMD(dbl{varname});\n"
-                )
+                # Workaround for possibly unused NegativeOne SIMD variables.
+                maybe_unused = " "
+                if varname.endswith("NegativeOne_") or varname.endswith("Integer_1"):
+                    maybe_unused = " MAYBE_UNUSED "
+                simd_RATIONAL_decls += f"const{maybe_unused}REAL_SIMD_ARRAY {varname} = ConstSIMD(dbl{varname});\n"
                 simd_RATIONAL_decls += "\n"
 
     # Step 6: Construct final output string
@@ -822,9 +824,9 @@ def gridfunction_management_and_FD_codegen(
     const REAL hDD02_i2p1 = in_gfs[IDX4(HDD02GF, i0, i1, i2+1)];
     const REAL hDD02_i2p2 = in_gfs[IDX4(HDD02GF, i0, i1, i2+2)];
     const REAL vU1 = in_gfs[IDX4(VU1GF, i0, i1, i2)];
-    const REAL FDPart1_Rational_1_2 = 1.0/2.0;
-    const REAL FDPart1_Integer_2 = 2;
-    const REAL FDPart1_Rational_3_2 = 3.0/2.0;
+    static const REAL FDPart1_Rational_1_2 = 1.0/2.0;
+    static const REAL FDPart1_Integer_2 = 2;
+    static const REAL FDPart1_Rational_3_2 = 3.0/2.0;
     const REAL FDPart1tmp0 = FDPart1_Rational_3_2*hDD02;
     const REAL UpwindAlgInputhDD_ddnD020 = invdxx0*(-FDPart1_Integer_2*hDD02_i0m1 + FDPart1_Rational_1_2*hDD02_i0m2 + FDPart1tmp0);
     const REAL UpwindAlgInputhDD_ddnD022 = invdxx2*(-FDPart1_Integer_2*hDD02_i2m1 + FDPart1_Rational_1_2*hDD02_i2m2 + FDPart1tmp0);
@@ -913,7 +915,6 @@ def gridfunction_management_and_FD_codegen(
                         str(symb).replace("FDPROTO", gf_name)
                     )
             FDexprs += [proto_FDexprs[proto_idx].xreplace(replace_dict)]
-
         return symbol_to_Rational_dict, FDexprs, FDlhsvarnames
 
     (
@@ -1022,7 +1023,6 @@ def gridfunction_management_and_FD_codegen(
                 "symbol_to_Rational_dict": symbol_to_Rational_dict,
             }
         )
-
         if CCGParams.enable_fd_functions:
             Coutput += read_from_memory_Ccode
             func_call_list = []
