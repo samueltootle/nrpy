@@ -23,7 +23,8 @@ import nrpy.infrastructures.gpu.CurviBoundaryConditions.cuda.CurviBoundaryCondit
 import nrpy.infrastructures.gpu.grid_management.cuda.griddata_free as griddata_commondata
 import nrpy.infrastructures.gpu.grid_management.cuda.numerical_grids_and_timestep as numericalgrids
 import nrpy.infrastructures.gpu.grid_management.cuda.register_rfm_precompute as rfm_precompute
-import nrpy.infrastructures.gpu.header_definitions.cuda.output_BHaH_defines_h as Bdefines_h
+import nrpy.infrastructures.BHaH.BHaH_defines_h as Bdefines_h
+import nrpy.infrastructures.gpu.header_definitions.cuda.output_BHaH_defines_h as gpudefines
 import nrpy.infrastructures.gpu.main_driver.cuda.main_c as main
 import nrpy.infrastructures.gpu.nrpyelliptic.cuda.conformally_flat_C_codegen_library as nrpyellClib
 import nrpy.params as par
@@ -36,7 +37,7 @@ par.set_parval_from_str("Infrastructure", "BHaH")
 
 # Code-generation-time parameters:
 project_name = "nrpyelliptic_conformally_flat_cuda"
-fp_type = "double"
+fp_type = "float"
 grid_physical_size = 1.0e6
 t_final = grid_physical_size  # This parameter is effectively not used in NRPyElliptic
 nn_max = 10000  # Sets the maximum number of relaxation steps
@@ -94,7 +95,7 @@ enable_rfm_precompute = True
 MoL_method = "RK4"
 fd_order = 10
 radiation_BC_fd_order = 6
-enable_intrinsics = True
+enable_intrinsics = False
 parallel_codegen_enable = True
 boundary_conditions_desc = "outgoing radiation"
 list_of_CoordSystems = [CoordSystem]
@@ -192,7 +193,7 @@ nrpyellClib.register_CFunction_auxevol_gfs_all_points(
 nrpyellClib.register_CFunction_initialize_constant_auxevol()
 
 numericalgrids.register_CFunctions(
-    list_of_CoordSystems=list_of_CoordSystems,
+    list_of_CoordSystems=set(list_of_CoordSystems),
     list_of_grid_physical_sizes=[grid_physical_size for c in list_of_CoordSystems],
     Nxx_dict=Nxx_dict,
     enable_rfm_precompute=enable_rfm_precompute,
@@ -208,7 +209,7 @@ nrpyellClib.register_CFunction_diagnostics(
 
 if enable_rfm_precompute:
     rfm_precompute.register_CFunctions_rfm_precompute(
-        list_of_CoordSystems=list_of_CoordSystems, fp_type=fp_type
+        list_of_CoordSystems=set(list_of_CoordSystems), fp_type=fp_type
     )
 
 # Generate function to compute RHSs
@@ -240,7 +241,7 @@ if __name__ == "__main__" and parallel_codegen_enable:
     pcg.do_parallel_codegen()
 
 cbc.CurviBoundaryConditions_register_C_functions(
-    list_of_CoordSystems=list_of_CoordSystems,
+    list_of_CoordSystems=set(list_of_CoordSystems),
     radiation_BC_fd_order=radiation_BC_fd_order,
     fp_type=fp_type,
 )
@@ -347,24 +348,39 @@ if initial_data_type == "axisymmetric":
 #         command line parameters, set up boundary conditions,
 #         and create a Makefile for this project.
 #         Project is output to project/[project_name]/
-CPs.write_CodeParameters_h_files(project_dir=project_dir, decorator="[[maybe_unused]]")
+CPs.write_CodeParameters_h_files(project_dir=project_dir)
 CPs.register_CFunctions_params_commondata_struct_set_to_default()
 cmdpar.generate_default_parfile(project_dir=project_dir, project_name=project_name)
 cmdpar.register_CFunction_cmdline_input_and_parfile_parser(
     project_name=project_name, cmdline_inputs=["convergence_factor"]
 )
+gpu_defines = gpudefines.output_BHaH_gpu_defines_h(
+    project_dir,
+    num_streams=num_streams
+)
+
+_ = gpudefines.output_BHaH_gpu_global_defines_h(
+    project_dir,
+    gpu_defines.combined_decl_dict,
+)
+
+_ = gpudefines.output_BHaH_gpu_global_init_h(
+    project_dir,
+    gpu_defines.combined_decl_dict,
+)
+
 Bdefines_h.output_BHaH_defines_h(
     project_dir=project_dir,
     enable_intrinsics=enable_intrinsics,
     REAL_means=fp_type,
     supplemental_defines_dict={
-        "ADDITIONAL GPU DIAGNOSTICS": "#define L2_DVGF 0\n"
-        "#define L2_SQUARED_DVGF 1\n",
-        "ADDITIONAL HOST DIAGNOSTICS": "#define HOST_RESIDUAL_HGF 0\n"
-        "#define HOST_UUGF 1\n"
-        "#define NUM_HOST_DIAG 2\n",
+        "ADDITIONAL GPU DIAGNOSTICS" : ["#define L2_DVGF 0", "#define L2_SQUARED_DVGF 1"],
+        "ADDITIONAL HOST DIAGNOSTICS": ["#define HOST_RESIDUAL_HGF 0", "#define HOST_UUGF 1", "#define NUM_HOST_DIAG 2"],
+        "C++/CUDA safe restrict"     : ["#define restrict __restrict__"],
+        "GPU Header"                 : [f'#include "{gpu_defines.bhah_gpu_defines_filename}"']
     },
-    num_streams=num_streams,
+    intrinsics_header_lst=['cuda_intrinsics.h'],
+    restrict_pointer_type='*'
 )
 # Define post_MoL_step_forward_in_time string for main function
 post_MoL_step_forward_in_time = r"""    check_stop_conditions(&commondata, griddata);
