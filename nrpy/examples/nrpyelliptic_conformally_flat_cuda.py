@@ -37,7 +37,7 @@ par.set_parval_from_str("Infrastructure", "BHaH")
 
 # Code-generation-time parameters:
 project_name = "nrpyelliptic_conformally_flat_cuda"
-fp_type = "float"
+fp_type = "double"
 grid_physical_size = 1.0e6
 t_final = grid_physical_size  # This parameter is effectively not used in NRPyElliptic
 nn_max = 10000  # Sets the maximum number of relaxation steps
@@ -95,7 +95,9 @@ enable_rfm_precompute = True
 MoL_method = "RK4"
 fd_order = 10
 radiation_BC_fd_order = 6
-enable_intrinsics = False
+
+# Intrinsics only works for fp_type = "double"
+enable_intrinsics = True
 parallel_codegen_enable = True
 boundary_conditions_desc = "outgoing radiation"
 list_of_CoordSystems = [CoordSystem]
