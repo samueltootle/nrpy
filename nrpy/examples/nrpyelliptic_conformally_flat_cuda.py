@@ -374,10 +374,17 @@ Bdefines_h.output_BHaH_defines_h(
     enable_intrinsics=enable_intrinsics,
     REAL_means=fp_type,
     supplemental_defines_dict={
-        "ADDITIONAL GPU DIAGNOSTICS" : ["#define L2_DVGF 0", "#define L2_SQUARED_DVGF 1"],
-        "ADDITIONAL HOST DIAGNOSTICS": ["#define HOST_RESIDUAL_HGF 0", "#define HOST_UUGF 1", "#define NUM_HOST_DIAG 2"],
-        "C++/CUDA safe restrict"     : ["#define restrict __restrict__"],
-        "GPU Header"                 : [f'#include "{gpu_defines.bhah_gpu_defines_filename}"']
+        "ADDITIONAL GPU DIAGNOSTICS" : """
+#define L2_DVGF 0
+#define L2_SQUARED_DVGF 1
+""",
+        "ADDITIONAL HOST DIAGNOSTICS": """
+#define HOST_RESIDUAL_HGF 0
+#define HOST_UUGF 1
+#define NUM_HOST_DIAG 2
+""",
+        "C++/CUDA safe restrict"     : "#define restrict __restrict__",
+        "GPU Header"                 : f'#include "{gpu_defines.bhah_gpu_defines_filename}"'
     },
     intrinsics_header_lst=['cuda_intrinsics.h'],
     restrict_pointer_type='*'
