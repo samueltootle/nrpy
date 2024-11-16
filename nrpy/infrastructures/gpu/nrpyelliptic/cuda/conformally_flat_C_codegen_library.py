@@ -36,7 +36,7 @@ class gpu_register_CFunction_initial_guess_single_point(
 
     def __init__(self, fp_type: str = "double") -> None:
         super().__init__(fp_type=fp_type)
-        self.cfunc_decorators= "__device__ __host__"
+        self.cfunc_decorators = "__device__ __host__"
         self.params = r"""const REAL xx0, const REAL xx1, const REAL xx2,  REAL *restrict uu_ID, REAL *restrict vv_ID
 """
 

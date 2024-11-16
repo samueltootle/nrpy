@@ -31,6 +31,7 @@ core_modules_list = [
     "grid",
 ]
 
+
 def register_griddata_struct_and_return_griddata_struct_str(
     enable_rfm_precompute: bool = True,
 ) -> str:
@@ -116,7 +117,7 @@ def output_BHaH_defines_h(
     REAL_means: str = "double",
     restrict_pointer_type: str = "*restrict",
     enable_intrinsics: bool = True,
-    intrinsics_header_lst: List[str] = ['simd_intrinsics.h'],
+    intrinsics_header_lst: List[str] = ["simd_intrinsics.h"],
     define_no_simd_UPWIND_ALG: bool = True,
     enable_rfm_precompute: bool = True,
     fin_NGHOSTS_add_one_for_upwinding_or_KO: bool = False,
@@ -409,7 +410,7 @@ _Pragma(__OMP_PRAGMA__)  \
 #endif
 """
 
-    file_output_str=file_output_str.replace("*restrict", restrict_pointer_type)
+    file_output_str = file_output_str.replace("*restrict", restrict_pointer_type)
 
     bhah_defines_file = project_Path / "BHaH_defines.h"
     with bhah_defines_file.open("w", encoding="utf-8") as file:

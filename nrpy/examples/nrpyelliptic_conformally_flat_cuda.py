@@ -356,7 +356,9 @@ cmdpar.generate_default_parfile(project_dir=project_dir, project_name=project_na
 cmdpar.register_CFunction_cmdline_input_and_parfile_parser(
     project_name=project_name, cmdline_inputs=["convergence_factor"]
 )
-gpu_defines_filename = gpudefines.output_CUDA_headers(project_dir, num_streams=num_streams)
+gpu_defines_filename = gpudefines.output_CUDA_headers(
+    project_dir, num_streams=num_streams
+)
 
 Bdefines_h.output_BHaH_defines_h(
     project_dir=project_dir,
