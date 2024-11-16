@@ -17,8 +17,8 @@ import sympy as sp  # Import SymPy, a computer algebra system written entirely i
 
 import nrpy.c_function as cfc
 import nrpy.helpers.gpu_kernels.kernel_base as gputils
-import nrpy.params as par  # NRPy+: Parameter interface
 import nrpy.infrastructures.BHaH.BHaH_defines_h as BHaH_defines_overload
+import nrpy.params as par  # NRPy+: Parameter interface
 from nrpy.helpers.generic import superfast_uniq
 from nrpy.infrastructures.BHaH import BHaH_defines_h, griddata_commondata
 from nrpy.infrastructures.gpu.MoLtimestepping import base_MoL

@@ -13,8 +13,8 @@ from typing import Any, List
 
 import nrpy.c_function as cfc
 import nrpy.helpers.gpu_kernels.kernel_base as gputils
-import nrpy.infrastructures.gpu.CurviBoundaryConditions.base_CurviBoundaryConditions as base_cbc_classes
 import nrpy.infrastructures.BHaH.BHaH_defines_h as BHaH_defines_overload
+import nrpy.infrastructures.gpu.CurviBoundaryConditions.base_CurviBoundaryConditions as base_cbc_classes
 import nrpy.params as par  # NRPy+: Parameter interface
 import nrpy.reference_metric as refmetric  # NRPy+: Reference metric support
 from nrpy.infrastructures.BHaH import BHaH_defines_h, griddata_commondata
