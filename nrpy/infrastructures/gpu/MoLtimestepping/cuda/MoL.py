@@ -18,11 +18,9 @@ import sympy as sp  # Import SymPy, a computer algebra system written entirely i
 import nrpy.c_function as cfc
 import nrpy.helpers.gpu_kernels.kernel_base as gputils
 import nrpy.params as par  # NRPy+: Parameter interface
+import nrpy.infrastructures.BHaH.BHaH_defines_h as BHaH_defines_overload
 from nrpy.helpers.generic import superfast_uniq
 from nrpy.infrastructures.BHaH import BHaH_defines_h, griddata_commondata
-from nrpy.infrastructures.gpu.header_definitions.base_output_BHaH_defines_h import (
-    core_modules_list,
-)
 from nrpy.infrastructures.gpu.MoLtimestepping import base_MoL
 
 # fmt: off
@@ -36,9 +34,9 @@ _ = par.CodeParameter("REAL", __name__, "t_final", 10.0, commondata=True)
 # fmt: on
 
 # Update core_modules to use correct key for ordering
-for idx, key in enumerate(core_modules_list):
+for idx, key in enumerate(BHaH_defines_overload.core_modules_list):
     if "nrpy.infrastructures.BHaH.MoLtimestepping" in key:
-        core_modules_list[idx] = str(__name__)
+        BHaH_defines_overload.core_modules_list[idx] = str(__name__)
 
 
 class register_CFunction_MoL_malloc(base_MoL.base_register_CFunction_MoL_malloc):
