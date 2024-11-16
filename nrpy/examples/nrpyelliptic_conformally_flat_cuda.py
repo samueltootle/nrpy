@@ -14,6 +14,7 @@ import shutil
 
 import nrpy.helpers.gpu_kernels.cuda_utilities as gputils
 import nrpy.helpers.parallel_codegen as pcg
+import nrpy.infrastructures.BHaH.BHaH_defines_h as Bdefines_h
 import nrpy.infrastructures.BHaH.cmdline_input_and_parfiles as cmdpar
 import nrpy.infrastructures.BHaH.CodeParameters as CPs
 import nrpy.infrastructures.BHaH.diagnostics.progress_indicator as progress
@@ -23,8 +24,7 @@ import nrpy.infrastructures.gpu.CurviBoundaryConditions.cuda.CurviBoundaryCondit
 import nrpy.infrastructures.gpu.grid_management.cuda.griddata_free as griddata_commondata
 import nrpy.infrastructures.gpu.grid_management.cuda.numerical_grids_and_timestep as numericalgrids
 import nrpy.infrastructures.gpu.grid_management.cuda.register_rfm_precompute as rfm_precompute
-import nrpy.infrastructures.BHaH.BHaH_defines_h as Bdefines_h
-import nrpy.infrastructures.gpu.header_definitions.cuda.output_BHaH_defines_h as gpudefines
+import nrpy.infrastructures.gpu.header_definitions.cuda_headers as gpudefines
 import nrpy.infrastructures.gpu.main_driver.cuda.main_c as main
 import nrpy.infrastructures.gpu.nrpyelliptic.cuda.conformally_flat_C_codegen_library as nrpyellClib
 import nrpy.params as par
@@ -195,7 +195,7 @@ nrpyellClib.register_CFunction_auxevol_gfs_all_points(
 nrpyellClib.register_CFunction_initialize_constant_auxevol()
 
 numericalgrids.register_CFunctions(
-    list_of_CoordSystems=set(list_of_CoordSystems),
+    list_of_CoordSystems=list(set(list_of_CoordSystems)),
     list_of_grid_physical_sizes=[grid_physical_size for c in list_of_CoordSystems],
     Nxx_dict=Nxx_dict,
     enable_rfm_precompute=enable_rfm_precompute,
@@ -211,7 +211,7 @@ nrpyellClib.register_CFunction_diagnostics(
 
 if enable_rfm_precompute:
     rfm_precompute.register_CFunctions_rfm_precompute(
-        list_of_CoordSystems=set(list_of_CoordSystems), fp_type=fp_type
+        list_of_CoordSystems=list(set(list_of_CoordSystems)), fp_type=fp_type
     )
 
 # Generate function to compute RHSs
@@ -243,7 +243,7 @@ if __name__ == "__main__" and parallel_codegen_enable:
     pcg.do_parallel_codegen()
 
 cbc.CurviBoundaryConditions_register_C_functions(
-    list_of_CoordSystems=set(list_of_CoordSystems),
+    list_of_CoordSystems=list(set(list_of_CoordSystems)),
     radiation_BC_fd_order=radiation_BC_fd_order,
     fp_type=fp_type,
 )
@@ -356,27 +356,14 @@ cmdpar.generate_default_parfile(project_dir=project_dir, project_name=project_na
 cmdpar.register_CFunction_cmdline_input_and_parfile_parser(
     project_name=project_name, cmdline_inputs=["convergence_factor"]
 )
-gpu_defines = gpudefines.output_BHaH_gpu_defines_h(
-    project_dir,
-    num_streams=num_streams
-)
-
-_ = gpudefines.output_BHaH_gpu_global_defines_h(
-    project_dir,
-    gpu_defines.combined_decl_dict,
-)
-
-_ = gpudefines.output_BHaH_gpu_global_init_h(
-    project_dir,
-    gpu_defines.combined_decl_dict,
-)
+gpu_defines_filename = gpudefines.output_CUDA_headers(project_dir, num_streams=num_streams)
 
 Bdefines_h.output_BHaH_defines_h(
     project_dir=project_dir,
     enable_intrinsics=enable_intrinsics,
     REAL_means=fp_type,
     supplemental_defines_dict={
-        "ADDITIONAL GPU DIAGNOSTICS" : """
+        "ADDITIONAL GPU DIAGNOSTICS": """
 #define L2_DVGF 0
 #define L2_SQUARED_DVGF 1
 """,
@@ -385,11 +372,11 @@ Bdefines_h.output_BHaH_defines_h(
 #define HOST_UUGF 1
 #define NUM_HOST_DIAG 2
 """,
-        "C++/CUDA safe restrict"     : "#define restrict __restrict__",
-        "GPU Header"                 : f'#include "{gpu_defines.bhah_gpu_defines_filename}"'
+        "C++/CUDA safe restrict": "#define restrict __restrict__",
+        "GPU Header": f'#include "{gpu_defines_filename}"',
     },
-    intrinsics_header_lst=['cuda_intrinsics.h'],
-    restrict_pointer_type='*'
+    intrinsics_header_lst=["cuda_intrinsics.h"],
+    restrict_pointer_type="*",
 )
 # Define post_MoL_step_forward_in_time string for main function
 post_MoL_step_forward_in_time = r"""    check_stop_conditions(&commondata, griddata);
