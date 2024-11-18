@@ -29,6 +29,7 @@ def output_CFunctions_function_prototypes_and_construct_Makefile(
     static_lib: bool = False,
     lib_function_prefix: str = "",
     include_dirs: Optional[List[str]] = None,
+    src_code_file_ext: str = "c",
     clang_format_options: str = "-style={BasedOnStyle: LLVM, ColumnLimit: 150}",
     code_ext: str = "c",
 ) -> None:
@@ -46,6 +47,7 @@ def output_CFunctions_function_prototypes_and_construct_Makefile(
     :param static_lib: Whether the library created should be a static library. Defaults to False.
     :param lib_function_prefix: Prefix to add to library function names.
     :param include_dirs: List of include directories.
+    :param src_code_file_ext: set what the file extension is for each code file.
     :param clang_format_options: Options for the clang-format tool.
     :param code_ext: set what the file extension is for each code file.
 
@@ -118,10 +120,10 @@ def output_CFunctions_function_prototypes_and_construct_Makefile(
 
         subdir_Path = Path(CFunction.subdirectory or ".")
         (project_Path / subdir_Path).mkdir(parents=True, exist_ok=True)
-        c_file_path = project_Path / subdir_Path / f"{name}.{code_ext}"
+        c_file_path = project_Path / subdir_Path / f"{name}.{src_code_file_ext}"
         with open(c_file_path, "w", encoding="utf-8") as file:
             file.write(CFunction.full_function)
-        Makefile_list_of_files.append(str(subdir_Path / f"{name}.{code_ext}"))
+        Makefile_list_of_files.append(str(subdir_Path / f"{name}.{src_code_file_ext}"))
 
     # Output BHaH_function_prototypes.h
     with open(
@@ -141,9 +143,9 @@ def output_CFunctions_function_prototypes_and_construct_Makefile(
 
     # Compiler flags
     CFLAGS_dict = {
-        "default": "-std=gnu99 -O2 -march=native -g -Wall -Wno-unused-variable",
-        "fast": "-std=gnu99 -O3 -funroll-loops -march=native -g -Wall -Wno-unused-variable",
-        "debug": "-std=gnu99 -O2 -g -Wall -Wno-unused-variable -Wno-unknown-pragmas",
+        "default": "-std=gnu99 -O2 -march=native -g -Wall",
+        "fast": "-std=gnu99 -O3 -funroll-loops -march=native -g -Wall",
+        "debug": "-std=gnu99 -O2 -g -Wall -Wno-unknown-pragmas",
         "nvcc": "-Xcompiler -fopenmp -Xcompiler -g -O2 -arch=native -O2 -Xcompiler=-march=native -Xcompiler -Wall --forward-unknown-to-host-compiler --Werror cross-execution-space-call --relocatable-device-code=true -allow-unsupported-compiler",
     }
     if addl_CFLAGS:
@@ -154,7 +156,7 @@ def output_CFunctions_function_prototypes_and_construct_Makefile(
 
     # Object files
     OBJ_FILES_str = "OBJ_FILES = " + " ".join(
-        c_file.replace(f".{code_ext}", ".o")
+        c_file.replace(f".{src_code_file_ext}", ".o")
         for c_file in sorted(Makefile_list_of_files, key=str.lower)
     )
 
@@ -228,7 +230,7 @@ LDFLAGS += $(OPENMP_FLAG)
 
 all: {exec_or_library_name}
 
-%.o: %.{code_ext} $(COMMON_HEADERS)
+%.o: %.{src_code_file_ext} $(COMMON_HEADERS)
 \t$(CC) $(CFLAGS) $(INCLUDEDIRS) -c $< -o $@
 
 {target_rule}

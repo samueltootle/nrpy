@@ -33,6 +33,7 @@ fp_type_list = Literal[
     "double",
     "float",
     "long double",
+    "set by NRPyParameter par.parval_from_str('fp_type')",
     # Unsupported types by sympy ccode generator
     # "std::bfloat16_t",
     # "std::float16_t",
@@ -45,6 +46,7 @@ fp_type_to_sympy_type = {
     "double": sp_ast.float64,
     "float": sp_ast.float32,
     "long double": sp_ast.float80,
+    "set by NRPyParameter par.parval_from_str('fp_type')": sp_ast.float64,
     # Unsupported types by sympy ccode generator
     # "std::bfloat16_t": sp_ast.float16,
     # "std::float16_t" : sp_ast.float16,
@@ -61,7 +63,7 @@ class CCodeGen:
         prestring: str = "",
         poststring: str = "",
         include_braces: bool = True,
-        fp_type: fp_type_list = "double",
+        fp_type: fp_type_list = "set by NRPyParameter par.parval_from_str('fp_type')",
         fp_type_alias: str = "",
         verbose: bool = True,
         enable_cse: bool = True,
@@ -130,17 +132,20 @@ class CCodeGen:
         >>> c = CCodeGen(fp_type="double")
         >>> c.fp_type
         'double'
+        >>> print(tuple(fp_type_to_sympy_type.keys()))
+        ('double', 'float', 'long double', "set by NRPyParameter par.parval_from_str('fp_type')")
         >>> CCodeGen(fp_type="foo")
         Traceback (most recent call last):
           ...
-        ValueError: In function '__init__': parameter 'fp_type' has value: 'foo', which is not in the allowed_values set: ('double', 'float', 'long double')
-
+        ValueError: In function '__init__': parameter 'fp_type' has value: 'foo', which is not in the allowed_values set: ('double', 'float', 'long double', "set by NRPyParameter par.parval_from_str('fp_type')")
         """
         validate_literal_arguments()
         self.prestring = prestring
         self.poststring = poststring
         self.include_braces = include_braces
         # Validate fp_type before attempting to access fp_type_to_sympy_type
+        if fp_type == "set by NRPyParameter par.parval_from_str('fp_type')":
+            fp_type = par.parval_from_str("fp_type")
         if fp_type not in fp_type_to_sympy_type:
             allowed_values = tuple(fp_type_to_sympy_type.keys())
             raise ValueError(
@@ -205,15 +210,17 @@ class CCodeGen:
             else:
                 raise ValueError("FIXME: Please specify the fp_type for SIMD")
         else:
-            if Infrastructure == "NRPy":
-                self.fp_type_alias = self.fp_type
-            elif Infrastructure == "BHaH":
-                self.fp_type_alias = "REAL"
-            elif Infrastructure in ("ETLegacy", "CarpetX"):
-                self.fp_type_alias = "CCTK_REAL"
+            if fp_type_alias == "":
+                if Infrastructure == "NRPy":
+                    self.fp_type_alias = self.fp_type
+                elif Infrastructure == "BHaH":
+                    self.fp_type_alias = "REAL"
+                elif Infrastructure in ("ETLegacy", "CarpetX"):
+                    self.fp_type_alias = "CCTK_REAL"
+                else:
+                    self.fp_type_alias = ""
             else:
-                self.fp_type_alias = ""
-
+                self.fp_type_alias = fp_type_alias
         if self.enable_GoldenKernels:
             self.enable_cse_preprocess = True
             self.simd_find_more_subs = True
