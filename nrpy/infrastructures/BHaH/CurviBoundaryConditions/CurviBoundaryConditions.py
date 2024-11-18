@@ -8,8 +8,6 @@ Authors: Zachariah B. Etienne
          Terrence Pierre Jacques
 """
 
-import os
-
 # Step P1: Import needed NRPy+ core modules:
 from typing import List, Tuple
 
@@ -271,7 +269,7 @@ DOUBLE Cartz = xCart[2];
 """
 
     # Step 2: Output C code for the Eigen-Coordinate mapping from Cartesian->xx':
-    body += rf"""
+    body += r"""
   // Step 2: Find the (i0_inbounds,i1_inbounds,i2_inbounds) corresponding to the above Cartesian coordinate.
   //   If (i0_inbounds,i1_inbounds,i2_inbounds) is in a ghost zone, then it must equal (i0,i1,i2), and
   //      the point is an outer boundary point.
@@ -289,14 +287,12 @@ DOUBLE Cartz = xCart[2];
         )
     # Step 2.b: Output C code for the Eigen-Coordinate mapping from Cartesian->xx:
     body += f"  // Cart_to_xx for EigenCoordinate {rfm.CoordSystem} (orig coord = {rfm_orig.CoordSystem});\n"
-    tmp_str = ccg.c_codegen(
+    body += ccg.c_codegen(
         [rfm.Cart_to_xx[0], rfm.Cart_to_xx[1], rfm.Cart_to_xx[2]],
         ["Cart_to_xx0_inbounds", "Cart_to_xx1_inbounds", "Cart_to_xx2_inbounds"],
         fp_type_alias=fp_type_alias,
     )
-    tmp_str = tmp_str.replace("REAL", type_alias)
-    body += tmp_str
-    body += rf"""
+    body += r"""
   // Next compute xxmin[i]. By definition,
   //    xx[i][j] = xxmin[i] + ((DOUBLE)(j-NGHOSTS) + (1.0/2.0))*dxxi;
   // -> xxmin[i] = xx[i][0] - ((DOUBLE)(0-NGHOSTS) + (1.0/2.0))*dxxi
@@ -329,14 +325,12 @@ DOUBLE Cartz = xCart[2];
     DOUBLE xx1 = xx[1][i1];
     DOUBLE xx2 = xx[2][i2];
 """
-    tmp_str = ccg.c_codegen(
+    body += ccg.c_codegen(
         [rfm_orig.xx_to_Cart[0], rfm_orig.xx_to_Cart[1], rfm_orig.xx_to_Cart[2]],
         ["xCart_from_xx", "yCart_from_xx", "zCart_from_xx"],
         include_braces=False,
         fp_type_alias=fp_type_alias,
     )
-    tmp_str = tmp_str.replace("REAL", type_alias)
-    body += tmp_str
 
     body += f"""  }}
 
@@ -349,14 +343,12 @@ DOUBLE Cartz = xCart[2];
     DOUBLE xx1 = xx[1][i1_inbounds];
     DOUBLE xx2 = xx[2][i2_inbounds];
 """
-    tmp_str = ccg.c_codegen(
+    body += ccg.c_codegen(
         [rfm_orig.xx_to_Cart[0], rfm_orig.xx_to_Cart[1], rfm_orig.xx_to_Cart[2]],
         ["xCart_from_xx_inbounds", "yCart_from_xx_inbounds", "zCart_from_xx_inbounds"],
         include_braces=False,
         fp_type_alias=fp_type_alias,
     )
-    tmp_str = tmp_str.replace("REAL", type_alias)
-    body += tmp_str
 
     body += r"""  }
 
@@ -386,7 +378,7 @@ DOUBLE Cartz = xCart[2];
             xx[0][i0_inbounds],xx[1][i1_inbounds],xx[2][i2_inbounds],
             Nxx_plus_2NGHOSTS0,Nxx_plus_2NGHOSTS1,Nxx_plus_2NGHOSTS2);
     exit(1);
-  }}
+  }
 
   // Step 4: Set output arrays.
   x0x1x2_inbounds[0] = xx[0][i0_inbounds];
@@ -739,21 +731,17 @@ Step 2: Set up outer boundary structs bcstruct->outer_bc_array[which_gz][face][i
       bcstruct->bc_info.num_pure_outer_boundary_points[which_gz][dirn] = idx2d;
     }
 """
-    _, actual_name = cfc.function_name_and_subdir_with_CoordSystem(
-        os.path.join("."), name, CoordSystem
+    cfc.register_CFunction(
+        includes=includes,
+        prefunc=prefunc,
+        desc=desc,
+        cfunc_type=cfunc_type,
+        CoordSystem_for_wrapper_func=CoordSystem,
+        name=name,
+        params=params,
+        include_CodeParameters_h=True,
+        body=body,
     )
-    if actual_name not in cfc.CFunction_dict:
-        cfc.register_CFunction(
-            includes=includes,
-            prefunc=prefunc,
-            desc=desc,
-            cfunc_type=cfunc_type,
-            CoordSystem_for_wrapper_func=CoordSystem,
-            name=name,
-            params=params,
-            include_CodeParameters_h=True,
-            body=body,
-        )
 
 
 ###############################
@@ -1302,21 +1290,17 @@ applies BCs to the inner boundary points, which may map either to the grid inter
   //              STEP 2 OF 2.
   apply_bcs_inner_only(commondata, params, bcstruct, rhs_gfs); // <- apply inner BCs to RHS gfs only
 """
-    _, actual_name = cfc.function_name_and_subdir_with_CoordSystem(
-        os.path.join("."), name, CoordSystem
+    cfc.register_CFunction(
+        includes=includes,
+        prefunc=prefunc,
+        desc=desc,
+        cfunc_type=cfunc_type,
+        CoordSystem_for_wrapper_func=CoordSystem,
+        name=name,
+        params=params,
+        include_CodeParameters_h=True,
+        body=body,
     )
-    if actual_name not in cfc.CFunction_dict:
-        cfc.register_CFunction(
-            includes=includes,
-            prefunc=prefunc,
-            desc=desc,
-            cfunc_type=cfunc_type,
-            CoordSystem_for_wrapper_func=CoordSystem,
-            name=name,
-            params=params,
-            include_CodeParameters_h=True,
-            body=body,
-        )
 
 
 def register_griddata_commondata() -> None:
