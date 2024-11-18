@@ -12,7 +12,7 @@ import os
 #         and compile-time parameters.
 import shutil
 
-import nrpy.helpers.gpu_kernels.cuda_utilities as gputils
+import nrpy.helpers.gpu.cuda_utilities as gputils
 import nrpy.helpers.parallel_codegen as pcg
 import nrpy.infrastructures.BHaH.BHaH_defines_h as Bdefines_h
 import nrpy.infrastructures.BHaH.cmdline_input_and_parfiles as cmdpar
@@ -157,6 +157,7 @@ project_dir = os.path.join("project", project_name)
 # First clean the project directory, if it exists.
 shutil.rmtree(project_dir, ignore_errors=True)
 
+par.set_parval_from_str("fp_type", fp_type)
 par.set_parval_from_str("parallel_codegen_enable", parallel_codegen_enable)
 par.set_parval_from_str("fd_order", fd_order)
 par.set_parval_from_str("CoordSystem_to_register_CodeParameters", CoordSystem)

@@ -12,7 +12,7 @@ Author: Samuel D. Tootle
 
 from typing import Dict, List
 
-import nrpy.helpers.gpu_kernels.kernel_base as gputils
+import nrpy.helpers.gpu.gpu_kernel as gputils
 import nrpy.infrastructures.gpu.grid_management.base_numerical_grids_and_timestep as base_gm_classes
 import nrpy.infrastructures.gpu.loop_utilities.cuda.simple_loop as lp
 import nrpy.params as par

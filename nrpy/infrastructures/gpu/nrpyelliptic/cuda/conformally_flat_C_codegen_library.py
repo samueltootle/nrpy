@@ -17,7 +17,7 @@ import sympy as sp
 import nrpy.c_codegen as ccg
 import nrpy.c_function as cfc
 import nrpy.grid as gri
-import nrpy.helpers.gpu_kernels.kernel_base as gputils
+import nrpy.helpers.gpu.gpu_kernel as gputils
 import nrpy.helpers.parallel_codegen as pcg
 import nrpy.infrastructures.BHaH.diagnostics.output_0d_1d_2d_nearest_gridpoint_slices as out012d
 import nrpy.infrastructures.gpu.loop_utilities.cuda.simple_loop as lp

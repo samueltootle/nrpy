@@ -16,7 +16,7 @@ from typing import Dict, List, Tuple, Union
 import sympy as sp  # Import SymPy, a computer algebra system written entirely in Python
 
 import nrpy.c_function as cfc
-import nrpy.helpers.gpu_kernels.kernel_base as gputils
+import nrpy.helpers.gpu.gpu_kernel as gputils
 import nrpy.infrastructures.BHaH.BHaH_defines_h as BHaH_defines_overload
 import nrpy.params as par  # NRPy+: Parameter interface
 from nrpy.helpers.generic import superfast_uniq

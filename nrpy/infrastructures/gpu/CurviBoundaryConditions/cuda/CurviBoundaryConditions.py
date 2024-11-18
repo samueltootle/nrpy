@@ -12,7 +12,7 @@ Authors: Samuel D. Tootle
 from typing import Any, List
 
 import nrpy.c_function as cfc
-import nrpy.helpers.gpu_kernels.kernel_base as gputils
+import nrpy.helpers.gpu.gpu_kernel as gputils
 import nrpy.infrastructures.BHaH.BHaH_defines_h as BHaH_defines_overload
 import nrpy.infrastructures.gpu.CurviBoundaryConditions.base_CurviBoundaryConditions as base_cbc_classes
 import nrpy.params as par  # NRPy+: Parameter interface

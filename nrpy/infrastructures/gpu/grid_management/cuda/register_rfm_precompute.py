@@ -9,7 +9,7 @@ Authors: Samuel D. Tootle
 
 from typing import List
 
-import nrpy.helpers.gpu_kernels.kernel_base as gputils
+import nrpy.helpers.gpu.gpu_kernel as gputils
 from nrpy.helpers.expression_utils import get_unique_expression_symbols_as_strings
 from nrpy.infrastructures.gpu.grid_management.base_register_rfm_precompute import (
     base_register_CFunctions_rfm_precompute,
