@@ -42,12 +42,10 @@ class base_register_CFunction_bcstruct_set_up:
     computational grid are filled, based on the given coordinate system (CoordSystem).
 
     :param CoordSystem: The coordinate system for which to set up boundary conditions.
-    :param fp_type: Floating point type, e.g., "double".
     """
 
-    def __init__(self, CoordSystem: str, fp_type: str = "double") -> None:
+    def __init__(self, CoordSystem: str) -> None:
         self.CoordSystem = CoordSystem
-        self.fp_type = fp_type
 
         self.includes = [
             "BHaH_defines.h",
@@ -56,11 +54,10 @@ class base_register_CFunction_bcstruct_set_up:
         self.prefunc = (
             Cfunction__EigenCoord_set_x0x1x2_inbounds__i0i1i2_inbounds_single_pt(
                 self.CoordSystem,
-                fp_type=self.fp_type,
             )
         )
         self.prefunc += Cfunction__set_parity_for_inner_boundary_single_pt(
-            self.CoordSystem, fp_type=self.fp_type
+            self.CoordSystem
         )
         self.desc = r"""At each coordinate point (x0,x1,x2) situated at grid index (i0,i1,i2):
 Step 1: Set up inner boundary structs bcstruct->inner_bc_array[].
@@ -233,13 +230,11 @@ class setup_Cfunction_r_and_partial_xi_partial_r_derivs:
     partial x^i / partial r for a given coordinate system.
 
     :param CoordSystem: The coordinate system for which to compute r and its derivatives.
-    :param fp_type: Floating point type, e.g., "double".
     :return: A string containing the generated C code for the function.
     """
 
-    def __init__(self, CoordSystem: str, fp_type: str = "double") -> None:
+    def __init__(self, CoordSystem: str) -> None:
         self.CoordSystem = CoordSystem
-        self.fp_type = fp_type
         self.CFunction: cfc.CFunction
         self.include_CodeParameters_h = True
         self.cfunc_decorators = ""
@@ -275,7 +270,6 @@ class setup_Cfunction_r_and_partial_xi_partial_r_derivs:
             ],
             verbose=False,
             include_braces=False,
-            fp_type=fp_type,
         )
         self.generate_CFunction()
 
@@ -305,20 +299,17 @@ class setup_Cfunction_FD1_arbitrary_upwind:
     :param dirn: Direction in which to compute the derivative.
     :param radiation_BC_fd_order: Finite difference order for radiation boundary condition.
                                   If -1, will use default finite difference order.
-    :param fp_type: Floating point type, e.g., "double".
     """
 
     def __init__(
         self,
         dirn: int,
         radiation_BC_fd_order: int = -1,
-        fp_type: str = "double",
         rational_const_alias: str = "const",
-        fp_type_alias: str = "REAL",
     ) -> None:
         self.dirn = dirn
         self.radiation_BC_fd_order = radiation_BC_fd_order
-        self.fp_type = fp_type
+        self.fp_type = par.parval_from_str("fp_type")
 
         self.default_FDORDER = par.parval_from_str("fd_order")
         if radiation_BC_fd_order == -1:
@@ -339,7 +330,7 @@ class setup_Cfunction_FD1_arbitrary_upwind:
         self.body = "switch(offset) {\n"
 
         tmp_list: List[int] = []
-        fp_ccg_type = ccg.fp_type_to_sympy_type[fp_type]
+        fp_ccg_type = ccg.fp_type_to_sympy_type[self.fp_type]
         sp_type_alias = {sp_ast.real: fp_ccg_type}
         for offset in range(
             0, int(radiation_BC_fd_order // 2) + 1
@@ -369,7 +360,7 @@ class setup_Cfunction_FD1_arbitrary_upwind:
                     continue
                 v = f"Rational_decl__{decl_coeff.p}_{decl_coeff.q}"
                 rational_dict[decl_coeff] = v
-                RATIONAL_assignment = f"{rational_const_alias} {fp_type_alias} {str(v)}"
+                RATIONAL_assignment = f"{rational_const_alias} REAL {str(v)}"
                 self.body += sp.ccode(
                     decl_coeff,
                     assign_to=RATIONAL_assignment,
@@ -529,7 +520,6 @@ class setup_Cfunction_radiation_bcs:
 
     :param CoordSystem: The coordinate system to use.
     :param radiation_BC_fd_order: Finite differencing order to use. Default is -1.
-    :param fp_type: Floating point type, e.g., "double".
     :return: A string containing the generated C code for the function.
     """
 
@@ -537,11 +527,9 @@ class setup_Cfunction_radiation_bcs:
         self,
         CoordSystem: str,
         radiation_BC_fd_order: int = -1,
-        fp_type: str = "double",
     ) -> None:
         self.CoordSystem = CoordSystem
         self.radiation_BC_fd_order = radiation_BC_fd_order
-        self.fp_type = fp_type
 
         self.cfunc_decorators = ""
         self.include_CodeParameters_h = True
@@ -620,7 +608,6 @@ return partial_t_f_outgoing_wave + k * rinv*rinv*rinv;
                 self.upwind_prefunc += self.upwind_setup_func(
                     dirn=i,
                     radiation_BC_fd_order=self.radiation_BC_fd_order,
-                    fp_type=self.fp_type,
                     rational_const_alias="static constexpr",
                 ).CFunction.full_function
 
@@ -630,7 +617,6 @@ return partial_t_f_outgoing_wave + k * rinv*rinv*rinv;
         self.r_and_partial_xi_partial_r_derivs_prefunc += (
             self.r_and_partial_xi_partial_r_derivs_prefunc_setup_func(
                 CoordSystem=self.CoordSystem,
-                fp_type=self.fp_type,
             ).CFunction.full_function
         )
 
@@ -679,24 +665,20 @@ class base_register_CFunction_apply_bcs_outerradiation_and_inner:
 
     :param CoordSystem: The coordinate system to use.
     :param radiation_BC_fd_order: Finite differencing order for the radiation boundary conditions. Default is 2.
-    :param fp_type: Floating point type, e.g., "double".
     """
 
     def __init__(
         self,
         CoordSystem: str,
         radiation_BC_fd_order: int = 2,
-        fp_type: str = "double",
     ) -> None:
         self.CoordSystem = CoordSystem
         self.radiation_BC_fd_order = radiation_BC_fd_order
-        self.fp_type = fp_type
 
         self.includes = ["BHaH_defines.h", "BHaH_function_prototypes.h"]
         self.prefunc = setup_Cfunction_radiation_bcs(
             CoordSystem=CoordSystem,
             radiation_BC_fd_order=radiation_BC_fd_order,
-            fp_type=fp_type,
         ).CFunction.full_function
         self.desc = """This function is responsible for applying boundary conditions (BCs) to both pure outer and inner
 boundary points. In the first step, it parallelizes the task using OpenMP and starts by applying BCs to
@@ -740,7 +722,6 @@ class base_CurviBoundaryConditions_register_C_functions:
     :param radiation_BC_fd_order: Finite differencing order for the radiation boundary conditions. Default is 2.
     :param set_parity_on_aux: If True, set parity on auxiliary grid functions.
     :param set_parity_on_auxevol: If True, set parity on auxiliary evolution grid functions.
-    :param fp_type: Floating point type, e.g., "double".
     """
 
     def __init__(
@@ -749,13 +730,11 @@ class base_CurviBoundaryConditions_register_C_functions:
         radiation_BC_fd_order: int = 2,
         set_parity_on_aux: bool = False,
         set_parity_on_auxevol: bool = False,
-        fp_type: str = "double",
     ) -> None:
         self.list_of_CoordSystems = list_of_CoordSystems
         self.radiation_BC_fd_order = radiation_BC_fd_order
         self.set_parity_on_aux = set_parity_on_aux
         self.set_parity_on_auxevol = set_parity_on_auxevol
-        self.fp_type = fp_type
 
         # Register bcstruct's contribution to BHaH_defines.h:
         self.CBC_BHd_str = r"""

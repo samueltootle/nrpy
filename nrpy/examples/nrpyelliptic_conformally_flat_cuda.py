@@ -168,8 +168,8 @@ par.adjust_CodeParam_default("t_final", t_final)
 # STEP 2: Declare core C functions & register each to
 #         cfc.CFunction_dict["function_name"]
 gputils.register_CFunctions_HostDevice__operations()
-gputils.register_CFunction_find_global_minimum(fp_type=fp_type)
-gputils.register_CFunction_find_global_sum(fp_type=fp_type)
+gputils.register_CFunction_find_global_minimum()
+gputils.register_CFunction_find_global_sum()
 
 # Generate functions to set initial guess
 nrpyellClib.register_CFunction_initial_guess_single_point(fp_type=fp_type)
@@ -246,7 +246,6 @@ if __name__ == "__main__" and parallel_codegen_enable:
 cbc.CurviBoundaryConditions_register_C_functions(
     list_of_CoordSystems=list(set(list_of_CoordSystems)),
     radiation_BC_fd_order=radiation_BC_fd_order,
-    fp_type=fp_type,
 )
 rhs_string = """rhs_eval(commondata, params, rfmstruct,  auxevol_gfs, RK_INPUT_GFS, RK_OUTPUT_GFS);
 if (strncmp(commondata->outer_bc_type, "radiation", 50) == 0){
@@ -364,7 +363,6 @@ gpu_defines_filename = gpudefines.output_CUDA_headers(
 Bdefines_h.output_BHaH_defines_h(
     project_dir=project_dir,
     enable_intrinsics=enable_intrinsics,
-    REAL_means=fp_type,
     supplemental_defines_dict={
         "ADDITIONAL GPU DIAGNOSTICS": """
 #define L2_DVGF 0

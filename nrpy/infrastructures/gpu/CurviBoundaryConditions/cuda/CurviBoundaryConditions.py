@@ -41,7 +41,6 @@ class setup_Cfunction_FD1_arbitrary_upwind(
     :param dirn: Direction in which to compute the derivative.
     :param radiation_BC_fd_order: Finite difference order for radiation boundary condition.
                                   If -1, will use default finite difference order.
-    :param fp_type: Floating point type, e.g., "double".
     :param rational_const_alias: Set constant alias for
     """
 
@@ -49,13 +48,11 @@ class setup_Cfunction_FD1_arbitrary_upwind(
         self,
         dirn: int,
         radiation_BC_fd_order: int = -1,
-        fp_type: str = "double",
         rational_const_alias: str = "const",
     ) -> None:
         super().__init__(
             dirn,
             radiation_BC_fd_order=radiation_BC_fd_order,
-            fp_type=fp_type,
             rational_const_alias=rational_const_alias,
         )
         self.include_CodeParameters_h = False
@@ -69,25 +66,6 @@ class setup_Cfunction_FD1_arbitrary_upwind(
         new_header += f"REAL const invdxx{dirn} = d_params[streamid].invdxx{dirn};\n"
         self.body = new_header + self.body
         self.generate_CFunction()
-
-    # def generate_CFunction(self) -> None:
-    #     self.device_kernel = gputils.GPU_Kernel(
-    #         self.body,
-    #         {
-    #             "gf": "const REAL *restrict",
-    #             "i0": "const int",
-    #             "i1": "const int",
-    #             "i2": "const int",
-    #             "offset": "const int",
-    #         },
-    #         f"{self.name}",
-    #         fp_type=self.fp_type,
-    #         comments=self.desc,
-    #         decorators=self.cfunc_decorators,
-    #         cfunc_type="static REAL",
-    #     )
-
-    #     self.CFunction = self.device_kernel.CFunction
 
 
 # bcstruct_set_up():
@@ -105,11 +83,10 @@ class register_CFunction_bcstruct_set_up(
     data is transferred asynchronously between host and the CUDA device asynchronously.
 
     :param CoordSystem: The coordinate system for which to set up boundary conditions.
-    :param fp_type: Floating point type, e.g., "double".
     """
 
-    def __init__(self, CoordSystem: str, fp_type: str = "double") -> None:
-        super().__init__(CoordSystem, fp_type=fp_type)
+    def __init__(self, CoordSystem: str) -> None:
+        super().__init__(CoordSystem)
         self.params = "const commondata_struct *restrict commondata, const params_struct *restrict params, REAL *restrict xx[3], bc_struct *restrict bcstruct_gpu"
         self.body = r"""bc_struct* bcstruct = new bc_struct;
   ////////////////////////////////////////
@@ -445,7 +422,6 @@ for (int pt = tid0; pt < num_inner_boundary_points; pt+=stride0) {
                 "threads_per_block": ["32"],
                 "stream": "params->grid_idx % nstreams",
             },
-            # fp_type=self.fp_type,
             comments="GPU Kernel to apply extrapolation BCs to inner boundary points only.",
         )
         # Add device Kernel to prefunc
@@ -577,7 +553,6 @@ for (int idx2d = tid0; idx2d < num_pure_outer_boundary_points; idx2d+=stride0) {
                 "threads_per_block": ["32"],
                 "stream": "params->grid_idx % nstreams",
             },
-            # fp_type=self.fp_type,
             comments="GPU Kernel to apply extrapolation BCs to pure points.",
         )
         # Add device Kernel to prefunc
@@ -615,11 +590,10 @@ class setup_Cfunction_r_and_partial_xi_partial_r_derivs(
     partial x^i / partial r for a given coordinate system.
 
     :param CoordSystem: The coordinate system for which to compute r and its derivatives.
-    :param fp_type: Floating point type, e.g., "double".
     """
 
-    def __init__(self, CoordSystem: str, fp_type: str = "double") -> None:
-        super().__init__(CoordSystem, fp_type=fp_type)
+    def __init__(self, CoordSystem: str) -> None:
+        super().__init__(CoordSystem)
         self.CFunction: cfc.CFunction
         self.include_CodeParameters_h = False
         self.cfunc_decorators = "__device__"
@@ -701,17 +675,15 @@ class setup_Cfunction_radiation_bcs(base_cbc_classes.setup_Cfunction_radiation_b
 
     :param CoordSystem: The coordinate system to use.
     :param radiation_BC_fd_order: Finite differencing order to use. Default is -1.
-    :param fp_type: Floating point type, e.g., "double".
     """
 
     def __init__(
         self,
         CoordSystem: str,
         radiation_BC_fd_order: int = -1,
-        fp_type: str = "double",
     ) -> None:
         super().__init__(
-            CoordSystem, radiation_BC_fd_order=radiation_BC_fd_order, fp_type=fp_type
+            CoordSystem, radiation_BC_fd_order=radiation_BC_fd_order
         )
         self.cfunc_decorators = "__device__"
         self.include_CodeParameters_h = False
@@ -757,25 +729,21 @@ class register_CFunction_apply_bcs_outerradiation_and_inner(
 
     :param CoordSystem: The coordinate system to use.
     :param radiation_BC_fd_order: Finite differencing order for the radiation boundary conditions. Default is 2.
-    :param fp_type: Floating point type, e.g., "double".
     """
 
     def __init__(
         self,
         CoordSystem: str,
         radiation_BC_fd_order: int = 2,
-        fp_type: str = "double",
     ) -> None:
         super().__init__(
             CoordSystem,
             radiation_BC_fd_order=radiation_BC_fd_order,
-            fp_type=fp_type,
         )
         self.prefunc = ""
         self.prefunc += setup_Cfunction_radiation_bcs(
             CoordSystem=CoordSystem,
             radiation_BC_fd_order=radiation_BC_fd_order,
-            fp_type=fp_type,
         ).CFunction.full_function
         self.generate_prefunc__apply_bcs_pure_only()
         self.body = r"""
@@ -891,7 +859,6 @@ for (int idx2d = tid0; idx2d < num_pure_outer_boundary_points; idx2d+=stride0) {
                 "threads_per_block": ["32"],
                 "stream": "params->grid_idx % nstreams",
             },
-            # fp_type=self.fp_type,
             comments="GPU Kernel to apply radiation BCs to pure points.",
         )
         # Add device Kernel to prefunc
@@ -929,7 +896,6 @@ class CurviBoundaryConditions_register_C_functions(
     :param radiation_BC_fd_order: Finite differencing order for the radiation boundary conditions. Default is 2.
     :param set_parity_on_aux: If True, set parity on auxiliary grid functions.
     :param set_parity_on_auxevol: If True, set parity on auxiliary evolution grid functions.
-    :param fp_type: Floating point type, e.g., "double".
     """
 
     def __init__(
@@ -938,7 +904,6 @@ class CurviBoundaryConditions_register_C_functions(
         radiation_BC_fd_order: int = 2,
         set_parity_on_aux: bool = False,
         set_parity_on_auxevol: bool = False,
-        fp_type: str = "double",
     ) -> None:
         # Without doing double precision when setting CurviBCs, many of the bcstruct setup will error out
         super().__init__(
@@ -946,7 +911,6 @@ class CurviBoundaryConditions_register_C_functions(
             radiation_BC_fd_order=radiation_BC_fd_order,
             set_parity_on_aux=set_parity_on_aux,
             set_parity_on_auxevol=set_parity_on_auxevol,
-            fp_type=fp_type,
         )
         self.CBC_BHd_str = self.CBC_BHd_str.replace(
             "outerpt_bc_struct *restrict", "outerpt_bc_struct *"
@@ -958,14 +922,13 @@ class CurviBoundaryConditions_register_C_functions(
         for CoordSystem in self.list_of_CoordSystems:
             # Register C function to set up the boundary condition struct.
             register_CFunction_bcstruct_set_up(
-                CoordSystem=CoordSystem, fp_type=self.fp_type
+                CoordSystem=CoordSystem
             )
 
             # Register C function to apply boundary conditions to both pure outer and inner boundary points.
             register_CFunction_apply_bcs_outerradiation_and_inner(
                 CoordSystem=CoordSystem,
                 radiation_BC_fd_order=self.radiation_BC_fd_order,
-                fp_type=self.fp_type,
             )
 
         # Register C function to apply boundary conditions to inner-only boundary points.

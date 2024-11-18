@@ -6,7 +6,7 @@ Authors: Samuel D. Tootle; sdtootle **at** gmail **dot** com
 
 import nrpy.c_function as cfc
 from nrpy.helpers.gpu.gpu_kernel import GPU_Kernel
-
+import nrpy.params as par  # NRPy+: Parameter interface
 
 # Define functions to copy params to device
 def register_CFunction_cpyHosttoDevice_params__constant() -> None:
@@ -513,7 +513,6 @@ class CUDA_reductions:
     :param reduction_type: Specify the reduction type to generate
     :param cfunc_decorators: Set decorators for the reduction (e.g. template, __host__, inline)
     :param cfunc_type: Return type of the function
-    :param fp_type: Floating point precision of the data
 
     DOCTEST:
     >>> from nrpy.helpers.generic import validate_strings
@@ -530,12 +529,11 @@ class CUDA_reductions:
         reduction_type: str = "minimum",
         cfunc_decorators: str = "__host__",
         cfunc_type: str = "REAL",
-        fp_type: str = "double",
     ) -> None:
         self.reduction_type = reduction_type
         self.cfunc_decorators = cfunc_decorators
         self.cfunc_type = cfunc_type
-        self.fp_type = fp_type
+        self.fp_type = par.parval_from_str("fp_type")
 
         self.type_dict = {
             "double": "unsigned long long",
@@ -698,7 +696,7 @@ static void {self.kernel_name}(REAL * data, REAL * min, uint const data_length) 
         )
 
 
-def register_CFunction_find_global_minimum(fp_type: str = "double") -> None:
+def register_CFunction_find_global_minimum() -> None:
     """
     Register C function for finding the global minimum of an array.
 
@@ -708,7 +706,6 @@ def register_CFunction_find_global_minimum(fp_type: str = "double") -> None:
         reduction_type="minimum",
         cfunc_decorators="__host__",
         cfunc_type="REAL",
-        fp_type=fp_type,
     )
 
     cfc.register_CFunction(
@@ -725,7 +722,7 @@ def register_CFunction_find_global_minimum(fp_type: str = "double") -> None:
     )
 
 
-def register_CFunction_find_global_sum(fp_type: str = "double") -> None:
+def register_CFunction_find_global_sum() -> None:
     """
     Register C function for finding the global sum of an array.
     :param fp_type: Floating point type of the data
@@ -734,7 +731,6 @@ def register_CFunction_find_global_sum(fp_type: str = "double") -> None:
         reduction_type="sum",
         cfunc_decorators="__host__",
         cfunc_type="REAL",
-        fp_type=fp_type,
     )
 
     cfc.register_CFunction(
