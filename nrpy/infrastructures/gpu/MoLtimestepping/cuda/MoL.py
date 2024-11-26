@@ -345,11 +345,9 @@ class register_CFunction_MoL_step_forward_in_time(
     DOCTEST:
     >>> import nrpy.c_function as cfc, json
     >>> from nrpy.infrastructures.gpu.MoLtimestepping.base_MoL import MoL_Functions_dict
-    >>> from nrpy.helpers.generic import decompress_base64_to_string, diff_strings
+    >>> from nrpy.helpers.generic import validate_strings
     >>> from nrpy.infrastructures.BHaH.MoLtimestepping.RK_Butcher_Table_Dictionary import generate_Butcher_tables
     >>> Butcher_dict = generate_Butcher_tables()
-    >>> with open("nrpy/infrastructures/gpu/MoLtimestepping/tests/DOCTEST-cuda__register_CFunction_MoL_step_forward_in_time.json",'r') as f:
-    ...     expected_str_dict = json.load(f)
     >>> rhs_string = "rhs_eval(commondata, params, rfmstruct,  auxevol_gfs, RK_INPUT_GFS, RK_OUTPUT_GFS);"
     >>> post_rhs_string=(
     ... "if (strncmp(commondata->outer_bc_type, \"extrapolation\", 50) == 0)\n"
@@ -367,10 +365,9 @@ class register_CFunction_MoL_step_forward_in_time(
     ...         rhs_string=rhs_string,
     ...         post_rhs_string=post_rhs_string
     ...     )
-    ...     diag_gc = cfc.CFunction_dict["MoL_step_forward_in_time"].full_function
-    ...     expected_str = decompress_base64_to_string(expected_str_dict[k])
-    ...     if diag_gc != expected_str:
-    ...         raise ValueError(f"\\n{k}: {diff_strings(expected_str, diag_gc)}")
+    ...     generated_str = cfc.CFunction_dict["MoL_step_forward_in_time"].full_function
+    ...     validation_desc = f"CUDA__MoL_step_forward_in_time__{k}".replace(" ", "_")
+    ...     validate_strings(generated_str, validation_desc)
     >>> cfc.CFunction_dict.clear()
     >>> MoL_Functions_dict.clear()
     >>> try:
@@ -407,7 +404,7 @@ class register_CFunction_MoL_step_forward_in_time(
         if self.enable_intrinsics:
             self.includes += [os.path.join("intrinsics", "cuda_intrinsics.h")]
         self.single_RK_substep_input_symbolic = single_RK_substep_input_symbolic
-        self.gf_alias_prefix = "[[maybe_unused]]"
+        self.gf_alias_prefix = "MAYBE_UNUSED"
         self.setup_gf_aliases()
         self.generate_RK_steps()
 
@@ -464,16 +461,11 @@ class register_CFunctions(base_MoL.base_register_CFunctions):
     :param register_MoL_step_forward_in_time: Whether to register the MoL step forward function. Default is True.
 
     Doctests:
-    >>> from nrpy.helpers.generic import compress_string_to_base64, decompress_base64_to_string, diff_strings
+    >>> from nrpy.helpers.generic import validate_strings
     >>> cfc.CFunction_dict.clear()
     >>> _ = register_CFunctions()
-    >>> expected_string = decompress_base64_to_string("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")
-    >>> returned_string = cfc.CFunction_dict["MoL_step_forward_in_time"].full_function
-    >>> if returned_string != expected_string:
-    ...    compressed_str = compress_string_to_base64(returned_string)
-    ...    error_message = "Trusted MoL_step_forward_in_time.full_function string changed!\n Here's the diff:\n"
-    ...    error_message += "Here's the diff:\n" + diff_strings(expected_string, returned_string) + "\n"
-    ...    raise ValueError(error_message + f"base64-encoded output: {compressed_str}")
+    >>> generated_str = cfc.CFunction_dict["MoL_step_forward_in_time"].full_function
+    >>> validate_strings(generated_str, f"CUDA__MoL_step_forward_in_time")
     >>> sorted(cfc.CFunction_dict.keys())
     ['MoL_free_memory_non_y_n_gfs', 'MoL_free_memory_y_n_gfs', 'MoL_malloc_non_y_n_gfs', 'MoL_malloc_y_n_gfs', 'MoL_step_forward_in_time']
     >>> print(cfc.CFunction_dict["MoL_free_memory_non_y_n_gfs"].full_function)
