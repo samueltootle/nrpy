@@ -5,7 +5,6 @@ Author: Zachariah B. Etienne
         zachetie **at** gmail **dot* com
 """
 
-import os
 from typing import List
 
 import sympy as sp
@@ -107,16 +106,16 @@ class ReferenceMetricPrecompute:
                         self.rfm_struct__define += "}\n\n"
                         self.readvr_str[
                             dirn
-                        ] += f"const REAL {self.freevars_uniq_xx_indep[which_freevar]} = rfmstruct->{self.freevars_uniq_xx_indep[which_freevar]}[i{dirn}];\n"
+                        ] += f"MAYBE_UNUSED const REAL {self.freevars_uniq_xx_indep[which_freevar]} = rfmstruct->{self.freevars_uniq_xx_indep[which_freevar]}[i{dirn}];\n"
                         self.readvr_SIMD_outer_str[
                             dirn
                         ] += f"const double NOSIMD{self.freevars_uniq_xx_indep[which_freevar]} = rfmstruct->{self.freevars_uniq_xx_indep[which_freevar]}[i{dirn}]; "
                         self.readvr_SIMD_outer_str[
                             dirn
-                        ] += f"const REAL_SIMD_ARRAY {self.freevars_uniq_xx_indep[which_freevar]} = ConstSIMD(NOSIMD{self.freevars_uniq_xx_indep[which_freevar]});\n"
+                        ] += f"MAYBE_UNUSED const REAL_SIMD_ARRAY {self.freevars_uniq_xx_indep[which_freevar]} = ConstSIMD(NOSIMD{self.freevars_uniq_xx_indep[which_freevar]});\n"
                         self.readvr_SIMD_inner_str[
                             dirn
-                        ] += f"const REAL_SIMD_ARRAY {self.freevars_uniq_xx_indep[which_freevar]} = ReadSIMD(&rfmstruct->{self.freevars_uniq_xx_indep[which_freevar]}[i{dirn}]);\n"
+                        ] += f"MAYBE_UNUSED const REAL_SIMD_ARRAY {self.freevars_uniq_xx_indep[which_freevar]} = ReadSIMD(&rfmstruct->{self.freevars_uniq_xx_indep[which_freevar]}[i{dirn}]);\n"
                         output_define_and_readvr = True
 
                 if (
@@ -132,16 +131,16 @@ class ReferenceMetricPrecompute:
                 }}\n\n"""
                     self.readvr_str[
                         0
-                    ] += f"const REAL {self.freevars_uniq_xx_indep[which_freevar]} = rfmstruct->{self.freevars_uniq_xx_indep[which_freevar]}[i0 + Nxx_plus_2NGHOSTS0*i1];\n"
+                    ] += f"MAYBE_UNUSED const REAL {self.freevars_uniq_xx_indep[which_freevar]} = rfmstruct->{self.freevars_uniq_xx_indep[which_freevar]}[i0 + Nxx_plus_2NGHOSTS0*i1];\n"
                     self.readvr_SIMD_outer_str[
                         0
                     ] += f"const double NOSIMD{self.freevars_uniq_xx_indep[which_freevar]} = rfmstruct->{self.freevars_uniq_xx_indep[which_freevar]}[i0 + Nxx_plus_2NGHOSTS0*i1]; "
                     self.readvr_SIMD_outer_str[
                         0
-                    ] += f"const REAL_SIMD_ARRAY {self.freevars_uniq_xx_indep[which_freevar]} = ConstSIMD(NOSIMD{self.freevars_uniq_xx_indep[which_freevar]});\n"
+                    ] += f"MAYBE_UNUSED const REAL_SIMD_ARRAY {self.freevars_uniq_xx_indep[which_freevar]} = ConstSIMD(NOSIMD{self.freevars_uniq_xx_indep[which_freevar]});\n"
                     self.readvr_SIMD_inner_str[
                         0
-                    ] += f"const REAL_SIMD_ARRAY {self.freevars_uniq_xx_indep[which_freevar]} = ReadSIMD(&rfmstruct->{self.freevars_uniq_xx_indep[which_freevar]}[i0 + Nxx_plus_2NGHOSTS0*i1]);\n"
+                    ] += f"MAYBE_UNUSED const REAL_SIMD_ARRAY {self.freevars_uniq_xx_indep[which_freevar]} = ReadSIMD(&rfmstruct->{self.freevars_uniq_xx_indep[which_freevar]}[i0 + Nxx_plus_2NGHOSTS0*i1]);\n"
                     output_define_and_readvr = True
 
                 if not output_define_and_readvr:
@@ -188,20 +187,16 @@ def register_CFunctions_rfm_precompute(
             body += func[1]
 
             combined_BHaH_defines_list.extend(rfm_precompute.BHaH_defines_list)
-            _, actual_name = cfc.function_name_and_subdir_with_CoordSystem(
-                os.path.join("."), name, CoordSystem
+            cfc.register_CFunction(
+                includes=includes,
+                desc=desc,
+                cfunc_type=cfunc_type,
+                CoordSystem_for_wrapper_func=CoordSystem,
+                name=name,
+                params=params,
+                include_CodeParameters_h=include_CodeParameters_h,
+                body=body,
             )
-            if actual_name not in cfc.CFunction_dict:
-                cfc.register_CFunction(
-                    includes=includes,
-                    desc=desc,
-                    cfunc_type=cfunc_type,
-                    CoordSystem_for_wrapper_func=CoordSystem,
-                    name=name,
-                    params=params,
-                    include_CodeParameters_h=include_CodeParameters_h,
-                    body=body,
-                )
 
     BHaH_defines = "typedef struct __rfmstruct__ {\n"
     BHaH_defines += "\n".join(sorted(superfast_uniq(combined_BHaH_defines_list)))
