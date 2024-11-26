@@ -22,6 +22,7 @@ import nrpy.helpers.parallel_codegen as pcg
 import nrpy.infrastructures.BHaH.diagnostics.output_0d_1d_2d_nearest_gridpoint_slices as out012d
 import nrpy.infrastructures.gpu.loop_utilities.cuda.simple_loop as lp
 import nrpy.infrastructures.gpu.nrpyelliptic.base_conformally_flat_C_codegen_library as base_npe_classes
+import nrpy.params as par  # NRPy+: Parameter interface
 
 
 # Define functions to set up initial guess
@@ -30,12 +31,11 @@ class gpu_register_CFunction_initial_guess_single_point(
 ):
     """
     GPU overload to generate a function that computes the initial guess at a single point.
-    :param fp_type: floating point precision of sympy expressions translated to C code.
     :return None.
     """
 
-    def __init__(self, fp_type: str = "double") -> None:
-        super().__init__(fp_type=fp_type)
+    def __init__(self) -> None:
+        super().__init__()
         self.cfunc_decorators = "__device__ __host__"
         self.params = r"""const REAL xx0, const REAL xx1, const REAL xx2,  REAL *restrict uu_ID, REAL *restrict vv_ID
 """
@@ -45,28 +45,24 @@ class gpu_register_CFunction_initial_guess_single_point(
             ["*uu_ID", "*vv_ID"],
             verbose=False,
             include_braces=False,
-            fp_type=self.fp_type,
         )
 
         self.register()
 
 
-def register_CFunction_initial_guess_single_point(
-    fp_type: str = "double",
-) -> Union[None, pcg.NRPyEnv_type]:
+def register_CFunction_initial_guess_single_point() -> Union[None, pcg.NRPyEnv_type]:
     """
     Support function for gpu_register_CFunction_initial_guess_single_point.
     Facilitates generating a function to compute the initial guess at a
     single point and retain compatibility with parallel_codegen.
 
-    :param fp_type: floating point precision of sympy expressions translated to C code.
     :return: None if in registration phase, else the updated NRPy environment.
     """
     if pcg.pcg_registration_phase():
         pcg.register_func_call(f"{__name__}.{cast(FT, cf()).f_code.co_name}", locals())
         return None
 
-    gpu_register_CFunction_initial_guess_single_point(fp_type=fp_type)
+    gpu_register_CFunction_initial_guess_single_point()
 
     return cast(pcg.NRPyEnv_type, pcg.NRPyEnv())
 
@@ -78,7 +74,6 @@ class gpu_register_CFunction_initial_guess_all_points(
     GPU overload to register the initial guess function for the hyperbolic relaxation equation.
 
     :param enable_checkpointing: Attempt to read from a checkpoint file before generating initial guess.
-    :param fp_type: Floating point type, e.g., "double".
 
     :return: None.
     """
@@ -86,18 +81,16 @@ class gpu_register_CFunction_initial_guess_all_points(
     def __init__(
         self,
         enable_checkpointing: bool = False,
-        fp_type: str = "double",
         **_: Any,
     ) -> None:
 
-        super().__init__(enable_checkpointing, fp_type=fp_type)
+        super().__init__(enable_checkpointing)
         self.loop_body = lp.simple_loop(
             loop_body="initial_guess_single_point(xx0,xx1,xx2,"
             f"&{self.uu_gf_memaccess},"
             f"&{self.vv_gf_memaccess});",
             read_xxs=True,
             loop_region="all points",
-            fp_type=self.fp_type,
         ).full_loop_body
 
         # Put loop_body into a device kernel
@@ -115,7 +108,6 @@ class gpu_register_CFunction_initial_guess_all_points(
                 "threads_per_block": ["32", "NGHOSTS"],
                 "stream": "default",
             },
-            fp_type=self.fp_type,
             comments="GPU Kernel to initialize all grid points.",
         )
 
@@ -139,7 +131,6 @@ class gpu_register_CFunction_initial_guess_all_points(
 
 def register_CFunction_initial_guess_all_points(
     enable_checkpointing: bool = False,
-    fp_type: str = "double",
     **_kwargs: Any,
 ) -> Union[None, pcg.NRPyEnv_type]:
     """
@@ -148,7 +139,6 @@ def register_CFunction_initial_guess_all_points(
     points and retain compatibility with parallel_codegen.
 
     :param enable_checkpointing: Attempt to read from a checkpoint file before generating initial guess.
-    :param fp_type: Floating point type, e.g., "double".
     :param _kwargs: capture unused arguments from openmp-like calls
 
     :return: None if in registration phase, else the updated NRPy environment.
@@ -156,9 +146,7 @@ def register_CFunction_initial_guess_all_points(
     if pcg.pcg_registration_phase():
         pcg.register_func_call(f"{__name__}.{cast(FT, cf()).f_code.co_name}", locals())
         return None
-    gpu_register_CFunction_initial_guess_all_points(
-        enable_checkpointing, fp_type=fp_type
-    )
+    gpu_register_CFunction_initial_guess_all_points(enable_checkpointing)
 
     return cast(pcg.NRPyEnv_type, pcg.NRPyEnv())
 
@@ -171,7 +159,6 @@ class gpu_register_CFunction_auxevol_gfs_single_point(
     Register the C function for the AUXEVOL grid functions at a single point.
 
     :param CoordSystem: The coordinate system to use in setting up the AUXEVOL gridfunctions.
-    :param fp_type: Floating point type, e.g., "double".
 
     :return: None.
     """
@@ -179,9 +166,8 @@ class gpu_register_CFunction_auxevol_gfs_single_point(
     def __init__(
         self,
         CoordSystem: str,
-        fp_type: str = "double",
     ) -> None:
-        super().__init__(CoordSystem, fp_type=fp_type)
+        super().__init__(CoordSystem)
 
         self.cfunc_type = "void"
         self.cfunc_decorators = "__device__"
@@ -218,7 +204,6 @@ class gpu_register_CFunction_auxevol_gfs_single_point(
             ["*psi_background", "*ADD_times_AUU"],
             verbose=False,
             include_braces=False,
-            fp_type=fp_type,
         )
         self.include_CodeParameters_h = False
 
@@ -227,7 +212,6 @@ class gpu_register_CFunction_auxevol_gfs_single_point(
 
 def register_CFunction_auxevol_gfs_single_point(
     CoordSystem: str,
-    fp_type: str = "double",
 ) -> Union[None, pcg.NRPyEnv_type]:
     """
     Support function for gpu_register_CFunction_auxevol_gfs_single_point.
@@ -235,14 +219,13 @@ def register_CFunction_auxevol_gfs_single_point(
     and retain compatibility with parallel_codegen.
 
     :param CoordSystem: The coordinate system to use in setting up the AUXEVOL gridfunctions.
-    :param fp_type: Floating point type, e.g., "double".
 
     :return: None if in registration phase, else the updated NRPy environment.
     """
     if pcg.pcg_registration_phase():
         pcg.register_func_call(f"{__name__}.{cast(FT, cf()).f_code.co_name}", locals())
         return None
-    gpu_register_CFunction_auxevol_gfs_single_point(CoordSystem, fp_type=fp_type)
+    gpu_register_CFunction_auxevol_gfs_single_point(CoordSystem)
 
     return cast(pcg.NRPyEnv_type, pcg.NRPyEnv())
 
@@ -254,24 +237,21 @@ class gpu_register_CFunction_auxevol_gfs_all_points(
     GPU overload to generate the C function for the AUXEVOL grid functions at all points.
 
     :param OMP_collapse: Degree of GPU loop collapsing.
-    :param fp_type: Floating point type, e.g., "double".
 
     :return: None.
     """
 
     def __init__(
         self,
-        fp_type: str = "double",
         **_: Any,
     ) -> None:
-        super().__init__(fp_type=fp_type)
+        super().__init__()
         self.loop_body = lp.simple_loop(
             loop_body="auxevol_gfs_single_point(streamid, xx0,xx1,xx2,"
             f"&{self.psi_background_memaccess},"
             f"&{self.ADD_times_AUU_memaccess});",
             read_xxs=True,
             loop_region="all points",
-            fp_type=self.fp_type,
         ).full_loop_body
 
         # Put loop_body into a device kernel
@@ -289,7 +269,6 @@ class gpu_register_CFunction_auxevol_gfs_all_points(
                 "threads_per_block": ["32", "NGHOSTS"],
                 "stream": "default",
             },
-            fp_type=self.fp_type,
             comments="GPU Kernel to initialize auxillary grid functions at all grid points.",
         )
 
@@ -313,7 +292,6 @@ class gpu_register_CFunction_auxevol_gfs_all_points(
 
 
 def register_CFunction_auxevol_gfs_all_points(
-    fp_type: str = "double",
     **_kwargs: Any,
 ) -> Union[None, pcg.NRPyEnv_type]:
     """
@@ -321,7 +299,6 @@ def register_CFunction_auxevol_gfs_all_points(
     Facilitates generating a function for the AUXEVOL grid functions at all points
     and retain compatibility with parallel_codegen.
 
-    :param fp_type: Floating point type, e.g., "double".
     :param _kwargs: capture unused arguments from openmp-like calls
 
     :return: None if in registration phase, else the updated NRPy environment.
@@ -329,7 +306,7 @@ def register_CFunction_auxevol_gfs_all_points(
     if pcg.pcg_registration_phase():
         pcg.register_func_call(f"{__name__}.{cast(FT, cf()).f_code.co_name}", locals())
         return None
-    gpu_register_CFunction_auxevol_gfs_all_points(fp_type=fp_type)
+    gpu_register_CFunction_auxevol_gfs_all_points()
 
     return cast(pcg.NRPyEnv_type, pcg.NRPyEnv())
 
@@ -341,7 +318,6 @@ class gpu_register_CFunction_variable_wavespeed_gfs_all_points(
     GPU overload to generate function to compute variable wavespeed based on local grid spacing for a single coordinate system.
 
     :param CoordSystem: The coordinate system to use in the hyperbolic relaxation.
-    :param fp_type: Floating point type, e.g., "double".
 
     :return: None.
     """
@@ -349,9 +325,8 @@ class gpu_register_CFunction_variable_wavespeed_gfs_all_points(
     def __init__(
         self,
         CoordSystem: str,
-        fp_type: str = "double",
     ) -> None:
-        super().__init__(CoordSystem, fp_type=fp_type)
+        super().__init__(CoordSystem)
 
         self.body = r"""for(int grid=0; grid<commondata->NUMGRIDS; grid++) {
   // Unpack griddata struct:
@@ -367,7 +342,6 @@ class gpu_register_CFunction_variable_wavespeed_gfs_all_points(
             read_xxs=True,
             loop_region="interior",
             CoordSystem=self.CoordSystem,
-            fp_type=self.fp_type,
         ).full_loop_body
         kernel_body = "// Temporary parameters\n"
         for sym in self.unique_symbols:
@@ -389,7 +363,6 @@ class gpu_register_CFunction_variable_wavespeed_gfs_all_points(
                 "threads_per_block": ["32", "NGHOSTS"],
                 "stream": "default",
             },
-            fp_type=self.fp_type,
             comments="GPU Kernel to initialize auxillary grid functions at all grid points.",
         )
         self.body += f"{self.device_kernel.launch_block}"
@@ -404,7 +377,6 @@ class gpu_register_CFunction_variable_wavespeed_gfs_all_points(
 
 def register_CFunction_variable_wavespeed_gfs_all_points(
     CoordSystem: str,
-    fp_type: str = "double",
 ) -> Union[None, pcg.NRPyEnv_type]:
     """
     Support function for gpu_register_CFunction_variable_wavespeed_gfs_all_points.
@@ -412,13 +384,10 @@ def register_CFunction_variable_wavespeed_gfs_all_points(
     grid spacing for a single coordinate system and retain compatibility with parallel_codegen.
 
     :param CoordSystem: The coordinate system to use in the hyperbolic relaxation.
-    :param fp_type: Floating point type, e.g., "double".
 
     :return: None if in registration phase, else the updated NRPy environment.
     """
-    gpu_register_CFunction_variable_wavespeed_gfs_all_points(
-        CoordSystem, fp_type=fp_type
-    )
+    gpu_register_CFunction_variable_wavespeed_gfs_all_points(CoordSystem)
 
     return cast(pcg.NRPyEnv_type, pcg.NRPyEnv())
 
@@ -464,19 +433,23 @@ class register_CFunction_compute_L2_norm_of_gridfunction(
     multiprocess race condition on Python 3.6.7
 
     :param CoordSystem: the rfm coordinate system.
-    :param fp_type: Floating point type, e.g., "double".
     :return: None.
     """
 
     def __init__(
         self,
         CoordSystem: str,
-        fp_type: str = "double",
     ) -> None:
 
-        super().__init__(CoordSystem, fp_type=fp_type)
-        self.fp_type = "double"
+        super().__init__(CoordSystem)
+        self.fp_type = par.parval_from_str("fp_type")
         self.includes += ["BHaH_function_prototypes.h"]
+
+        # Force use of double precision if a single precision application is
+        # generated due to large numbers that result for some coordinate
+        # systems, e.g. SinhSymtp
+        fp_type_alias = "DOUBLE" if self.fp_type == "float" else "REAL"
+        ccg_fp_type = "double" if self.fp_type == "float" else self.fp_type
         reduction_loop_body = ccg.c_codegen(
             self.expr_list,
             [
@@ -484,7 +457,8 @@ class register_CFunction_compute_L2_norm_of_gridfunction(
                 "const REAL sqrtdetgamma",
             ],
             include_braces=False,
-            fp_type=self.fp_type,
+            fp_type=ccg_fp_type,
+            fp_type_alias=fp_type_alias,
         )
 
         l2_squared_dv_memaccess = "aux_gfs[IDX4(L2_SQUARED_DVGF, i0, i1, i2)]"
@@ -498,8 +472,7 @@ if(r < integration_radius) {{
   {l2_dv_memaccess} = dV;
 }} // END if(r < integration_radius)
 """
-        if fp_type == "float":
-            reduction_loop_body = reduction_loop_body.replace("REAL", "double")
+        reduction_loop_body = reduction_loop_body.replace("REAL", fp_type_alias)
         self.body += r"""
   params_struct *restrict params = &griddata->params;
 #include "set_CodeParameters.h"
@@ -522,7 +495,6 @@ if(r < integration_radius) {{
             loop_body="\n" + reduction_loop_body,
             read_xxs=True,
             loop_region="interior",
-            fp_type=self.fp_type,
         ).full_loop_body
 
         kernel_body = "// Temporary parameters\n"
@@ -550,7 +522,6 @@ if(r < integration_radius) {{
                 "threads_per_block": ["32", "NGHOSTS"],
                 "stream": "default",
             },
-            fp_type=self.fp_type,
             comments="GPU Kernel to compute L2 quantities pointwise (not summed).",
         )
         self.body += f"{self.device_kernel.launch_block}"
@@ -624,7 +595,6 @@ class gpu_register_CFunction_diagnostics(
                 out_quantities_dict=self.out_quantities_dict,
                 filename_tuple=axis_filename_tuple,
                 axis=axis,
-                pointer_decorator="[[maybe_unused]] ",
             )
         for plane in ["xy", "yz"]:
             out012d.register_CFunction_diagnostics_nearest_2d_plane(
@@ -632,7 +602,6 @@ class gpu_register_CFunction_diagnostics(
                 out_quantities_dict=self.out_quantities_dict,
                 filename_tuple=plane_filename_tuple,
                 plane=plane,
-                pointer_decorator="[[maybe_unused]] ",
             )
 
         self.body = r"""  // Output progress to stderr
@@ -805,7 +774,6 @@ class gpu_register_CFunction_rhs_eval(
     :param CoordSystem: The coordinate system.
     :param enable_rfm_precompute: Whether to enable reference metric precomputation.
     :param OMP_collapse: Level of GPU loop collapsing.
-    :param fp_type: Floating point type, e.g., "double".
     :param enable_intrinsics: Toggle using CUDA intrinsics for calculations.
 
     :return: None.
@@ -815,7 +783,6 @@ class gpu_register_CFunction_rhs_eval(
         self,
         CoordSystem: str,
         enable_rfm_precompute: bool,
-        fp_type: str = "double",
         enable_intrinsics: bool = False,
     ) -> None:
 
@@ -832,7 +799,6 @@ class gpu_register_CFunction_rhs_eval(
                     gri.BHaHGridFunction.access_gf("vv", gf_array_name="rhs_gfs"),
                 ],
                 enable_fd_codegen=True,
-                fp_type=fp_type,
                 rational_const_alias="static constexpr",
                 enable_simd=enable_intrinsics,
             ).replace("SIMD", "CUDA"),
@@ -840,7 +806,6 @@ class gpu_register_CFunction_rhs_eval(
             CoordSystem=CoordSystem,
             enable_rfm_precompute=enable_rfm_precompute,
             read_xxs=not enable_rfm_precompute,
-            fp_type=fp_type,
             enable_intrinsics=enable_intrinsics,
         )
         self.loop_body = self.simple_loop.full_loop_body.replace(
@@ -878,7 +843,6 @@ class gpu_register_CFunction_rhs_eval(
                     "threads_per_block": ["32", "NGHOSTS"],
                     "stream": "default",
                 },
-                fp_type=fp_type,
                 comments=self.kernel_comments,
             )
             for k, v in self.params_dict_coord.items():
@@ -906,7 +870,6 @@ class gpu_register_CFunction_rhs_eval(
 def register_CFunction_rhs_eval(
     CoordSystem: str,
     enable_rfm_precompute: bool,
-    fp_type: str = "double",
     enable_intrinsics: bool = False,
     **_kwargs: Any,
 ) -> Union[None, pcg.NRPyEnv_type]:
@@ -918,7 +881,6 @@ def register_CFunction_rhs_eval(
 
     :param CoordSystem: The coordinate system.
     :param enable_rfm_precompute: Whether to enable reference metric precomputation.
-    :param fp_type: Floating point type, e.g., "double".
     :param enable_intrinsics: Toogle using CUDA intrinsics for calculations.
     :param _kwargs: capture unused arguments from openmp-like calls
 
@@ -930,7 +892,6 @@ def register_CFunction_rhs_eval(
     gpu_register_CFunction_rhs_eval(
         CoordSystem,
         enable_rfm_precompute,
-        fp_type=fp_type,
         enable_intrinsics=enable_intrinsics,
     )
 
@@ -952,7 +913,6 @@ class gpu_register_CFunction_compute_residual_all_points(
     :param enable_rfm_precompute: Whether to enable reference metric precomputation.
     :param enable_intrinsicsv: Whether to enable cuda intrinsics.
     :param OMP_collapse: Level of GPU loop collapsing.
-    :param fp_type: Floating point type, e.g., "double".
 
     :return: None.
     """
@@ -962,7 +922,6 @@ class gpu_register_CFunction_compute_residual_all_points(
         CoordSystem: str,
         enable_rfm_precompute: bool,
         enable_intrinsics: bool,
-        fp_type: str = "double",
     ) -> None:
         super().__init__(
             CoordSystem=CoordSystem, enable_rfm_precompute=enable_rfm_precompute
@@ -981,14 +940,12 @@ class gpu_register_CFunction_compute_residual_all_points(
                 ],
                 enable_fd_codegen=True,
                 enable_simd=enable_intrinsics,
-                fp_type=fp_type,
             ).replace("SIMD", "CUDA"),
             loop_region="interior",
             enable_intrinsics=enable_intrinsics,
             CoordSystem=CoordSystem,
             enable_rfm_precompute=enable_rfm_precompute,
             read_xxs=not enable_rfm_precompute,
-            fp_type=fp_type,
         )
         self.kernel_body = self.simple_loop.full_loop_body
         self.params_dict_coord = {
@@ -1017,7 +974,6 @@ class gpu_register_CFunction_compute_residual_all_points(
                 "threads_per_block": ["32", "NGHOSTS"],
                 "stream": "default",
             },
-            fp_type=fp_type,
             comments="GPU Kernel to compute the residual throughout the grid.",
         )
         self.prefunc = self.device_kernel.CFunction.full_function
@@ -1042,7 +998,6 @@ def register_CFunction_compute_residual_all_points(
     CoordSystem: str,
     enable_rfm_precompute: bool,
     enable_intrinsics: bool,
-    fp_type: str = "double",
 ) -> Union[None, pcg.NRPyEnv_type]:
     """
     Support function for gpu_register_CFunction_compute_residual_all_points.
@@ -1052,7 +1007,6 @@ def register_CFunction_compute_residual_all_points(
     :param CoordSystem: The coordinate system.
     :param enable_rfm_precompute: Whether to enable reference metric precomputation.
     :param enable_intrinsics: Whether to enable CUDA intrinsics.
-    :param fp_type: Floating point type, e.g., "double".
 
     :return: None if in registration phase, else the updated NRPy environment.
     """
@@ -1060,7 +1014,7 @@ def register_CFunction_compute_residual_all_points(
         pcg.register_func_call(f"{__name__}.{cast(FT, cf()).f_code.co_name}", locals())
         return None
     gpu_register_CFunction_compute_residual_all_points(
-        CoordSystem, enable_rfm_precompute, enable_intrinsics, fp_type=fp_type
+        CoordSystem, enable_rfm_precompute, enable_intrinsics
     )
 
     return cast(pcg.NRPyEnv_type, pcg.NRPyEnv())

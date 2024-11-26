@@ -20,7 +20,6 @@ class simple_loop(base_sl.base_simple_loop):
     :param read_xxs: Read the xx[3][:] 1D coordinate arrays if interior dependency exists
     :param CoordSystem: Coordinate system, e.g., "Cartesian"
     :param enable_rfm_precompute: Enable pre-computation of reference metric
-    :param fp_type: Floating point type, e.g., "double".
     :param enable_intrinsics: Toggle using CUDA intrinsics for calculations.
     :raises ValueError: If `loop_region` is unsupported or if `read_xxs` and `enable_rfm_precompute` are both enabled.
 
@@ -103,7 +102,6 @@ class simple_loop(base_sl.base_simple_loop):
         read_xxs: bool = False,
         CoordSystem: str = "Cartesian",
         enable_rfm_precompute: bool = False,
-        fp_type: str = "double",
         enable_intrinsics: bool = False,
         **_: Any,
     ) -> None:
@@ -112,7 +110,6 @@ class simple_loop(base_sl.base_simple_loop):
             read_xxs=read_xxs,
             CoordSystem=CoordSystem,
             enable_rfm_precompute=enable_rfm_precompute,
-            fp_type=fp_type,
             loop_region=loop_region,
             cuda=True,
         )
@@ -123,9 +120,7 @@ class simple_loop(base_sl.base_simple_loop):
                 "[[maybe_unused]] const REAL xx2 = x2[i2];",
             ]
         elif self.enable_rfm_precompute:
-            self.rfmp = rfm_precompute.ReferenceMetricPrecompute(
-                self.CoordSystem, fp_type=fp_type
-            )
+            self.rfmp = rfm_precompute.ReferenceMetricPrecompute(self.CoordSystem)
             if enable_intrinsics:
                 self.read_rfm_xx_arrays = [
                     self.rfmp.readvr_intrinsics_inner_str[0],

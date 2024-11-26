@@ -31,12 +31,10 @@ class base_register_CFunction_initial_guess_single_point:
     """
     Base class for generating the initial guess of solution at a single point.
 
-    :param fp_type: Floating point type, e.g., "double".
     :return: None.
     """
 
-    def __init__(self, fp_type: str = "double") -> None:
-        self.fp_type = fp_type
+    def __init__(self) -> None:
         self.includes = ["BHaH_defines.h"]
 
         self.desc = r"""Compute initial guess at a single point."""
@@ -69,14 +67,10 @@ class base_register_CFunction_initial_guess_all_points:
     Base class for generating the initial guess function for the hyperbolic relaxation equation.
 
     :param enable_checkpointing: Attempt to read from a checkpoint file before generating initial guess.
-    :param fp_type: Floating point type, e.g., "double".
     :return: None.
     """
 
-    def __init__(
-        self, enable_checkpointing: bool = False, fp_type: str = "double"
-    ) -> None:
-        self.fp_type = fp_type
+    def __init__(self, enable_checkpointing: bool = False) -> None:
         self.includes = ["BHaH_defines.h", "BHaH_function_prototypes.h"]
 
         self.desc = r"""Set initial guess to solutions of hyperbolic relaxation equation at all points."""
@@ -115,16 +109,13 @@ class base_register_CFunction_auxevol_gfs_single_point:
     Base class for generating the function to compute AUXEVOL grid functions at a single point.
 
     :param CoordSystem: The coordinate system to use in setting up the AUXEVOL gridfunctions.
-    :param fp_type: Floating point type, e.g., "double".
     :return: None.
     """
 
     def __init__(
         self,
         CoordSystem: str,
-        fp_type: str = "double",
     ) -> None:
-        self.fp_type = fp_type
         # Compute psi_background and ADD_times_AUU
         self.psi_background, self.ADD_times_AUU = (
             compute_psi_background_and_ADD_times_AUU(CoordSystem)
@@ -167,16 +158,12 @@ class base_register_CFunction_auxevol_gfs_all_points:
     """
     Base class for generating the function for the AUXEVOL grid functions at all points.
 
-    :param fp_type: Floating point type, e.g., "double".
     :return: None.
     """
 
     def __init__(
         self,
-        fp_type: str = "double",
     ) -> None:
-
-        self.fp_type = fp_type
 
         self.includes = ["BHaH_defines.h", "BHaH_function_prototypes.h"]
 
@@ -212,7 +199,6 @@ class base_register_CFunction_variable_wavespeed_gfs_all_points:
     Calculation is based on the local grid spacing for a single coordinate system.
 
     :param CoordSystem: The coordinate system to use in the hyperbolic relaxation.
-    :param fp_type: Floating point type, e.g., "double".
 
     :return: None.
     """
@@ -220,9 +206,7 @@ class base_register_CFunction_variable_wavespeed_gfs_all_points:
     def __init__(
         self,
         CoordSystem: str,
-        fp_type: str = "double",
     ) -> None:
-        self.fp_type = fp_type
         self.CoordSystem = CoordSystem
 
         self.includes = ["BHaH_defines.h"]
@@ -256,7 +240,6 @@ class base_register_CFunction_variable_wavespeed_gfs_all_points:
             expr_list,
             ["const REAL dsmin0", "const REAL dsmin1", "const REAL dsmin2"],
             include_braces=False,
-            fp_type=self.fp_type,
         )
 
         variable_wavespeed_memaccess = gri.BHaHGridFunction.access_gf(
@@ -329,16 +312,13 @@ class base_register_CFunction_compute_L2_norm_of_gridfunction:
     multiprocess race condition on Python 3.6.7
 
     :param CoordSystem: the rfm coordinate system.
-    :param fp_type: Floating point type, e.g., "double".
     :return: None.
     """
 
     def __init__(
         self,
         CoordSystem: str,
-        fp_type: str = "double",
     ) -> None:
-        self.fp_type = fp_type
         self.includes = ["BHaH_defines.h"]
         self.desc = "Compute l2-norm of a gridfunction assuming a single grid."
         self.cfunc_type = "REAL"

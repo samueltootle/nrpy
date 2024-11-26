@@ -94,7 +94,6 @@ class RKFunction(base_MoL.RKFunction):
     :param enable_intrinsics: A flag to specify if hardware intrinsics should be used.
     :param cfunc_type: decorators and return type for the RK substep function
     :param rk_step: current step (> 0).  Default (None) assumes Euler step
-    :param fp_type: Floating point type, e.g., "double".
     :param rational_const_alias: Overload const specifier for Rational definitions
     """
 
@@ -106,7 +105,6 @@ class RKFunction(base_MoL.RKFunction):
         enable_intrinsics: bool = False,
         cfunc_type: str = "static void",
         rk_step: Union[int, None] = None,
-        fp_type: str = "double",
         rational_const_alias: str = "static constexpr",
     ) -> None:
         super().__init__(
@@ -116,7 +114,6 @@ class RKFunction(base_MoL.RKFunction):
             enable_intrinsics=enable_intrinsics,
             cfunc_type=cfunc_type,
             rk_step=rk_step,
-            fp_type=fp_type,
             rational_const_alias=rational_const_alias,
             intrinsics_str="CUDA",
         )
@@ -172,7 +169,6 @@ class RKFunction(base_MoL.RKFunction):
                 "threads_per_block": ["32"],
                 "stream": "params->grid_idx % nstreams",
             },
-            fp_type=self.fp_type,
             comments=f"GPU Kernel to compute RK substep {self.rk_step}.",
         )
         prefunc = self.device_kernel.CFunction.full_function
@@ -212,7 +208,6 @@ def single_RK_substep_input_symbolic(
     enable_intrinsics: bool = False,
     gf_aliases: str = "",
     post_post_rhs_string: str = "",
-    fp_type: str = "double",
     additional_comments: str = "",
     rational_const_alias: str = "const",
 ) -> str:
@@ -231,7 +226,6 @@ def single_RK_substep_input_symbolic(
     :param enable_intrinsics: Whether hardware intrinsics are enabled.
     :param gf_aliases: Additional aliases for grid functions.
     :param post_post_rhs_string: String to be used after the post-RHS phase.
-    :param fp_type: Floating point type, e.g., "double".
     :param additional_comments: additional comments to append to auto-generated comment block.
     :param rational_const_alias: Provide additional/alternative alias to const for rational definitions
 
@@ -286,7 +280,6 @@ def single_RK_substep_input_symbolic(
         RK_rhs_list,
         rk_step=rk_step,
         enable_intrinsics=enable_intrinsics,
-        fp_type=fp_type,
         rational_const_alias=rational_const_alias,
     )
 
@@ -348,7 +341,6 @@ class register_CFunction_MoL_step_forward_in_time(
     :param enable_rfm_precompute: Flag to enable reference metric functionality.
     :param enable_curviBCs: Flag to enable curvilinear boundary conditions.
     :param enable_intrinsics: Whether hardware intrinsics are enabled.
-    :param fp_type: Floating point type, e.g., "double".
 
     DOCTEST:
     >>> import nrpy.c_function as cfc, json
@@ -398,7 +390,6 @@ class register_CFunction_MoL_step_forward_in_time(
         enable_rfm_precompute: bool = False,
         enable_curviBCs: bool = False,
         enable_intrinsics: bool = False,
-        fp_type: str = "double",
         rational_const_alias: str = "static constexpr",
     ) -> None:
 
@@ -411,7 +402,6 @@ class register_CFunction_MoL_step_forward_in_time(
             enable_rfm_precompute=enable_rfm_precompute,
             enable_curviBCs=enable_curviBCs,
             enable_intrinsics=enable_intrinsics,
-            fp_type=fp_type,
             rational_const_alias=rational_const_alias,
         )
         if self.enable_intrinsics:
@@ -472,7 +462,6 @@ class register_CFunctions(base_MoL.base_register_CFunctions):
     :param enable_curviBCs: Enable curvilinear boundary conditions. Default is False.
     :param enable_intrinsics: Whether hardware intrinsics are enabled. Default is False.
     :param register_MoL_step_forward_in_time: Whether to register the MoL step forward function. Default is True.
-    :param fp_type: Floating point type, e.g., "double".
 
     Doctests:
     >>> from nrpy.helpers.generic import compress_string_to_base64, decompress_base64_to_string, diff_strings
@@ -542,7 +531,6 @@ class register_CFunctions(base_MoL.base_register_CFunctions):
         enable_curviBCs: bool = False,
         enable_intrinsics: bool = False,
         register_MoL_step_forward_in_time: bool = True,
-        fp_type: str = "double",
     ) -> None:
         super().__init__(
             MoL_method=MoL_method,
@@ -552,7 +540,6 @@ class register_CFunctions(base_MoL.base_register_CFunctions):
             enable_rfm_precompute=enable_rfm_precompute,
             enable_curviBCs=enable_curviBCs,
             register_MoL_step_forward_in_time=register_MoL_step_forward_in_time,
-            fp_type=fp_type,
         )
         for which_gfs in ["y_n_gfs", "non_y_n_gfs"]:
             register_CFunction_MoL_malloc(self.Butcher_dict, MoL_method, which_gfs)
@@ -567,7 +554,6 @@ class register_CFunctions(base_MoL.base_register_CFunctions):
                 enable_rfm_precompute=self.enable_rfm_precompute,
                 enable_curviBCs=self.enable_curviBCs,
                 enable_intrinsics=enable_intrinsics,
-                fp_type=self.fp_type,
             )
 
         griddata_commondata.register_griddata_commondata(

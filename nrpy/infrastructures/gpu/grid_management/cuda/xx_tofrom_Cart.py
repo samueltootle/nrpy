@@ -21,7 +21,6 @@ class register_CFunction__Cart_to_xx_and_nearest_i0i1i2(
     :param CoordSystem: The coordinate system to use.
     :param relative_to: Whether the computation is relative to the "local_grid_center" or "global_grid_center".
     :param gridding_approach: Choices: "independent grid(s)" (default) or "multipatch".
-    :param fp_type: Floating point type, e.g., "double".
     :raises ValueError: When the value of `gridding_approach` is not "independent grid(s)"
                         or "multipatch".
     """
@@ -30,12 +29,10 @@ class register_CFunction__Cart_to_xx_and_nearest_i0i1i2(
         self,
         CoordSystem: str,
         relative_to: str = "local_grid_center",
-        fp_type: str = "double",
     ) -> None:
         super().__init__(
             CoordSystem,
             relative_to=relative_to,
-            fp_type=fp_type,
         )
 
         self.body += """
@@ -64,7 +61,6 @@ class register_CFunction__Cart_to_xx_and_nearest_i0i1i2(
                 ],
                 ["xx[0]", "const REAL target_th", "xx[2]"],
                 include_braces=False,
-                fp_type=self.fp_type,
             )
             self.body += "xx[1] = NewtonRaphson_get_xx1_from_th(params, target_th);\n"
         else:
@@ -76,7 +72,6 @@ class register_CFunction__Cart_to_xx_and_nearest_i0i1i2(
                 ],
                 ["xx[0]", "xx[1]", "xx[2]"],
                 include_braces=False,
-                fp_type=self.fp_type,
             )
 
         self.body += f"""
@@ -105,7 +100,6 @@ class register_CFunction_xx_to_Cart(base_xx_classes.base_register_CFunction_xx_t
 
     :param CoordSystem: The coordinate system name as a string.
     :param gridding_approach: Choices: "independent grid(s)" (default) or "multipatch".
-    :param fp_type: Floating point type, e.g., "double".
 
     :raises ValueError: If an invalid gridding_approach is provided.
     """
@@ -114,12 +108,10 @@ class register_CFunction_xx_to_Cart(base_xx_classes.base_register_CFunction_xx_t
         self,
         CoordSystem: str,
         gridding_approach: str = "independent grid(s)",
-        fp_type: str = "double",
     ) -> None:
         super().__init__(
             CoordSystem,
             gridding_approach=gridding_approach,
-            fp_type=fp_type,
         )
         self.cfunc_type = "void"
         self.cfunc_decorators = "__host__"

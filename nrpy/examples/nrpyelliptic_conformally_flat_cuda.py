@@ -37,7 +37,7 @@ par.set_parval_from_str("Infrastructure", "BHaH")
 
 # Code-generation-time parameters:
 project_name = "nrpyelliptic_conformally_flat_cuda"
-fp_type = "double"
+fp_type = "float"
 grid_physical_size = 1.0e6
 t_final = grid_physical_size  # This parameter is effectively not used in NRPyElliptic
 nn_max = 10000  # Sets the maximum number of relaxation steps
@@ -97,7 +97,7 @@ fd_order = 10
 radiation_BC_fd_order = 6
 
 # Intrinsics only works for fp_type = "double"
-enable_intrinsics = True
+enable_intrinsics = False
 parallel_codegen_enable = True
 boundary_conditions_desc = "outgoing radiation"
 list_of_CoordSystems = [CoordSystem]
@@ -172,25 +172,20 @@ gputils.register_CFunction_find_global_minimum()
 gputils.register_CFunction_find_global_sum()
 
 # Generate functions to set initial guess
-nrpyellClib.register_CFunction_initial_guess_single_point(fp_type=fp_type)
+nrpyellClib.register_CFunction_initial_guess_single_point()
 nrpyellClib.register_CFunction_initial_guess_all_points(
     OMP_collapse=OMP_collapse,
     enable_checkpointing=enable_checkpointing,
-    fp_type=fp_type,
 )
 
 # Generate function to set variable wavespeed
 nrpyellClib.register_CFunction_variable_wavespeed_gfs_all_points(
-    CoordSystem=CoordSystem, fp_type=fp_type
+    CoordSystem=CoordSystem
 )
 
 # Generate functions to set AUXEVOL gridfunctions
-nrpyellClib.register_CFunction_auxevol_gfs_single_point(
-    CoordSystem=CoordSystem, fp_type=fp_type
-)
-nrpyellClib.register_CFunction_auxevol_gfs_all_points(
-    OMP_collapse=OMP_collapse, fp_type=fp_type
-)
+nrpyellClib.register_CFunction_auxevol_gfs_single_point(CoordSystem=CoordSystem)
+nrpyellClib.register_CFunction_auxevol_gfs_all_points()
 
 # Generate function that calls functions to set variable wavespeed and all other AUXEVOL gridfunctions
 nrpyellClib.register_CFunction_initialize_constant_auxevol()
@@ -201,9 +196,8 @@ numericalgrids.register_CFunctions(
     Nxx_dict=Nxx_dict,
     enable_rfm_precompute=enable_rfm_precompute,
     enable_CurviBCs=True,
-    fp_type=fp_type,
 )
-xx_tofrom_Cart.register_CFunction_xx_to_Cart(CoordSystem=CoordSystem, fp_type=fp_type)
+xx_tofrom_Cart.register_CFunction_xx_to_Cart(CoordSystem=CoordSystem)
 
 nrpyellClib.register_CFunction_diagnostics(
     CoordSystem=CoordSystem,
@@ -212,7 +206,7 @@ nrpyellClib.register_CFunction_diagnostics(
 
 if enable_rfm_precompute:
     rfm_precompute.register_CFunctions_rfm_precompute(
-        list_of_CoordSystems=list(set(list_of_CoordSystems)), fp_type=fp_type
+        list_of_CoordSystems=list(set(list_of_CoordSystems))
     )
 
 # Generate function to compute RHSs
@@ -221,7 +215,6 @@ nrpyellClib.register_CFunction_rhs_eval(
     enable_rfm_precompute=enable_rfm_precompute,
     enable_intrinsics=enable_intrinsics,
     OMP_collapse=OMP_collapse,
-    fp_type=fp_type,
 )
 
 # Generate function to compute residuals
@@ -229,13 +222,10 @@ nrpyellClib.register_CFunction_compute_residual_all_points(
     CoordSystem=CoordSystem,
     enable_rfm_precompute=enable_rfm_precompute,
     enable_intrinsics=enable_intrinsics,
-    fp_type=fp_type,
 )
 
 # Generate diagnostics functions
-nrpyellClib.register_CFunction_compute_L2_norm_of_gridfunction(
-    CoordSystem=CoordSystem, fp_type=fp_type
-)
+nrpyellClib.register_CFunction_compute_L2_norm_of_gridfunction(CoordSystem=CoordSystem)
 
 # Register function to check for stop conditions
 nrpyellClib.register_CFunction_check_stop_conditions()
@@ -266,7 +256,6 @@ MoL.register_CFunctions(
     enable_rfm_precompute=enable_rfm_precompute,
     enable_curviBCs=True,
     enable_intrinsics=enable_intrinsics,
-    fp_type=fp_type,
 )
 chkpt.register_CFunctions(default_checkpoint_every=default_checkpoint_every)
 

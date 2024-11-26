@@ -28,7 +28,7 @@ class ReferenceMetricPrecompute:
     precompute quantities within loops for both SIMD-ized and non-SIMD loops.
     """
 
-    def __init__(self, CoordSystem: str, fp_type: str = "double"):
+    def __init__(self, CoordSystem: str):
         self.rfm = refmetric.reference_metric[CoordSystem + "_rfm_precompute"]
         # Step 7: Construct needed C code for declaring rfmstruct, allocating storage for
         #         rfmstruct arrays, defining each element in each array, reading the

@@ -32,7 +32,6 @@ class base_register_CFunction__Cart_to_xx_and_nearest_i0i1i2:
     :param relative_to: Whether the computation is relative to the "local_grid_center"
                         (default) or "global_grid_center".
     :param gridding_approach: Choices: "independent grid(s)" (default) or "multipatch".
-    :param fp_type: Floating point type, e.g., "double".
     :raises ValueError: When the value of `gridding_approach` is not "independent grid(s)"
                         or "multipatch".
     """
@@ -42,12 +41,10 @@ class base_register_CFunction__Cart_to_xx_and_nearest_i0i1i2:
         CoordSystem: str,
         relative_to: str = "local_grid_center",
         gridding_approach: str = "independent grid(s)",
-        fp_type: str = "double",
     ) -> None:
         self.CoordSystem = CoordSystem
         self.relative_to = relative_to
         self.gridding_approach = gridding_approach
-        self.fp_type = fp_type
         self.includes = ["BHaH_defines.h"]
         self.cfunc_type = "void"
         self.prefunc = ""
@@ -84,7 +81,6 @@ class base_register_CFunction_xx_to_Cart:
 
     :param CoordSystem: The coordinate system name as a string.
     :param gridding_approach: Choices: "independent grid(s)" (default) or "multipatch".
-    :param fp_type: Floating point type, e.g., "double".
 
     :raises ValueError: If an invalid gridding_approach is provided.
     """
@@ -93,11 +89,9 @@ class base_register_CFunction_xx_to_Cart:
         self,
         CoordSystem: str,
         gridding_approach: str = "independent grid(s)",
-        fp_type: str = "double",
     ) -> None:
         self.gridding_approach = gridding_approach
         self.CoordSystem = CoordSystem
-        self.fp_type = fp_type
         self.includes = ["BHaH_defines.h"]
         self.cfunc_type = "void"
         self.name = "xx_to_Cart"
@@ -133,7 +127,6 @@ REAL xx2 = xx[2][i2];
 """ + ccg.c_codegen(
             expr_list,
             ["xCart[0]", "xCart[1]", "xCart[2]"],
-            fp_type=self.fp_type,
         )
 
     def register(self) -> None:

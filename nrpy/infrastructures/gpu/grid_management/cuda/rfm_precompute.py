@@ -14,6 +14,7 @@ import sympy as sp
 import sympy.codegen.ast as sp_ast
 
 import nrpy.c_codegen as ccg
+import nrpy.params as par  # NRPy+: Parameter interface
 from nrpy.helpers.generic import superfast_uniq
 from nrpy.infrastructures.BHaH import rfm_precompute
 
@@ -27,21 +28,20 @@ class ReferenceMetricPrecompute(rfm_precompute.ReferenceMetricPrecompute):
     precompute quantities within loops with and without intrinsics.
     """
 
-    def __init__(self, CoordSystem: str, fp_type: str = "double"):
-        super().__init__(CoordSystem, fp_type=fp_type)
-        self.rfm_struct__define_kernel_dict: Dict[sp.Expr, Any]
-        # rfmstruct stores pointers to (so far) 1D arrays. The rfm_struct__malloc string allocates space for the arrays.
+    def __init__(self, CoordSystem: str):
+        super().__init__(CoordSystem)
+        self.rfm_struct__define_kernel_dict: Dict[sp.Expr, Any] = {}
+
+        # Need to reset after calling __init__
         self.rfm_struct__malloc = ""
         self.rfm_struct__freemem = ""
+        self.readvr_str = ["", "", ""]
 
         # readvr_str reads the arrays from memory as needed
-        self.readvr_str = ["", "", ""]
         self.readvr_intrinsics_outer_str = ["", "", ""]
         self.readvr_intrinsics_inner_str = ["", "", ""]
-        self.rfm_struct__define_kernel_dict = {}
-
         which_freevar: int = 0
-        fp_ccg_type = ccg.fp_type_to_sympy_type[fp_type]
+        fp_ccg_type = ccg.fp_type_to_sympy_type[par.parval_from_str("fp_type")]
         sp_type_alias = {sp_ast.real: fp_ccg_type}
         for expr in self.freevars_uniq_vals:
             if "_of_xx" in str(self.freevars_uniq_xx_indep[which_freevar]):
@@ -80,19 +80,20 @@ class ReferenceMetricPrecompute(rfm_precompute.ReferenceMetricPrecompute):
                             "}"
                         )
 
+                        # This is needed by register_CFunctions_rfm_precompute
                         self.rfm_struct__define_kernel_dict[key] = {
                             "body": kernel_body,
                             "expr": self.freevars_uniq_vals[which_freevar],
                             "coord": f"x{dirn}",
                         }
 
-                        # These have to be passed to kernel as rfm_{freevar}
+                        # These have to be passed to kernel as rfm_{freevar} since rfm_precompute is not a pointer
                         self.readvr_str[
                             dirn
                         ] += f"const REAL {self.freevars_uniq_xx_indep[which_freevar]} = rfm_{self.freevars_uniq_xx_indep[which_freevar]}[i{dirn}];\n"
                         self.readvr_intrinsics_outer_str[
                             dirn
-                        ] += f"const double NOCUDA{self.freevars_uniq_xx_indep[which_freevar]} = rfm_{self.freevars_uniq_xx_indep[which_freevar]}[i{dirn}]; "
+                        ] += f"const REAL NOCUDA{self.freevars_uniq_xx_indep[which_freevar]} = rfm_{self.freevars_uniq_xx_indep[which_freevar]}[i{dirn}]; "
                         self.readvr_intrinsics_outer_str[
                             dirn
                         ] += f"const REAL_CUDA_ARRAY {self.freevars_uniq_xx_indep[which_freevar]} = ConstCUDA(NOCUDA{self.freevars_uniq_xx_indep[which_freevar]});\n"
@@ -100,21 +101,6 @@ class ReferenceMetricPrecompute(rfm_precompute.ReferenceMetricPrecompute):
                             dirn
                         ] += f"const REAL_CUDA_ARRAY {self.freevars_uniq_xx_indep[which_freevar]} = ReadCUDA(&rfm_{self.freevars_uniq_xx_indep[which_freevar]}[i{dirn}]);\n"
                         output_define_and_readvr = True
-                if (
-                    (not output_define_and_readvr)
-                    and (self.rfm.xx[0] in frees_uniq)
-                    and (self.rfm.xx[1] in frees_uniq)
-                ):
-                    self.rfm_struct__define += f"""
-                for(int i1=0;i1<Nxx_plus_2NGHOSTS1;i1++) for(int i0=0;i0<Nxx_plus_2NGHOSTS0;i0++) {{
-                  const REAL xx0 = xx[0][i0];
-                  const REAL xx1 = xx[1][i1];
-                  rfmstruct->{self.freevars_uniq_xx_indep[which_freevar]}[i0 + Nxx_plus_2NGHOSTS0*i1] = {sp.ccode(self.freevars_uniq_vals[which_freevar], type_aliases=sp_type_alias)};
-                }}\n\n"""
-                    self.readvr_str[
-                        0
-                    ] += f"const REAL {self.freevars_uniq_xx_indep[which_freevar]} = rfmstruct->{self.freevars_uniq_xx_indep[which_freevar]}[i0 + Nxx_plus_2NGHOSTS0*i1];\n"
-                    output_define_and_readvr = True
 
                 if not output_define_and_readvr:
                     raise RuntimeError(

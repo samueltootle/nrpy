@@ -24,18 +24,13 @@ class register_CFunctions_rfm_precompute(base_register_CFunctions_rfm_precompute
     Cuda implementation to register C functions for reference metric precomputed lookup arrays.
 
     :param list_of_CoordSystems: List of coordinate systems to register the C functions.
-    :param fp_type: Floating point type, e.g., "double".
     """
 
-    def __init__(
-        self, list_of_CoordSystems: List[str], fp_type: str = "double"
-    ) -> None:
-        super().__init__(list_of_CoordSystems, fp_type=fp_type)
+    def __init__(self, list_of_CoordSystems: List[str]) -> None:
+        super().__init__(list_of_CoordSystems)
 
         for CoordSystem in list_of_CoordSystems:
-            rfm_precompute = ReferenceMetricPrecompute(
-                CoordSystem, fp_type=self.fp_type
-            )
+            rfm_precompute = ReferenceMetricPrecompute(CoordSystem)
 
             for funcs in [
                 ("malloc", rfm_precompute.rfm_struct__malloc),
@@ -99,7 +94,6 @@ class register_CFunctions_rfm_precompute(base_register_CFunctions_rfm_precompute
                             "threads_per_block": ["32"],
                             "stream": f"(param_streamid + {i}) % nstreams",
                         },
-                        fp_type=self.fp_type,
                         comments=f"GPU Kernel to precompute metric quantity {key_sym}.",
                     )
                     prefunc += device_kernel.CFunction.full_function

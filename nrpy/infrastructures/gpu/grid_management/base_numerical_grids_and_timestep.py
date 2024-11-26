@@ -176,13 +176,11 @@ class base_register_CFunction_cfl_limited_timestep:
     is the minimum spacing between neighboring gridpoints on a numerical grid.
 
     :param CoordSystem: The coordinate system used for the simulation.
-    :param fp_type: Floating point type, e.g., "double".
     """
 
-    def __init__(self, CoordSystem: str, fp_type: str = "double") -> None:
+    def __init__(self, CoordSystem: str) -> None:
 
         self.CoordSystem = CoordSystem
-        self.fp_type = fp_type
 
         self.includes = ["BHaH_defines.h", "BHaH_function_prototypes.h"]
         self.desc = (
@@ -216,7 +214,6 @@ class base_register_CFunction_cfl_limited_timestep:
             self.min_expressions,
             ["dsmin0", "dsmin1", "dsmin2"],
             include_braces=False,
-            fp_type=fp_type,
         )
         self.min_body = self.min_body_compute
         self.min_body += """

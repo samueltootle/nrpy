@@ -23,22 +23,18 @@ class base_register_CFunctions_rfm_precompute:
     registering the Cfunction.
 
     :param list_of_CoordSystems: List of coordinate systems to register the C functions.
-    :param fp_type: Floating point type, e.g., "double".
     """
 
-    def __init__(
-        self, list_of_CoordSystems: List[str], fp_type: str = "double"
-    ) -> None:
+    def __init__(self, list_of_CoordSystems: List[str]) -> None:
 
         self.combined_BHaH_defines_list = []
         self.list_of_CoordSystems = list_of_CoordSystems
-        self.fp_type = fp_type
         self.includes = ["BHaH_defines.h"]
         self.function_dict: Dict[str, Any] = {}
         self.include_CodeParameters_h = True
 
         for CoordSystem in list_of_CoordSystems:
-            rfm_precompute = ReferenceMetricPrecompute(CoordSystem, fp_type=fp_type)
+            rfm_precompute = ReferenceMetricPrecompute(CoordSystem)
 
             for func in [
                 ("malloc", rfm_precompute.rfm_struct__malloc),

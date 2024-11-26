@@ -10,7 +10,7 @@ Ken Sible
     Email: ksible **at** outlook **dot** com
 """
 
-from typing import List, Tuple
+from typing import List, Tuple, Union
 
 import nrpy.helpers.loop as lp
 
@@ -25,36 +25,35 @@ def implemented_loop_regions_err(loop_region: str) -> str:
     :returns: the error message describing the loop_region was not found
     """
     regions = [f'"{region}"' for region in implemented_loop_regions]
-    regions[-1] = f"or {regions[-1]}"
+    regions[-1] = f" or {regions[-1]}"
     tmp_str = ",".join(regions)
     return f"loop_region = {loop_region} unsupported. Choose {tmp_str}."
 
 
 def get_loop_region_ranges(
-    loop_region: str, cuda: bool = False
+    loop_region: str, min_idx_prefix: Union[str, None] = None
 ) -> Tuple[List[str], List[str]]:
     """
     Return Loop region index ranges.
 
     :param loop_region: Loop region
-    :param cuda: Toggle whether the loop indices are modified for CUDA compatibility
+    :param min_idx_prefix: String that specifies the starting value prefix (GPU specific)
     :returns: region indicies
     """
     i2i1i0_mins = ["", "", ""]
     i2i1i0_maxs = ["", "", ""]
-    prefix = None if not cuda else "tid"
 
     # 'AllPoints': loop over all points on a numerical grid, including ghost zones
     if loop_region == "all points":
-        if not prefix is None:
-            i2i1i0_mins = [f"{prefix}{i}" for i in reversed(range(3))]
+        if min_idx_prefix is not None:
+            i2i1i0_mins = [f"{min_idx_prefix}{i}" for i in reversed(range(3))]
         else:
             i2i1i0_mins = ["0", "0", "0"]
         i2i1i0_maxs = ["Nxx_plus_2NGHOSTS2", "Nxx_plus_2NGHOSTS1", "Nxx_plus_2NGHOSTS0"]
     # 'InteriorPoints': loop over the interior of a numerical grid, i.e. exclude ghost zones
     elif loop_region == "interior":
-        if not prefix is None:
-            i2i1i0_mins = [f"{prefix}{i}+NGHOSTS" for i in reversed(range(3))]
+        if not min_idx_prefix is None:
+            i2i1i0_mins = [f"{min_idx_prefix}{i}+NGHOSTS" for i in reversed(range(3))]
         else:
             i2i1i0_mins = ["NGHOSTS", "NGHOSTS", "NGHOSTS"]
         i2i1i0_maxs = [
@@ -75,7 +74,6 @@ class base_simple_loop:
     :param read_xxs: Read the xx[3][:] 1D coordinate arrays if interior dependency exists
     :param CoordSystem: Coordinate system, e.g., "Cartesian"
     :param enable_rfm_precompute: Enable pre-computation of reference metric
-    :param fp_type: Floating point type, e.g., "double".
     :param cuda: Toggle whether to modify loop ranges based on cuda params
     :raises ValueError: If `loop_region` is unsupported or if `read_xxs` and `enable_rfm_precompute` are both enabled.
     """
@@ -87,7 +85,6 @@ class base_simple_loop:
         read_xxs: bool = False,
         CoordSystem: str = "Cartesian",
         enable_rfm_precompute: bool = False,
-        fp_type: str = "double",
         loop_region: str = "",
         cuda: bool = False,
     ) -> None:
@@ -97,7 +94,6 @@ class base_simple_loop:
         self.read_xxs = read_xxs
         self.CoordSystem = CoordSystem
         self.enable_rfm_precompute = enable_rfm_precompute
-        self.fp_type = fp_type
 
         self.full_loop_body = ""
         if self.loop_region == "":
@@ -105,7 +101,7 @@ class base_simple_loop:
         if self.loop_region not in implemented_loop_regions:
             raise ValueError(implemented_loop_regions_err(self.loop_region))
         self.i2i1i0_mins, self.i2i1i0_maxs = get_loop_region_ranges(
-            loop_region, cuda=cuda
+            loop_region, min_idx_prefix="tid"
         )
         self.prefix_loop_with = [""]
 
@@ -127,9 +123,7 @@ class base_simple_loop:
             # pylint: disable=C0415
             from nrpy.infrastructures.BHaH import rfm_precompute
 
-            self.rfmp = rfm_precompute.ReferenceMetricPrecompute(
-                self.CoordSystem, fp_type=self.fp_type
-            )
+            self.rfmp = rfm_precompute.ReferenceMetricPrecompute(self.CoordSystem)
             if enable_intrinsics:
                 raise ValueError("Loop intrinisics not yet enabled for GPUs")
 

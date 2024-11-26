@@ -131,12 +131,11 @@ class register_CFunction_cfl_limited_timestep(
     is the minimum spacing between neighboring gridpoints on a numerical grid.
 
     :param CoordSystem: The coordinate system used for the simulation.
-    :param fp_type: Floating point type, e.g., "double".
     :return: None.
     """
 
-    def __init__(self, CoordSystem: str, fp_type: str = "double") -> None:
-        super().__init__(CoordSystem, fp_type=fp_type)
+    def __init__(self, CoordSystem: str) -> None:
+        super().__init__(CoordSystem)
         # could be replaced by simple loop?
         self.body = r"""
 const int Nxx_tot = (Nxx_plus_2NGHOSTS0)*(Nxx_plus_2NGHOSTS1)*(Nxx_plus_2NGHOSTS2);
@@ -164,7 +163,6 @@ const int Nxx_tot = (Nxx_plus_2NGHOSTS0)*(Nxx_plus_2NGHOSTS1)*(Nxx_plus_2NGHOSTS
             loop_body=lp_body,
             read_xxs=True,
             loop_region="all points",
-            fp_type=self.fp_type,
             CoordSystem=self.CoordSystem,
         ).full_loop_body
 
@@ -183,7 +181,6 @@ const int Nxx_tot = (Nxx_plus_2NGHOSTS0)*(Nxx_plus_2NGHOSTS1)*(Nxx_plus_2NGHOSTS
                 "threads_per_block": ["64"],
                 "stream": "default",
             },
-            fp_type=self.fp_type,
             comments="GPU Kernel to compute local ds_min per grid point.",
         )
         self.body += f"{self.device_kernel.launch_block}"
@@ -292,7 +289,6 @@ def register_CFunctions(
     gridding_approach: str = "independent grid(s)",
     enable_rfm_precompute: bool = False,
     enable_CurviBCs: bool = False,
-    fp_type: str = "double",
 ) -> None:
     """
     Register C functions related to coordinate systems and grid parameters.
@@ -303,16 +299,13 @@ def register_CFunctions(
     :param gridding_approach: Choices: "independent grid(s)" (default) or "multipatch".
     :param enable_rfm_precompute: Whether to enable reference metric precomputation.
     :param enable_CurviBCs: Whether to enable curvilinear boundary conditions.
-    :param fp_type: Floating point type, e.g., "double".
     """
     for CoordSystem in list_of_CoordSystems:
         register_CFunction_numerical_grid_params_Nxx_dxx_xx(
             CoordSystem=CoordSystem,
             Nxx_dict=Nxx_dict,
         )
-        register_CFunction_cfl_limited_timestep(
-            CoordSystem=CoordSystem, fp_type=fp_type
-        )
+        register_CFunction_cfl_limited_timestep(CoordSystem=CoordSystem)
     register_CFunction_numerical_grids_and_timestep(
         list_of_CoordSystems=list_of_CoordSystems,
         list_of_grid_physical_sizes=list_of_grid_physical_sizes,
