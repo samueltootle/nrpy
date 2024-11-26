@@ -39,7 +39,6 @@ def register_CFunction_diagnostics_nearest_grid_center(
         "out0d-conv_factor%.2f.txt",
         "convergence_factor",
     ),
-    pointer_decorator: str = "",
 ) -> Union[None, pcg.NRPyEnv_type]:
     r"""
     Register C function for "0-dimensional" simulation diagnostics -- output data at gridpoint closest to grid center.
@@ -51,7 +50,6 @@ def register_CFunction_diagnostics_nearest_grid_center(
         Example: {("REAL", "log10HL"): "log10(fabs(diagnostic_output_gfs[IDX4pt(HGF, idx3)] + 1e-16))"}
     :param filename_tuple: Tuple specifying the filename and its corresponding string format.
         Default: ("out0d-conv_factor%.2f.txt", "convergence_factor")
-    :param pointer_decorator: Optional dectorators (e.g. [[maybe_unused]])
 
     :return: None if in registration phase, else the updated NRPy environment.
 
@@ -110,10 +108,6 @@ In SinhSymTP, this will be at i0_min,i1_mid,i2_mid (i2 == phi doesn't matter).""
         fprintf += f"{key[1]}, "
     fprintf = f"{fprintf[:-2]});\n"
 
-    pointer_decorator = (
-        pointer_decorator if pointer_decorator == "" else f"{pointer_decorator} "
-    )
-
     body = rf"""
 // Unpack grid function pointers from gridfuncs struct
 const REAL *restrict y_n_gfs = gridfuncs->y_n_gfs;
@@ -161,7 +155,6 @@ def register_CFunction_diagnostics_nearest_1d_axis(
         "out1d-AXIS-%s-conv_factor%.2f-t%08.2f.txt",
         "CoordSystemName, convergence_factor, time",
     ),
-    pointer_decorator: str = "",
 ) -> Union[None, pcg.NRPyEnv_type]:
     r"""
     Register C function for 1-dimensional simulation diagnostics at gridpoints closest to specified axis.
@@ -170,7 +163,6 @@ def register_CFunction_diagnostics_nearest_1d_axis(
     :param out_quantities_dict: Dictionary of output quantities.
     :param axis: Specifies the axis ("x", "z") for the diagnostics.
     :param filename_tuple: Tuple containing the format for filename and the replacement arguments.
-    :param pointer_decorator: Optional dectorators (e.g. [[maybe_unused]])
     :return: None if in registration phase, else the updated NRPy environment.
     :raises ValueError: If the specified axis is not supported.
 
@@ -202,9 +194,7 @@ def register_CFunction_diagnostics_nearest_1d_axis(
     cfunc_type = "void"
     name = f"diagnostics_nearest_1d_{axis}_axis"
     params = "commondata_struct *restrict commondata, const params_struct *restrict params, REAL *restrict xx[3], MoL_gridfunctions_struct *restrict gridfuncs"
-    pointer_decorator = (
-        pointer_decorator if pointer_decorator == "" else f"{pointer_decorator} "
-    )
+
     body = rf"""
 // Unpack grid function pointers from gridfuncs struct
 const REAL *restrict y_n_gfs = gridfuncs->y_n_gfs;
@@ -246,7 +236,6 @@ def register_CFunction_diagnostics_nearest_2d_plane(
         "out2d-PLANE-%s-conv_factor%.2f-t%08.2f.txt",
         "CoordSystemName, convergence_factor, time",
     ),
-    pointer_decorator: str = "",
 ) -> Union[None, pcg.NRPyEnv_type]:
     r"""
     Register C function for 2-dimensional simulation diagnostics at gridpoints closest to the specified plane.
@@ -255,7 +244,6 @@ def register_CFunction_diagnostics_nearest_2d_plane(
     :param out_quantities_dict: Dictionary of output quantities.
     :param plane: Specifies the plane ("xy", "yz") for the diagnostics.
     :param filename_tuple: Tuple containing the format for filename and the replacement arguments.
-    :param pointer_decorator: Optional dectorators (e.g. [[maybe_unused]])
     :return: None if in registration phase, else the updated NRPy environment.
     :raises ValueError: If the specified plane is not supported.
 
@@ -287,9 +275,6 @@ def register_CFunction_diagnostics_nearest_2d_plane(
     cfunc_type = "void"
     name = f"diagnostics_nearest_2d_{plane}_plane"
     params = "commondata_struct *restrict commondata, const params_struct *restrict params, REAL *restrict xx[3], MoL_gridfunctions_struct *restrict gridfuncs"
-    pointer_decorator = (
-        pointer_decorator if pointer_decorator == "" else f"{pointer_decorator} "
-    )
 
     body = rf"""
 // Unpack grid function pointers from gridfuncs struct
