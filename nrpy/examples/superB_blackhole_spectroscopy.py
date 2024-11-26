@@ -225,7 +225,6 @@ swm2sh.register_CFunction_spin_weight_minus2_sph_harmonics()
 
 psi4_C_codegen_library.register_CFunction_psi4(
     CoordSystem=CoordSystem,
-    enable_fd_functions=enable_fd_functions,
     OMP_collapse=OMP_collapse,
 )
 psi4_C_codegen_library.register_CFunction_psi4_metric_deriv_quantities(
@@ -368,7 +367,7 @@ Bdefines_h.output_BHaH_defines_h(
         str(Path("superB") / Path("superB.h")),
     ],
     project_dir=project_dir,
-    enable_simd=enable_simd,
+    enable_intrinsics=enable_simd,
     enable_rfm_precompute=enable_rfm_precompute,
     fin_NGHOSTS_add_one_for_upwinding_or_KO=True,
 )
@@ -379,7 +378,7 @@ if enable_simd:
         package="nrpy.helpers",
         filenames_list=["simd_intrinsics.h"],
         project_dir=project_dir,
-        subdirectory="simd",
+        subdirectory="intrinsics",
     )
 
 superBMakefile.output_CFunctions_function_prototypes_and_construct_Makefile(

@@ -128,6 +128,7 @@ def output_BHaH_defines_h(
     Output C code header file with macro definitions and other configurations for the project.
 
     :param project_dir: Directory where the project C code is output
+    :param additional_includes: Additional header files to be included in the output
     :param restrict_pointer_type: Allow modifications of restrict pointer type.  Default is *restrict
     :param enable_intrinsics: Flag to enable hardware intrinsics
     :param intrinsics_header_lst: List of intrinsics header files
