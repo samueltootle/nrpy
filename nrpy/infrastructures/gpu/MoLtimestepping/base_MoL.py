@@ -14,6 +14,7 @@ import sympy as sp  # Import SymPy, a computer algebra system written entirely i
 
 import nrpy.c_function as cfc
 from nrpy.c_codegen import c_codegen
+import nrpy.params as par  # NRPy+: Parameter interface
 from nrpy.helpers.generic import superfast_uniq
 from nrpy.infrastructures.BHaH.MoLtimestepping.RK_Butcher_Table_Dictionary import (
     generate_Butcher_tables,
@@ -31,7 +32,6 @@ class RKFunction:
     :param enable_intrinsics: A flag to specify if hardware instructions should be used.
     :param cfunc_type: decorators and return type for the RK substep function
     :param rk_step: current step (> 0).  Default (None) assumes Euler step
-    :param fp_type: Floating point type, e.g., "double".
     :param rational_const_alias: Overload const specifier for Rational definitions
     """
 
@@ -43,7 +43,6 @@ class RKFunction:
         enable_intrinsics: bool = False,
         cfunc_type: str = "static void",
         rk_step: Union[int, None] = None,
-        fp_type: str = "double",
         rational_const_alias: str = "const",
         intrinsics_str: str = "CUDA",
     ) -> None:
@@ -53,7 +52,6 @@ class RKFunction:
         self.intrinsics_str = intrinsics_str
         self.RK_rhs_list = RK_rhs_list
         self.RK_lhs_list = RK_lhs_list
-        self.fp_type = fp_type
         self.name: str = ""
         self.params: str = "params_struct *restrict params, "
         self.body: str = ""
@@ -84,7 +82,6 @@ class RKFunction:
             include_braces=False,
             verbose=False,
             enable_simd=self.enable_intrinsics,
-            fp_type=self.fp_type,
             enable_cse_preprocess=True,
             rational_const_alias=self.rational_const_alias,
         ).replace("SIMD", self.intrinsics_str)
@@ -388,7 +385,6 @@ def single_RK_substep_input_symbolic(
     enable_intrinsics: bool = False,
     gf_aliases: str = "",
     post_post_rhs_string: str = "",
-    fp_type: str = "double",
     additional_comments: str = "",
     rational_const_alias: str = "const",
 ) -> str:
@@ -407,7 +403,6 @@ def single_RK_substep_input_symbolic(
     :param enable_intrinsics: Whether hardware optimization is enabled.
     :param gf_aliases: Additional aliases for grid functions.
     :param post_post_rhs_string: String to be used after the post-RHS phase.
-    :param fp_type: Floating point type, e.g., "double".
     :param additional_comments: additional comments to append to auto-generated comment block.
     :param rational_const_alias: Optional alias instead of standard const
 
@@ -463,7 +458,6 @@ def single_RK_substep_input_symbolic(
                 RK_rhs_list,
                 rk_step=rk_step,
                 enable_intrinsics=enable_intrinsics,
-                fp_type=fp_type,
                 rational_const_alias=rational_const_alias,
             )
         }
@@ -526,7 +520,6 @@ class base_register_CFunction_MoL_step_forward_in_time:
     :param enable_rfm_precompute: Flag to enable reference metric functionality.
     :param enable_curviBCs: Flag to enable curvilinear boundary conditions.
     :param enable_intrinsics: Flag to enable hardware intrinsics
-    :param fp_type: Floating point type, e.g., "double".
     :raises ValueError: If unsupported Butcher table specified since adaptive RK steps are not implemented in MoL.
 
     Doctests:
@@ -579,7 +572,6 @@ class base_register_CFunction_MoL_step_forward_in_time:
         enable_rfm_precompute: bool = False,
         enable_curviBCs: bool = False,
         enable_intrinsics: bool = False,
-        fp_type: str = "double",
         rational_const_alias: str = "const",
     ) -> None:
 
@@ -590,7 +582,6 @@ class base_register_CFunction_MoL_step_forward_in_time:
         self.post_post_rhs_string = post_post_rhs_string
         self.enable_rfm_precompute = enable_rfm_precompute
         self.enable_curviBCs = enable_curviBCs
-        self.fp_type = fp_type
         self.rational_const_alias = rational_const_alias
         self.single_RK_substep_input_symbolic = single_RK_substep_input_symbolic
         self.rk_step_body_dict: Dict[str, str] = {}
@@ -716,7 +707,6 @@ class base_register_CFunction_MoL_step_forward_in_time:
                     enable_intrinsics=self.enable_intrinsics,
                     gf_aliases=self.gf_aliases,
                     post_post_rhs_string=self.post_post_rhs_string,
-                    fp_type=self.fp_type,
                     rational_const_alias=self.rational_const_alias,
                 )
                 + "// -={ END k1 substep }=-\n\n"
@@ -757,7 +747,6 @@ class base_register_CFunction_MoL_step_forward_in_time:
                     enable_intrinsics=self.enable_intrinsics,
                     gf_aliases=self.gf_aliases,
                     post_post_rhs_string=self.post_post_rhs_string,
-                    fp_type=self.fp_type,
                     rational_const_alias=self.rational_const_alias,
                 )
                 + "// -={ END k2 substep }=-\n\n"
@@ -786,7 +775,6 @@ class base_register_CFunction_MoL_step_forward_in_time:
                     enable_intrinsics=self.enable_intrinsics,
                     gf_aliases=self.gf_aliases,
                     post_post_rhs_string=self.post_post_rhs_string,
-                    fp_type=self.fp_type,
                     rational_const_alias=self.rational_const_alias,
                 )
                 + "// -={ END k3 substep }=-\n\n"
@@ -838,7 +826,6 @@ class base_register_CFunction_MoL_step_forward_in_time:
                         enable_intrinsics=self.enable_intrinsics,
                         gf_aliases=self.gf_aliases,
                         post_post_rhs_string=self.post_post_rhs_string,
-                        fp_type=self.fp_type,
                         rational_const_alias=self.rational_const_alias
                     )}// -={{ END k{str(s + 1)} substep }}=-\n\n"""
 
@@ -863,7 +850,6 @@ class base_register_CFunction_MoL_step_forward_in_time:
                             enable_intrinsics=self.enable_intrinsics,
                             gf_aliases=self.gf_aliases,
                             post_post_rhs_string=self.post_post_rhs_string,
-                            fp_type=self.fp_type,
                             rational_const_alias=self.rational_const_alias,
                         )
                     )
@@ -951,7 +937,6 @@ class base_register_CFunction_MoL_step_forward_in_time:
                                 enable_intrinsics=self.enable_intrinsics,
                                 gf_aliases=self.gf_aliases,
                                 post_post_rhs_string=self.post_post_rhs_string,
-                                fp_type=self.fp_type,
                                 rational_const_alias=self.rational_const_alias,
                             )
                             + f"// -={{ END k{s + 1} substep }}=-\n\n"
@@ -1057,7 +1042,6 @@ class base_register_CFunctions:
     :param enable_rfm_precompute: Enable reference metric support. Default is False.
     :param enable_curviBCs: Enable curvilinear boundary conditions. Default is False.
     :param register_MoL_step_forward_in_time: Whether to register the MoL step forward function. Default is True.
-    :param fp_type: Floating point type, e.g., "double".
     """
 
     def __init__(
@@ -1069,7 +1053,6 @@ class base_register_CFunctions:
         enable_rfm_precompute: bool = False,
         enable_curviBCs: bool = False,
         register_MoL_step_forward_in_time: bool = True,
-        fp_type: str = "double",
     ) -> None:
 
         self.MoL_method = MoL_method
@@ -1079,7 +1062,6 @@ class base_register_CFunctions:
         self.enable_rfm_precompute = enable_rfm_precompute
         self.enable_curviBCs = enable_curviBCs
         self.register_MoL_step_forward_in_time = register_MoL_step_forward_in_time
-        self.fp_type = fp_type
 
         self.Butcher_dict = generate_Butcher_tables()
 
