@@ -68,7 +68,7 @@ class register_CFunctions_rfm_precompute(base_register_CFunctions_rfm_precompute
 
                 body = " "
                 for i in range(3):
-                    body += f"[[maybe_unused]] const REAL *restrict x{i} = xx[{i}];\n"
+                    body += f"MAYBE_UNUSED const REAL *restrict x{i} = xx[{i}];\n"
                 prefunc = ""
                 prefunc_defs = ""
                 for i, (key_sym, kernel_dict) in enumerate(kernel_dicts.items()):

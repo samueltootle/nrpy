@@ -809,10 +809,10 @@ class gpu_register_CFunction_rhs_eval(
             enable_intrinsics=enable_intrinsics,
         )
         self.loop_body = self.simple_loop.full_loop_body.replace(
-            "const REAL f", "[[maybe_unused]] const REAL f"
+            "const REAL f", "MAYBE_UNUSED const REAL f"
         )
         self.loop_body = self.loop_body.replace(
-            "const REAL_CUDA_ARRAY f", "[[maybe_unused]] const REAL_CUDA_ARRAY f"
+            "const REAL_CUDA_ARRAY f", "MAYBE_UNUSED const REAL_CUDA_ARRAY f"
         )
         self.loop_body = self.loop_body.replace(
             "static const double dbl", "static constexpr REAL dbl"
@@ -957,10 +957,10 @@ class gpu_register_CFunction_compute_residual_all_points(
         params_dict["in_gfs"] = "const REAL *restrict"
         params_dict["aux_gfs"] = "REAL *restrict"
         self.kernel_body = self.kernel_body.replace(
-            "const REAL f", "[[maybe_unused]] const REAL f"
+            "const REAL f", "MAYBE_UNUSED const REAL f"
         )
         self.kernel_body = self.kernel_body.replace(
-            "const REAL_CUDA_ARRAY f", "[[maybe_unused]] const REAL_CUDA_ARRAY f"
+            "const REAL_CUDA_ARRAY f", "MAYBE_UNUSED const REAL_CUDA_ARRAY f"
         )
         self.kernel_body = self.kernel_body.replace(
             "static const double dbl", "static constexpr REAL dbl"

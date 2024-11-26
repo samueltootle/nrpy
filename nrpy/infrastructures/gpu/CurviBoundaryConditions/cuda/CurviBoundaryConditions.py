@@ -62,7 +62,7 @@ class setup_Cfunction_FD1_arbitrary_upwind(
 
         new_header = ""
         for i in range(3):
-            new_header += f"[[maybe_unused]] int const Nxx_plus_2NGHOSTS{i} = d_params[streamid].Nxx_plus_2NGHOSTS{i};\n"
+            new_header += f"MAYBE_UNUSED int const Nxx_plus_2NGHOSTS{i} = d_params[streamid].Nxx_plus_2NGHOSTS{i};\n"
         new_header += f"REAL const invdxx{dirn} = d_params[streamid].invdxx{dirn};\n"
         self.body = new_header + self.body
         self.generate_CFunction()
@@ -390,7 +390,7 @@ class register_CFunction_apply_bcs_inner_only(
         # Specify kernel launch body
         kernel_body = ""
         for i in range(3):
-            kernel_body += f"[[maybe_unused]] int const Nxx_plus_2NGHOSTS{i} = d_params[streamid].Nxx_plus_2NGHOSTS{i};\n"
+            kernel_body += f"MAYBE_UNUSED int const Nxx_plus_2NGHOSTS{i} = d_params[streamid].Nxx_plus_2NGHOSTS{i};\n"
         kernel_body += """
 // Thread indices
 // Global data index - expecting a 1D dataset
@@ -506,7 +506,7 @@ const bc_info_struct *bc_info = &bcstruct->bc_info;
         # Specify kernel launch body
         kernel_body = ""
         for i in range(3):
-            kernel_body += f"[[maybe_unused]] int const Nxx_plus_2NGHOSTS{i} = d_params[streamid].Nxx_plus_2NGHOSTS{i};\n"
+            kernel_body += f"MAYBE_UNUSED int const Nxx_plus_2NGHOSTS{i} = d_params[streamid].Nxx_plus_2NGHOSTS{i};\n"
         kernel_body += """
 // Thread indices
 // Global data index - expecting a 1D dataset
@@ -646,7 +646,7 @@ const REAL partial_x0_partial_r, const REAL partial_x1_partial_r, const REAL par
   const int FD1_stencil_radius = {self.FD1_stencil_radius};
   """
         for i in range(3):
-            self.tmp_definitions += f"[[maybe_unused]] int const Nxx_plus_2NGHOSTS{i} = d_params[streamid].Nxx_plus_2NGHOSTS{i};\n"
+            self.tmp_definitions += f"MAYBE_UNUSED int const Nxx_plus_2NGHOSTS{i} = d_params[streamid].Nxx_plus_2NGHOSTS{i};\n"
         self.tmp_definitions += "const int ntot = Nxx_plus_2NGHOSTS0*Nxx_plus_2NGHOSTS1*Nxx_plus_2NGHOSTS2;\n"
         self.generate_CFunction()
 
@@ -713,7 +713,7 @@ const REAL partial_r_f_int = compute_partial_r_f(streamid, xx,gfs, which_gf,dest
 """
         Nxx_definitions = ""
         for i in range(3):
-            Nxx_definitions += f"[[maybe_unused]] int const Nxx_plus_2NGHOSTS{i} = d_params[streamid].Nxx_plus_2NGHOSTS{i};\n"
+            Nxx_definitions += f"MAYBE_UNUSED int const Nxx_plus_2NGHOSTS{i} = d_params[streamid].Nxx_plus_2NGHOSTS{i};\n"
         self.variable_defs += Nxx_definitions
         self.generate_CFunction()
 
@@ -811,7 +811,7 @@ REAL *restrict x2 = xx[2];
         # Specify kernel launch body
         kernel_body = ""
         for i in range(3):
-            kernel_body += f"[[maybe_unused]] int const Nxx_plus_2NGHOSTS{i} = d_params[streamid].Nxx_plus_2NGHOSTS{i};\n"
+            kernel_body += f"MAYBE_UNUSED int const Nxx_plus_2NGHOSTS{i} = d_params[streamid].Nxx_plus_2NGHOSTS{i};\n"
         kernel_body += """
 // Thread indices
 // Global data index - expecting a 1D dataset

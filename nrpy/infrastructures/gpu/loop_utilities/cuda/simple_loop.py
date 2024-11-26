@@ -31,9 +31,9 @@ class simple_loop(base_sl.base_simple_loop):
     const int Nxx_plus_2NGHOSTS1 = d_params[streamid].Nxx_plus_2NGHOSTS1;
     const int Nxx_plus_2NGHOSTS2 = d_params[streamid].Nxx_plus_2NGHOSTS2;
     <BLANKLINE>
-    [[maybe_unused]] const REAL invdxx0 = d_params[streamid].invdxx0;
-    [[maybe_unused]] const REAL invdxx1 = d_params[streamid].invdxx1;
-    [[maybe_unused]] const REAL invdxx2 = d_params[streamid].invdxx2;
+    MAYBE_UNUSED const REAL invdxx0 = d_params[streamid].invdxx0;
+    MAYBE_UNUSED const REAL invdxx1 = d_params[streamid].invdxx1;
+    MAYBE_UNUSED const REAL invdxx2 = d_params[streamid].invdxx2;
     <BLANKLINE>
     const int tid0 = blockIdx.x * blockDim.x + threadIdx.x;
     const int tid1 = blockIdx.y * blockDim.y + threadIdx.y;
@@ -59,9 +59,9 @@ class simple_loop(base_sl.base_simple_loop):
     const int Nxx_plus_2NGHOSTS1 = d_params[streamid].Nxx_plus_2NGHOSTS1;
     const int Nxx_plus_2NGHOSTS2 = d_params[streamid].Nxx_plus_2NGHOSTS2;
     <BLANKLINE>
-    [[maybe_unused]] const REAL invdxx0 = d_params[streamid].invdxx0;
-    [[maybe_unused]] const REAL invdxx1 = d_params[streamid].invdxx1;
-    [[maybe_unused]] const REAL invdxx2 = d_params[streamid].invdxx2;
+    MAYBE_UNUSED const REAL invdxx0 = d_params[streamid].invdxx0;
+    MAYBE_UNUSED const REAL invdxx1 = d_params[streamid].invdxx1;
+    MAYBE_UNUSED const REAL invdxx2 = d_params[streamid].invdxx2;
     <BLANKLINE>
     const int tid0 = blockIdx.x * blockDim.x + threadIdx.x;
     const int tid1 = blockIdx.y * blockDim.y + threadIdx.y;
@@ -115,9 +115,9 @@ class simple_loop(base_sl.base_simple_loop):
         )
         if self.read_xxs:
             self.read_rfm_xx_arrays = [
-                "[[maybe_unused]] const REAL xx0 = x0[i0];",
-                "[[maybe_unused]] const REAL xx1 = x1[i1];",
-                "[[maybe_unused]] const REAL xx2 = x2[i2];",
+                "MAYBE_UNUSED const REAL xx0 = x0[i0];",
+                "MAYBE_UNUSED const REAL xx1 = x1[i1];",
+                "MAYBE_UNUSED const REAL xx2 = x2[i2];",
             ]
         elif self.enable_rfm_precompute:
             self.rfmp = rfm_precompute.ReferenceMetricPrecompute(self.CoordSystem)
@@ -142,9 +142,9 @@ class simple_loop(base_sl.base_simple_loop):
   const int Nxx_plus_2NGHOSTS1 = d_params[streamid].Nxx_plus_2NGHOSTS1;
   const int Nxx_plus_2NGHOSTS2 = d_params[streamid].Nxx_plus_2NGHOSTS2;
 
-  [[maybe_unused]] const REAL invdxx0 = d_params[streamid].invdxx0;
-  [[maybe_unused]] const REAL invdxx1 = d_params[streamid].invdxx1;
-  [[maybe_unused]] const REAL invdxx2 = d_params[streamid].invdxx2;
+  MAYBE_UNUSED const REAL invdxx0 = d_params[streamid].invdxx0;
+  MAYBE_UNUSED const REAL invdxx1 = d_params[streamid].invdxx1;
+  MAYBE_UNUSED const REAL invdxx2 = d_params[streamid].invdxx2;
 
   const int tid0  = blockIdx.x * blockDim.x + threadIdx.x;
   const int tid1  = blockIdx.y * blockDim.y + threadIdx.y;
