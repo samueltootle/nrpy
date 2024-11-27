@@ -1,11 +1,10 @@
 """
-Set up basic functions and loop insertions for precomputed reference metric infrastructure.
-This module overloads the defaults for CUDA based codes
+CUDA implementation for functions and loop insertions for precomputed reference metric infrastructure.
 
-Author: Zachariah B. Etienne
-        zachetie **at** gmail **dot** com
-        Samuel D. Tootle
+Author: Samuel D. Tootle
         sdtootle **at** gmail **dot** com
+        Zachariah B. Etienne
+        zachetie **at** gmail **dot** com
 """
 
 from typing import Any, Dict, List
@@ -23,9 +22,12 @@ class ReferenceMetricPrecompute(rfm_precompute.ReferenceMetricPrecompute):
     """
     Class for reference metric precomputation for CUDA.
 
-    This class stores contributions to BHaH_defines.h, as well as functions for memory allocation,
-    definition, and freeing of rfm precomputation data. It also provides strings for reading rfm
-    precompute quantities within loops with and without intrinsics.
+    This class is the CUDA implementation of ReferenceMetricPrecompute
+    which stores contributions to BHaH_defines.h, as well as
+    implementation specific functions for memory allocation, definition,
+    and freeing of rfm precomputation data. It also provides strings for
+    reading rfm precompute quantities within loops with and without
+    intrinsics.
     """
 
     def __init__(self, CoordSystem: str):
