@@ -27,14 +27,17 @@ class base_register_CFunctions_rfm_precompute:
 
     def __init__(self, list_of_CoordSystems: List[str]) -> None:
 
-        self.combined_BHaH_defines_list = []
+        self.combined_BHaH_defines_list: List[str] = []
         self.list_of_CoordSystems = list_of_CoordSystems
         self.includes = ["BHaH_defines.h"]
         self.function_dict: Dict[str, Any] = {}
         self.include_CodeParameters_h = True
+        self.rfm_class = ReferenceMetricPrecompute
 
-        for CoordSystem in list_of_CoordSystems:
-            rfm_precompute = ReferenceMetricPrecompute(CoordSystem)
+    def generate_rfm_core_functions(self) -> None:
+        """Generate core functions for RFM precompute."""
+        for CoordSystem in self.list_of_CoordSystems:
+            rfm_precompute = self.rfm_class(CoordSystem)
 
             for func in [
                 ("malloc", rfm_precompute.rfm_struct__malloc),

@@ -29,32 +29,16 @@ class register_CFunctions_rfm_precompute(base_register_CFunctions_rfm_precompute
     def __init__(self, list_of_CoordSystems: List[str]) -> None:
         super().__init__(list_of_CoordSystems)
 
-        for CoordSystem in list_of_CoordSystems:
+        # Overload with CUDA implementation
+        self.rfm_class = ReferenceMetricPrecompute
+        self.generate_rfm_core_functions()
+        self.generate_rfm_CUDA_kernels()
+        self.register()
+
+    def generate_rfm_CUDA_kernels(self) -> None:
+        """Generate CUDA kernels for RFM precompute."""
+        for CoordSystem in self.list_of_CoordSystems:
             rfm_precompute = ReferenceMetricPrecompute(CoordSystem)
-
-            for funcs in [
-                ("malloc", rfm_precompute.rfm_struct__malloc),
-                ("defines", rfm_precompute.rfm_struct__define),
-                ("free", rfm_precompute.rfm_struct__freemem),
-            ]:
-
-                desc = f"rfm_precompute_{funcs[0]}: reference metric precomputed lookup arrays: {funcs[0]}"
-                cfunc_type = "void"
-                name = "rfm_precompute_" + funcs[0]
-                params = "const commondata_struct *restrict commondata, const params_struct *restrict params, rfm_struct *restrict rfmstruct"
-
-                body = " "
-                body += funcs[1]
-
-                self.function_dict[name] = {
-                    "desc": desc,
-                    "cfunc_type": cfunc_type,
-                    "params": params,
-                    "body": body,
-                    "CoordSystem": CoordSystem,
-                    "prefunc": "",
-                    "include_CodeParameters_h": self.include_CodeParameters_h,
-                }
 
             for func, kernel_dicts in [
                 ("defines", rfm_precompute.rfm_struct__define_kernel_dict),
@@ -118,4 +102,3 @@ class register_CFunctions_rfm_precompute(base_register_CFunctions_rfm_precompute
                     "prefunc": prefunc,
                     "include_CodeParameters_h": True,
                 }
-        self.register()
