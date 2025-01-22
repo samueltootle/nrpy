@@ -167,7 +167,7 @@ class RKFunction(base_MoL.RKFunction):
             launch_dict={
                 "blocks_per_grid": ["(Ntot + threads_in_x_dir - 1) / threads_in_x_dir"],
                 "threads_per_block": ["32"],
-                "stream": "params->grid_idx % nstreams",
+                "stream": "params->grid_idx % NUM_STREAMS",
             },
             comments=f"GPU Kernel to compute RK substep {self.rk_step}.",
         )

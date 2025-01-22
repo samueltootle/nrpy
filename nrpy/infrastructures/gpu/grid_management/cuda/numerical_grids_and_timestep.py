@@ -64,7 +64,7 @@ class register_CFunction_numerical_grid_params_Nxx_dxx_xx(
     cudaMalloc(&xx[2], sizeof(REAL) * Nxx_plus_2NGHOSTS2);
     cudaCheckErrors(malloc, "Malloc failed");
 
-    size_t param_streamid = params->grid_idx % nstreams;
+    size_t param_streamid = params->grid_idx % NUM_STREAMS;
     cpyHosttoDevice_params__constant(params, param_streamid);
 
     dim3 block_threads, grid_blocks;
@@ -79,12 +79,12 @@ class register_CFunction_numerical_grid_params_Nxx_dxx_xx(
     initialize_grid_xx0_gpu<<<grid_blocks, block_threads, 0, streams[streamid]>>>(param_streamid, xx[0]);
     cudaCheckErrors(initialize_grid_xx0_gpu, "kernel failed");
 
-    streamid = (params->grid_idx + 1) % nstreams;
+    streamid = (params->grid_idx + 1) % NUM_STREAMS;
     set_grid_block(Nxx_plus_2NGHOSTS1);
     initialize_grid_xx1_gpu<<<grid_blocks, block_threads, 0, streams[streamid]>>>(param_streamid, xx[1]);
     cudaCheckErrors(initialize_grid_xx1_gpu, "kernel failed");
 
-    streamid = (params->grid_idx + 2) % nstreams;
+    streamid = (params->grid_idx + 2) % NUM_STREAMS;
     set_grid_block(Nxx_plus_2NGHOSTS2);
     initialize_grid_xx2_gpu<<<grid_blocks, block_threads, 0, streams[streamid]>>>(param_streamid, xx[2]);
     cudaCheckErrors(initialize_grid_xx2_gpu, "kernel failed");
@@ -240,7 +240,7 @@ class register_CFunction_numerical_grids_and_timestep(
             self.body += r"""
 for(int grid=0; grid<commondata->NUMGRIDS; grid++) {
   rfm_precompute_malloc(commondata, &griddata[grid].params, &griddata[grid].rfmstruct);
-  cpyHosttoDevice_params__constant(&griddata[grid].params, griddata[grid].params.grid_idx % nstreams);
+  cpyHosttoDevice_params__constant(&griddata[grid].params, griddata[grid].params.grid_idx % NUM_STREAMS);
   rfm_precompute_defines(commondata, &griddata[grid].params, &griddata[grid].rfmstruct, griddata[grid].xx);
 }
   cpyDevicetoHost__grid(commondata, griddata_host, griddata);
@@ -255,7 +255,7 @@ for(int grid=0; grid<commondata->NUMGRIDS; grid++) {
         if self.enable_CurviBCs:
             self.body += r"""
 for(int grid=0; grid<commondata->NUMGRIDS; grid++) {
-  cpyHosttoDevice_params__constant(&griddata[grid].params, griddata[grid].params.grid_idx % nstreams);
+  cpyHosttoDevice_params__constant(&griddata[grid].params, griddata[grid].params.grid_idx % NUM_STREAMS);
   bcstruct_set_up(commondata, &griddata[grid].params, griddata_host[grid].xx, &griddata[grid].bcstruct);
 }
 """
@@ -266,7 +266,7 @@ for(int grid=0; grid<commondata->NUMGRIDS; grid++) {
 // Step 1.e: Set timestep based on minimum spacing between neighboring gridpoints.
 commondata->dt = 1e30;
 for(int grid=0; grid<commondata->NUMGRIDS; grid++) {
-  cpyHosttoDevice_params__constant(&griddata[grid].params, griddata[grid].params.grid_idx % nstreams);
+  cpyHosttoDevice_params__constant(&griddata[grid].params, griddata[grid].params.grid_idx % NUM_STREAMS);
   cfl_limited_timestep(commondata, &griddata[grid].params, griddata[grid].xx);
 }
 

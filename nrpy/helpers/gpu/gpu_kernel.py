@@ -153,7 +153,7 @@ dim3 threads_per_block(threads_in_x_dir, threads_in_y_dir, threads_in_z_dir);"""
                 self.launch_dict["stream"] == ""
                 or self.launch_dict["stream"] == "default"
             ):
-                stream_def_str = "size_t streamid = params->grid_idx % nstreams;"
+                stream_def_str = "size_t streamid = params->grid_idx % NUM_STREAMS;"
             else:
                 stream_def_str = f"size_t streamid = {self.launch_dict['stream']};"
 

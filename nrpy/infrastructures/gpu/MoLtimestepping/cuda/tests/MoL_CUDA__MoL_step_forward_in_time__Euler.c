@@ -36,7 +36,7 @@ static void rk_substep_None(params_struct *restrict params, REAL *restrict y_n_g
   dim3 threads_per_block(threads_in_x_dir, threads_in_y_dir, threads_in_z_dir);
   dim3 blocks_per_grid((Ntot + threads_in_x_dir - 1) / threads_in_x_dir, 1, 1);
   size_t sm = 0;
-  size_t streamid = params->grid_idx % nstreams;
+  size_t streamid = params->grid_idx % NUM_STREAMS;
   rk_substep_None_gpu<<<blocks_per_grid, threads_per_block, sm, streams[streamid]>>>(streamid, y_n_gfs, y_nplus1_running_total_gfs, dt);
   cudaCheckErrors(cudaKernel, "rk_substep_None_gpu failure");
 }

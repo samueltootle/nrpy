@@ -144,7 +144,7 @@ while(commondata.time < commondata.t_final) { // Main loop to progress forward i
 } // End main loop to progress forward in time.
 // Make sure all workers are done
 cudaDeviceSynchronize();
-for(int i = 0; i < nstreams; ++i) {
+for(int i = 0; i < NUM_STREAMS; ++i) {
     cudaStreamDestroy(streams[i]);
 }
 // Step 6: Free all allocated memory

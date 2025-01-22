@@ -334,7 +334,7 @@ def register_CFunction_cpyDevicetoHost__gf() -> None:
       int const Nxx_plus_2NGHOSTS2 = params->Nxx_plus_2NGHOSTS2;
       const int Nxx_plus_2NGHOSTS_tot = Nxx_plus_2NGHOSTS0 * Nxx_plus_2NGHOSTS1 * Nxx_plus_2NGHOSTS2;
     <BLANKLINE>
-      size_t streamid = (params->grid_idx + gpu_GF_IDX) % nstreams;
+      size_t streamid = (params->grid_idx + gpu_GF_IDX) % NUM_STREAMS;
       int offset_gpu = Nxx_plus_2NGHOSTS_tot * gpu_GF_IDX;
       int offset_host = Nxx_plus_2NGHOSTS_tot * host_GF_IDX;
       cudaMemcpyAsync(&gf_host[offset_host], &gf_gpu[offset_gpu], sizeof(REAL) * Nxx_plus_2NGHOSTS_tot, cudaMemcpyDeviceToHost, streams[streamid]);
@@ -355,7 +355,7 @@ def register_CFunction_cpyDevicetoHost__gf() -> None:
   int const Nxx_plus_2NGHOSTS2 = params->Nxx_plus_2NGHOSTS2;
   const int Nxx_plus_2NGHOSTS_tot = Nxx_plus_2NGHOSTS0 * Nxx_plus_2NGHOSTS1 * Nxx_plus_2NGHOSTS2;
 
-  size_t streamid = (params->grid_idx + gpu_GF_IDX) % nstreams;
+  size_t streamid = (params->grid_idx + gpu_GF_IDX) % NUM_STREAMS;
   int offset_gpu  = Nxx_plus_2NGHOSTS_tot * gpu_GF_IDX;
   int offset_host = Nxx_plus_2NGHOSTS_tot * host_GF_IDX;
   cudaMemcpyAsync(&gf_host[offset_host],
@@ -398,7 +398,7 @@ def register_CFunction_cpyHosttoDevice__gf() -> None:
       int const Nxx_plus_2NGHOSTS2 = params->Nxx_plus_2NGHOSTS2;
       const int Nxx_plus_2NGHOSTS_tot = Nxx_plus_2NGHOSTS0 * Nxx_plus_2NGHOSTS1 * Nxx_plus_2NGHOSTS2;
     <BLANKLINE>
-      size_t streamid = (params->grid_idx + gpu_GF_IDX) % nstreams;
+      size_t streamid = (params->grid_idx + gpu_GF_IDX) % NUM_STREAMS;
       int offset_gpu = Nxx_plus_2NGHOSTS_tot * gpu_GF_IDX;
       int offset_host = Nxx_plus_2NGHOSTS_tot * host_GF_IDX;
       cudaMemcpyAsync(&gf_host[offset_host], &gf_gpu[offset_gpu], sizeof(REAL) * Nxx_plus_2NGHOSTS_tot, cudaMemcpyDeviceToHost, streams[streamid]);
@@ -419,7 +419,7 @@ def register_CFunction_cpyHosttoDevice__gf() -> None:
   int const Nxx_plus_2NGHOSTS2 = params->Nxx_plus_2NGHOSTS2;
   const int Nxx_plus_2NGHOSTS_tot = Nxx_plus_2NGHOSTS0 * Nxx_plus_2NGHOSTS1 * Nxx_plus_2NGHOSTS2;
 
-  size_t streamid = (params->grid_idx + gpu_GF_IDX) % nstreams;
+  size_t streamid = (params->grid_idx + gpu_GF_IDX) % NUM_STREAMS;
   int offset_gpu  = Nxx_plus_2NGHOSTS_tot * gpu_GF_IDX;
   int offset_host = Nxx_plus_2NGHOSTS_tot * host_GF_IDX;
   cudaMemcpyAsync(&gf_gpu[offset_host],

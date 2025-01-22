@@ -149,7 +149,7 @@ class register_CFunction_bcstruct_set_up(
   cudaMemcpyAsync(bcstruct_gpu->inner_bc_array,
                   bcstruct->inner_bc_array,
                   sizeof(innerpt_bc_struct) * bcstruct->bc_info.num_inner_boundary_points,
-                  cudaMemcpyHostToDevice, streams[nstreams-1]);
+                  cudaMemcpyHostToDevice, streams[NUM_STREAMS-1]);
   cudaCheckErrors(cudaMemcpy, "Memcpy failed - inner_bc_array");
 
   ////////////////////////////////////////
@@ -326,7 +326,7 @@ class register_CFunction_bcstruct_set_up(
             """
 static void cpy_pure_outer_bc_array(bc_struct *restrict bcstruct_h, bc_struct *restrict bcstruct_d,
   const int idx, const int idx2d) {
-    const int streamid = idx2d % nstreams;
+    const int streamid = idx2d % NUM_STREAMS;
     cudaMemcpyAsync(
           &bcstruct_d->pure_outer_bc_array[idx][idx2d].i0,
           &bcstruct_h->pure_outer_bc_array[idx][idx2d].i0,
@@ -420,7 +420,7 @@ for (int pt = tid0; pt < num_inner_boundary_points; pt+=stride0) {
                     "(num_inner_boundary_points + threads_in_x_dir -1) / threads_in_x_dir"
                 ],
                 "threads_per_block": ["32"],
-                "stream": "params->grid_idx % nstreams",
+                "stream": "params->grid_idx % NUM_STREAMS",
             },
             comments="GPU Kernel to apply extrapolation BCs to inner boundary points only.",
         )
@@ -551,7 +551,7 @@ for (int idx2d = tid0; idx2d < num_pure_outer_boundary_points; idx2d+=stride0) {
                     "(num_pure_outer_boundary_points + threads_in_x_dir -1) / threads_in_x_dir"
                 ],
                 "threads_per_block": ["32"],
-                "stream": "params->grid_idx % nstreams",
+                "stream": "params->grid_idx % NUM_STREAMS",
             },
             comments="GPU Kernel to apply extrapolation BCs to pure points.",
         )
@@ -857,7 +857,7 @@ for (int idx2d = tid0; idx2d < num_pure_outer_boundary_points; idx2d+=stride0) {
                     "(num_pure_outer_boundary_points + threads_in_x_dir -1) / threads_in_x_dir"
                 ],
                 "threads_per_block": ["32"],
-                "stream": "params->grid_idx % nstreams",
+                "stream": "params->grid_idx % NUM_STREAMS",
             },
             comments="GPU Kernel to apply radiation BCs to pure points.",
         )

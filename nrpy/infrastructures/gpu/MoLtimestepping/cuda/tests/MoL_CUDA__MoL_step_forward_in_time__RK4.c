@@ -41,7 +41,7 @@ static void rk_substep_1(params_struct *restrict params, REAL *restrict k_odd_gf
   dim3 threads_per_block(threads_in_x_dir, threads_in_y_dir, threads_in_z_dir);
   dim3 blocks_per_grid((Ntot + threads_in_x_dir - 1) / threads_in_x_dir, 1, 1);
   size_t sm = 0;
-  size_t streamid = params->grid_idx % nstreams;
+  size_t streamid = params->grid_idx % NUM_STREAMS;
   rk_substep_1_gpu<<<blocks_per_grid, threads_per_block, sm, streams[streamid]>>>(streamid, k_odd_gfs, y_n_gfs, y_nplus1_running_total_gfs, dt);
   cudaCheckErrors(cudaKernel, "rk_substep_1_gpu failure");
 }
@@ -88,7 +88,7 @@ static void rk_substep_2(params_struct *restrict params, REAL *restrict k_even_g
   dim3 threads_per_block(threads_in_x_dir, threads_in_y_dir, threads_in_z_dir);
   dim3 blocks_per_grid((Ntot + threads_in_x_dir - 1) / threads_in_x_dir, 1, 1);
   size_t sm = 0;
-  size_t streamid = params->grid_idx % nstreams;
+  size_t streamid = params->grid_idx % NUM_STREAMS;
   rk_substep_2_gpu<<<blocks_per_grid, threads_per_block, sm, streams[streamid]>>>(streamid, k_even_gfs, y_nplus1_running_total_gfs, y_n_gfs, dt);
   cudaCheckErrors(cudaKernel, "rk_substep_2_gpu failure");
 }
@@ -134,7 +134,7 @@ static void rk_substep_3(params_struct *restrict params, REAL *restrict k_odd_gf
   dim3 threads_per_block(threads_in_x_dir, threads_in_y_dir, threads_in_z_dir);
   dim3 blocks_per_grid((Ntot + threads_in_x_dir - 1) / threads_in_x_dir, 1, 1);
   size_t sm = 0;
-  size_t streamid = params->grid_idx % nstreams;
+  size_t streamid = params->grid_idx % NUM_STREAMS;
   rk_substep_3_gpu<<<blocks_per_grid, threads_per_block, sm, streams[streamid]>>>(streamid, k_odd_gfs, y_nplus1_running_total_gfs, y_n_gfs, dt);
   cudaCheckErrors(cudaKernel, "rk_substep_3_gpu failure");
 }
@@ -179,7 +179,7 @@ static void rk_substep_4(params_struct *restrict params, REAL *restrict k_even_g
   dim3 threads_per_block(threads_in_x_dir, threads_in_y_dir, threads_in_z_dir);
   dim3 blocks_per_grid((Ntot + threads_in_x_dir - 1) / threads_in_x_dir, 1, 1);
   size_t sm = 0;
-  size_t streamid = params->grid_idx % nstreams;
+  size_t streamid = params->grid_idx % NUM_STREAMS;
   rk_substep_4_gpu<<<blocks_per_grid, threads_per_block, sm, streams[streamid]>>>(streamid, k_even_gfs, y_n_gfs, y_nplus1_running_total_gfs, dt);
   cudaCheckErrors(cudaKernel, "rk_substep_4_gpu failure");
 }
