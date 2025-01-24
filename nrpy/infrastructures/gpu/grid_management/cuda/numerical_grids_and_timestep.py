@@ -64,7 +64,10 @@ class register_CFunction_numerical_grid_params_Nxx_dxx_xx(
     cudaMalloc(&xx[2], sizeof(REAL) * Nxx_plus_2NGHOSTS2);
     cudaCheckErrors(malloc, "Malloc failed");
 
-    size_t param_streamid = params->grid_idx % NUM_STREAMS;
+    // Set to zero as grid_idx is not guaranteed to be initialized
+    // before this function is called.
+    // Revisit once full multi-patch is implemented.
+    size_t param_streamid = 0;
     cpyHosttoDevice_params__constant(params, param_streamid);
 
     dim3 block_threads, grid_blocks;
