@@ -124,10 +124,8 @@ class RKFunction(base_MoL.RKFunction):
         self.body = ""
         self.params: str = "params_struct *restrict params, "
         kernel_body: str = ""
-        N_str = ""
         for i in ["0", "1", "2"]:
             kernel_body += f"const int Nxx_plus_2NGHOSTS{i} = d_params[streamid].Nxx_plus_2NGHOSTS{i};\n"
-            N_str += f"Nxx_plus_2NGHOSTS{i} *"
         kernel_body += "const int Ntot = Nxx_plus_2NGHOSTS0*Nxx_plus_2NGHOSTS1*Nxx_plus_2NGHOSTS2*NUM_EVOL_GFS;\n\n"
         kernel_body += (
             "// Kernel thread/stride setup\n"
@@ -159,9 +157,9 @@ class RKFunction(base_MoL.RKFunction):
         self.params += f"const {var_type} dt"
 
         kernel_params = {k: "REAL *restrict" for k in self.param_vars}
-        kernel_params["dt"] = "const REAL"
+        kernel_params["DT"] = "const REAL"
         self.device_kernel = gputils.GPU_Kernel(
-            kernel_body + self.loop_body.replace("commondata->dt", "dt") + "\n}\n",
+            kernel_body + self.loop_body.replace("commondata->dt", "DT") + "\n}\n",
             kernel_params,
             f"{self.name}_gpu",
             launch_dict={
