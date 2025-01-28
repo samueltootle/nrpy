@@ -31,7 +31,7 @@ import nrpy.params as par
 from nrpy.helpers.generic import copy_files
 from nrpy.infrastructures.BHaH import rfm_wrapper_functions
 from nrpy.infrastructures.gpu.grid_management.cuda import xx_tofrom_Cart
-from nrpy.infrastructures.gpu.MoLtimestepping.cuda import MoL
+from nrpy.infrastructures.BHaH.MoLtimestepping import MoL
 
 par.set_parval_from_str("Infrastructure", "BHaH")
 
@@ -256,6 +256,8 @@ MoL.register_CFunctions(
     enable_rfm_precompute=enable_rfm_precompute,
     enable_curviBCs=True,
     enable_intrinsics=enable_intrinsics,
+    parallelization="cuda",
+    rational_const_alias="static constexpr"
 )
 chkpt.register_CFunctions(default_checkpoint_every=default_checkpoint_every)
 
