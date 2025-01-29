@@ -34,11 +34,16 @@ _ = par.CodeParameter("REAL", __name__, "t_final", 10.0, commondata=True)
 # fmt: on
 
 supported_parallelization = {"cuda", "openmp"}
-def check_supported_parallelization(function_name: str, parallelization: str,
+
+
+def check_supported_parallelization(
+    function_name: str,
+    parallelization: str,
 ) -> None:
     """
     Check if the given parallelization is supported.
 
+    :param function_name: Name of the function where the check is performed.
     :param parallelization: Parameter to specify parallelization (openmp or cuda).
     :raises ValueError: If the parallelization is not supported.
     """
@@ -46,6 +51,7 @@ def check_supported_parallelization(function_name: str, parallelization: str,
         raise ValueError(
             f"ERROR ({function_name}): {parallelization} is not supported."
         )
+
 
 class RKFunction:
     """
@@ -126,14 +132,16 @@ class RKFunction:
 
         if parallelization == "cuda":
             # Add points in launcher body to compute Block/Grid kernel launch parameters
-            self.body += "\n".join(
-                f"const int Nxx_plus_2NGHOSTS{X} = params->Nxx_plus_2NGHOSTS{X};"
-                for X in ["0", "1", "2"]
-            ) + "\n"
+            self.body += (
+                "\n".join(
+                    f"const int Nxx_plus_2NGHOSTS{X} = params->Nxx_plus_2NGHOSTS{X};"
+                    for X in ["0", "1", "2"]
+                )
+                + "\n"
+            )
             self.body += "MAYBE_UNUSED const int Ntot = Nxx_plus_2NGHOSTS0*Nxx_plus_2NGHOSTS1*Nxx_plus_2NGHOSTS2*NUM_EVOL_GFS;\n\n"
 
-        elif parallelization == "openmp":
-            kernel_body += "LOOP_ALL_GFS_GPS(i) {\n"
+        kernel_body += "LOOP_ALL_GFS_GPS(i) {\n"
 
         read_list = [
             read
@@ -183,18 +191,13 @@ class RKFunction:
             )
             self.body += device_kernel.launch_block
             self.body += device_kernel.c_function_call()
-            prefunc = """
-#define LOOP_ALL_GFS_GPS(ii) \
-// Kernel thread/stride setup \
-const int tid0 = threadIdx.x + blockIdx.x*blockDim.x; \
-const int stride0 = blockDim.x * gridDim.x; \
-  for(int (ii)=(tid0);(ii)<d_params[streamid].Nxx_plus_2NGHOSTS0*d_params[streamid].Nxx_plus_2NGHOSTS1*d_params[streamid].Nxx_plus_2NGHOSTS2*NUM_EVOL_GFS;(ii)+=(stride0))
-"""
-            prefunc += device_kernel.CFunction.full_function
+            prefunc = device_kernel.CFunction.full_function
         else:
             if self.enable_intrinsics:
                 kernel_body = kernel_body.replace("dt", "DT")
-                kernel_body = "const REAL_SIMD_ARRAY DT = ConstSIMD(dt);\n" + kernel_body
+                kernel_body = (
+                    "const REAL_SIMD_ARRAY DT = ConstSIMD(dt);\n" + kernel_body
+                )
             rk_substep_prefunc = cfc.CFunction(
                 desc=self.desc,
                 cfunc_type=self.cfunc_type,
@@ -206,17 +209,7 @@ const int stride0 = blockDim.x * gridDim.x; \
             for p in self.kernel_params:
                 c_function_call += f"{p}, "
             c_function_call = c_function_call[:-2] + ")"
-            prefunc = """
-#define LOOP_ALL_GFS_GPS(ii) \
-_Pragma("omp parallel for") \
-  for(int (ii)=0;(ii)<params->Nxx_plus_2NGHOSTS0*params->Nxx_plus_2NGHOSTS1*params->Nxx_plus_2NGHOSTS2*NUM_EVOL_GFS;(ii)++)
-"""
-            if enable_intrinsics and parallelization == "openmp":
-                warnings.warn(
-                    "SIMD intrinsics in MoL is not properly supported -- MoL update loops are not properly bounds checked."
-                )
-                prefunc = prefunc.replace("(ii)++", "(ii) += (simd_width)")
-            prefunc += rk_substep_prefunc.full_function
+            prefunc = rk_substep_prefunc.full_function
             self.body += f"{c_function_call};\n"
 
         # Store CFunction
@@ -614,7 +607,7 @@ def register_CFunction_MoL_step_forward_in_time(
     parallelization: str = "openmp",
     rational_const_alias: str = "const",
 ) -> None:
-    """
+    r"""
     Register MoL_step_forward_in_time() C function, which is the core driver for time evolution in BHaH codes.
 
     :param Butcher_dict: A dictionary containing the Butcher tables for various RK-like methods.
@@ -632,18 +625,47 @@ def register_CFunction_MoL_step_forward_in_time(
     Doctest:
     >>> import nrpy.c_function as cfc
     >>> from nrpy.infrastructures.BHaH.MoLtimestepping.MoL import register_CFunction_MoL_step_forward_in_time
+    >>> from nrpy.infrastructures.BHaH.MoLtimestepping.MoL import MoL_Functions_dict
+    >>> from nrpy.helpers.generic import validate_strings
     >>> from nrpy.infrastructures.BHaH.MoLtimestepping.RK_Butcher_Table_Dictionary import (
     ...     generate_Butcher_tables,
     ... )
     >>> Butcher_dict = generate_Butcher_tables()
     >>> expected_str_dict=dict()
+    >>> rhs_string = "rhs_eval(commondata, params, rfmstruct,  auxevol_gfs, RK_INPUT_GFS, RK_OUTPUT_GFS);"
+    >>> post_rhs_string=(
+    ... "if (strncmp(commondata->outer_bc_type, \"extrapolation\", 50) == 0)\n"
+    ... "  apply_bcs_outerextrap_and_inner(commondata, params, bcstruct, RK_OUTPUT_GFS);"
+    ... )
+    >>> for k, v in Butcher_dict.items():
+    ...     Butcher = Butcher_dict[k][0]
+    ...     cfc.CFunction_dict.clear()
+    ...     MoL_Functions_dict.clear()
+    ...     if Butcher[-1][0] != "":
+    ...         continue
+    ...     register_CFunction_MoL_step_forward_in_time(
+    ...         Butcher_dict,
+    ...         k,
+    ...         rhs_string=rhs_string,
+    ...         post_rhs_string=post_rhs_string,
+    ...         enable_intrinsics=True,
+    ...         parallelization="cuda",
+    ...         rational_const_alias="static constexpr"
+    ...     )
+    ...     generated_str = cfc.CFunction_dict["MoL_step_forward_in_time"].full_function
+    ...     validation_desc = f"CUDA__MoL_step_forward_in_time__{k}".replace(" ", "_")
+    ...     validate_strings(generated_str, validation_desc, file_ext="cu")
+    >>> cfc.CFunction_dict.clear()
+    >>> MoL_Functions_dict.clear()
     >>> try:
     ...     register_CFunction_MoL_step_forward_in_time(Butcher_dict, "AHE")
     ... except ValueError as e:
     ...     print(f"ValueError: {e.args[0]}")
     ValueError: Adaptive order Butcher tables are currently not supported in MoL.
     """
-    check_supported_parallelization("register_CFunction_MoL_step_forward_in_time", parallelization)
+    check_supported_parallelization(
+        "register_CFunction_MoL_step_forward_in_time", parallelization
+    )
     includes = ["BHaH_defines.h", "BHaH_function_prototypes.h"]
     if enable_intrinsics and parallelization == "cuda":
         includes += [os.path.join("intrinsics", "cuda_intrinsics.h")]
@@ -690,8 +712,6 @@ MAYBE_UNUSED REAL *restrict {y_n_gridfunctions} = {gf_prefix}{y_n_gridfunctions}
 
     if enable_curviBCs:
         gf_aliases += "MAYBE_UNUSED const bc_struct *restrict bcstruct = &griddata[grid].bcstruct;\n"
-    for i in ["0", "1", "2"]:
-        gf_aliases += f"MAYBE_UNUSED const int Nxx_plus_2NGHOSTS{i} = griddata[grid].params.Nxx_plus_2NGHOSTS{i};\n"
 
     # Implement Method of Lines (MoL) Timestepping
     rk_step_body_dict: Dict[str, str] = {}
@@ -980,7 +1000,25 @@ MAYBE_UNUSED REAL *restrict {y_n_gridfunctions} = {gf_prefix}{y_n_gridfunctions}
                         + f"// -={{ END k{s + 1} substep }}=-\n\n"
                     )
 
-    prefunc = construct_RK_functions_prefunc()
+    if parallelization == "cuda":
+        prefunc = """
+#define LOOP_ALL_GFS_GPS(ii) \
+const int tid0 = threadIdx.x + blockIdx.x*blockDim.x; \
+const int stride0 = blockDim.x * gridDim.x; \
+  for(int (ii)=(tid0);(ii)<d_params[streamid].Nxx_plus_2NGHOSTS0*d_params[streamid].Nxx_plus_2NGHOSTS1*d_params[streamid].Nxx_plus_2NGHOSTS2*NUM_EVOL_GFS;(ii)+=(stride0))
+"""
+    else:
+        prefunc = """
+#define LOOP_ALL_GFS_GPS(ii) \
+_Pragma("omp parallel for") \
+  for(int (ii)=0;(ii)<params->Nxx_plus_2NGHOSTS0*params->Nxx_plus_2NGHOSTS1*params->Nxx_plus_2NGHOSTS2*NUM_EVOL_GFS;(ii)++)
+"""
+        if enable_intrinsics:
+            warnings.warn(
+                "SIMD intrinsics in MoL is not properly supported -- MoL update loops are not properly bounds checked."
+            )
+            prefunc = prefunc.replace("(ii)++", "(ii) += (simd_width)")
+    prefunc += construct_RK_functions_prefunc()
 
     for _, v in rk_step_body_dict.items():
         body += v
@@ -1024,13 +1062,14 @@ def register_CFunction_MoL_free_memory(
 
     :raises ValueError: If the 'which_gfs' argument is unrecognized.
     """
-    check_supported_parallelization("register_CFunction_MoL_free_memory", parallelization)
+    check_supported_parallelization(
+        "register_CFunction_MoL_free_memory", parallelization
+    )
     includes = ["BHaH_defines.h", "BHaH_function_prototypes.h"]
     desc = f'Method of Lines (MoL) for "{MoL_method}" method: Free memory for "{which_gfs}" gridfunctions\n'
     desc += "   - y_n_gfs are used to store data for the vector of gridfunctions y_i at t_n, at the start of each MoL timestep\n"
     desc += "   - non_y_n_gfs are needed for intermediate (e.g., k_i) storage in chosen MoL method\n"
     cfunc_type = "void"
-    mem_free_func = "free" if parallelization != "cuda" else "cudaFree"
 
     (
         y_n_gridfunctions,
@@ -1052,11 +1091,8 @@ def register_CFunction_MoL_free_memory(
     for gridfunction in gridfunctions_list:
         # Don't free a zero-sized array.
         if gridfunction == "auxevol_gfs":
-            body += (
-                f"  if(NUM_AUXEVOL_GFS > 0) {mem_free_func}(gridfuncs->{gridfunction});"
-            )
-        else:
-            body += f"  {mem_free_func}(gridfuncs->{gridfunction});"
+            body += f"  if(NUM_AUXEVOL_GFS > 0)"
+        body += f" {'cudaFree' if parallelization == 'cuda' else 'free'}(gridfuncs->{gridfunction});\n"
     cfc.register_CFunction(
         includes=includes,
         desc=desc,
