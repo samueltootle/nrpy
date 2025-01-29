@@ -33,6 +33,19 @@ _ = par.CodeParameter("REAL", __name__, "time", add_to_parfile=False, add_to_set
 _ = par.CodeParameter("REAL", __name__, "t_final", 10.0, commondata=True)
 # fmt: on
 
+supported_parallelization = {"cuda", "openmp"}
+def check_supported_parallelization(function_name: str, parallelization: str,
+) -> None:
+    """
+    Check if the given parallelization is supported.
+
+    :param parallelization: Parameter to specify parallelization (openmp or cuda).
+    :raises ValueError: If the parallelization is not supported.
+    """
+    if parallelization not in supported_parallelization:
+        raise ValueError(
+            f"ERROR ({function_name}): {parallelization} is not supported."
+        )
 
 class RKFunction:
     """
@@ -58,6 +71,7 @@ class RKFunction:
         rational_const_alias: str = "const",
         parallelization: str = "openmp",
     ) -> None:
+        check_supported_parallelization("RKFunction", parallelization)
         self.rk_step = rk_step
         self.enable_intrinsics = enable_intrinsics
         self.intrinsics_str = "CUDA" if parallelization == "cuda" else "SIMD"
@@ -111,37 +125,15 @@ class RKFunction:
         self.kernel_params["params"] = "params_struct *restrict"
 
         if parallelization == "cuda":
-            for X in ["0", "1", "2"]:
-                self.body += f"MAYBE_UNUSED const int Nxx_plus_2NGHOSTS{X} = params->Nxx_plus_2NGHOSTS{X};\n"
-                kernel_body += f"MAYBE_UNUSED const int Nxx_plus_2NGHOSTS{X} = d_params[streamid].Nxx_plus_2NGHOSTS{X};\n"
-            kernel_body += "MAYBE_UNUSED const int Ntot = Nxx_plus_2NGHOSTS0*Nxx_plus_2NGHOSTS1*Nxx_plus_2NGHOSTS2*NUM_EVOL_GFS;\n\n"
+            # Add points in launcher body to compute Block/Grid kernel launch parameters
+            self.body += "\n".join(
+                f"const int Nxx_plus_2NGHOSTS{X} = params->Nxx_plus_2NGHOSTS{X};"
+                for X in ["0", "1", "2"]
+            ) + "\n"
             self.body += "MAYBE_UNUSED const int Ntot = Nxx_plus_2NGHOSTS0*Nxx_plus_2NGHOSTS1*Nxx_plus_2NGHOSTS2*NUM_EVOL_GFS;\n\n"
 
-            kernel_body += (
-                "// Kernel thread/stride setup\n"
-                "const int tid0 = threadIdx.x + blockIdx.x*blockDim.x;\n"
-                "const int stride0 = blockDim.x * gridDim.x;\n\n"
-                "for(int i=tid0;i<Ntot;i+=stride0) {\n"
-            )
         elif parallelization == "openmp":
-
-            for X in ["0", "1", "2"]:
-                kernel_body += (
-                    f"const int Nxx_plus_2NGHOSTS{X} = params->Nxx_plus_2NGHOSTS{X};\n"
-                )
-            kernel_body += "const int Ntot = Nxx_plus_2NGHOSTS0*Nxx_plus_2NGHOSTS1*Nxx_plus_2NGHOSTS2*NUM_EVOL_GFS;\n\n"
-            if enable_intrinsics:
-                warnings.warn(
-                    "SIMD intrinsics in MoL is not properly supported -- MoL update loops are not properly bounds checked."
-                )
-                kernel_body += "#pragma omp parallel for\n"
-                kernel_body += "for(int i=0;i<Ntot;i+=simd_width) {{\n"
-            else:
-                kernel_body += "LOOP_ALL_GFS_GPS(i) {\n"
-        else:
-            raise ValueError("ERROR (RKFunction): parallelization not recognized.")
-
-        var_type = "REAL"
+            kernel_body += "LOOP_ALL_GFS_GPS(i) {\n"
 
         read_list = [
             read
@@ -156,18 +148,18 @@ class RKFunction:
                 key = gfs_el[:-3]
                 if self.enable_intrinsics and parallelization == "openmp":
                     self.kernel_params[key] = "REAL *restrict"
-                    self.params += f"{var_type} *restrict {key},"
-                    kernel_body += f"const {var_type} {el} = Read{self.intrinsics_str}(&{gfs_el});\n"
+                    self.params += f"REAL *restrict {key},"
+                    kernel_body += f"const REAL_SIMD_ARRAY {el} = Read{self.intrinsics_str}(&{gfs_el});\n"
                 else:
                     self.kernel_params[key] = "REAL *restrict"
-                    self.params += f"{var_type} *restrict {key},"
-                    kernel_body += f"const {var_type} {el} = {gfs_el};\n"
+                    self.params += f"REAL *restrict {key},"
+                    kernel_body += f"const REAL {el} = {gfs_el};\n"
         for el in self.RK_lhs_list:
             lhs_var = str(el).replace("_gfsL", "_gfs")
             if not lhs_var in self.params:
                 self.kernel_params[lhs_var] = "REAL *restrict"
-                self.params += f"{var_type} *restrict {lhs_var},"
-        self.params += f"const {var_type} dt"
+                self.params += f"REAL *restrict {lhs_var},"
+        self.params += f"const REAL dt"
         self.kernel_params["dt"] = "const REAL"
 
         kernel_body += self.loop_body.replace("commondata->dt", "dt") + "\n}\n"
@@ -191,8 +183,18 @@ class RKFunction:
             )
             self.body += device_kernel.launch_block
             self.body += device_kernel.c_function_call()
-            prefunc = device_kernel.CFunction.full_function
+            prefunc = """
+#define LOOP_ALL_GFS_GPS(ii) \
+// Kernel thread/stride setup \
+const int tid0 = threadIdx.x + blockIdx.x*blockDim.x; \
+const int stride0 = blockDim.x * gridDim.x; \
+  for(int (ii)=(tid0);(ii)<d_params[streamid].Nxx_plus_2NGHOSTS0*d_params[streamid].Nxx_plus_2NGHOSTS1*d_params[streamid].Nxx_plus_2NGHOSTS2*NUM_EVOL_GFS;(ii)+=(stride0))
+"""
+            prefunc += device_kernel.CFunction.full_function
         else:
+            if self.enable_intrinsics:
+                kernel_body = kernel_body.replace("dt", "DT")
+                kernel_body = "const REAL_SIMD_ARRAY DT = ConstSIMD(dt);\n" + kernel_body
             rk_substep_prefunc = cfc.CFunction(
                 desc=self.desc,
                 cfunc_type=self.cfunc_type,
@@ -204,7 +206,17 @@ class RKFunction:
             for p in self.kernel_params:
                 c_function_call += f"{p}, "
             c_function_call = c_function_call[:-2] + ")"
-            prefunc = rk_substep_prefunc.full_function
+            prefunc = """
+#define LOOP_ALL_GFS_GPS(ii) \
+_Pragma("omp parallel for") \
+  for(int (ii)=0;(ii)<params->Nxx_plus_2NGHOSTS0*params->Nxx_plus_2NGHOSTS1*params->Nxx_plus_2NGHOSTS2*NUM_EVOL_GFS;(ii)++)
+"""
+            if enable_intrinsics and parallelization == "openmp":
+                warnings.warn(
+                    "SIMD intrinsics in MoL is not properly supported -- MoL update loops are not properly bounds checked."
+                )
+                prefunc = prefunc.replace("(ii)++", "(ii) += (simd_width)")
+            prefunc += rk_substep_prefunc.full_function
             self.body += f"{c_function_call};\n"
 
         # Store CFunction
@@ -389,6 +401,7 @@ def register_CFunction_MoL_malloc(
     Doctest: FIXME
     # >>> register_CFunction_MoL_malloc("Euler", "y_n_gfs")
     """
+    check_supported_parallelization("register_CFunction_MoL_malloc", parallelization)
     includes = ["BHaH_defines.h", "BHaH_function_prototypes.h"]
 
     # Create a description for the function
@@ -494,6 +507,7 @@ def single_RK_substep_input_symbolic(
 
     :raises ValueError: If substep_time_offset_dt cannot be extracted from the Butcher table.
     """
+    check_supported_parallelization("single_RK_substep_input_symbolic", parallelization)
     # Ensure all input lists are lists
     RK_lhs_list = [RK_lhs_list] if not isinstance(RK_lhs_list, list) else RK_lhs_list
     RK_rhs_list = [RK_rhs_list] if not isinstance(RK_rhs_list, list) else RK_rhs_list
@@ -629,6 +643,7 @@ def register_CFunction_MoL_step_forward_in_time(
     ...     print(f"ValueError: {e.args[0]}")
     ValueError: Adaptive order Butcher tables are currently not supported in MoL.
     """
+    check_supported_parallelization("register_CFunction_MoL_step_forward_in_time", parallelization)
     includes = ["BHaH_defines.h", "BHaH_function_prototypes.h"]
     if enable_intrinsics and parallelization == "cuda":
         includes += [os.path.join("intrinsics", "cuda_intrinsics.h")]
@@ -1009,6 +1024,7 @@ def register_CFunction_MoL_free_memory(
 
     :raises ValueError: If the 'which_gfs' argument is unrecognized.
     """
+    check_supported_parallelization("register_CFunction_MoL_free_memory", parallelization)
     includes = ["BHaH_defines.h", "BHaH_function_prototypes.h"]
     desc = f'Method of Lines (MoL) for "{MoL_method}" method: Free memory for "{which_gfs}" gridfunctions\n'
     desc += "   - y_n_gfs are used to store data for the vector of gridfunctions y_i at t_n, at the start of each MoL timestep\n"
@@ -1125,6 +1141,7 @@ def register_CFunctions(
     } // END FUNCTION MoL_malloc_non_y_n_gfs
     <BLANKLINE>
     """
+    check_supported_parallelization("register_CFunctions", parallelization)
     Butcher_dict = generate_Butcher_tables()
 
     for which_gfs in ["y_n_gfs", "non_y_n_gfs"]:
@@ -1168,10 +1185,6 @@ def register_CFunctions(
         + r"""REAL *restrict diagnostic_output_gfs;
 REAL *restrict diagnostic_output_gfs2;
 } MoL_gridfunctions_struct;
-
-#define LOOP_ALL_GFS_GPS(ii) \
-_Pragma("omp parallel for") \
-  for(int (ii)=0;(ii)<Ntot;(ii)++)
 """
     )
 
