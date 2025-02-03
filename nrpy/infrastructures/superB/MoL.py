@@ -27,11 +27,13 @@ from nrpy.c_codegen import c_codegen
 from nrpy.grid import BHaHGridFunction, glb_gridfcs_dict
 from nrpy.helpers.generic import superfast_uniq
 from nrpy.infrastructures.BHaH import BHaH_defines_h, griddata_commondata
-from nrpy.infrastructures.BHaH.MoLtimestepping.MoL import (
-    generate_gridfunction_names,
-    is_diagonal_Butcher,
+from nrpy.infrastructures.BHaH.MoLtimestepping.MoL_allocators import (
     register_CFunction_MoL_free_memory,
     register_CFunction_MoL_malloc,
+)
+from nrpy.infrastructures.BHaH.MoLtimestepping.MoL_gridfunction_names import (
+    generate_gridfunction_names,
+    is_diagonal_Butcher,
 )
 from nrpy.infrastructures.BHaH.MoLtimestepping.RK_Butcher_Table_Dictionary import (
     generate_Butcher_tables,
@@ -1055,7 +1057,7 @@ def register_CFunctions(
 
     # Step 3.b: Create MoL_timestepping struct:
     BHaH_defines_h.register_BHaH_defines(
-        "nrpy.infrastructures.BHaH.MoLtimestepping.MoL",
+        "nrpy.infrastructures.BHaH.MoLtimestepping.MoL_register_all",
         f"typedef struct __MoL_gridfunctions_struct__ {{\n"
         f"""int num_evol_gfs_to_sync;
         int num_auxevol_gfs_to_sync;
