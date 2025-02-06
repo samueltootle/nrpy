@@ -23,15 +23,14 @@ import nrpy.infrastructures.gpu.checkpoints.cuda.checkpointing as chkpt
 import nrpy.infrastructures.gpu.CurviBoundaryConditions.cuda.CurviBoundaryConditions as cbc
 import nrpy.infrastructures.gpu.grid_management.cuda.griddata_free as griddata_commondata
 import nrpy.infrastructures.gpu.grid_management.cuda.numerical_grids_and_timestep as numericalgrids
-import nrpy.infrastructures.gpu.grid_management.cuda.register_rfm_precompute as rfm_precompute
 import nrpy.infrastructures.gpu.header_definitions.cuda_headers as gpudefines
 import nrpy.infrastructures.gpu.main_driver.cuda.main_c as main
 import nrpy.infrastructures.gpu.nrpyelliptic.cuda.conformally_flat_C_codegen_library as nrpyellClib
 import nrpy.params as par
 from nrpy.helpers.generic import copy_files
-from nrpy.infrastructures.BHaH import rfm_wrapper_functions
-from nrpy.infrastructures.gpu.grid_management.cuda import xx_tofrom_Cart
+from nrpy.infrastructures.BHaH import rfm_precompute, rfm_wrapper_functions
 from nrpy.infrastructures.BHaH.MoLtimestepping import MoL_register_all
+from nrpy.infrastructures.gpu.grid_management.cuda import xx_tofrom_Cart
 
 par.set_parval_from_str("Infrastructure", "BHaH")
 
@@ -206,7 +205,7 @@ nrpyellClib.register_CFunction_diagnostics(
 
 if enable_rfm_precompute:
     rfm_precompute.register_CFunctions_rfm_precompute(
-        list_of_CoordSystems=list(set(list_of_CoordSystems))
+        list_of_CoordSystems=list(set(list_of_CoordSystems)), parallelization="cuda"
     )
 
 # Generate function to compute RHSs
@@ -260,7 +259,7 @@ MoL_register_all.register_CFunctions(
     enable_curviBCs=True,
     enable_intrinsics=enable_intrinsics,
     parallelization="cuda",
-    rational_const_alias="static constexpr"
+    rational_const_alias="static constexpr",
 )
 chkpt.register_CFunctions(default_checkpoint_every=default_checkpoint_every)
 
