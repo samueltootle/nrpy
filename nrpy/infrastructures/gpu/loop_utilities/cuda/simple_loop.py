@@ -8,7 +8,7 @@ Email: sdtootle **at** gmail **dot** com
 from typing import Any
 
 import nrpy.infrastructures.gpu.loop_utilities.base_simple_loop as base_sl
-from nrpy.infrastructures.gpu.grid_management.cuda import rfm_precompute
+from nrpy.infrastructures.BHaH import rfm_precompute
 
 
 class simple_loop(base_sl.base_simple_loop):
@@ -73,26 +73,27 @@ class simple_loop(base_sl.base_simple_loop):
     <BLANKLINE>
     for (int i2 = tid2 + NGHOSTS; i2 < Nxx_plus_2NGHOSTS2 - NGHOSTS; i2 += stride2) {
       for (int i1 = tid1 + NGHOSTS; i1 < Nxx_plus_2NGHOSTS1 - NGHOSTS; i1 += stride1) {
-        const REAL f1_of_xx1 = rfm_f1_of_xx1[i1];
-        const REAL f1_of_xx1__D1 = rfm_f1_of_xx1__D1[i1];
-        const REAL f1_of_xx1__DD11 = rfm_f1_of_xx1__DD11[i1];
-        const REAL f4_of_xx1 = rfm_f4_of_xx1[i1];
-        const REAL f4_of_xx1__D1 = rfm_f4_of_xx1__D1[i1];
-        const REAL f4_of_xx1__DD11 = rfm_f4_of_xx1__DD11[i1];
+        MAYBE_UNUSED const REAL f1_of_xx1 = rfmstruct->f1_of_xx1[i1];
+        MAYBE_UNUSED const REAL f1_of_xx1__D1 = rfmstruct->f1_of_xx1__D1[i1];
+        MAYBE_UNUSED const REAL f1_of_xx1__DD11 = rfmstruct->f1_of_xx1__DD11[i1];
+        MAYBE_UNUSED const REAL f4_of_xx1 = rfmstruct->f4_of_xx1[i1];
+        MAYBE_UNUSED const REAL f4_of_xx1__D1 = rfmstruct->f4_of_xx1__D1[i1];
+        MAYBE_UNUSED const REAL f4_of_xx1__DD11 = rfmstruct->f4_of_xx1__DD11[i1];
     <BLANKLINE>
         for (int i0 = tid0 + NGHOSTS; i0 < Nxx_plus_2NGHOSTS0 - NGHOSTS; i0 += stride0) {
-          const REAL f0_of_xx0 = rfm_f0_of_xx0[i0];
-          const REAL f0_of_xx0__D0 = rfm_f0_of_xx0__D0[i0];
-          const REAL f0_of_xx0__DD00 = rfm_f0_of_xx0__DD00[i0];
-          const REAL f0_of_xx0__DDD000 = rfm_f0_of_xx0__DDD000[i0];
-          const REAL f2_of_xx0 = rfm_f2_of_xx0[i0];
-          const REAL f2_of_xx0__D0 = rfm_f2_of_xx0__D0[i0];
-          const REAL f2_of_xx0__DD00 = rfm_f2_of_xx0__DD00[i0];
+          MAYBE_UNUSED const REAL f0_of_xx0 = rfmstruct->f0_of_xx0[i0];
+          MAYBE_UNUSED const REAL f0_of_xx0__D0 = rfmstruct->f0_of_xx0__D0[i0];
+          MAYBE_UNUSED const REAL f0_of_xx0__DD00 = rfmstruct->f0_of_xx0__DD00[i0];
+          MAYBE_UNUSED const REAL f0_of_xx0__DDD000 = rfmstruct->f0_of_xx0__DDD000[i0];
+          MAYBE_UNUSED const REAL f2_of_xx0 = rfmstruct->f2_of_xx0[i0];
+          MAYBE_UNUSED const REAL f2_of_xx0__D0 = rfmstruct->f2_of_xx0__D0[i0];
+          MAYBE_UNUSED const REAL f2_of_xx0__DD00 = rfmstruct->f2_of_xx0__DD00[i0];
           // <INTERIOR>
         } // END LOOP: for (int i0 = tid0+NGHOSTS; i0 < Nxx_plus_2NGHOSTS0 - NGHOSTS; i0 += stride0)
       } // END LOOP: for (int i1 = tid1+NGHOSTS; i1 < Nxx_plus_2NGHOSTS1 - NGHOSTS; i1 += stride1)
     } // END LOOP: for (int i2 = tid2+NGHOSTS; i2 < Nxx_plus_2NGHOSTS2 - NGHOSTS; i2 += stride2)
     <BLANKLINE>
+
     """
 
     def __init__(
@@ -120,7 +121,9 @@ class simple_loop(base_sl.base_simple_loop):
                 "MAYBE_UNUSED const REAL xx2 = x2[i2];",
             ]
         elif self.enable_rfm_precompute:
-            self.rfmp = rfm_precompute.ReferenceMetricPrecompute(self.CoordSystem)
+            self.rfmp = rfm_precompute.ReferenceMetricPrecompute(
+                self.CoordSystem, parallelization="cuda"
+            )
             if enable_intrinsics:
                 self.read_rfm_xx_arrays = [
                     self.rfmp.readvr_intrinsics_inner_str[0],

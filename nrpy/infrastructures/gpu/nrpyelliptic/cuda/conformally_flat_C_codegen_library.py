@@ -620,7 +620,7 @@ class gpu_register_CFunction_diagnostics(
 
   // Set params and rfm_struct
   params_struct *restrict params = &griddata[grid].params;
-  const rfm_struct *restrict rfmstruct = &griddata[grid].rfmstruct;
+  const rfm_struct *restrict rfmstruct = griddata[grid].rfmstruct;
 #include "set_CodeParameters.h"
   REAL *restrict host_y_n_gfs = griddata_host[grid].gridfuncs.y_n_gfs;
   REAL *restrict host_diag_gfs = griddata_host[grid].gridfuncs.diagnostic_output_gfs;
@@ -827,11 +827,13 @@ class gpu_register_CFunction_rhs_eval(
                 f'{rfm_f.replace("REAL *restrict ","")[:-1]}': "const REAL *restrict"
                 for rfm_f in self.simple_loop.rfmp.BHaH_defines_list
             }
-            params_dict = {f"rfm_{k}": v for k, v in self.params_dict_coord.items()}
-            params_dict["auxevol_gfs"] = "const REAL *restrict"
-            params_dict["in_gfs"] = "const REAL *restrict"
-            params_dict["rhs_gfs"] = "REAL *restrict"
-            params_dict["eta_damping"] = "const REAL"
+            params_dict = {
+                "rfmstruct": "const rfm_struct *restrict",
+                "auxevol_gfs": "const REAL *restrict",
+                "in_gfs": "const REAL *restrict",
+                "rhs_gfs": "REAL *restrict",
+                "eta_damping": "const REAL",
+            }
 
             # Put loop_body into a device kernel
             self.device_kernel = gputils.GPU_Kernel(
@@ -845,8 +847,6 @@ class gpu_register_CFunction_rhs_eval(
                 },
                 comments=self.kernel_comments,
             )
-            for k, v in self.params_dict_coord.items():
-                self.body += f"{v} rfm_{k} = rfmstruct->{k};\n"
         else:
             raise ValueError(
                 "rhs_eval without rfm_precompute has not been implemented."
@@ -952,10 +952,12 @@ class gpu_register_CFunction_compute_residual_all_points(
             f'{rfm_f.replace("REAL *restrict ","")[:-1]}': "const REAL *restrict"
             for rfm_f in self.simple_loop.rfmp.BHaH_defines_list
         }
-        params_dict = {f"rfm_{k}": v for k, v in self.params_dict_coord.items()}
-        params_dict["auxevol_gfs"] = "const REAL *restrict"
-        params_dict["in_gfs"] = "const REAL *restrict"
-        params_dict["aux_gfs"] = "REAL *restrict"
+        params_dict = {
+            "rfmstruct": "const rfm_struct *restrict",
+            "auxevol_gfs": "const REAL *restrict",
+            "in_gfs": "const REAL *restrict",
+            "aux_gfs": "REAL *restrict",
+        }
         self.kernel_body = self.kernel_body.replace(
             "const REAL f", "MAYBE_UNUSED const REAL f"
         )
@@ -977,8 +979,6 @@ class gpu_register_CFunction_compute_residual_all_points(
             comments="GPU Kernel to compute the residual throughout the grid.",
         )
         self.prefunc = self.device_kernel.CFunction.full_function
-        for k, v in self.params_dict_coord.items():
-            self.body += f"{v} rfm_{k} = rfmstruct->{k};\n"
         self.body += self.device_kernel.launch_block + "\n\n"
         self.body += self.device_kernel.c_function_call()
         cfc.register_CFunction(

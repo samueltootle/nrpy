@@ -27,7 +27,8 @@ class register_CFunction_griddata_free(base_free.base_register_CFunction_griddat
         self.body = r"""for(int grid=0;grid<commondata->NUMGRIDS;grid++) {
 """
         if enable_rfm_precompute:
-            self.body += "  rfm_precompute_free(commondata, &griddata[grid].params, &griddata[grid].rfmstruct);\n"
+            self.body += "  rfm_precompute_free(commondata, &griddata[grid].params, griddata[grid].rfmstruct);\n"
+            self.body += "  cudaFree(griddata[grid].rfmstruct);\n"
             self.body += '  cudaCheckErrors(free, "rfmFree failed")\n;'
 
         if enable_CurviBCs:

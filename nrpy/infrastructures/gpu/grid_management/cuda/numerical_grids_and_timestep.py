@@ -242,9 +242,10 @@ class register_CFunction_numerical_grids_and_timestep(
         if self.enable_rfm_precompute:
             self.body += r"""
 for(int grid=0; grid<commondata->NUMGRIDS; grid++) {
-  rfm_precompute_malloc(commondata, &griddata[grid].params, &griddata[grid].rfmstruct);
+  cudaMalloc(&griddata[grid].rfmstruct, sizeof(rfm_struct));
   cpyHosttoDevice_params__constant(&griddata[grid].params, griddata[grid].params.grid_idx % NUM_STREAMS);
-  rfm_precompute_defines(commondata, &griddata[grid].params, &griddata[grid].rfmstruct, griddata[grid].xx);
+  rfm_precompute_malloc(commondata, &griddata[grid].params, griddata[grid].rfmstruct);
+  rfm_precompute_defines(commondata, &griddata[grid].params, griddata[grid].rfmstruct, griddata[grid].xx);
 }
   cpyDevicetoHost__grid(commondata, griddata_host, griddata);
   cudaDeviceSynchronize();

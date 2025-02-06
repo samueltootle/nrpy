@@ -38,7 +38,7 @@ class register_CFunctions_rfm_precompute(base_register_CFunctions_rfm_precompute
     def generate_rfm_CUDA_kernels(self) -> None:
         """Generate CUDA kernels for RFM precompute."""
         for CoordSystem in self.list_of_CoordSystems:
-            rfm_precompute = ReferenceMetricPrecompute(CoordSystem)
+            rfm_precompute = ReferenceMetricPrecompute(CoordSystem, parallelization="cuda")
 
             for func, kernel_dicts in [
                 ("defines", rfm_precompute.rfm_struct__define_kernel_dict),
