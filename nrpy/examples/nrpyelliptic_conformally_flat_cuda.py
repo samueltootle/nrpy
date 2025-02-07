@@ -371,6 +371,7 @@ Bdefines_h.output_BHaH_defines_h(
     },
     intrinsics_header_lst=["cuda_intrinsics.h"],
     restrict_pointer_type="*",
+    enable_rfm_precompute=enable_rfm_precompute,
 )
 # Define post_MoL_step_forward_in_time string for main function
 post_MoL_step_forward_in_time = r"""    check_stop_conditions(&commondata, griddata);
