@@ -201,6 +201,7 @@ xx_tofrom_Cart.register_CFunction_xx_to_Cart(CoordSystem=CoordSystem)
 nrpyellClib.register_CFunction_diagnostics(
     CoordSystem=CoordSystem,
     default_diagnostics_out_every=default_diagnostics_output_every,
+    enable_rfm_precompute=enable_rfm_precompute,
 )
 
 if enable_rfm_precompute:
