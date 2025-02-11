@@ -728,6 +728,139 @@ Step 2: Set up outer boundary structs bcstruct->outer_bc_array[which_gz][face][i
         body=body,
     )
 
+def generate_prefunc__apply_bcs_outerextrap_and_inner_only(parallelization: str = "openmp") -> None:
+    """
+    Generate the prefunction string for apply_bcs_inner_only.
+
+    This requires a function that will launch the device kernel as well
+    as the device kernel itself.
+
+    :param parallelization: The parallelization method to use. Default is "openmp".
+    """
+    # Header details for function that will launch the GPU kernel
+    desc = "Apply BCs to inner boundary points only"
+    params = "const params_struct *restrict params, const bc_struct *restrict bcstruct, REAL *restrict gfs"
+    name = "apply_bcs_inner_only__apply"
+    cfunc_type = "static void"
+    return_str = ""
+    prefunc = ""
+
+    # Start specifying the function body for launching the kernel
+    kernel_launch_body = """
+const bc_info_struct *bc_info = &bcstruct->bc_info;
+for (int which_gz = 0; which_gz < NGHOSTS; which_gz++) {
+for (int dirn = 0; dirn < 3; dirn++) {
+    if (bc_info->num_pure_outer_boundary_points[which_gz][dirn] > 0) {
+    size_t gz_idx = dirn + (3 * which_gz);
+    const outerpt_bc_struct *restrict pure_outer_bc_array = bcstruct->pure_outer_bc_array[gz_idx];
+    int num_pure_outer_boundary_points = bc_info->num_pure_outer_boundary_points[which_gz][dirn];
+    """
+
+    # Specify kernel launch body
+    kernel_body = ""
+    params_access = "d_params[streamid]." if parallelization == "cuda" else "params->"
+    for i in range(3):
+        kernel_body += f"MAYBE_UNUSED int const Nxx_plus_2NGHOSTS{i} = {params_access}Nxx_plus_2NGHOSTS{i};\n"
+
+    kernel_body += ("""
+// Thread indices
+// Global data index - expecting a 1D dataset
+const int tid0 = threadIdx.x + blockIdx.x*blockDim.x;
+
+// Thread strides
+const int stride0 = blockDim.x * gridDim.x;
+
+for (int idx2d = tid0; idx2d < num_pure_outer_boundary_points; idx2d+=stride0) {"""
+    if parallelization == "cuda"
+    else
+    """
+#pragma omp parallel for
+    for (int idx2d = 0; idx2d < num_pure_outer_boundary_points; idx2d++) {"""
+)
+    kernel_body += """
+const short i0 = pure_outer_bc_array[idx2d].i0;
+const short i1 = pure_outer_bc_array[idx2d].i1;
+const short i2 = pure_outer_bc_array[idx2d].i2;
+const short FACEX0 = pure_outer_bc_array[idx2d].FACEX0;
+const short FACEX1 = pure_outer_bc_array[idx2d].FACEX1;
+const short FACEX2 = pure_outer_bc_array[idx2d].FACEX2;
+const int idx_offset0 = IDX3(i0, i1, i2);
+const int idx_offset1 = IDX3(i0 + 1 * FACEX0, i1 + 1 * FACEX1, i2 + 1 * FACEX2);
+const int idx_offset2 = IDX3(i0 + 2 * FACEX0, i1 + 2 * FACEX1, i2 + 2 * FACEX2);
+const int idx_offset3 = IDX3(i0 + 3 * FACEX0, i1 + 3 * FACEX1, i2 + 3 * FACEX2);
+for (int which_gf = 0; which_gf < NUM_EVOL_GFS; which_gf++) {
+    // *** Apply 2nd-order polynomial extrapolation BCs to all outer boundary points. ***
+    gfs[IDX4pt(which_gf, idx_offset0)] =
+        + 3.0 * gfs[IDX4pt(which_gf, idx_offset1)]
+        - 3.0 * gfs[IDX4pt(which_gf, idx_offset2)]
+        + 1.0 * gfs[IDX4pt(which_gf, idx_offset3)];
+}
+}
+"""
+    if parallelization == "cuda":
+        # Generate a GPU Kernel
+        device_kernel = gputils.GPU_Kernel(
+            kernel_body,
+            {
+                "num_pure_outer_boundary_points": "const int",
+                "which_gz": "const int",
+                "dirn": "const int",
+                "pure_outer_bc_array": "const outerpt_bc_struct *restrict",
+                "gfs": "REAL *restrict",
+            },
+            name,
+            launch_dict={
+                "blocks_per_grid": [
+                    "(num_pure_outer_boundary_points + threads_in_x_dir -1) / threads_in_x_dir"
+                ],
+                "threads_per_block": ["32"],
+                "stream": "params->grid_idx % NUM_STREAMS",
+            },
+            comments="GPU Kernel to apply extrapolation BCs to pure points.",
+        )
+    else:
+        # Generate a CPU Kernel
+        device_kernel = gputils.GPU_Kernel(
+            kernel_body,
+            {
+                "params": "const params_struct *restrict",
+                "num_pure_outer_boundary_points": "const int",
+                "which_gz": "const int",
+                "dirn": "const int",
+                "pure_outer_bc_array": "const outerpt_bc_struct *restrict",
+                "gfs": "REAL *restrict",
+            },
+            name,
+            launch_dict=None,
+            comments="Host Kernel to apply extrapolation BCs to pure points.",
+            decorators="",
+            cuda_check_error=False,
+            streamid_param=False,
+        )
+    # Add device Kernel to prefunc
+    prefunc += device_kernel.CFunction.full_function
+    # Add launch configuration to Launch kernel body
+    kernel_launch_body += device_kernel.launch_block
+    kernel_launch_body += device_kernel.c_function_call()
+    # Close the launch kernel
+    kernel_launch_body += """
+    }
+}
+}
+"""
+    # Generate the Launch kernel CFunction
+    kernel_launch_CFunction = cfc.CFunction(
+        includes=[],
+        desc=desc,
+        cfunc_type=cfunc_type,
+        name=f"{name}__launcher",
+        params=params,
+        body=kernel_launch_body,
+    )
+
+    # Append Launch kernel to prefunc
+    return_str = prefunc + kernel_launch_CFunction.full_function
+    return return_str
 
 ###############################
 ## apply_bcs_inner_only(): Apply inner boundary conditions.
@@ -1734,6 +1867,7 @@ def register_BHaH_defines_h(
 
 def CurviBoundaryConditions_register_C_functions(
     list_of_CoordSystems: List[str],
+    parallelization: str = "openmp",
     radiation_BC_fd_order: int = 2,
     set_parity_on_aux: bool = False,
     set_parity_on_auxevol: bool = False,
@@ -1742,6 +1876,7 @@ def CurviBoundaryConditions_register_C_functions(
     Register various C functions responsible for handling boundary conditions.
 
     :param list_of_CoordSystems: List of coordinate systems to use.
+    :param parallelization: Parallelization method to use. Default is "openmp".
     :param radiation_BC_fd_order: Finite differencing order for the radiation boundary conditions. Default is 2.
     :param set_parity_on_aux: If True, set parity on auxiliary grid functions.
     :param set_parity_on_auxevol: If True, set parity on auxiliary evolution grid functions.
@@ -1754,13 +1889,14 @@ def CurviBoundaryConditions_register_C_functions(
         register_CFunction_apply_bcs_outerradiation_and_inner(
             CoordSystem=CoordSystem,
             radiation_BC_fd_order=radiation_BC_fd_order,
+            parallelization=parallelization,
         )
 
     # Register C function to apply boundary conditions to inner-only boundary points.
     register_CFunction_apply_bcs_inner_only()
 
     # Register C function to apply boundary conditions to outer-extrapolated and inner boundary points.
-    register_CFunction_apply_bcs_outerextrap_and_inner()
+    register_CFunction_apply_bcs_outerextrap_and_inner(parallelization=parallelization)
 
     # Register bcstruct's contribution to griddata_struct and commondata_struct:
     register_griddata_commondata()
