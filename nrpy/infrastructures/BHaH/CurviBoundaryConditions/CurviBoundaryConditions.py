@@ -467,6 +467,7 @@ for(int whichparity=0;whichparity<10;whichparity++) {{
 #      This function is documented in desc= and body= fields below.
 def register_CFunction_bcstruct_set_up(
     CoordSystem: str,
+    parallelization: str = "openmp",
 ) -> None:
     """
     Register C function for setting up bcstruct.
@@ -543,8 +544,11 @@ Step 2: Set up outer boundary structs bcstruct->outer_bc_array[which_gz][face][i
     wasteful, but only in memory, not in CPU."""
     cfunc_type = "void"
     name = "bcstruct_set_up"
-    params = "const commondata_struct *restrict commondata, const params_struct *restrict params, REAL *restrict xx[3], bc_struct *restrict bcstruct"
-    body = r"""
+    params = "const commondata_struct *restrict commondata, const params_struct *restrict params, REAL *restrict xx[3], bc_struct *restrict bcstruct".replace("bcstruct", "bcstruct_gpu" if parallelization == "cuda" else "bcstruct")
+
+    # Setup host-side struct to populate before copying to device
+    body = "bc_struct *bcstruct = new bc_struct;" if parallelization != "cuda" else ""
+    body += r"""
   ////////////////////////////////////////
   // STEP 1: SET UP INNER BOUNDARY STRUCTS
   {
@@ -716,6 +720,7 @@ Step 2: Set up outer boundary structs bcstruct->outer_bc_array[which_gz][face][i
       bcstruct->bc_info.num_pure_outer_boundary_points[which_gz][dirn] = idx2d;
     }
 """
+    body = body.replace("*restrict)", "*)" if parallelization == "cuda" else "*restrict)")
     cfc.register_CFunction(
         includes=includes,
         prefunc=prefunc,
@@ -1123,6 +1128,9 @@ def setup_Cfunction_r_and_partial_xi_partial_r_derivs(
         "REAL *partial_x0_partial_r,REAL *partial_x1_partial_r,REAL *partial_x2_partial_r"
     )
     body = ""
+    if parallelization == "cuda" and "device" not in cfunc_decorators:
+        cfunc_decorators += " __device__"
+
     rfm = refmetric.reference_metric[CoordSystem]
     # sp.simplify(expr) is too slow here for SinhCylindrical
     expr_list = [
@@ -1357,6 +1365,9 @@ const int FACEi0,const int FACEi1,const int FACEi2,
 const REAL partial_x0_partial_r, const REAL partial_x1_partial_r, const REAL partial_x2_partial_r"""
     rfm = refmetric.reference_metric[CoordSystem]
 
+    if parallelization == "cuda" and "device" not in cfunc_decorators:
+        cfunc_decorators += " __device__"
+
     default_FDORDER = par.parval_from_str("fd_order")
     if radiation_BC_fd_order == -1:
         radiation_BC_fd_order = default_FDORDER
@@ -1400,8 +1411,8 @@ const REAL partial_x0_partial_r, const REAL partial_x1_partial_r, const REAL par
                 f"  // Next adjust i{si}_offset so that FD stencil never goes out of bounds.\n"
                 f"  if(dest_i{si} < FD1_stencil_radius) i{si}_offset = FD1_stencil_radius-dest_i{si};\n"
                 f"  else if(dest_i{si} > (Nxx_plus_2NGHOSTS{si}-FD1_stencil_radius-1)) i{si}_offset = (Nxx_plus_2NGHOSTS{si}-FD1_stencil_radius-1) - dest_i{si};\n"
-                f"  const REAL partial_x{si}_f=FD1_arbitrary_upwind_x{si}_dirn(params,&gfs[which_gf*ntot],dest_i0,dest_i1,dest_i2,i{si}_offset);\n"
-            )
+                f"  const REAL partial_x{si}_f=FD1_arbitrary_upwind_x{si}_dirn(params, &gfs[which_gf*ntot],dest_i0,dest_i1,dest_i2,i{si}_offset);\n"
+            ).replace("params,", "streamid, " if parallelization == "cuda" else "params,")
     body += "  return partial_x0_partial_r*partial_x0_f + partial_x1_partial_r*partial_x1_f + partial_x2_partial_r*partial_x2_f;\n"
 
     cf = cfc.CFunction(
@@ -1439,6 +1450,8 @@ def setup_Cfunction_radiation_bcs(
     includes: List[str] = []
     prefunc = ""
     rfm = refmetric.reference_metric[CoordSystem]
+    if parallelization == "cuda" and "device" not in cfunc_decorators:
+        cfunc_decorators += " __device__"
     for i in range(3):
         # Do not generate FD1_arbitrary_upwind_xj_dirn() if the symbolic expression for dxj/dr == 0!
         if not check_zero(rfm.Jac_dUrfm_dDSphUD[i][0]):
@@ -1479,31 +1492,33 @@ def setup_Cfunction_radiation_bcs(
     const short FACEi0,const short FACEi1,const short FACEi2"""
     )
 
-    first_arguments = "streamid" if parallelization == "cuda" else "params"
-    body = rf"""// Nearest "interior" neighbor of this gridpoint, based on current face
+    body = ""
+    for i in range(3):
+        body += f"int const Nxx_plus_2NGHOSTS{i} = params->Nxx_plus_2NGHOSTS{i};\n".replace("params->", "d_params[streamid]." if parallelization == "cuda" else "params->")
+    body += r"""// Nearest "interior" neighbor of this gridpoint, based on current face
 const int dest_i0_int=dest_i0+1*FACEi0, dest_i1_int=dest_i1+1*FACEi1, dest_i2_int=dest_i2+1*FACEi2;
 REAL r, partial_x0_partial_r,partial_x1_partial_r,partial_x2_partial_r;
 REAL r_int, partial_x0_partial_r_int,partial_x1_partial_r_int,partial_x2_partial_r_int;
-r_and_partial_xi_partial_r_derivs({first_arguments},xx[0][dest_i0],xx[1][dest_i1],xx[2][dest_i2],
+r_and_partial_xi_partial_r_derivs(params,xx[0][dest_i0],xx[1][dest_i1],xx[2][dest_i2],
                                   &r, &partial_x0_partial_r, &partial_x1_partial_r,  &partial_x2_partial_r);
-r_and_partial_xi_partial_r_derivs({first_arguments}, xx[0][dest_i0_int], xx[1][dest_i1_int], xx[2][dest_i2_int],
+r_and_partial_xi_partial_r_derivs(params, xx[0][dest_i0_int], xx[1][dest_i1_int], xx[2][dest_i2_int],
                                   &r_int, &partial_x0_partial_r_int, &partial_x1_partial_r_int, &partial_x2_partial_r_int);
-const REAL partial_r_f     = compute_partial_r_f({first_arguments},xx,gfs, which_gf,dest_i0,    dest_i1,    dest_i2,
+const REAL partial_r_f     = compute_partial_r_f(params,xx,gfs, which_gf,dest_i0,    dest_i1,    dest_i2,
                                                  FACEi0,FACEi1,FACEi2,
                                                  partial_x0_partial_r    ,partial_x1_partial_r    ,partial_x2_partial_r);
-const REAL partial_r_f_int = compute_partial_r_f({first_arguments},xx,gfs, which_gf,dest_i0_int,dest_i1_int,dest_i2_int,
+const REAL partial_r_f_int = compute_partial_r_f(params,xx,gfs, which_gf,dest_i0_int,dest_i1_int,dest_i2_int,
                                                  FACEi0,FACEi1,FACEi2,
                                                  partial_x0_partial_r_int,partial_x1_partial_r_int,partial_x2_partial_r_int);
 
-const int idx3 = IDX3P(params, dest_i0,dest_i1,dest_i2);
-const int idx3_int = IDX3P(params, dest_i0_int,dest_i1_int,dest_i2_int);
+const int idx3 = IDX3(dest_i0,dest_i1,dest_i2);
+const int idx3_int = IDX3(dest_i0_int,dest_i1_int,dest_i2_int);
 
-const REAL partial_t_f_int = gfs_rhss[IDX4ptP(params, which_gf, idx3_int)];
+const REAL partial_t_f_int = gfs_rhss[IDX4pt(which_gf, idx3_int)];
 
 const REAL c = gf_wavespeed;
 const REAL f_infinity = gf_f_infinity;
-const REAL f     = gfs[IDX4ptP(params, which_gf, idx3)];
-const REAL f_int = gfs[IDX4ptP(params, which_gf, idx3_int)];
+const REAL f     = gfs[IDX4pt(which_gf, idx3)];
+const REAL f_int = gfs[IDX4pt(which_gf, idx3_int)];
 const REAL partial_t_f_int_outgoing_wave = -c * (partial_r_f_int + (f_int - f_infinity) / r_int);
 
 const REAL k = r_int*r_int*r_int * (partial_t_f_int - partial_t_f_int_outgoing_wave);
@@ -1512,7 +1527,7 @@ const REAL rinv = 1.0 / r;
 const REAL partial_t_f_outgoing_wave = -c * (partial_r_f + (f - f_infinity) * rinv);
 
 return partial_t_f_outgoing_wave + k * rinv*rinv*rinv;
-"""
+""".replace("params,", "streamid," if parallelization == "cuda" else "params,")
 
     cf = cfc.CFunction(
         subdirectory=CoordSystem,
@@ -1524,6 +1539,7 @@ return partial_t_f_outgoing_wave + k * rinv*rinv*rinv;
         params=params,
         include_CodeParameters_h=False,
         body=body,
+        cfunc_decorators=cfunc_decorators,
     )
     return cf.full_function
 
@@ -1560,9 +1576,8 @@ def setup_Cfunction_apply_bcs_pure_only(
     params_access = "d_params[streamid]." if parallelization == "cuda" else "params->"
     custom_access = "d_gridfunctions" if parallelization == "cuda" else "custom"
     for i in range(3):
-        kernel_body += f"MAYBE_UNUSED int const Nxx_plus_2NGHOSTS{i} = {params_access}Nxx_plus_2NGHOSTS{i};\n"
+        kernel_body += f"int const Nxx_plus_2NGHOSTS{i} = {params_access}Nxx_plus_2NGHOSTS{i};\n"
 
-    rad_initial_args = ""
     if parallelization == "cuda":
         kernel_body += """
 // Thread indices
@@ -1578,7 +1593,6 @@ for (int idx2d = tid0; idx2d < num_pure_outer_boundary_points; idx2d+=stride0) {
 #pragma omp for  // threads have been spawned; here we distribute across them
     for (int idx2d = 0; idx2d < num_pure_outer_boundary_points; idx2d++) {
 """
-        rad_initial_args = "params, "
     kernel_body += f"""const short i0 = pure_outer_bc_array[idx2d].i0;
     const short i1 = pure_outer_bc_array[idx2d].i1;
     const short i2 = pure_outer_bc_array[idx2d].i2;
@@ -1589,12 +1603,12 @@ for (int idx2d = tid0; idx2d < num_pure_outer_boundary_points; idx2d+=stride0) {
     REAL* xx[3] = {{x0, x1, x2}};
     for (int which_gf = 0; which_gf < NUM_EVOL_GFS; which_gf++) {{
         // *** Apply radiation BCs to all outer boundary points. ***
-        rhs_gfs[IDX4pt(which_gf, idx3)] = radiation_bcs({rad_initial_args}xx, gfs, rhs_gfs, which_gf,
+        rhs_gfs[IDX4pt(which_gf, idx3)] = radiation_bcs(params, xx, gfs, rhs_gfs, which_gf,
                                                         {custom_access}_wavespeed[which_gf], {custom_access}_f_infinity[which_gf],
                                                         i0,i1,i2, FACEX0,FACEX1,FACEX2);
     }}
   }}
-"""
+""".replace("params,", "streamid," if parallelization == "cuda" else "params,")
     if parallelization == "cuda":
         device_kernel = gputils.GPU_Kernel(
             kernel_body,
@@ -1646,11 +1660,6 @@ for (int idx2d = tid0; idx2d < num_pure_outer_boundary_points; idx2d+=stride0) {
     prefunc = device_kernel.CFunction.full_function
 
     kernel_launch_body: str = ""
-    if parallelization == "openmp":
-        kernel_launch_body = """// Spawn N OpenMP threads, either across all cores, or according to e.g., taskset.
-#pragma omp parallel
-  {
-"""
     # Specify the function body for the launch kernel
     kernel_launch_body += """
 const bc_info_struct *bc_info = &bcstruct->bc_info;
@@ -1673,17 +1682,6 @@ REAL *restrict x2 = xx[2];
     }
   }
 """
-    if parallelization == "openmp":
-        kernel_launch_body += "}"
-    # Generate the Launch kernel CFunction
-    # kernel_launch_CFunction = cfc.CFunction(
-    #     includes=[],
-    #     desc=desc,
-    #     cfunc_type=cfunc_type,
-    #     name=name,
-    #     params=params,
-    #     body=kernel_launch_body,
-    # )
 
     launch_kernel = gputils.GPU_Kernel(
         kernel_launch_body,
@@ -1806,6 +1804,7 @@ def register_griddata_commondata() -> None:
 def register_BHaH_defines_h(
     set_parity_on_aux: bool = False,
     set_parity_on_auxevol: bool = False,
+    parallelization: str = "openmp",
 ) -> None:
     """
     Register the bcstruct's contribution to the BHaH_defines.h file.
@@ -1862,7 +1861,7 @@ def register_BHaH_defines_h(
         set_parity_on_auxevol=set_parity_on_auxevol,
         verbose=True,
     )
-    BHaH_defines_h.register_BHaH_defines(__name__, CBC_BHd_str)
+    BHaH_defines_h.register_BHaH_defines(__name__, CBC_BHd_str.replace("*restrict", "*" if parallelization == "cuda" else "*restrict"))
 
 
 def CurviBoundaryConditions_register_C_functions(
