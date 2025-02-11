@@ -20,7 +20,7 @@ import nrpy.infrastructures.BHaH.CodeParameters as CPs
 import nrpy.infrastructures.BHaH.diagnostics.progress_indicator as progress
 import nrpy.infrastructures.BHaH.Makefile_helpers as Makefile
 import nrpy.infrastructures.gpu.checkpoints.cuda.checkpointing as chkpt
-import nrpy.infrastructures.gpu.CurviBoundaryConditions.cuda.CurviBoundaryConditions as cbc
+import nrpy.infrastructures.BHaH.CurviBoundaryConditions.CurviBoundaryConditions as cbc
 import nrpy.infrastructures.gpu.grid_management.cuda.griddata_free as griddata_commondata
 import nrpy.infrastructures.gpu.grid_management.cuda.numerical_grids_and_timestep as numericalgrids
 import nrpy.infrastructures.gpu.header_definitions.cuda_headers as gpudefines
@@ -236,6 +236,7 @@ if __name__ == "__main__" and parallel_codegen_enable:
 cbc.CurviBoundaryConditions_register_C_functions(
     list_of_CoordSystems=list(set(list_of_CoordSystems)),
     radiation_BC_fd_order=radiation_BC_fd_order,
+    parallelization="cuda",
 )
 rhs_string = """rhs_eval(commondata, params, rfmstruct,  auxevol_gfs, RK_INPUT_GFS, RK_OUTPUT_GFS);
 if (strncmp(commondata->outer_bc_type, "radiation", 50) == 0){
