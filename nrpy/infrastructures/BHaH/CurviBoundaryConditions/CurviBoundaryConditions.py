@@ -821,7 +821,7 @@ for (int pt = tid0; pt < num_inner_boundary_points; pt+=stride0) {"""
         ),
     )
 
-    # Generate a GPU Kernel
+    # Generate a compute Kernel
     if parallelization == "cuda":
         device_kernel = gputils.GPU_Kernel(
             kernel_body,
@@ -945,8 +945,8 @@ for (int which_gf = 0; which_gf < NUM_EVOL_GFS; which_gf++) {
 }
 }
 """
+    # Generate compute Kernel
     if parallelization == "cuda":
-        # Generate a GPU Kernel
         device_kernel = gputils.GPU_Kernel(
             kernel_body,
             {
@@ -967,7 +967,6 @@ for (int which_gf = 0; which_gf < NUM_EVOL_GFS; which_gf++) {
             comments="GPU Kernel to apply extrapolation BCs to pure points.",
         )
     else:
-        # Generate a CPU Kernel
         device_kernel = gputils.GPU_Kernel(
             kernel_body,
             {
@@ -1562,11 +1561,12 @@ def setup_Cfunction_apply_bcs_pure_only(
 
     # Specify compute kernel body
     kernel_body = ""
-    params_access = "d_params[streamid]." if parallelization == "cuda" else "params->"
-    custom_access = "d_gridfunctions" if parallelization == "cuda" else "custom"
     for i in range(3):
         kernel_body += (
-            f"int const Nxx_plus_2NGHOSTS{i} = {params_access}Nxx_plus_2NGHOSTS{i};\n"
+            f"int const Nxx_plus_2NGHOSTS{i} = params->Nxx_plus_2NGHOSTS{i};\n".replace(
+                "params->",
+                "d_params[streamid]." if parallelization == "cuda" else "params->",
+            )
         )
 
     if parallelization == "cuda":
@@ -1595,12 +1595,14 @@ for (int idx2d = tid0; idx2d < num_pure_outer_boundary_points; idx2d+=stride0) {
     for (int which_gf = 0; which_gf < NUM_EVOL_GFS; which_gf++) {{
         // *** Apply radiation BCs to all outer boundary points. ***
         rhs_gfs[IDX4pt(which_gf, idx3)] = radiation_bcs(params, xx, gfs, rhs_gfs, which_gf,
-                                                        {custom_access}_wavespeed[which_gf], {custom_access}_f_infinity[which_gf],
+                                                        custom_wavespeed[which_gf], custom_f_infinity[which_gf],
                                                         i0,i1,i2, FACEX0,FACEX1,FACEX2);
     }}
   }}
 """.replace(
         "params,", "streamid," if parallelization == "cuda" else "params,"
+    ).replace(
+        "custom_", "d_gridfunctions_" if parallelization == "cuda" else "custom_"
     )
     if parallelization == "cuda":
         device_kernel = gputils.GPU_Kernel(
