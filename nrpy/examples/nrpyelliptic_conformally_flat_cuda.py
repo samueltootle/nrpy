@@ -35,7 +35,7 @@ from nrpy.infrastructures.gpu.grid_management.cuda import xx_tofrom_Cart
 par.set_parval_from_str("Infrastructure", "BHaH")
 
 # Code-generation-time parameters:
-project_name = "nrpyelliptic_conformally_flat_cuda"
+project_name = "nrpyelliptic_conformally_flat_cuda_test"
 fp_type = "double"
 grid_physical_size = 1.0e6
 t_final = grid_physical_size  # This parameter is effectively not used in NRPyElliptic
@@ -149,7 +149,6 @@ single_puncture_params = {
 }
 # fmt: on
 # project_name += f"-q{Q}-R{R}"
-project_name = f"nrpyelliptic_conformally_flat_cuda"
 
 project_dir = os.path.join("project", project_name)
 
