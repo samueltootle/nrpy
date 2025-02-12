@@ -27,6 +27,7 @@ import nrpy.reference_metric as refmetric  # NRPy+: Reference metric support
 from nrpy.helpers.expression_utils import get_unique_expression_symbols_as_strings
 from nrpy.infrastructures.BHaH import BHaH_defines_h, griddata_commondata
 from nrpy.validate_expressions.validate_expressions import check_zero
+from nrpy.helpers.gpu.cuda_utilities import register_CFunction_cpyHosttoDevice_bc_struct
 
 _ = par.CodeParameter(
     "char[50]", __name__, "outer_bc_type", "radiation", commondata=True
@@ -546,8 +547,11 @@ Step 2: Set up outer boundary structs bcstruct->outer_bc_array[which_gz][face][i
     name = "bcstruct_set_up"
     params = "const commondata_struct *restrict commondata, const params_struct *restrict params, REAL *restrict xx[3], bc_struct *restrict bcstruct".replace("bcstruct", "bcstruct_gpu" if parallelization == "cuda" else "bcstruct")
 
+    if parallelization == "cuda":
+        register_CFunction_cpyHosttoDevice_bc_struct()
+
     # Setup host-side struct to populate before copying to device
-    body = "bc_struct *bcstruct = new bc_struct;" if parallelization != "cuda" else ""
+    body = "bc_struct *bcstruct = new bc_struct;" if parallelization == "cuda" else ""
     body += r"""
   ////////////////////////////////////////
   // STEP 1: SET UP INNER BOUNDARY STRUCTS
@@ -721,6 +725,16 @@ Step 2: Set up outer boundary structs bcstruct->outer_bc_array[which_gz][face][i
     }
 """
     body = body.replace("*restrict)", "*)" if parallelization == "cuda" else "*restrict)")
+    if parallelization == "cuda":
+        body+= """
+        int streamid = params->grid_idx % NUM_STREAMS;
+        cpyHosttoDevice_bc_struct(bcstruct, bcstruct_gpu, streamid);
+        cudaDeviceSynchronize();
+        free(bcstruct->inner_bc_array);
+        for (int i = 0; i < NGHOSTS * 3; ++i)
+            free(bcstruct->pure_outer_bc_array[i]);
+        delete bcstruct;
+"""
     cfc.register_CFunction(
         includes=includes,
         prefunc=prefunc,
@@ -1882,7 +1896,7 @@ def CurviBoundaryConditions_register_C_functions(
     """
     for CoordSystem in list_of_CoordSystems:
         # Register C function to set up the boundary condition struct.
-        register_CFunction_bcstruct_set_up(CoordSystem=CoordSystem)
+        register_CFunction_bcstruct_set_up(CoordSystem=CoordSystem, parallelization=parallelization)
 
         # Register C function to apply boundary conditions to both pure outer and inner boundary points.
         register_CFunction_apply_bcs_outerradiation_and_inner(
