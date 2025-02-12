@@ -884,7 +884,7 @@ for (int which_gf = 0; which_gf < NUM_EVOL_GFS; which_gf++) {
 ###############################
 ## apply_bcs_inner_only(): Apply inner boundary conditions.
 ##  Function is documented below in desc= and body=.
-def register_CFunction_apply_bcs_inner_only() -> None:
+def register_CFunction_apply_bcs_inner_only(parallelization: str = "openmp") -> None:
     """Register C function for filling inner boundary points on the computational grid, as prescribed by bcstruct."""
     includes = ["BHaH_defines.h"]
     desc = r"""
@@ -901,25 +901,87 @@ boundary points ("inner maps to outer").
     body = r"""
   // Unpack bc_info from bcstruct
   const bc_info_struct *bc_info = &bcstruct->bc_info;
+  const innerpt_bc_struct *restrict inner_bc_array = bcstruct->inner_bc_array;
+  const int num_inner_boundary_points = bc_info->num_inner_boundary_points;
+"""
+    # Specify kernel launch body
+    kernel_body = "// Needed for IDX macros\n"
+    for i in range(3):
+        kernel_body += f"MAYBE_UNUSED int const Nxx_plus_2NGHOSTS{i} = params->Nxx_plus_2NGHOSTS{i};\n".replace("params->", "d_params[streamid]." if parallelization == "cuda" else "params->")
+    kernel_body += (
+        """
+// Thread indices
+// Global data index - expecting a 1D dataset
+const int tid0 = threadIdx.x + blockIdx.x*blockDim.x;
 
+// Thread strides
+const int stride0 = blockDim.x * gridDim.x;
+
+for(int which_gf=0;which_gf<NUM_EVOL_GFS;which_gf++) {
+for (int pt = tid0; pt < num_inner_boundary_points; pt+=stride0) {"""
+        if parallelization == "cuda"
+        else
+        """
   // collapse(2) results in a nice speedup here, esp in 2D. Two_BHs_collide goes from
   //    5550 M/hr to 7264 M/hr on a Ryzen 9 5950X running on all 16 cores with core affinity.
 #pragma omp parallel for collapse(2)  // spawn threads and distribute across them
   for(int which_gf=0;which_gf<NUM_EVOL_GFS;which_gf++) {
-    for(int pt=0;pt<bc_info->num_inner_boundary_points;pt++) {
-      const int dstpt = bcstruct->inner_bc_array[pt].dstpt;
-      const int srcpt = bcstruct->inner_bc_array[pt].srcpt;
-      gfs[IDX4pt(which_gf, dstpt)] = bcstruct->inner_bc_array[pt].parity[evol_gf_parity[which_gf]] * gfs[IDX4pt(which_gf, srcpt)];
+    for(int pt=0;pt<num_inner_boundary_points;pt++) {"""
+    )
+    kernel_body += """
+      const int dstpt = inner_bc_array[pt].dstpt;
+      const int srcpt = inner_bc_array[pt].srcpt;
+      gfs[IDX4pt(which_gf, dstpt)] = inner_bc_array[pt].parity[evol_gf_parity[which_gf]] * gfs[IDX4pt(which_gf, srcpt)];
     } // END for(int pt=0;pt<num_inner_pts;pt++)
   } // END for(int which_gf=0;which_gf<NUM_EVOL_GFS;which_gf++)
-"""
+""".replace("evol_gf_parity[which_gf]", "d_evol_gf_parity[which_gf]" if parallelization == "cuda" else "evol_gf_parity[which_gf]")
+
+    # Generate a GPU Kernel
+    if parallelization == "cuda":
+        device_kernel = gputils.GPU_Kernel(
+            kernel_body,
+            {
+                "num_inner_boundary_points": "const int",
+                "inner_bc_array": "const innerpt_bc_struct *restrict",
+                "gfs": "REAL *restrict",
+            },
+            f"{name}_gpu",
+            launch_dict={
+                "blocks_per_grid": [
+                    "(num_inner_boundary_points + threads_in_x_dir - 1) / threads_in_x_dir"
+                ],
+                "threads_per_block": ["32"],
+                "stream": "params->grid_idx % NUM_STREAMS",
+            },
+            comments="GPU Kernel to applyBCs to inner boundary points only.",
+        )
+    else:
+        device_kernel = gputils.GPU_Kernel(
+            kernel_body,
+            {
+                "params": "const params_struct *restrict",
+                "num_inner_boundary_points": "const int",
+                "inner_bc_array": "const innerpt_bc_struct *restrict",
+                "gfs": "REAL *restrict",
+            },
+            f"{name}_host",
+            launch_dict=None,
+            comments="Host Kernel to apply BCs to pure points.",
+            decorators="",
+            cuda_check_error=False,
+            streamid_param=False,
+        )
+    prefunc = device_kernel.CFunction.full_function
+    body += device_kernel.launch_block + "\n\n"
+    body += device_kernel.c_function_call()
     cfc.register_CFunction(
+        prefunc=prefunc,
         includes=includes,
         desc=desc,
         cfunc_type=cfunc_type,
         name=name,
         params=params,
-        include_CodeParameters_h=True,
+        include_CodeParameters_h=False,
         body=body,
     )
 
@@ -951,9 +1013,8 @@ for (int dirn = 0; dirn < 3; dirn++) {
 
     # Specify kernel launch body
     kernel_body = ""
-    params_access = "d_params[streamid]." if parallelization == "cuda" else "params->"
     for i in range(3):
-        kernel_body += f"MAYBE_UNUSED int const Nxx_plus_2NGHOSTS{i} = {params_access}Nxx_plus_2NGHOSTS{i};\n"
+        kernel_body += f"MAYBE_UNUSED int const Nxx_plus_2NGHOSTS{i} = params->Nxx_plus_2NGHOSTS{i};\n".replace("params->", "d_params[streamid]." if parallelization == "cuda" else "params->")
 
     kernel_body += ("""
 // Thread indices
@@ -1394,10 +1455,7 @@ const REAL partial_x0_partial_r, const REAL partial_x1_partial_r, const REAL par
   const int FD1_stencil_radius = {FD1_stencil_radius};
 """
     for i in range(3):
-        param_access = (
-            "d_params[streamid]." if parallelization == "cuda" else "params->"
-        )
-        body += f"MAYBE_UNUSED int const Nxx_plus_2NGHOSTS{i} = {param_access}Nxx_plus_2NGHOSTS{i};\n"
+        body += f"int const Nxx_plus_2NGHOSTS{i} = params->Nxx_plus_2NGHOSTS{i};\n".replace("params->", "d_params[streamid]." if parallelization == "cuda" else "params->")
     body += """const int ntot = Nxx_plus_2NGHOSTS0 * Nxx_plus_2NGHOSTS1 * Nxx_plus_2NGHOSTS2;
 
   ///////////////////////////////////////////////////////////
@@ -1906,7 +1964,7 @@ def CurviBoundaryConditions_register_C_functions(
         )
 
     # Register C function to apply boundary conditions to inner-only boundary points.
-    register_CFunction_apply_bcs_inner_only()
+    register_CFunction_apply_bcs_inner_only(parallelization=parallelization)
 
     # Register C function to apply boundary conditions to outer-extrapolated and inner boundary points.
     register_CFunction_apply_bcs_outerextrap_and_inner(parallelization=parallelization)
