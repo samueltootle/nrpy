@@ -7,7 +7,7 @@ Author: Samuel D. Tootle
 
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, Union
 
 import nrpy.grid as gri
 from nrpy.helpers.generic import clang_format
@@ -44,12 +44,12 @@ class CUDA_BHaH_gpu_defines_h:
     :param num_streams: Number of CUDA streams to use
     :param nghosts: Number of ghost zones for the FD stencil
 
-    >>> from nrpy.infrastructures.BHaH.MoLtimestepping import MoL
+    >>> import nrpy.infrastructures.BHaH.MoLtimestepping.MoL_register_all as MoL
     >>> import nrpy.params as par
     >>> import nrpy.c_function as cfc
     >>> par.glb_extras_dict.clear()
     >>> cfc.CFunction_dict.clear()
-    >>> _ = MoL.register_CFunctions(register_MoL_step_forward_in_time=False)
+    >>> MoL.register_CFunctions(register_MoL_step_forward_in_time=False)
     >>> project_dir = Path("/tmp", "tmp_BHaH_defines_h")
     >>> d = CUDA_BHaH_gpu_defines_h(project_dir)
     >>> d.generate_output_str()
@@ -100,6 +100,7 @@ class CUDA_BHaH_gpu_defines_h:
         clang_format_options: str = "-style={BasedOnStyle: LLVM, ColumnLimit: 150}",
     ) -> None:
         self.project_Path = Path(project_dir)
+        self.project_Path.mkdir(parents=True, exist_ok=True)
         self.num_streams = num_streams
         self.additional_decl_dict = additional_declarations_dict
         self.additional_macros_str = additional_macros_str
@@ -220,7 +221,7 @@ class CUDA_BHaH_gpu_defines_h:
         self.file_output_str = clang_format(
             self.file_output_str, clang_format_options=self.clang_format_options
         )
-        self.write_to_file()
+        # self.write_to_file()
 
     def write_to_file(self) -> None:
         """Write file_output_str to header file."""
@@ -237,12 +238,12 @@ class CUDA_BHaH_gpu_global_init_h:
     :param declarations_dict: Dictionary storing declaration dictionaries
     :param clang_format_options: Options for clang formatting.
 
-    >>> from nrpy.infrastructures.BHaH.MoLtimestepping import MoL
+    >>> import nrpy.infrastructures.BHaH.MoLtimestepping.MoL_register_all as MoL
     >>> import nrpy.params as par
     >>> import nrpy.c_function as cfc
     >>> par.glb_extras_dict.clear()
     >>> cfc.CFunction_dict.clear()
-    >>> _ = MoL.register_CFunctions(register_MoL_step_forward_in_time=False)
+    >>> MoL.register_CFunctions(register_MoL_step_forward_in_time=False)
     >>> project_dir = Path("/tmp", "tmp_BHaH_defines_h")
     >>> gpu_d = CUDA_BHaH_gpu_defines_h(project_dir)
     >>> gpu_init = CUDA_BHaH_gpu_global_init_h(project_dir,gpu_d.combined_decl_dict)
@@ -267,6 +268,7 @@ class CUDA_BHaH_gpu_global_init_h:
         clang_format_options: str = "-style={BasedOnStyle: LLVM, ColumnLimit: 150}",
     ) -> None:
         self.project_Path = Path(project_dir)
+        self.project_Path.mkdir(parents=True, exist_ok=True)
         self.declarations_dict = declarations_dict
         self.clang_format_options = clang_format_options
         self.filename = "BHaH_gpu_global_init.h"
@@ -314,12 +316,12 @@ class CUDA_BHaH_gpu_global_defines_h:
     :param declarations_dict: Dictionary storing declaration dictionaries
     :param clang_format_options: Options for clang formatting.
 
-    >>> from nrpy.infrastructures.BHaH.MoLtimestepping import MoL
+    >>> import nrpy.infrastructures.BHaH.MoLtimestepping.MoL_register_all as MoL
     >>> import nrpy.params as par
     >>> import nrpy.c_function as cfc
     >>> par.glb_extras_dict.clear()
     >>> cfc.CFunction_dict.clear()
-    >>> _ = MoL.register_CFunctions(register_MoL_step_forward_in_time=False)
+    >>> MoL.register_CFunctions(register_MoL_step_forward_in_time=False)
     >>> project_dir = Path("/tmp", "tmp_BHaH_defines_h")
     >>> gpu_d = CUDA_BHaH_gpu_defines_h(project_dir)
     >>> gpu_init = CUDA_BHaH_gpu_global_init_h(project_dir,gpu_d.combined_decl_dict)
@@ -345,6 +347,7 @@ class CUDA_BHaH_gpu_global_defines_h:
         **_: Any,
     ) -> None:
         self.project_Path = Path(project_dir)
+        self.project_Path.mkdir(parents=True, exist_ok=True)
         self.declarations_dict = declarations_dict
         self.clang_format_options = clang_format_options
         self.filename = "BHaH_gpu_global_defines.h"
@@ -365,21 +368,36 @@ class CUDA_BHaH_gpu_global_defines_h:
         with output_file.open("w", encoding="utf-8") as file:
             file.write(self.file_output_str)
 
+
 def output_CUDA_headers(
     project_dir: str,
     additional_declarations_dict: Union[Dict[str, Any], None] = None,
     additional_macros_str: Union[str, None] = None,
     num_streams: int = 3,
     nghosts: Union[int, None] = None,
-    clang_format_options: str = "-style={BasedOnStyle: LLVM, ColumnLimit: 150}",) -> str:
+    clang_format_options: str = "-style={BasedOnStyle: LLVM, ColumnLimit: 150}",
+) -> str:
+    """
+    Generate CUDA specific header files.
 
+    CUDA headers store global __constant__ variable declarations, initialize device storage,
+    and include device specific macros, e.g. NUM_STREAMS.
+
+    :param project_dir: Project directory
+    :param additional_declarations_dict: Dictionary storing additional declaration dictionaries
+    :param additional_macros_str: Block string of additional macro definitions
+    :param num_streams: Number of CUDA streams to use
+    :param nghosts: FD stencil radius
+    :param clang_format_options: Options for clang formatting.
+    :returns: header filename
+    """
     gpu_defines = CUDA_BHaH_gpu_defines_h(
         project_dir,
         additional_declarations_dict=additional_declarations_dict,
         additional_macros_str=additional_macros_str,
         num_streams=num_streams,
         nghosts=nghosts,
-        clang_format_options=clang_format_options
+        clang_format_options=clang_format_options,
     )
 
     CUDA_BHaH_gpu_global_defines_h(
@@ -393,6 +411,7 @@ def output_CUDA_headers(
     )
 
     return gpu_defines.bhah_gpu_defines_filename
+
 
 if __name__ == "__main__":
     import doctest
