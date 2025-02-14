@@ -114,7 +114,8 @@ class register_CFunction_xx_to_Cart(base_xx_classes.base_register_CFunction_xx_t
             gridding_approach=gridding_approach,
         )
         self.cfunc_type = "void"
-        self.cfunc_decorators = "__host__"
+        self.cfunc_decorators = "__host__ __device__"
+
         kernel_body = ""
         for sym in self.unique_symbols:
             kernel_body += f"const REAL {sym} = params->{sym};\n"

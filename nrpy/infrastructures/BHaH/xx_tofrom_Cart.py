@@ -13,6 +13,7 @@ import nrpy.c_codegen as ccg
 import nrpy.c_function as cfc
 import nrpy.grid as gri
 import nrpy.reference_metric as refmetric
+from nrpy.helpers.expression_utils import get_unique_expression_symbols_as_strings
 
 
 # Construct Cart_to_xx_and_nearest_i0i1i2() C function for
@@ -51,7 +52,7 @@ def register_CFunction__Cart_to_xx_and_nearest_i0i1i2(
 
     namesuffix = f"_{relative_to}" if relative_to == "global_grid_center" else ""
     name = f"Cart_to_xx_and_nearest_i0i1i2{namesuffix}"
-    params = "const commondata_struct *restrict commondata, const params_struct *restrict params, const REAL xCart[3], REAL xx[3], int Cart_to_i0i1i2[3]"
+    params = "const params_struct *restrict params, const REAL xCart[3], REAL xx[3], int Cart_to_i0i1i2[3]"
 
     body = """
   // Set (Cartx, Carty, Cartz) relative to the global (as opposed to local) grid.
@@ -64,9 +65,9 @@ def register_CFunction__Cart_to_xx_and_nearest_i0i1i2(
     if relative_to == "local_grid_center":
         body += """
   // Set the origin, (Cartx, Carty, Cartz) = (0, 0, 0), to the center of the local grid patch.
-  Cartx -= Cart_originx;
-  Carty -= Cart_originy;
-  Cartz -= Cart_originz;
+  Cartx -= params->Cart_originx;
+  Carty -= params->Cart_originy;
+  Cartz -= params->Cart_originz;
   {
 """
     if rfm.requires_NewtonRaphson_for_Cart_to_xx:
@@ -140,7 +141,7 @@ def register_CFunction__Cart_to_xx_and_nearest_i0i1i2(
         CoordSystem_for_wrapper_func=CoordSystem,
         name=name,
         params=params,
-        include_CodeParameters_h=True,
+        include_CodeParameters_h=False,
         body=body,
     )
 
@@ -169,24 +170,33 @@ def register_CFunction_xx_to_Cart(
 
     cfunc_type = "void"
     name = "xx_to_Cart"
-    params = """const commondata_struct *restrict commondata, const params_struct *restrict params,
-    REAL *restrict xx[3],const int i0,const int i1,const int i2, REAL xCart[3]"""
+    params = "const params_struct *restrict params, REAL xx[3], REAL xCart[3]"
+    body = ""
 
     rfm = refmetric.reference_metric[CoordSystem]
+    expr_list = [
+        rfm.xx_to_Cart[0] + gri.Cart_origin[0],
+        rfm.xx_to_Cart[1] + gri.Cart_origin[1],
+        rfm.xx_to_Cart[2] + gri.Cart_origin[2],
+    ]
+    unique_symbols = []
+    for expr in expr_list:
+        unique_symbols += get_unique_expression_symbols_as_strings(
+            expr, exclude=[f"xx{i}" for i in range(3)]
+        )
+    unique_symbols = sorted(list(set(unique_symbols)))
+    for sym in unique_symbols:
+        body += f"const REAL {sym} = params->{sym};\n"
 
     # ** Code body for the conversion process **
     # Suppose grid origin is at (1,1,1). Then the Cartesian gridpoint at (1,2,3) will be (2,3,4);
     # hence the xx_to_Cart[i] + gri.Cart_origin[i] below:
-    body = """
-const REAL xx0 = xx[0][i0];
-const REAL xx1 = xx[1][i1];
-const REAL xx2 = xx[2][i2];
+    body += """
+const REAL xx0 = xx[0];
+const REAL xx1 = xx[1];
+const REAL xx2 = xx[2];
 """ + ccg.c_codegen(
-        [
-            rfm.xx_to_Cart[0] + gri.Cart_origin[0],
-            rfm.xx_to_Cart[1] + gri.Cart_origin[1],
-            rfm.xx_to_Cart[2] + gri.Cart_origin[2],
-        ],
+        expr_list,
         ["xCart[0]", "xCart[1]", "xCart[2]"],
     )
 
@@ -198,6 +208,6 @@ const REAL xx2 = xx[2][i2];
         CoordSystem_for_wrapper_func=CoordSystem,
         name=name,
         params=params,
-        include_CodeParameters_h=True,
+        include_CodeParameters_h=False,
         body=body,
     )

@@ -55,10 +55,11 @@ class base_register_CFunction__Cart_to_xx_and_nearest_i0i1i2:
             f"_{self.relative_to}" if self.relative_to == "global_grid_center" else ""
         )
         self.name = f"Cart_to_xx_and_nearest_i0i1i2{self.namesuffix}"
-        self.params = "const commondata_struct *restrict commondata, const params_struct *restrict params, const REAL xCart[3], REAL xx[3], int Cart_to_i0i1i2[3]"
+        self.params = "const params_struct *restrict params, const REAL xCart[3], REAL xx[3], int Cart_to_i0i1i2[3]"
         self.rfm = refmetric.reference_metric[self.CoordSystem]
 
         self.body = ""
+        self.cfunc_decorators = "__host__ __device__"
 
     def register(self) -> None:
         """Register CFunction."""
@@ -70,8 +71,9 @@ class base_register_CFunction__Cart_to_xx_and_nearest_i0i1i2:
             CoordSystem_for_wrapper_func=self.CoordSystem,
             name=self.name,
             params=self.params,
-            include_CodeParameters_h=True,
+            include_CodeParameters_h=False,
             body=self.body,
+            cfunc_decorators=self.cfunc_decorators,
         )
 
 
@@ -95,7 +97,7 @@ class base_register_CFunction_xx_to_Cart:
         self.includes = ["BHaH_defines.h"]
         self.cfunc_type = "void"
         self.name = "xx_to_Cart"
-        self.params = "const commondata_struct *restrict commondata, const params_struct *restrict params, REAL *restrict xx[3],const int i0,const int i1,const int i2, REAL xCart[3]"
+        self.params = "const params_struct *restrict params, REAL xx[3], REAL xCart[3]"
         self.desc = """Compute Cartesian coordinates {x, y, z} = {xCart[0], xCart[1], xCart[2]} in terms of
               local grid coordinates {xx[0][i0], xx[1][i1], xx[2][i2]} = {xx0, xx1, xx2},
               taking into account the possibility that the origin of this grid is off-center."""
@@ -121,9 +123,9 @@ class base_register_CFunction_xx_to_Cart:
             )
         self.unique_symbols = sorted(list(set(self.unique_symbols)))
         self.body = """
-REAL xx0 = xx[0][i0];
-REAL xx1 = xx[1][i1];
-REAL xx2 = xx[2][i2];
+REAL xx0 = xx[0];
+REAL xx1 = xx[1];
+REAL xx2 = xx[2];
 """ + ccg.c_codegen(
             expr_list,
             ["xCart[0]", "xCart[1]", "xCart[2]"],
