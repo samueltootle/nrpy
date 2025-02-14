@@ -65,11 +65,12 @@ def register_CFunction__Cart_to_xx_and_nearest_i0i1i2(
     if relative_to == "local_grid_center":
         body += """
   // Set the origin, (Cartx, Carty, Cartz) = (0, 0, 0), to the center of the local grid patch.
-  Cartx -= params->Cart_originx;
-  Carty -= params->Cart_originy;
-  Cartz -= params->Cart_originz;
+  Cartx -= Cart_originx;
+  Carty -= Cart_originy;
+  Cartz -= Cart_originz;
   {
 """
+        params += ", " + ", ".join([f"Cart_origin{v}" for v in ["x", "y", "z"]])
     if rfm.requires_NewtonRaphson_for_Cart_to_xx:
         body += "  // First compute analytical coordinate inversions:\n"
         Cart_to_xx_exprs: List[sp.Expr] = []
@@ -111,8 +112,17 @@ def register_CFunction__Cart_to_xx_and_nearest_i0i1i2(
   xx[{i}] = xx{i};
 """
     else:
+        expr_list = [rfm.Cart_to_xx[0], rfm.Cart_to_xx[1], rfm.Cart_to_xx[2]]
+        unique_symbols = []
+        for expr in expr_list:
+            unique_symbols += get_unique_expression_symbols_as_strings(
+                expr, exclude=[f"xx{i}" for i in range(3)]
+            )
+        unique_symbols = sorted(list(set(unique_symbols)))
+        for sym in unique_symbols:
+            body += f"const REAL {sym} = params->{sym};\n"
         body += ccg.c_codegen(
-            [rfm.Cart_to_xx[0], rfm.Cart_to_xx[1], rfm.Cart_to_xx[2]],
+            expr_list,
             ["xx[0]", "xx[1]", "xx[2]"],
             include_braces=False,
         )
