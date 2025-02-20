@@ -26,6 +26,7 @@ import nrpy.infrastructures.BHaH.simple_loop as lp
 import nrpy.params as par
 import nrpy.reference_metric as refmetric
 import nrpy.validate_expressions.validate_expressions as ve
+from nrpy.helpers.gpu.utilities import generate_kernel_and_launch_code
 from nrpy.equations.general_relativity.BSSN_constraints import BSSN_constraints
 from nrpy.equations.general_relativity.BSSN_gauge_RHSs import BSSN_gauge_RHSs
 from nrpy.equations.general_relativity.BSSN_quantities import BSSN_quantities
@@ -265,7 +266,7 @@ if(fabs(round(currtime / outevery) * outevery - currtime) < 0.5*currdt) {
     {
 """
     if use_Ricci_eval_func:
-        body += "Ricci_eval(commondata, params, griddata[grid].rfmstruct, y_n_gfs, auxevol_gfs);\n"
+        body += "Ricci_eval(params, griddata[grid].rfmstruct, y_n_gfs, auxevol_gfs);\n"
     body += r"""
       constraints_eval(commondata, params, griddata[grid].rfmstruct, y_n_gfs, auxevol_gfs, diagnostic_output_gfs);
     }
@@ -608,9 +609,10 @@ def register_CFunction_rhs_eval(
 def register_CFunction_Ricci_eval(
     CoordSystem: str,
     enable_rfm_precompute: bool,
-    enable_simd: bool,
+    enable_intrinsics: bool,
     enable_fd_functions: bool,
     OMP_collapse: int,
+    parallelization: str = "openmp",
 ) -> Union[None, pcg.NRPyEnv_type]:
     """
     Register the Ricci evaluation function.
@@ -632,49 +634,87 @@ def register_CFunction_Ricci_eval(
     ]
 
     includes = ["BHaH_defines.h"]
-    if enable_simd:
-        includes += [str(Path("intrinsics") / "simd_intrinsics.h")]
+    if enable_intrinsics:
+        includes += [str(Path("../intrinsics") / "cuda_intrinsics.h")] if parallelization == "cuda" else [str(Path("../intrinsics") / "simd_intrinsics.h")]
     desc = r"""Set Ricci tensor."""
     cfunc_type = "void"
     name = "Ricci_eval"
-    params = "const commondata_struct *restrict commondata, const params_struct *restrict params, REAL *restrict xx[3], const REAL *restrict in_gfs, REAL *restrict auxevol_gfs"
+    arg_dict_cuda = {
+        "in_gfs": "REAL *restrict",
+        "auxevol_gfs": "REAL *restrict",
+    }
+    params = "REAL *restrict xx[3], const REAL *restrict in_gfs, REAL *restrict auxevol_gfs"
     if enable_rfm_precompute:
         params = params.replace(
             "REAL *restrict xx[3]", "const rfm_struct *restrict rfmstruct"
         )
+        arg_dict_cuda = {
+            "rfmstruct": "const rfm_struct *restrict",
+            **arg_dict_cuda,
+        }
+    else:
+        arg_dict_cuda = {
+            "x0": "const REAL *restrict",
+            "x1": "const REAL *restrict",
+            "x2": "const REAL *restrict",
+            **arg_dict_cuda,
+        }
+    arg_dict_host = {
+        "params": "const params_struct *restrict",
+        **arg_dict_cuda,
+    }
+    params = ",".join([f"{v} {k}" for k, v in arg_dict_host.items()])
+
     # Populate Ricci tensor
     Ricci_access_gfs: List[str] = []
     for var in Bq.Ricci_varnames:
         Ricci_access_gfs += [
             gri.BHaHGridFunction.access_gf(var, 0, 0, 0, gf_array_name="auxevol_gfs")
         ]
-    body = lp.simple_loop(
+    kernel_body = lp.simple_loop(
         loop_body=ccg.c_codegen(
             Bq.Ricci_exprs,
             Ricci_access_gfs,
             enable_fd_codegen=True,
-            enable_simd=enable_simd,
+            enable_simd=enable_intrinsics,
             enable_fd_functions=enable_fd_functions,
+            rational_const_alias="static constexpr" if parallelization == "cuda" else "static const",
         ),
         loop_region="interior",
-        enable_intrinsics=enable_simd,
+        enable_intrinsics=enable_intrinsics,
         CoordSystem=CoordSystem,
         enable_rfm_precompute=enable_rfm_precompute,
         read_xxs=not enable_rfm_precompute,
         OMP_collapse=OMP_collapse,
+        parallelization=parallelization,
     )
 
+    kernel, launch_body = generate_kernel_and_launch_code(
+        name,
+        kernel_body.replace("SIMD", "CUDA" if parallelization == "cuda" else "SIMD"),
+        arg_dict_cuda,
+        arg_dict_host,
+        parallelization=parallelization,
+        comments=desc,
+        cfunc_type=cfunc_type,
+        launchblock_with_braces=False,
+    )
+
+    if parallelization == "cuda":
+        prefunc = fin.construct_FD_functions_prefunc(cfunc_decorators="__host__ __device__ ").replace("SIMD", "CUDA")
+    else:
+        prefunc = fin.construct_FD_functions_prefunc()
     cfc.register_CFunction(
-        include_CodeParameters_h=True,
-        prefunc=fin.construct_FD_functions_prefunc() if enable_fd_functions else "",
+        include_CodeParameters_h=False,
+        prefunc=prefunc + kernel,
         includes=includes,
         desc=desc,
         cfunc_type=cfunc_type,
         CoordSystem_for_wrapper_func=CoordSystem,
         name=name,
         params=params,
-        body=body,
-        enable_simd=enable_simd,
+        body=launch_body,
+        enable_simd=enable_intrinsics,
     )
     return cast(pcg.NRPyEnv_type, pcg.NRPyEnv())
 
