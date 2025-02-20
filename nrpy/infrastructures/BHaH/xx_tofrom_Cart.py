@@ -117,7 +117,7 @@ def register_CFunction__Cart_to_xx_and_nearest_i0i1i2(
         unique_symbols = []
         for expr in expr_list:
             unique_symbols += get_unique_expression_symbols_as_strings(
-                expr, exclude=[f"xx{i}" for i in range(3)]
+                expr, exclude=[f"xx{i}" for i in range(3)] + [f"Cart{c}" for c in ['x', 'y', 'z']]
             )
         unique_symbols = sorted(list(set(unique_symbols)))
         for sym in unique_symbols:
