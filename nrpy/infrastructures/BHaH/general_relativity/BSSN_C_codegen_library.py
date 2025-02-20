@@ -373,7 +373,7 @@ def register_CFunction_rhs_eval(
 
     includes = ["BHaH_defines.h"]
     if enable_intrinsics:
-        includes += [str(Path("../intrinsics") / "cuda_intrinsics.h")] if parallelization == "cuda" else [str(Path("../intrinsics") / "simd_intrinsics.h")]
+        [str(Path("intrinsics") / "cuda_intrinsics.h" if parallelization == "cuda" else Path("intrinsics") / "simd_intrinsics.h")]
     desc = r"""Set RHSs for the BSSN evolution equations."""
     cfunc_type = "void"
     name = "rhs_eval"
@@ -636,7 +636,7 @@ def register_CFunction_Ricci_eval(
 
     includes = ["BHaH_defines.h"]
     if enable_intrinsics:
-        includes += [str(Path("../intrinsics") / "cuda_intrinsics.h")] if parallelization == "cuda" else [str(Path("../intrinsics") / "simd_intrinsics.h")]
+        includes += [str(Path("intrinsics") / "cuda_intrinsics.h" if parallelization == "cuda" else Path("intrinsics") / "simd_intrinsics.h")]
     desc = r"""Set Ricci tensor."""
     cfunc_type = "void"
     name = "Ricci_eval"
@@ -702,7 +702,7 @@ def register_CFunction_Ricci_eval(
     )
 
     if parallelization == "cuda":
-        prefunc = fin.construct_FD_functions_prefunc(cfunc_decorators="__host__ __device__ ").replace("SIMD", "CUDA")
+        prefunc = fin.construct_FD_functions_prefunc(cfunc_decorators="__device__ ").replace("SIMD", "CUDA")
     else:
         prefunc = fin.construct_FD_functions_prefunc()
     cfc.register_CFunction(
@@ -756,7 +756,7 @@ def register_CFunction_constraints(
 
     includes = ["BHaH_defines.h"]
     if enable_intrinsics:
-        includes += [str(Path("intrinsics") / "cuda_intrinsics.h")] if parallelization == "cuda" else [str(Path("intrinsics") / "simd_intrinsics.h")]
+        [str(Path("intrinsics") / "cuda_intrinsics.h" if parallelization == "cuda" else Path("intrinsics") / "simd_intrinsics.h")]
     desc = r"""Evaluate BSSN constraints."""
     cfunc_type = "void"
     name = "constraints_eval"
