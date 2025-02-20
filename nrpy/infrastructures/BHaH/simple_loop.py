@@ -189,9 +189,9 @@ def simple_loop(
                 ]
                 if parallelization == "cuda"
                 else [
-                    "MAYBE_UNUSED const REAL xx0 = x0[i0];",
-                    "MAYBE_UNUSED const REAL xx1 = x1[i1];",
-                    "MAYBE_UNUSED const REAL xx2 = x2[i2];",
+                    "MAYBE_UNUSED const REAL xx0 = xx[0][i0];",
+                    "MAYBE_UNUSED const REAL xx1 = xx[1][i1];",
+                    "MAYBE_UNUSED const REAL xx2 = xx[2][i2];",
                 ]
             )
         else:
@@ -234,11 +234,7 @@ def simple_loop(
     increment = (
         ["stride2", "stride1", "stride0"]
         if parallelization == "cuda"
-        else (
-            ["1", "1", "simd_width"]
-            if enable_intrinsics
-            else ["1", "1", "1"]
-        )
+        else (["1", "1", "simd_width"] if enable_intrinsics else ["1", "1", "1"])
     )
 
     loop_body = read_rfm_xx_arrays[0] + loop_body
