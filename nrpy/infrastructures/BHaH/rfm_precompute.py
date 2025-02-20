@@ -250,6 +250,7 @@ def generate_rfmprecompute_defines(
             parallelization,
             cfunc_type="static void",
             comments=comments,
+            launchblock_with_braces=True,
         )
         prefunc += new_prefunc
         body += new_body
