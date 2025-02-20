@@ -479,6 +479,20 @@ def register_CFunction_bcstruct_set_up(
 
     :param CoordSystem: The coordinate system for which to set up boundary conditions.
     :param parallelization: Parallelization method to use. Default is "openmp".
+
+    Doctests:
+    >>> from nrpy.helpers.generic import validate_strings
+    >>> import nrpy.c_function as cfc
+    >>> from nrpy.reference_metric import supported_CoordSystems
+    >>> supported_Parallelizations = ["openmp", "cuda"]
+    >>> name = "bcstruct_set_up__rfm"
+    >>> for parallelization in supported_Parallelizations:
+    ...    for CoordSystem in supported_CoordSystems:
+    ...       cfc.CFunction_dict.clear()
+    ...       register_CFunction_bcstruct_set_up(CoordSystem, parallelization=parallelization)  # doctest: +SKIP
+    ...       generated_str = cfc.CFunction_dict[f'{name}__{CoordSystem}'].full_function
+    ...       validation_desc = f"{name}__{parallelization}__{CoordSystem}"
+    ...       validate_strings(generated_str, validation_desc, file_ext="cu" if parallelization == "cuda" else "c")
     """
     includes = [
         "BHaH_defines.h",
@@ -762,6 +776,17 @@ def register_CFunction_apply_bcs_inner_only(parallelization: str = "openmp") -> 
     Register C function for filling inner boundary points on the computational grid, as prescribed by bcstruct.
 
     :param parallelization: Parallelization method to use. Default is "openmp".
+
+    Doctests:
+    >>> from nrpy.helpers.generic import validate_strings
+    >>> import nrpy.c_function as cfc
+    >>> supported_Parallelizations = ["openmp", "cuda"]
+    >>> for parallelization in supported_Parallelizations:
+    ...    cfc.CFunction_dict.clear()
+    ...    register_CFunction_apply_bcs_inner_only(parallelization=parallelization)
+    ...    generated_str = cfc.CFunction_dict[f'apply_bcs_inner_only'].full_function
+    ...    validation_desc = f"apply_bcs_inner_only__{parallelization}"
+    ...    validate_strings(generated_str, validation_desc, file_ext="cu" if parallelization == "cuda" else "c")
     """
     includes = ["BHaH_defines.h"]
     desc = r"""
@@ -775,13 +800,8 @@ boundary points ("inner maps to outer").
     cfunc_type = "void"
     name = "apply_bcs_inner_only"
     params = "const commondata_struct *restrict commondata, const params_struct *restrict params, const bc_struct *restrict bcstruct, REAL *restrict gfs"
-    body = r"""
-  // Unpack bc_info from bcstruct
-  const bc_info_struct *bc_info = &bcstruct->bc_info;
-  const innerpt_bc_struct *restrict inner_bc_array = bcstruct->inner_bc_array;
-  const int num_inner_boundary_points = bc_info->num_inner_boundary_points;
-"""
-    # Specify kernel launch body
+
+    # Specify kernel body
     kernel_body = "// Needed for IDX macros\n"
     for i in range(3):
         kernel_body += f"MAYBE_UNUSED int const Nxx_plus_2NGHOSTS{i} = params->Nxx_plus_2NGHOSTS{i};\n"
@@ -845,7 +865,12 @@ for (int pt = tid0; pt < num_inner_boundary_points; pt+=stride0) {"""
             "stream": "params->grid_idx % NUM_STREAMS",
         },
     )
-    body += new_body
+    kernel_launch_body = rf"""
+  // Unpack bc_info from bcstruct
+  const bc_info_struct *bc_info = &bcstruct->bc_info;
+  const innerpt_bc_struct *restrict inner_bc_array = bcstruct->inner_bc_array;
+  const int num_inner_boundary_points = bc_info->num_inner_boundary_points;
+  {new_body}"""
     cfc.register_CFunction(
         prefunc=prefunc,
         includes=includes,
@@ -854,7 +879,7 @@ for (int pt = tid0; pt < num_inner_boundary_points; pt+=stride0) {"""
         name=name,
         params=params,
         include_CodeParameters_h=False,
-        body=body,
+        body=kernel_launch_body,
     )
 
 
@@ -878,18 +903,7 @@ def generate_prefunc__apply_bcs_outerextrap_and_inner_only(
     return_str = ""
     prefunc = ""
 
-    # Start specifying the function body for launching the kernel
-    kernel_launch_body = """
-const bc_info_struct *bc_info = &bcstruct->bc_info;
-for (int which_gz = 0; which_gz < NGHOSTS; which_gz++) {
-for (int dirn = 0; dirn < 3; dirn++) {
-    if (bc_info->num_pure_outer_boundary_points[which_gz][dirn] > 0) {
-    size_t gz_idx = dirn + (3 * which_gz);
-    const outerpt_bc_struct *restrict pure_outer_bc_array = bcstruct->pure_outer_bc_array[gz_idx];
-    int num_pure_outer_boundary_points = bc_info->num_pure_outer_boundary_points[which_gz][dirn];
-    """
-
-    # Specify kernel launch body
+    # Specify kernel body
     kernel_body = ""
     for i in range(3):
         kernel_body += f"MAYBE_UNUSED int const Nxx_plus_2NGHOSTS{i} = params->Nxx_plus_2NGHOSTS{i};\n".replace(
@@ -962,13 +976,19 @@ for (int which_gf = 0; which_gf < NUM_EVOL_GFS; which_gf++) {
             "stream": "default",
         },
     )
-    # Add launch configuration to Launch kernel body
-    kernel_launch_body += new_body
-    # Close the launch kernel
-    kernel_launch_body += """
-    }
-}
-}
+    # Specify the function body for launching the kernel
+    kernel_launch_body = f"""
+const bc_info_struct *bc_info = &bcstruct->bc_info;
+for (int which_gz = 0; which_gz < NGHOSTS; which_gz++) {{
+for (int dirn = 0; dirn < 3; dirn++) {{
+    if (bc_info->num_pure_outer_boundary_points[which_gz][dirn] > 0) {{
+    size_t gz_idx = dirn + (3 * which_gz);
+    const outerpt_bc_struct *restrict pure_outer_bc_array = bcstruct->pure_outer_bc_array[gz_idx];
+    int num_pure_outer_boundary_points = bc_info->num_pure_outer_boundary_points[which_gz][dirn];
+    {new_body}
+    }}
+  }}
+}}
 """
     # Generate the Launch kernel CFunction
     kernel_launch_CFunction = cfc.CFunction(
@@ -995,6 +1015,18 @@ def register_CFunction_apply_bcs_outerextrap_and_inner(
     Register C function for filling boundary points with extrapolation and prescribed bcstruct.
 
     :param parallelization: Parallelization method to use. Default is "openmp".
+
+    Doctests:
+    >>> from nrpy.helpers.generic import validate_strings
+    >>> import nrpy.c_function as cfc
+    >>> supported_Parallelizations = ["openmp", "cuda"]
+    >>> name = "apply_bcs_outerextrap_and_inner"
+    >>> for parallelization in supported_Parallelizations:
+    ...    cfc.CFunction_dict.clear()
+    ...    register_CFunction_apply_bcs_outerextrap_and_inner(parallelization=parallelization)
+    ...    generated_str = cfc.CFunction_dict[f'{name}'].full_function
+    ...    validation_desc = f"{name}__{parallelization}"
+    ...    validate_strings(generated_str, validation_desc, file_ext="cu" if parallelization == "cuda" else "c")
     """
     includes = ["BHaH_defines.h", "BHaH_function_prototypes.h"]
     desc = r"""#Suppose the outer boundary point is at the i0=max(i0) face. Then we fit known data at i0-3, i0-2, and i0-1
@@ -1614,27 +1646,22 @@ for (int idx2d = tid0; idx2d < num_pure_outer_boundary_points; idx2d+=stride0) {
         cfunc_type=cfunc_type,
     )
 
-    kernel_launch_body: str = ""
     # Specify the function body for the launch kernel
-    kernel_launch_body += """
+    kernel_launch_body = f"""
 const bc_info_struct *bc_info = &bcstruct->bc_info;
 REAL *restrict x0 = xx[0];
 REAL *restrict x1 = xx[1];
 REAL *restrict x2 = xx[2];
-  for (int which_gz = 0; which_gz < NGHOSTS; which_gz++) {
-    for (int dirn = 0; dirn < 3; dirn++) {
-      if (bc_info->num_pure_outer_boundary_points[which_gz][dirn] > 0) {
+  for (int which_gz = 0; which_gz < NGHOSTS; which_gz++) {{
+    for (int dirn = 0; dirn < 3; dirn++) {{
+      if (bc_info->num_pure_outer_boundary_points[which_gz][dirn] > 0) {{
         size_t gz_idx = dirn + (3 * which_gz);
         const outerpt_bc_struct *restrict pure_outer_bc_array = bcstruct->pure_outer_bc_array[gz_idx];
         int num_pure_outer_boundary_points = bc_info->num_pure_outer_boundary_points[which_gz][dirn];
-"""
-    # Add launch configuration to Launch kernel body
-    kernel_launch_body += new_body
-    # Close the launch kernel
-    kernel_launch_body += """
-      }
-    }
-  }
+        {new_body}
+      }}
+    }}
+  }}
 """
 
     launch_kernel = gputils.GPU_Kernel(
@@ -1670,6 +1697,20 @@ def register_CFunction_apply_bcs_outerradiation_and_inner(
     :param parallelization: Parallelization method to use. Default is "openmp".
     :param radiation_BC_fd_order: Finite differencing order for the radiation boundary conditions. Default is 2.
     :param rational_const_alias: Alias for rational constants. Default is "static const".
+
+    Doctests:
+    >>> from nrpy.helpers.generic import validate_strings
+    >>> import nrpy.c_function as cfc
+    >>> from nrpy.reference_metric import supported_CoordSystems
+    >>> supported_Parallelizations = ["openmp", "cuda"]
+    >>> name = "apply_bcs_outerradiation_and_inner__rfm"
+    >>> for parallelization in supported_Parallelizations:
+    ...    for CoordSystem in supported_CoordSystems:
+    ...       cfc.CFunction_dict.clear()
+    ...       register_CFunction_apply_bcs_outerradiation_and_inner(CoordSystem, parallelization=parallelization) # doctest: +SKIP
+    ...       generated_str = cfc.CFunction_dict[f'{name}__{CoordSystem}'].full_function
+    ...       validation_desc = f"{name}__{parallelization}__{CoordSystem}"
+    ...       validate_strings(generated_str, validation_desc, file_ext="cu" if parallelization == "cuda" else "c")
     """
     includes = ["BHaH_defines.h", "BHaH_function_prototypes.h"]
     prefunc = setup_Cfunction_radiation_bcs(
