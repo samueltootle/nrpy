@@ -153,9 +153,9 @@ dim3 threads_per_block(threads_in_x_dir, threads_in_y_dir, threads_in_z_dir);"""
                 self.launch_dict["stream"] == ""
                 or self.launch_dict["stream"] == "default"
             ):
-                stream_def_str = "size_t streamid = params->grid_idx % NUM_STREAMS;"
+                stream_def_str = "size_t streamid = params->grid_idx % NUM_STREAMS;\n"
             else:
-                stream_def_str = f"size_t streamid = {self.launch_dict['stream']};"
+                stream_def_str = f"size_t streamid = {self.launch_dict['stream']};\n"
 
         # Determine if the shared memory size needs to be added to launch
         # If a stream is specified, we need to at least set SM to 0
@@ -166,10 +166,10 @@ dim3 threads_per_block(threads_in_x_dir, threads_in_y_dir, threads_in_z_dir);"""
                 or self.launch_dict["sm"] == ""
                 or self.launch_dict["sm"] == "default"
             ):
-                sm_def_str = "size_t sm = 0;"
+                sm_def_str = "size_t sm = 0;\n"
                 self.launch_dict["sm"] = 0
             else:
-                sm_def_str = f"size_t sm = {self.launch_dict['sm']};"
+                sm_def_str = f"size_t sm = {self.launch_dict['sm']};\n"
 
         self.launch_block = f"""{block_def_str}
 {grid_def_str}
