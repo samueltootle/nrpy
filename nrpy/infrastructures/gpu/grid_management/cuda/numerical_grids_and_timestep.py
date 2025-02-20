@@ -13,8 +13,8 @@ Author: Samuel D. Tootle
 from typing import Dict, List
 
 import nrpy.helpers.gpu.gpu_kernel as gputils
-import nrpy.infrastructures.gpu.grid_management.base_numerical_grids_and_timestep as base_gm_classes
 import nrpy.infrastructures.BHaH.simple_loop as lp
+import nrpy.infrastructures.gpu.grid_management.base_numerical_grids_and_timestep as base_gm_classes
 import nrpy.params as par
 
 # fmt: off
@@ -247,9 +247,10 @@ for(int grid=0; grid<commondata->NUMGRIDS; grid++) {
   cpyHosttoDevice_params__constant(&griddata[grid].params, griddata[grid].params.grid_idx % NUM_STREAMS);
   rfm_precompute_malloc(commondata, &griddata[grid].params, griddata[grid].rfmstruct);
   rfm_precompute_defines(commondata, &griddata[grid].params, griddata[grid].rfmstruct, griddata[grid].xx);
+  memcpy(&griddata_host[grid].params, &griddata[grid].params, sizeof(params_struct));
 }
 """
-        self.body +="""
+        self.body += """
   cpyDevicetoHost__grid(commondata, griddata_host, griddata);
   cudaDeviceSynchronize();
 """
