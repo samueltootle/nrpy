@@ -25,21 +25,21 @@ import nrpy.infrastructures.BHaH.CodeParameters as CPs
 import nrpy.infrastructures.BHaH.CurviBoundaryConditions.CurviBoundaryConditions as cbc
 import nrpy.infrastructures.BHaH.diagnostics.progress_indicator as progress
 import nrpy.infrastructures.BHaH.general_relativity.BSSN_C_codegen_library as BCl
+import nrpy.infrastructures.BHaH.griddata_commondata as griddata_commondata
 import nrpy.infrastructures.BHaH.Makefile_helpers as Makefile
-import nrpy.infrastructures.gpu.grid_management.cuda.griddata_free as griddata_commondata
 import nrpy.infrastructures.gpu.grid_management.cuda.numerical_grids_and_timestep as numericalgrids
 import nrpy.infrastructures.gpu.header_definitions.cuda_headers as gpudefines
 import nrpy.infrastructures.gpu.main_driver.cuda.main_c as main
-from nrpy.infrastructures.gpu.grid_management.cuda import xx_tofrom_Cart as xxCartxx
 import nrpy.params as par
 from nrpy.helpers.generic import copy_files
 from nrpy.infrastructures.BHaH import rfm_precompute, rfm_wrapper_functions
 from nrpy.infrastructures.BHaH.MoLtimestepping import MoL_register_all
+import nrpy.infrastructures.BHaH.xx_tofrom_Cart as xxCartxx
 
 par.set_parval_from_str("Infrastructure", "BHaH")
 
 # Code-generation-time parameters:
-project_name = "two_blackholes_collide"
+project_name = "two_blackholes_collide_cuda"
 fp_type = "double"
 CoordSystem = "Spherical"
 IDtype = "BrillLindquist"
@@ -130,8 +130,7 @@ BCl.register_CFunction_diagnostics(
 )
 if enable_rfm_precompute:
     rfm_precompute.register_CFunctions_rfm_precompute(
-        list_of_CoordSystems=[CoordSystem],
-        parallelization="cuda"
+        list_of_CoordSystems=[CoordSystem], parallelization="cuda"
     )
 BCl.register_CFunction_rhs_eval(
     CoordSystem=CoordSystem,
@@ -203,8 +202,10 @@ MoL_register_all.register_CFunctions(
     parallelization="cuda",
     rational_const_alias="static constexpr",
 )
-xxCartxx.register_CFunction__Cart_to_xx_and_nearest_i0i1i2(CoordSystem)
-xxCartxx.register_CFunction_xx_to_Cart(CoordSystem)
+xxCartxx.register_CFunction__Cart_to_xx_and_nearest_i0i1i2(
+    CoordSystem, parallelization="cuda"
+)
+xxCartxx.register_CFunction_xx_to_Cart(CoordSystem, parallelization="cuda")
 progress.register_CFunction_progress_indicator()
 rfm_wrapper_functions.register_CFunctions_CoordSystem_wrapper_funcs()
 
