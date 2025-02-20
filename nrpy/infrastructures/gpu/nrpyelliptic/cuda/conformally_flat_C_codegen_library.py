@@ -20,7 +20,7 @@ import nrpy.grid as gri
 import nrpy.helpers.gpu.gpu_kernel as gputils
 import nrpy.helpers.parallel_codegen as pcg
 import nrpy.infrastructures.BHaH.diagnostics.output_0d_1d_2d_nearest_gridpoint_slices as out012d
-import nrpy.infrastructures.gpu.loop_utilities.cuda.simple_loop as lp
+import nrpy.infrastructures.BHaH.simple_loop as lp
 import nrpy.infrastructures.gpu.nrpyelliptic.base_conformally_flat_C_codegen_library as base_npe_classes
 from nrpy.helpers.expression_utils import get_unique_expression_symbols_as_strings
 import nrpy.params as par  # NRPy+: Parameter interface
@@ -92,7 +92,8 @@ class gpu_register_CFunction_initial_guess_all_points(
             f"&{self.vv_gf_memaccess});",
             read_xxs=True,
             loop_region="all points",
-        ).full_loop_body
+            parallelization="cuda"
+        )
 
         # Put loop_body into a device kernel
         self.device_kernel = gputils.GPU_Kernel(
@@ -253,7 +254,8 @@ class gpu_register_CFunction_auxevol_gfs_all_points(
             f"&{self.ADD_times_AUU_memaccess});",
             read_xxs=True,
             loop_region="all points",
-        ).full_loop_body
+            parallelization="cuda"
+        )
 
         # Put loop_body into a device kernel
         self.device_kernel = gputils.GPU_Kernel(
@@ -343,7 +345,8 @@ class gpu_register_CFunction_variable_wavespeed_gfs_all_points(
             read_xxs=True,
             loop_region="interior",
             CoordSystem=self.CoordSystem,
-        ).full_loop_body
+            parallelization="cuda"
+        )
         kernel_body = "// Temporary parameters\n"
         for sym in self.unique_symbols:
             kernel_body += f"const REAL {sym} = d_params[streamid].{sym};\n"
@@ -496,7 +499,8 @@ if(r < integration_radius) {{
             loop_body="\n" + reduction_loop_body,
             read_xxs=True,
             loop_region="interior",
-        ).full_loop_body
+            parallelization="cuda"
+        )
 
         kernel_body = "// Temporary parameters\n"
 
@@ -817,8 +821,9 @@ class gpu_register_CFunction_rhs_eval(
             enable_rfm_precompute=enable_rfm_precompute,
             read_xxs=not enable_rfm_precompute,
             enable_intrinsics=enable_intrinsics,
+            parallelization="cuda"
         )
-        self.loop_body = self.simple_loop.full_loop_body.replace(
+        self.loop_body = self.simple_loop.replace(
             "const REAL f", "MAYBE_UNUSED const REAL f"
         )
         self.loop_body = self.loop_body.replace(
@@ -840,13 +845,7 @@ class gpu_register_CFunction_rhs_eval(
                 "eta_damping": "const REAL"
             }
         )
-        if enable_rfm_precompute:
-
-            self.params_dict_coord = {
-                f'{rfm_f.replace("REAL *restrict ","")[:-1]}': "const REAL *restrict"
-                for rfm_f in self.simple_loop.rfmp.BHaH_defines_list
-            }
-        else:
+        if not enable_rfm_precompute:
             for i in range(3):
                 self.body += f"const REAL *restrict x{i} = xx[{i}];\n"
         unique_symbols = []
@@ -856,9 +855,6 @@ class gpu_register_CFunction_rhs_eval(
             )
         unique_symbols = list(set(sorted(unique_symbols)))
         param_symbols = set(unique_symbols) & set(par.glb_code_params_dict.keys()) - set(params_dict.keys())
-        if enable_rfm_precompute:
-            rfm_free_lst = set([rfm_f.replace("REAL *restrict ", "").replace(';', "") for rfm_f in self.simple_loop.rfmp.BHaH_defines_list])
-            param_symbols = param_symbols - rfm_free_lst
         kernel_header = ""
         for sym in param_symbols:
             kernel_header += f"const REAL {sym} = d_params[streamid].{sym};\n"
@@ -970,16 +966,12 @@ class gpu_register_CFunction_compute_residual_all_points(
             CoordSystem=CoordSystem,
             enable_rfm_precompute=enable_rfm_precompute,
             read_xxs=not enable_rfm_precompute,
+            parallelization="cuda"
         )
         self.params_dict_coord = {f"x{i}": "const REAL *restrict" for i in range(3)}
         params_dict = {"rfmstruct": "const rfm_struct *restrict"}  if enable_rfm_precompute else { K: V for K, V in self.params_dict_coord.items()}
-        self.kernel_body = self.simple_loop.full_loop_body
-        if enable_rfm_precompute:
-            self.params_dict_coord = {
-                f'{rfm_f.replace("REAL *restrict ","")[:-1]}': "const REAL *restrict"
-                for rfm_f in self.simple_loop.rfmp.BHaH_defines_list
-            }
-        else:
+        self.kernel_body = self.simple_loop
+        if not enable_rfm_precompute:
             for i in range(3):
                 self.body += f"const REAL *restrict x{i} = xx[{i}];\n"
 
@@ -1001,9 +993,6 @@ class gpu_register_CFunction_compute_residual_all_points(
             )
         unique_symbols = list(set(sorted(unique_symbols)))
         param_symbols = set(unique_symbols) & set(par.glb_code_params_dict.keys()) - set(params_dict.keys())
-        if enable_rfm_precompute:
-            rfm_free_lst = set([rfm_f.replace("REAL *restrict ", "").replace(';', "") for rfm_f in self.simple_loop.rfmp.BHaH_defines_list])
-            param_symbols = param_symbols - rfm_free_lst
         kernel_header = ""
         for sym in param_symbols:
             kernel_header += f"const REAL {sym} = d_params[streamid].{sym};\n"

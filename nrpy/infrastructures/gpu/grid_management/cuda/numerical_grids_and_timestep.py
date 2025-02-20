@@ -14,7 +14,7 @@ from typing import Dict, List
 
 import nrpy.helpers.gpu.gpu_kernel as gputils
 import nrpy.infrastructures.gpu.grid_management.base_numerical_grids_and_timestep as base_gm_classes
-import nrpy.infrastructures.gpu.loop_utilities.cuda.simple_loop as lp
+import nrpy.infrastructures.BHaH.simple_loop as lp
 import nrpy.params as par
 
 # fmt: off
@@ -166,7 +166,8 @@ const int Nxx_tot = (Nxx_plus_2NGHOSTS0)*(Nxx_plus_2NGHOSTS1)*(Nxx_plus_2NGHOSTS
             read_xxs=True,
             loop_region="all points",
             CoordSystem=self.CoordSystem,
-        ).full_loop_body
+            parallelization="cuda",
+        )
 
         # Put loop_body into a device kernel
         self.device_kernel = gputils.GPU_Kernel(
