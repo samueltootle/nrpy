@@ -141,9 +141,9 @@ dim3 threads_per_block(threads_in_x_dir, threads_in_y_dir, threads_in_z_dir);"""
             grid_def_str = f"dim3 blocks_per_grid({blocks_per_grid_str});"
         else:
             grid_def_str = """dim3 blocks_per_grid(
-    (Nxx_plus_2NGHOSTS0 + threads_in_x_dir - 1) / threads_in_x_dir,
-    (Nxx_plus_2NGHOSTS1 + threads_in_y_dir - 1) / threads_in_y_dir,
-    (Nxx_plus_2NGHOSTS2 + threads_in_z_dir - 1) / threads_in_z_dir
+    (params->Nxx_plus_2NGHOSTS0 + threads_in_x_dir - 1) / threads_in_x_dir,
+    (params->Nxx_plus_2NGHOSTS1 + threads_in_y_dir - 1) / threads_in_y_dir,
+    (params->Nxx_plus_2NGHOSTS2 + threads_in_z_dir - 1) / threads_in_z_dir
 );"""
 
         # Determine if the stream needs to be added to launch
