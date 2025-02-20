@@ -162,6 +162,7 @@ BCl.register_CFunction_enforce_detgammabar_equals_detgammahat(
     enable_rfm_precompute=enable_rfm_precompute,
     enable_fd_functions=enable_fd_functions,
     OMP_collapse=OMP_collapse,
+    parallelization=parallelization,
 )
 BCl.register_CFunction_constraints(
     CoordSystem=CoordSystem,
