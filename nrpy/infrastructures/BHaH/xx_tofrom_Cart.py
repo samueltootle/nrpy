@@ -22,6 +22,7 @@ def register_CFunction__Cart_to_xx_and_nearest_i0i1i2(
     CoordSystem: str,
     relative_to: str = "local_grid_center",
     gridding_approach: str = "independent grid(s)",
+    parallelization: str = "openmp",
 ) -> None:
     """
     Construct and register a C function that maps Cartesian coordinates to xx and finds the nearest grid indices.
@@ -53,6 +54,7 @@ def register_CFunction__Cart_to_xx_and_nearest_i0i1i2(
     namesuffix = f"_{relative_to}" if relative_to == "global_grid_center" else ""
     name = f"Cart_to_xx_and_nearest_i0i1i2{namesuffix}"
     params = "const params_struct *restrict params, const REAL xCart[3], REAL xx[3], int Cart_to_i0i1i2[3]"
+    cfunc_decorators = "__host__ __device__" if parallelization == "cuda" else ""
 
     body = """
   // Set (Cartx, Carty, Cartz) relative to the global (as opposed to local) grid.
@@ -65,12 +67,11 @@ def register_CFunction__Cart_to_xx_and_nearest_i0i1i2(
     if relative_to == "local_grid_center":
         body += """
   // Set the origin, (Cartx, Carty, Cartz) = (0, 0, 0), to the center of the local grid patch.
-  Cartx -= Cart_originx;
-  Carty -= Cart_originy;
-  Cartz -= Cart_originz;
+  Cartx -= params->Cart_originx;
+  Carty -= params->Cart_originy;
+  Cartz -= params->Cart_originz;
   {
 """
-        params += ", " + ", ".join([f"Cart_origin{v}" for v in ["x", "y", "z"]])
     if rfm.requires_NewtonRaphson_for_Cart_to_xx:
         body += "  // First compute analytical coordinate inversions:\n"
         Cart_to_xx_exprs: List[sp.Expr] = []
@@ -153,12 +154,14 @@ def register_CFunction__Cart_to_xx_and_nearest_i0i1i2(
         params=params,
         include_CodeParameters_h=False,
         body=body,
+        cfunc_decorators=cfunc_decorators,
     )
 
 
 def register_CFunction_xx_to_Cart(
     CoordSystem: str,
     gridding_approach: str = "independent grid(s)",
+    parallelization: str = "openmp",
 ) -> None:
     """
     Convert uniform-grid coordinate (xx[0], xx[1], xx[2]) to the corresponding Cartesian coordinate.
@@ -182,6 +185,7 @@ def register_CFunction_xx_to_Cart(
     name = "xx_to_Cart"
     params = "const params_struct *restrict params, REAL xx[3], REAL xCart[3]"
     body = ""
+    cfunc_decorators = "__host__ __device__" if parallelization == "cuda" else ""
 
     rfm = refmetric.reference_metric[CoordSystem]
     expr_list = [
@@ -220,4 +224,5 @@ const REAL xx2 = xx[2];
         params=params,
         include_CodeParameters_h=False,
         body=body,
+        cfunc_decorators=cfunc_decorators,
     )
