@@ -70,6 +70,7 @@ enable_KreissOliger_dissipation = False
 enable_CAKO = True
 boundary_conditions_desc = "outgoing radiation"
 num_streams = 3
+parallelization="cuda"
 
 OMP_collapse = 1
 if "Spherical" in CoordSystem:
@@ -104,6 +105,7 @@ BCl.register_CFunction_initial_data(
     IDtype=IDtype,
     IDCoordSystem=IDCoordSystem,
     ID_persist_struct_str="",
+    parallelization=parallelization,
 )
 
 numericalgrids.register_CFunctions(
@@ -130,7 +132,7 @@ BCl.register_CFunction_diagnostics(
 )
 if enable_rfm_precompute:
     rfm_precompute.register_CFunctions_rfm_precompute(
-        list_of_CoordSystems=[CoordSystem], parallelization="cuda"
+        list_of_CoordSystems=[CoordSystem], parallelization=parallelization
     )
 BCl.register_CFunction_rhs_eval(
     CoordSystem=CoordSystem,
@@ -149,9 +151,10 @@ if separate_Ricci_and_BSSN_RHS:
     BCl.register_CFunction_Ricci_eval(
         CoordSystem=CoordSystem,
         enable_rfm_precompute=enable_rfm_precompute,
-        enable_simd=enable_simd,
+        enable_intrinsics=enable_simd,
         enable_fd_functions=enable_fd_functions,
         OMP_collapse=OMP_collapse,
+        parallelization=parallelization,
     )
 BCl.register_CFunction_enforce_detgammabar_equals_detgammahat(
     CoordSystem=CoordSystem,
@@ -175,7 +178,7 @@ if __name__ == "__main__":
 cbc.CurviBoundaryConditions_register_C_functions(
     list_of_CoordSystems=[CoordSystem],
     radiation_BC_fd_order=radiation_BC_fd_order,
-    parallelization="cuda",
+    parallelization=parallelization,
 )
 rhs_string = ""
 if separate_Ricci_and_BSSN_RHS:
@@ -199,13 +202,13 @@ MoL_register_all.register_CFunctions(
   enforce_detgammabar_equals_detgammahat(commondata, params, rfmstruct, RK_OUTPUT_GFS);""",
     enable_rfm_precompute=enable_rfm_precompute,
     enable_curviBCs=True,
-    parallelization="cuda",
+    parallelization=parallelization,
     rational_const_alias="static constexpr",
 )
 xxCartxx.register_CFunction__Cart_to_xx_and_nearest_i0i1i2(
-    CoordSystem, parallelization="cuda"
+    CoordSystem, parallelization=parallelization
 )
-xxCartxx.register_CFunction_xx_to_Cart(CoordSystem, parallelization="cuda")
+xxCartxx.register_CFunction_xx_to_Cart(CoordSystem, parallelization=parallelization)
 progress.register_CFunction_progress_indicator()
 rfm_wrapper_functions.register_CFunctions_CoordSystem_wrapper_funcs()
 
@@ -250,7 +253,7 @@ main.register_CFunction_main_c(
     boundary_conditions_desc=boundary_conditions_desc,
 )
 griddata_commondata.register_CFunction_griddata_free(
-    enable_rfm_precompute=enable_rfm_precompute, enable_CurviBCs=True
+    enable_rfm_precompute=enable_rfm_precompute, enable_CurviBCs=True, parallelization=parallelization,
 )
 
 if enable_simd:
