@@ -7,7 +7,7 @@ Author: Zachariah B. Etienne
 
 # Initialize core Python/NRPy+ modules
 # Step 1: Initialize core Python/NRPy+ modules
-from typing import List, Optional, Sequence, cast
+from typing import List, Optional, Sequence, Tuple, cast
 
 import sympy as sp  # SymPy: The Python computer algebra package upon which NRPy+ depends
 
@@ -22,6 +22,7 @@ from nrpy.equations.general_relativity.ADM_to_BSSN import ADM_to_BSSN
 
 # NRPy+: Computes useful BSSN quantities; e.g., gammabarUU & GammabarUDD needed below
 from nrpy.equations.general_relativity.BSSN_quantities import BSSN_quantities
+from nrpy.helpers.gpu.utilities import generate_kernel_and_launch_code
 from nrpy.infrastructures.BHaH import BHaH_defines_h
 
 
@@ -436,18 +437,29 @@ After the basis transform, all BSSN quantities are rescaled."""
 # finite-difference derivatives of rescaled metric quantities
 def Cfunction_initial_data_lambdaU_grid_interior(
     CoordSystem: str,
-) -> str:
+    parallelization: str = "openmp",
+) -> Tuple[str, str]:
     """
     Compute lambdaU in the specified coordinate system.
 
     :param CoordSystem: The coordinate system to be used.
+    :param parallelization: The parallelization strategy to be used. Defaults to "openmp".
     :return: The full function generated for computing lambdaU.
     """
     cfunc_type = "static void"
 
     desc = f"Compute lambdaU in {CoordSystem} coordinates"
     name = "initial_data_lambdaU_grid_interior"
-    params = """const commondata_struct *restrict commondata, const params_struct *restrict params, REAL *restrict xx[3], REAL *restrict in_gfs"""
+    arg_dict_cuda = {
+        "x0": "const REAL *restrict",
+        "x1": "const REAL *restrict",
+        "x2": "const REAL *restrict",
+        "in_gfs": "REAL *restrict",
+    }
+    arg_dict_host = {
+        "params": "const params_struct *restrict",
+        **arg_dict_cuda,
+    }
     # Step 7: Compute $\bar{\Lambda}^i$ from finite-difference derivatives of rescaled metric quantities
 
     # We will need all BSSN gridfunctions to be defined, as well as
@@ -476,7 +488,7 @@ def Cfunction_initial_data_lambdaU_grid_interior(
     for i in range(3):
         lambdaU[i] = LambdabarU[i] / rfm.ReU[i]
 
-    body = lp.simple_loop(
+    kernel_body = lp.simple_loop(
         ccg.c_codegen(
             lambdaU,
             [
@@ -487,20 +499,30 @@ def Cfunction_initial_data_lambdaU_grid_interior(
             verbose=False,
             include_braces=False,
             enable_fd_codegen=True,
-        ),
+            enable_simd=True if parallelization != "openmp" else False,
+        ).replace("SIMD", "CUDA" if parallelization == "cuda" else "SIMD"),
         loop_region="interior",
         read_xxs=True,
+        parallelization=parallelization,
+        enable_intrinsics=True if parallelization != "openmp" else False,
     )
 
-    return cfc.CFunction(
-        subdirectory=CoordSystem,
-        desc=desc,
+    prefunc, launch_body = generate_kernel_and_launch_code(
+        name,
+        kernel_body,
+        arg_dict_cuda,
+        arg_dict_host,
+        parallelization=parallelization,
+        comments=desc,
         cfunc_type=cfunc_type,
-        name=name,
-        params=params,
-        include_CodeParameters_h=True,
-        body=body,
-    ).full_function
+        launchblock_with_braces=False,
+    )
+
+    launch_body = launch_body.replace("in_gfs", "gridfuncs->y_n_gfs")
+    for i in range(3):
+        launch_body = launch_body.replace(f"x{i},", f"xx[{i}],")
+
+    return prefunc, launch_body
 
 
 def register_CFunction_initial_data_reader__convert_ADM_Sph_or_Cart_to_BSSN(
@@ -510,6 +532,7 @@ def register_CFunction_initial_data_reader__convert_ADM_Sph_or_Cart_to_BSSN(
     enable_T4munu: bool = False,
     enable_fd_functions: bool = False,
     ID_persist_struct_str: str = "",
+    parallelization: str = "openmp",
 ) -> None:
     """
     Register the CFunction for converting initial ADM data to BSSN variables.
@@ -520,6 +543,7 @@ def register_CFunction_initial_data_reader__convert_ADM_Sph_or_Cart_to_BSSN(
     :param enable_T4munu: Whether to include stress-energy tensor components.
     :param enable_fd_functions: Whether to enable finite-difference functions.
     :param ID_persist_struct_str: String for persistent ID structure.
+    :param parallelization: The parallelization strategy to be used. Defaults to "openmp".
 
     :raises ValueError: If `addl_includes` is provided but is not a list, ensuring that additional includes are correctly formatted for inclusion.
     """
@@ -619,7 +643,10 @@ typedef struct __rescaled_BSSN_rfm_basis_struct__ {
         CoordSystem=CoordSystem,
         enable_T4munu=enable_T4munu,
     )
-    prefunc += Cfunction_initial_data_lambdaU_grid_interior(CoordSystem=CoordSystem)
+    lambdaU_prefunc, lambdaU_launch = Cfunction_initial_data_lambdaU_grid_interior(
+        CoordSystem=CoordSystem, parallelization=parallelization
+    )
+    prefunc += lambdaU_prefunc
 
     desc = f"Read ADM data in the {IDCoordSystem} basis, and output rescaled BSSN data in the {CoordSystem} basis"
     cfunc_type = "void"
@@ -629,7 +656,14 @@ typedef struct __rescaled_BSSN_rfm_basis_struct__ {
     ID_persist_struct *restrict ID_persist,
     void ID_function(const commondata_struct *restrict commondata, const params_struct *restrict params, const REAL xCart[3],
                      const ID_persist_struct *restrict ID_persist,
-                     initial_data_struct *restrict initial_data)"""
+                     initial_data_struct *restrict initial_data)""".replace(
+        "gridfuncs,",
+        (
+            "gridfuncs, MoL_gridfunctions_struct *restrict d_gridfuncs,"
+            if parallelization == "cuda"
+            else "gridfuncs,"
+        ),
+    )
 
     body = r"""
   const int Nxx_plus_2NGHOSTS0 = params->Nxx_plus_2NGHOSTS0;
@@ -672,13 +706,21 @@ typedef struct __rescaled_BSSN_rfm_basis_struct__ {
             for nu in range(mu, 4):
                 gf = f"T4UU{mu}{nu}"
                 body += f"gridfuncs->auxevol_gfs[IDX4pt({gf.upper()}GF, idx3)] = rescaled_BSSN_rfm_basis.{gf};\n"
-    body += """
+    post_initial_data_call = """
+    for (int which_gf = 0; which_gf < NUM_EVOL_GFS; which_gf++) {
+        cpyHosttoDevice__gf(commondata, params, gridfuncs->y_n_gfs, d_gridfuncs->y_n_gfs, which_gf, which_gf);
+    }
+    cudaDeviceSynchronize();
+    """
+    body += f"""
     // Initialize lambdaU to zero
     gridfuncs->y_n_gfs[IDX4pt(LAMBDAU0GF, idx3)] = 0.0;
     gridfuncs->y_n_gfs[IDX4pt(LAMBDAU1GF, idx3)] = 0.0;
     gridfuncs->y_n_gfs[IDX4pt(LAMBDAU2GF, idx3)] = 0.0;
-  } // END LOOP over all gridpoints on given grid
-
+  }} // END LOOP over all gridpoints on given grid
+  {post_initial_data_call}
+"""
+    body += f"""
   // Now we've set all but lambda^i, which will be computed via a finite-difference of hDD.
   //    However, hDD is not correctly set in inner boundary points so we apply inner bcs first.
 
@@ -688,8 +730,10 @@ typedef struct __rescaled_BSSN_rfm_basis_struct__ {
   //    symmetry boundaries being correct.
   apply_bcs_inner_only(commondata, params, bcstruct, gridfuncs->y_n_gfs);
 
-  initial_data_lambdaU_grid_interior(commondata, params, xx, gridfuncs->y_n_gfs);
-"""
+  {lambdaU_launch}
+""".replace(
+        "gridfuncs->", "d_gridfuncs->" if parallelization == "cuda" else "gridfuncs->"
+    )
     cfc.register_CFunction(
         includes=includes,
         prefunc=prefunc,
