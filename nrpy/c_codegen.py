@@ -675,7 +675,7 @@ def c_codegen(
 
             for i, varname in enumerate(simd_const_varnms):
                 simd_RATIONAL_decls += (
-                    f"static const double dbl{varname} = {simd_const_values[i]};\n"
+                    f"{CCGParams.rational_const_alias} double dbl{varname} = {simd_const_values[i]};\n"
                 )
                 # Workaround for possibly unused NegativeOne SIMD variables.
                 maybe_unused = " "
