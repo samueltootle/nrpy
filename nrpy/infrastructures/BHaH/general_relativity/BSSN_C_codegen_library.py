@@ -329,7 +329,7 @@ def register_CFunction_rhs_eval(
     enable_rfm_precompute: bool,
     enable_RbarDD_gridfunctions: bool,
     enable_T4munu: bool,
-    enable_simd: bool,
+    enable_intrinsics: bool,
     enable_fd_functions: bool,
     LapseEvolutionOption: str,
     ShiftEvolutionOption: str,
@@ -340,6 +340,7 @@ def register_CFunction_rhs_eval(
     enable_CAHD: bool = False,
     enable_SSL: bool = False,
     OMP_collapse: int = 1,
+    parallelization: str = "openmp",
     validate_expressions: bool = False,
 ) -> Union[None, Dict[str, Union[mpf, mpc]], pcg.NRPyEnv_type]:
     """
@@ -349,7 +350,7 @@ def register_CFunction_rhs_eval(
     :param enable_rfm_precompute: Whether to enable reference metric precomputation.
     :param enable_RbarDD_gridfunctions: Whether to enable RbarDD gridfunctions.
     :param enable_T4munu: Whether to enable T4munu (stress-energy terms).
-    :param enable_simd: Whether to enable SIMD (Single Instruction, Multiple Data).
+    :param enable_intrinsics: Whether to enable SIMD (Single Instruction, Multiple Data).
     :param enable_fd_functions: Whether to enable finite difference functions.
     :param LapseEvolutionOption: Lapse evolution equation choice.
     :param ShiftEvolutionOption: Lapse evolution equation choice.
@@ -371,8 +372,8 @@ def register_CFunction_rhs_eval(
         return None
 
     includes = ["BHaH_defines.h"]
-    if enable_simd:
-        includes += [str(Path("intrinsics") / "simd_intrinsics.h")]
+    if enable_intrinsics:
+        includes += [str(Path("../intrinsics") / "cuda_intrinsics.h")] if parallelization == "cuda" else [str(Path("../intrinsics") / "simd_intrinsics.h")]
     desc = r"""Set RHSs for the BSSN evolution equations."""
     cfunc_type = "void"
     name = "rhs_eval"
@@ -580,12 +581,12 @@ def register_CFunction_rhs_eval(
             list(local_BSSN_RHSs_varname_to_expr_dict.values()),
             BSSN_RHSs_access_gf,
             enable_fd_codegen=True,
-            enable_simd=enable_simd,
+            enable_simd=enable_intrinsics,
             upwind_control_vec=betaU,
             enable_fd_functions=enable_fd_functions,
         ),
         loop_region="interior",
-        enable_intrinsics=enable_simd,
+        enable_intrinsics=enable_intrinsics,
         CoordSystem=CoordSystem,
         enable_rfm_precompute=enable_rfm_precompute,
         read_xxs=not enable_rfm_precompute,
@@ -601,7 +602,7 @@ def register_CFunction_rhs_eval(
         name=name,
         params=params,
         body=body,
-        enable_simd=enable_simd,
+        enable_simd=enable_intrinsics,
     )
     return cast(pcg.NRPyEnv_type, pcg.NRPyEnv())
 
@@ -619,7 +620,7 @@ def register_CFunction_Ricci_eval(
 
     :param CoordSystem: The coordinate system to be used.
     :param enable_rfm_precompute: Whether to enable reference metric precomputation.
-    :param enable_simd: Whether to enable SIMD instructions.
+    :param enable_intrinsics: Whether to enable SIMD instructions.
     :param enable_fd_functions: Whether to enable finite difference functions.
     :param OMP_collapse: Degree of OpenMP loop collapsing.
 
@@ -724,9 +725,10 @@ def register_CFunction_constraints(
     enable_rfm_precompute: bool,
     enable_RbarDD_gridfunctions: bool,
     enable_T4munu: bool,
-    enable_simd: bool,
+    enable_intrinsics: bool,
     enable_fd_functions: bool,
     OMP_collapse: int,
+    parallelization: str = "openmp",
 ) -> Union[None, pcg.NRPyEnv_type]:
     """
     Register the BSSN constraints evaluation function.
@@ -735,7 +737,7 @@ def register_CFunction_constraints(
     :param enable_rfm_precompute: Whether to enable reference metric precomputation.
     :param enable_RbarDD_gridfunctions: Whether to enable RbarDD gridfunctions.
     :param enable_T4munu: Whether to enable T4munu (stress-energy terms).
-    :param enable_simd: Whether to enable SIMD instructions.
+    :param enable_intrinsics: Whether to enable SIMD instructions.
     :param enable_fd_functions: Whether to enable finite difference functions.
     :param OMP_collapse: Degree of OpenMP loop collapsing.
 
@@ -753,8 +755,8 @@ def register_CFunction_constraints(
     ]
 
     includes = ["BHaH_defines.h"]
-    if enable_simd:
-        includes += [str(Path("intrinsics") / "simd_intrinsics.h")]
+    if enable_intrinsics:
+        includes += [str(Path("intrinsics") / "cuda_intrinsics.h")] if parallelization == "cuda" else [str(Path("intrinsics") / "simd_intrinsics.h")]
     desc = r"""Evaluate BSSN constraints."""
     cfunc_type = "void"
     name = "constraints_eval"
@@ -775,11 +777,11 @@ def register_CFunction_constraints(
             [Bcon.H, Bcon.Msquared],
             Constraints_access_gfs,
             enable_fd_codegen=True,
-            enable_simd=enable_simd,
+            enable_simd=enable_intrinsics,
             enable_fd_functions=enable_fd_functions,
         ),
         loop_region="interior",
-        enable_intrinsics=enable_simd,
+        enable_intrinsics=enable_intrinsics,
         CoordSystem=CoordSystem,
         enable_rfm_precompute=enable_rfm_precompute,
         read_xxs=not enable_rfm_precompute,
@@ -796,7 +798,7 @@ def register_CFunction_constraints(
         params=params,
         include_CodeParameters_h=True,
         body=body,
-        enable_simd=enable_simd,
+        enable_simd=enable_intrinsics,
     )
     return cast(pcg.NRPyEnv_type, pcg.NRPyEnv())
 
@@ -1126,7 +1128,7 @@ if __name__ == "__main__":
                     enable_rfm_precompute=True,
                     enable_RbarDD_gridfunctions=Rbar_gfs,
                     enable_T4munu=T4munu_enable,
-                    enable_simd=False,
+                    enable_intrinsics=False,
                     enable_fd_functions=False,
                     enable_KreissOliger_dissipation=True,
                     LapseEvolutionOption=LapseEvolOption,
