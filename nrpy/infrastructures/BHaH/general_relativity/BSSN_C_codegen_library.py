@@ -47,6 +47,7 @@ def register_CFunction_initial_data(
     populate_ID_persist_struct_str: str = "",
     free_ID_persist_struct_str: str = "",
     enable_T4munu: bool = False,
+    parallelization: str = "openmp",
 ) -> Union[None, pcg.NRPyEnv_type]:
     """
     Register C functions for converting ADM initial data to BSSN variables and applying boundary conditions.
@@ -64,6 +65,7 @@ def register_CFunction_initial_data(
     :param populate_ID_persist_struct_str: Optional string to populate the persistent structure for initial data.
     :param free_ID_persist_struct_str: Optional string to free the persistent structure for initial data.
     :param enable_T4munu: Whether to include the stress-energy tensor. Defaults to False.
+    :param parallelization: The parallelization strategy to be used. Defaults to "openmp".
 
     :return: None if in registration phase, else the updated NRPy environment.
     """
@@ -100,6 +102,7 @@ def register_CFunction_initial_data(
         IDCoordSystem=IDCoordSystem,
         ID_persist_struct_str=ID_persist_struct_str,
         enable_T4munu=enable_T4munu,
+        parallelization=parallelization,
     )
 
     desc = "Set initial data."
@@ -108,6 +111,7 @@ def register_CFunction_initial_data(
     params = (
         "commondata_struct *restrict commondata, griddata_struct *restrict griddata"
     )
+    params += ", griddata_struct *restrict d_griddata" if parallelization == "cuda" else ""
 
     body = ""
     if enable_checkpointing:
@@ -123,11 +127,15 @@ for(int grid=0; grid<commondata->NUMGRIDS; grid++) {
   params_struct *restrict params = &griddata[grid].params;
 """
     body += f"""initial_data_reader__convert_ADM_{IDCoordSystem}_to_BSSN(commondata, params,
-griddata[grid].xx, &griddata[grid].bcstruct, &griddata[grid].gridfuncs, &ID_persist, {IDtype});"""
+griddata[grid].xx, &griddata[grid].bcstruct, &griddata[grid].gridfuncs, &ID_persist, {IDtype});""".replace(
+                         "&griddata[grid].bcstruct, &griddata[grid].gridfuncs,",
+                         "&d_griddata[grid].bcstruct, &griddata[grid].gridfuncs,&d_griddata[grid].gridfuncs,"
+                         if parallelization == "cuda" else "&griddata[grid].bcstruct, &griddata[grid].gridfuncs,"
+                        )
     body += """
   apply_bcs_outerextrap_and_inner(commondata, params, &griddata[grid].bcstruct, griddata[grid].gridfuncs.y_n_gfs);
 }
-"""
+""".replace("griddata", "d_griddata" if parallelization == "cuda" else "griddata")
     if free_ID_persist_struct_str:
         body += free_ID_persist_struct_str
 
