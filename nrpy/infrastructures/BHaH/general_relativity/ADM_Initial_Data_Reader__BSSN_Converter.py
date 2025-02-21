@@ -23,7 +23,10 @@ from nrpy.equations.general_relativity.ADM_to_BSSN import ADM_to_BSSN
 
 # NRPy+: Computes useful BSSN quantities; e.g., gammabarUU & GammabarUDD needed below
 from nrpy.equations.general_relativity.BSSN_quantities import BSSN_quantities
-from nrpy.helpers.expression_utils import get_params_commondata_symbols_from_expr_list
+from nrpy.helpers.expression_utils import (
+    generate_definition_header,
+    get_params_commondata_symbols_from_expr_list,
+)
 from nrpy.helpers.gpu.utilities import generate_kernel_and_launch_code
 from nrpy.infrastructures.BHaH import BHaH_defines_h
 
@@ -514,14 +517,13 @@ def Cfunction_initial_data_lambdaU_grid_interior(
         parallelization, enable_intrinsics=enable_intrinsics
     )
     param_symbols, _ = get_params_commondata_symbols_from_expr_list(lambdaU)
-
-    params_header = "\n".join(
-        [
-            f"const REAL {p} = {gpu_utils.get_params_access(parallelization)}{p};"
-            for p in param_symbols
-        ]
+    params_definitions = generate_definition_header(
+        param_symbols,
+        enable_intrinsics=enable_intrinsics,
+        var_access=gpu_utils.get_params_access(parallelization),
     )
-    kernel_body = f"{loop_params}\n{params_header}\n{kernel_body}"
+
+    kernel_body = f"{loop_params}\n{params_definitions}\n{kernel_body}"
 
     prefunc, launch_body = generate_kernel_and_launch_code(
         name,
@@ -684,11 +686,11 @@ typedef struct __rescaled_BSSN_rfm_basis_struct__ {
             else "gridfuncs,"
         ),
     ).replace(
-        "xx[3],",
+        "const REAL *restrict xx[3],",
         (
-            "xx[3], const REAL *restrict d_xx[3],"
+            "const REAL *restrict xx[3], const REAL *restrict d_xx[3],"
             if parallelization == "cuda"
-            else "xx[3],"
+            else "const REAL *restrict xx[3],"
         ),
     )
 
