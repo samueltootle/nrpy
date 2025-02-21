@@ -37,7 +37,10 @@ from nrpy.equations.general_relativity.InitialData_Cartesian import (
 from nrpy.equations.general_relativity.InitialData_Spherical import (
     InitialData_Spherical,
 )
-from nrpy.helpers.expression_utils import get_params_commondata_symbols_from_expr_list
+from nrpy.helpers.expression_utils import (
+    generate_definition_header,
+    get_params_commondata_symbols_from_expr_list,
+)
 
 
 def register_CFunction_initial_data(
@@ -131,12 +134,12 @@ for(int grid=0; grid<commondata->NUMGRIDS; grid++) {
   params_struct *restrict params = &griddata[grid].params;
 """
     body += f"""initial_data_reader__convert_ADM_{IDCoordSystem}_to_BSSN(commondata, params,
-griddata[grid].xx, &griddata[grid].bcstruct, &griddata[grid].gridfuncs, &ID_persist, {IDtype});""".replace(
-        "griddata[grid].xx, &griddata[grid].bcstruct, &griddata[grid].gridfuncs,",
+(const REAL* *restrict) griddata[grid].xx, &griddata[grid].bcstruct, &griddata[grid].gridfuncs, &ID_persist, {IDtype});""".replace(
+        "(const REAL* *restrict) griddata[grid].xx, &griddata[grid].bcstruct, &griddata[grid].gridfuncs,",
         (
-            "griddata[grid].xx, d_griddata[grid].xx, &d_griddata[grid].bcstruct, &griddata[grid].gridfuncs,&d_griddata[grid].gridfuncs,"
+            "(const REAL* *restrict) griddata[grid].xx, (const REAL* *restrict) d_griddata[grid].xx, &d_griddata[grid].bcstruct, &griddata[grid].gridfuncs,&d_griddata[grid].gridfuncs,"
             if parallelization == "cuda"
-            else "griddata[grid].xx, &griddata[grid].bcstruct, &griddata[grid].gridfuncs,"
+            else "(const REAL* *restrict) griddata[grid].xx, &griddata[grid].bcstruct, &griddata[grid].gridfuncs,"
         ),
     )
     body += """
@@ -286,7 +289,14 @@ if(fabs(round(currtime / outevery) * outevery - currtime) < 0.5*currdt) {
     }
     const params_struct *restrict params = &griddata[grid].params;
 #include "set_CodeParameters.h"
-"""
+""".replace(
+        "griddata[grid].xx[ww];",
+        (
+            "griddata_host[grid].xx[ww];"
+            if parallelization == "cuda"
+            else "griddata[grid].xx[ww];"
+        ),
+    )
     if parallelization == "cuda":
         body += r"""
     REAL *restrict host_y_n_gfs = griddata_host[grid].gridfuncs.y_n_gfs;
@@ -651,10 +661,6 @@ def register_CFunction_rhs_eval(
     param_symbols, commondata_symbols = get_params_commondata_symbols_from_expr_list(
         expr_list, exclude=[f"xx{j}" for j in range(3)]
     )
-    params_body = ""
-    for symbol in param_symbols:
-        params_body += f"const REAL {symbol} = params->{symbol};\n"
-    params_body.replace("params->", gpu_utils.get_params_access(parallelization))
 
     arg_dict_cuda = {
         **arg_dict_cuda,
@@ -694,7 +700,12 @@ def register_CFunction_rhs_eval(
         for symbol in commondata_symbols:
             loop_params += f"MAYBE_UNUSED const REAL_SIMD_ARRAY {symbol} = ConstSIMD(NOSIMD{symbol});\n"
 
-    kernel_body = f"{loop_params}\n{kernel_body}"
+    params_definitions = generate_definition_header(
+        param_symbols,
+        enable_intrinsics=enable_intrinsics,
+        var_access=gpu_utils.get_params_access(parallelization),
+    )
+    kernel_body = f"{loop_params}\n{params_definitions}\n{kernel_body}"
 
     kernel, launch_body = gpu_utils.generate_kernel_and_launch_code(
         name,
@@ -828,7 +839,14 @@ def register_CFunction_Ricci_eval(
     loop_params = gpu_utils.get_loop_parameters(
         parallelization, enable_intrinsics=enable_intrinsics
     )
-    kernel_body = f"{loop_params}\n{kernel_body}"
+
+    param_symbols, _ = get_params_commondata_symbols_from_expr_list(Bq.Ricci_exprs)
+    params_definitions = params_definitions = generate_definition_header(
+        param_symbols,
+        enable_intrinsics=enable_intrinsics,
+        var_access=gpu_utils.get_params_access(parallelization),
+    )
+    kernel_body = f"{loop_params}\n{params_definitions}\n{kernel_body}"
 
     kernel, launch_body = gpu_utils.generate_kernel_and_launch_code(
         name,
@@ -940,9 +958,10 @@ def register_CFunction_constraints(
                 var, 0, 0, 0, gf_array_name="diagnostic_output_gfs"
             )
         ]
+    expr_list = [Bcon.H, Bcon.Msquared]
     kernel_body = lp.simple_loop(
         loop_body=ccg.c_codegen(
-            [Bcon.H, Bcon.Msquared],
+            expr_list,
             Constraints_access_gfs,
             enable_fd_codegen=True,
             enable_simd=enable_intrinsics,
@@ -962,7 +981,13 @@ def register_CFunction_constraints(
     loop_params = gpu_utils.get_loop_parameters(
         parallelization, enable_intrinsics=enable_intrinsics
     )
-    kernel_body = f"{loop_params}\n{kernel_body}"
+    param_symbols, _ = get_params_commondata_symbols_from_expr_list(expr_list)
+    params_definitions = generate_definition_header(
+        param_symbols,
+        enable_intrinsics=enable_intrinsics,
+        var_access=gpu_utils.get_params_access(parallelization),
+    )
+    kernel_body = f"{loop_params}\n{params_definitions}\n{kernel_body}"
 
     prefunc = ""
     if parallelization == "cuda" and enable_fd_functions:
@@ -1106,7 +1131,13 @@ def register_CFunction_enforce_detgammabar_equals_detgammahat(
     loop_params = gpu_utils.get_loop_parameters(
         parallelization, enable_intrinsics=False
     )
-    kernel_body = f"{loop_params}\n{kernel_body}"
+    param_symbols, _ = get_params_commondata_symbols_from_expr_list(hprimeDD_expr_list)
+    params_definitions = generate_definition_header(
+        param_symbols,
+        enable_intrinsics=False,
+        var_access=gpu_utils.get_params_access(parallelization),
+    )
+    kernel_body = f"{loop_params}\n{params_definitions}\n{kernel_body}"
 
     kernel, launch_body = gpu_utils.generate_kernel_and_launch_code(
         name,
