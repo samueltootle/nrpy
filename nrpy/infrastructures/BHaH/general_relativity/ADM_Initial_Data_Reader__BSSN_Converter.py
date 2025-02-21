@@ -14,15 +14,16 @@ import sympy as sp  # SymPy: The Python computer algebra package upon which NRPy
 import nrpy.c_codegen as ccg  # NRPy+: C code generation
 import nrpy.c_function as cfc  # NRPy+: C function registration
 import nrpy.grid as gri  # NRPy+: Functions having to do with numerical grids
+import nrpy.helpers.gpu.utilities as gpu_utils
 import nrpy.helpers.jacobians as jac
 import nrpy.indexedexp as ixp  # NRPy+: Symbolic indexed expression (e.g., tensors, vectors, etc.) support
 import nrpy.infrastructures.BHaH.simple_loop as lp
 import nrpy.reference_metric as refmetric  # NRPy+: Reference metric support
 from nrpy.equations.general_relativity.ADM_to_BSSN import ADM_to_BSSN
-import nrpy.helpers.gpu.utilities as gpu_utils
 
 # NRPy+: Computes useful BSSN quantities; e.g., gammabarUU & GammabarUDD needed below
 from nrpy.equations.general_relativity.BSSN_quantities import BSSN_quantities
+from nrpy.helpers.expression_utils import get_params_commondata_symbols_from_expr_list
 from nrpy.helpers.gpu.utilities import generate_kernel_and_launch_code
 from nrpy.infrastructures.BHaH import BHaH_defines_h
 
@@ -509,8 +510,18 @@ def Cfunction_initial_data_lambdaU_grid_interior(
         parallelization=parallelization,
         enable_intrinsics=enable_intrinsics,
     )
-    loop_params = gpu_utils.get_loop_parameters(parallelization, enable_intrinsics=enable_intrinsics)
-    kernel_body = f"{loop_params}\n{kernel_body}"
+    loop_params = gpu_utils.get_loop_parameters(
+        parallelization, enable_intrinsics=enable_intrinsics
+    )
+    param_symbols, _ = get_params_commondata_symbols_from_expr_list(lambdaU)
+
+    params_header = "\n".join(
+        [
+            f"const REAL {p} = {gpu_utils.get_params_access(parallelization)}{p};"
+            for p in param_symbols
+        ]
+    )
+    kernel_body = f"{loop_params}\n{params_header}\n{kernel_body}"
 
     prefunc, launch_body = generate_kernel_and_launch_code(
         name,
@@ -525,7 +536,11 @@ def Cfunction_initial_data_lambdaU_grid_interior(
 
     launch_body = launch_body.replace("in_gfs", "gridfuncs->y_n_gfs")
     for i in range(3):
-        launch_body = launch_body.replace(f"x{i},", f"xx[{i}],") if parallelization == "cuda" else launch_body.replace("xx[3],","xx,")
+        launch_body = (
+            launch_body.replace(f"x{i},", f"xx[{i}],")
+            if parallelization == "cuda"
+            else launch_body.replace("xx[3],", "xx,")
+        )
 
     return prefunc, launch_body
 
@@ -670,7 +685,11 @@ typedef struct __rescaled_BSSN_rfm_basis_struct__ {
         ),
     ).replace(
         "xx[3],",
-        "xx[3], const REAL *restrict d_xx[3]," if parallelization == "cuda" else "xx[3],",
+        (
+            "xx[3], const REAL *restrict d_xx[3],"
+            if parallelization == "cuda"
+            else "xx[3],"
+        ),
     )
 
     body = r"""
@@ -714,12 +733,16 @@ typedef struct __rescaled_BSSN_rfm_basis_struct__ {
             for nu in range(mu, 4):
                 gf = f"T4UU{mu}{nu}"
                 body += f"gridfuncs->auxevol_gfs[IDX4pt({gf.upper()}GF, idx3)] = rescaled_BSSN_rfm_basis.{gf};\n"
-    post_initial_data_call = ("""
+    post_initial_data_call = (
+        """
     for (int which_gf = 0; which_gf < NUM_EVOL_GFS; which_gf++) {
         cpyHosttoDevice__gf(commondata, params, gridfuncs->y_n_gfs, d_gridfuncs->y_n_gfs, which_gf, which_gf);
     }
     cudaDeviceSynchronize();
-    """ if parallelization == "cuda" else "")
+    """
+        if parallelization == "cuda"
+        else ""
+    )
     body += f"""
     // Initialize lambdaU to zero
     gridfuncs->y_n_gfs[IDX4pt(LAMBDAU0GF, idx3)] = 0.0;
