@@ -276,7 +276,7 @@ if(fabs(round(currtime / outevery) * outevery - currtime) < 0.5*currdt) {
     if use_Ricci_eval_func:
         body += "Ricci_eval(params, griddata[grid].rfmstruct, y_n_gfs, auxevol_gfs);\n"
     body += r"""
-      constraints_eval(commondata, params, griddata[grid].rfmstruct, y_n_gfs, auxevol_gfs, diagnostic_output_gfs);
+      constraints_eval(params, griddata[grid].rfmstruct, y_n_gfs, auxevol_gfs, diagnostic_output_gfs);
     }
 
     // 0D output
@@ -393,8 +393,8 @@ def register_CFunction_rhs_eval(
     cfunc_type = "void"
     name = "rhs_eval"
     arg_dict_cuda = {
-        "in_gfs": "const REAL *restrict",
         "auxevol_gfs": "const REAL *restrict",
+        "in_gfs": "const REAL *restrict",
         "rhs_gfs": "REAL *restrict",
     }
     if enable_rfm_precompute:
