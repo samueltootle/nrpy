@@ -132,9 +132,9 @@ for(int grid=0; grid<commondata->NUMGRIDS; grid++) {
 """
     body += f"""initial_data_reader__convert_ADM_{IDCoordSystem}_to_BSSN(commondata, params,
 griddata[grid].xx, &griddata[grid].bcstruct, &griddata[grid].gridfuncs, &ID_persist, {IDtype});""".replace(
-        "&griddata[grid].bcstruct, &griddata[grid].gridfuncs,",
+        "griddata[grid].xx, &griddata[grid].bcstruct, &griddata[grid].gridfuncs,",
         (
-            "&d_griddata[grid].bcstruct, &griddata[grid].gridfuncs,&d_griddata[grid].gridfuncs,"
+            "griddata[grid].xx, d_griddata[grid].xx, &d_griddata[grid].bcstruct, &griddata[grid].gridfuncs,&d_griddata[grid].gridfuncs,"
             if parallelization == "cuda"
             else "&griddata[grid].bcstruct, &griddata[grid].gridfuncs,"
         ),

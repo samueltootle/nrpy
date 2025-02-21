@@ -663,6 +663,9 @@ typedef struct __rescaled_BSSN_rfm_basis_struct__ {
             if parallelization == "cuda"
             else "gridfuncs,"
         ),
+    ).replace(
+        "xx[3],",
+        "xx[3], REAL *restrict d_xx[3]," if parallelization == "cuda" else "xx[3],",
     )
 
     body = r"""
@@ -733,6 +736,8 @@ typedef struct __rescaled_BSSN_rfm_basis_struct__ {
   {lambdaU_launch}
 """.replace(
         "gridfuncs->", "d_gridfuncs->" if parallelization == "cuda" else "gridfuncs->"
+    ).replace(
+        " xx", " d_xx" if parallelization == "cuda" else " xx"
     )
     cfc.register_CFunction(
         includes=includes,
