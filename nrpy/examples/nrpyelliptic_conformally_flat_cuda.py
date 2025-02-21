@@ -31,9 +31,9 @@ from nrpy.infrastructures.BHaH import (
     griddata_commondata,
     rfm_precompute,
     rfm_wrapper_functions,
+    xx_tofrom_Cart,
 )
 from nrpy.infrastructures.BHaH.MoLtimestepping import MoL_register_all
-from nrpy.infrastructures.BHaH import xx_tofrom_Cart
 
 par.set_parval_from_str("Infrastructure", "BHaH")
 
@@ -196,7 +196,9 @@ numericalgrids.register_CFunctions(
     enable_rfm_precompute=enable_rfm_precompute,
     enable_CurviBCs=True,
 )
-xx_tofrom_Cart.register_CFunction_xx_to_Cart(CoordSystem=CoordSystem, parallelization="cuda")
+xx_tofrom_Cart.register_CFunction_xx_to_Cart(
+    CoordSystem=CoordSystem, parallelization="cuda"
+)
 
 nrpyellClib.register_CFunction_diagnostics(
     CoordSystem=CoordSystem,
