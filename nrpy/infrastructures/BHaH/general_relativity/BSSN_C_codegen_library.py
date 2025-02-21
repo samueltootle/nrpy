@@ -37,7 +37,7 @@ from nrpy.equations.general_relativity.InitialData_Cartesian import (
 from nrpy.equations.general_relativity.InitialData_Spherical import (
     InitialData_Spherical,
 )
-from nrpy.helpers.expression_utils import get_unique_expression_symbols_as_strings, get_params_commondata_symbols_from_expr_list
+from nrpy.helpers.expression_utils import get_params_commondata_symbols_from_expr_list
 
 
 def register_CFunction_initial_data(
@@ -220,10 +220,19 @@ def register_CFunction_diagnostics(
             ("REAL", "alphaL"): "y_n_gfs[IDX4pt(ALPHAGF, idx3)]",
             ("REAL", "trKL"): "y_n_gfs[IDX4pt(TRKGF, idx3)]",
         }
-    out_quantities_indexes = []
     if not isinstance(out_quantities_dict, dict):
         raise TypeError(f"out_quantities_dict was initialized to {out_quantities_dict}, which is not a dictionary!")
     # fmt: on
+    out_quantities_gf_indexes_dict = {
+        tmp_str.replace(" ", "")
+        .split("[")[1]
+        .split(",")[0]
+        .replace("IDX4pt(", ""): gf_ptr
+        for gf_ptr in ["y_n_gfs", "diagnostic_output_gfs"]
+        for v in out_quantities_dict.values()
+        for tmp_str in v.split(gf_ptr)
+        if "IDX4pt" in tmp_str and tmp_str and tmp_str[0] == "["
+    }
 
     for CoordSystem in list_of_CoordSystems:
         out012d.register_CFunction_diagnostics_nearest_grid_center(
@@ -250,7 +259,12 @@ def register_CFunction_diagnostics(
     cfunc_type = "void"
     name = "diagnostics"
     params = (
-        "commondata_struct *restrict commondata, griddata_struct *restrict griddata" + (", griddata_struct *restrict griddata_host" if parallelization == "cuda" else "")
+        "commondata_struct *restrict commondata, griddata_struct *restrict griddata"
+        + (
+            ", griddata_struct *restrict griddata_host"
+            if parallelization == "cuda"
+            else ""
+        )
     )
 
     body = r"""
@@ -276,9 +290,11 @@ if(fabs(round(currtime / outevery) * outevery - currtime) < 0.5*currdt) {
     if parallelization == "cuda":
         body += r"""
     REAL *restrict host_y_n_gfs = griddata_host[grid].gridfuncs.y_n_gfs;
-    REAL *restrict host_diag_gfs = griddata_host[grid].gridfuncs.diagnostic_output_gfs;
-    size_t streamid = cpyDevicetoHost__gf(commondata, params, host_y_n_gfs, y_n_gfs, UUGF, UUGF);
+    REAL *restrict host_diagnostic_output_gfs = griddata_host[grid].gridfuncs.diagnostic_output_gfs;
 """
+        for cnt, (idx, gf) in enumerate(out_quantities_gf_indexes_dict.items()):
+            if "y_n_gfs" in gf:
+                body += f"    size_t streamid{cnt} = cpyDevicetoHost__gf(commondata, params, host_{gf}, {gf}, {idx}, {idx});\n"
     body += r"""
     // Constraint output
     {
@@ -287,8 +303,14 @@ if(fabs(round(currtime / outevery) * outevery - currtime) < 0.5*currdt) {
         body += "Ricci_eval(params, griddata[grid].rfmstruct, y_n_gfs, auxevol_gfs);\n"
     body += r"""
       constraints_eval(params, griddata[grid].rfmstruct, y_n_gfs, auxevol_gfs, diagnostic_output_gfs);
-    }
+    }"""
 
+    if parallelization == "cuda":
+        for cnt, (idx, gf) in enumerate(out_quantities_gf_indexes_dict.items()):
+            if "diagnostic_output_gfs" in gf:
+                body += f"    size_t streamid{cnt} = cpyDevicetoHost__gf(commondata, params, host_{gf}, {gf}, {idx}, {idx});\n"
+
+    body += """
     // 0D output
     diagnostics_nearest_grid_center(commondata, params, &griddata[grid].gridfuncs);
 
@@ -299,7 +321,9 @@ if(fabs(round(currtime / outevery) * outevery - currtime) < 0.5*currdt) {
     // 2D output
     diagnostics_nearest_2d_xy_plane(commondata, params, xx, &griddata[grid].gridfuncs);
     diagnostics_nearest_2d_yz_plane(commondata, params, xx, &griddata[grid].gridfuncs);
-"""
+""".replace(
+        "griddata", "griddata_host" if parallelization == "cuda" else "griddata"
+    )
     if enable_psi4_diagnostics:
         body += r"""      // Do psi4 output, but only if the grid is spherical-like.
       if (strstr(CoordSystemName, "Spherical") != NULL) {
@@ -624,7 +648,9 @@ def register_CFunction_rhs_eval(
     expr_list = list(local_BSSN_RHSs_varname_to_expr_dict.values())
 
     # Find symbols stored in params
-    param_symbols, commondata_symbols = get_params_commondata_symbols_from_expr_list(expr_list, exclude=[f"xx{j}" for j in range(3)])
+    param_symbols, commondata_symbols = get_params_commondata_symbols_from_expr_list(
+        expr_list, exclude=[f"xx{j}" for j in range(3)]
+    )
     params_body = ""
     for symbol in param_symbols:
         params_body += f"const REAL {symbol} = params->{symbol};\n"
@@ -632,12 +658,15 @@ def register_CFunction_rhs_eval(
 
     arg_dict_cuda = {
         **arg_dict_cuda,
-        **{f"NOCUDA{k}" if enable_intrinsics else k: "const REAL" for k in commondata_symbols},
+        **{
+            f"NOCUDA{k}" if enable_intrinsics else k: "const REAL"
+            for k in commondata_symbols
+        },
     }
 
     arg_dict_host = {
         "params": "const params_struct *restrict",
-        **{k.replace("CUDA", "SIMD"): v for k,v in arg_dict_cuda.items()},
+        **{k.replace("CUDA", "SIMD"): v for k, v in arg_dict_cuda.items()},
     }
 
     kernel_body = lp.simple_loop(
@@ -679,7 +708,11 @@ def register_CFunction_rhs_eval(
     )
 
     for symbol in commondata_symbols:
-        tmp_sym = f"NOSIMD{symbol}" if enable_intrinsics else symbol
+        tmp_sym = (
+            f"NOCUDA{symbol}"
+            if parallelization == "cuda"
+            else f"NOSIMD{symbol}" if enable_intrinsics else symbol
+        )
         launch_body = launch_body.replace(tmp_sym, f"commondata->{symbol}")
 
     prefunc = ""
@@ -792,7 +825,9 @@ def register_CFunction_Ricci_eval(
         OMP_collapse=OMP_collapse,
         parallelization=parallelization,
     )
-    loop_params = gpu_utils.get_loop_parameters(parallelization, enable_intrinsics=enable_intrinsics)
+    loop_params = gpu_utils.get_loop_parameters(
+        parallelization, enable_intrinsics=enable_intrinsics
+    )
     kernel_body = f"{loop_params}\n{kernel_body}"
 
     kernel, launch_body = gpu_utils.generate_kernel_and_launch_code(
@@ -924,7 +959,9 @@ def register_CFunction_constraints(
         OMP_collapse=OMP_collapse,
         parallelization=parallelization,
     )
-    loop_params = gpu_utils.get_loop_parameters(parallelization, enable_intrinsics=enable_intrinsics)
+    loop_params = gpu_utils.get_loop_parameters(
+        parallelization, enable_intrinsics=enable_intrinsics
+    )
     kernel_body = f"{loop_params}\n{kernel_body}"
 
     prefunc = ""
@@ -1066,7 +1103,9 @@ def register_CFunction_enforce_detgammabar_equals_detgammahat(
         OMP_collapse=OMP_collapse,
         parallelization=parallelization,
     )
-    loop_params = gpu_utils.get_loop_parameters(parallelization, enable_intrinsics=False)
+    loop_params = gpu_utils.get_loop_parameters(
+        parallelization, enable_intrinsics=False
+    )
     kernel_body = f"{loop_params}\n{kernel_body}"
 
     kernel, launch_body = gpu_utils.generate_kernel_and_launch_code(
@@ -1193,7 +1232,7 @@ static void lowlevel_decompose_psi4_into_swm2_modes(const int Nxx_plus_2NGHOSTS1
     const REAL xCart_R_ext[3] = { R_ext, 0.0, 0.0 }; // just put a point on the x-axis.
 
     int Cart_to_i0i1i2[3]; REAL closest_xx[3];
-    Cart_to_xx_and_nearest_i0i1i2(commondata,params, xCart_R_ext, closest_xx, Cart_to_i0i1i2);
+    Cart_to_xx_and_nearest_i0i1i2(params, xCart_R_ext, closest_xx, Cart_to_i0i1i2);
 
     const int closest_i0=Cart_to_i0i1i2[0];
 
