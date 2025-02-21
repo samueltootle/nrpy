@@ -36,6 +36,7 @@ def register_CFunction__Cart_to_xx_and_nearest_i0i1i2(
     :param relative_to: Whether the computation is relative to the "local_grid_center"
                         (default) or "global_grid_center".
     :param gridding_approach: Choices: "independent grid(s)" (default) or "multipatch".
+    :param parallelization: The parallelization method to use.
     :raises ValueError: When the value of `gridding_approach` is not "independent grid(s)"
                         or "multipatch".
     """
@@ -117,7 +118,9 @@ def register_CFunction__Cart_to_xx_and_nearest_i0i1i2(
         unique_symbols = []
         for expr in expr_list:
             unique_symbols += get_unique_expression_symbols_as_strings(
-                expr, exclude=[f"xx{i}" for i in range(3)] + [f"Cart{c}" for c in ['x', 'y', 'z']]
+                expr,
+                exclude=[f"xx{i}" for i in range(3)]
+                + [f"Cart{c}" for c in ["x", "y", "z"]],
             )
         unique_symbols = sorted(list(set(unique_symbols)))
         for sym in unique_symbols:
@@ -168,6 +171,7 @@ def register_CFunction_xx_to_Cart(
 
     :param CoordSystem: The coordinate system name as a string.
     :param gridding_approach: Choices: "independent grid(s)" (default) or "multipatch".
+    :param parallelization: The parallelization method to use.
 
     :raises ValueError: If an invalid gridding_approach is provided.
     """
