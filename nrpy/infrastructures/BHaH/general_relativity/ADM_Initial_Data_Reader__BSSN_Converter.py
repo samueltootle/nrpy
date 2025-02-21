@@ -657,7 +657,7 @@ typedef struct __rescaled_BSSN_rfm_basis_struct__ {
     cfunc_type = "void"
     name = f"initial_data_reader__convert_ADM_{IDCoordSystem}_to_BSSN"
     params = """const commondata_struct *restrict commondata, const params_struct *restrict params,
-    REAL *restrict xx[3], bc_struct *restrict bcstruct, MoL_gridfunctions_struct *restrict gridfuncs,
+    const REAL *restrict xx[3], bc_struct *restrict bcstruct, MoL_gridfunctions_struct *restrict gridfuncs,
     ID_persist_struct *restrict ID_persist,
     void ID_function(const commondata_struct *restrict commondata, const params_struct *restrict params, const REAL xCart[3],
                      const ID_persist_struct *restrict ID_persist,
@@ -670,7 +670,7 @@ typedef struct __rescaled_BSSN_rfm_basis_struct__ {
         ),
     ).replace(
         "xx[3],",
-        "xx[3], REAL *restrict d_xx[3]," if parallelization == "cuda" else "xx[3],",
+        "xx[3], const REAL *restrict d_xx[3]," if parallelization == "cuda" else "xx[3],",
     )
 
     body = r"""
