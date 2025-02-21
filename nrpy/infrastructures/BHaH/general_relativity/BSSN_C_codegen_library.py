@@ -179,6 +179,7 @@ def register_CFunction_diagnostics(
         "CoordSystemName, convergence_factor, time",
     ),
     out_quantities_dict: Union[str, Dict[Tuple[str, str], str]] = "default",
+    parallelization: str = "openmp",
 ) -> Union[None, pcg.NRPyEnv_type]:
     """
     Register C function for simulation diagnostics.
@@ -192,6 +193,7 @@ def register_CFunction_diagnostics(
     :param axis_filename_tuple: Tuple containing filename and variables for axis output.
     :param plane_filename_tuple: Tuple containing filename and variables for plane output.
     :param out_quantities_dict: Dictionary or string specifying output quantities.
+    :param parallelization: The parallelization strategy to be used. Defaults to "openmp".
 
     :return: None if in registration phase, else the updated NRPy environment.
     :raises TypeError: If `out_quantities_dict` is not a dictionary and not set to "default".
@@ -218,6 +220,7 @@ def register_CFunction_diagnostics(
             ("REAL", "alphaL"): "y_n_gfs[IDX4pt(ALPHAGF, idx3)]",
             ("REAL", "trKL"): "y_n_gfs[IDX4pt(TRKGF, idx3)]",
         }
+    out_quantities_indexes = []
     if not isinstance(out_quantities_dict, dict):
         raise TypeError(f"out_quantities_dict was initialized to {out_quantities_dict}, which is not a dictionary!")
     # fmt: on
@@ -247,7 +250,7 @@ def register_CFunction_diagnostics(
     cfunc_type = "void"
     name = "diagnostics"
     params = (
-        "commondata_struct *restrict commondata, griddata_struct *restrict griddata"
+        "commondata_struct *restrict commondata, griddata_struct *restrict griddata" + (", griddata_struct *restrict griddata_host" if parallelization == "cuda" else "")
     )
 
     body = r"""
@@ -269,7 +272,14 @@ if(fabs(round(currtime / outevery) * outevery - currtime) < 0.5*currdt) {
     }
     const params_struct *restrict params = &griddata[grid].params;
 #include "set_CodeParameters.h"
-
+"""
+    if parallelization == "cuda":
+        body += r"""
+    REAL *restrict host_y_n_gfs = griddata_host[grid].gridfuncs.y_n_gfs;
+    REAL *restrict host_diag_gfs = griddata_host[grid].gridfuncs.diagnostic_output_gfs;
+    size_t streamid = cpyDevicetoHost__gf(commondata, params, host_y_n_gfs, y_n_gfs, UUGF, UUGF);
+"""
+    body += r"""
     // Constraint output
     {
 """
