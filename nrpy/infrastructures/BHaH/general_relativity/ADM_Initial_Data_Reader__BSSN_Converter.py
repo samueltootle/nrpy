@@ -19,6 +19,7 @@ import nrpy.indexedexp as ixp  # NRPy+: Symbolic indexed expression (e.g., tenso
 import nrpy.infrastructures.BHaH.simple_loop as lp
 import nrpy.reference_metric as refmetric  # NRPy+: Reference metric support
 from nrpy.equations.general_relativity.ADM_to_BSSN import ADM_to_BSSN
+import nrpy.helpers.gpu.utilities as gpu_utils
 
 # NRPy+: Computes useful BSSN quantities; e.g., gammabarUU & GammabarUDD needed below
 from nrpy.equations.general_relativity.BSSN_quantities import BSSN_quantities
@@ -458,7 +459,8 @@ def Cfunction_initial_data_lambdaU_grid_interior(
     }
     arg_dict_host = {
         "params": "const params_struct *restrict",
-        **arg_dict_cuda,
+        "xx[3]": "const REAL *restrict",
+        "in_gfs": "REAL *restrict",
     }
     # Step 7: Compute $\bar{\Lambda}^i$ from finite-difference derivatives of rescaled metric quantities
 
@@ -488,6 +490,7 @@ def Cfunction_initial_data_lambdaU_grid_interior(
     for i in range(3):
         lambdaU[i] = LambdabarU[i] / rfm.ReU[i]
 
+    enable_intrinsics = True if parallelization != "openmp" else False
     kernel_body = lp.simple_loop(
         ccg.c_codegen(
             lambdaU,
@@ -499,13 +502,15 @@ def Cfunction_initial_data_lambdaU_grid_interior(
             verbose=False,
             include_braces=False,
             enable_fd_codegen=True,
-            enable_simd=True if parallelization != "openmp" else False,
+            enable_simd=enable_intrinsics,
         ).replace("SIMD", "CUDA" if parallelization == "cuda" else "SIMD"),
         loop_region="interior",
         read_xxs=True,
         parallelization=parallelization,
-        enable_intrinsics=True if parallelization != "openmp" else False,
+        enable_intrinsics=enable_intrinsics,
     )
+    loop_params = gpu_utils.get_loop_parameters(parallelization, enable_intrinsics=enable_intrinsics)
+    kernel_body = f"{loop_params}\n{kernel_body}"
 
     prefunc, launch_body = generate_kernel_and_launch_code(
         name,
@@ -520,7 +525,7 @@ def Cfunction_initial_data_lambdaU_grid_interior(
 
     launch_body = launch_body.replace("in_gfs", "gridfuncs->y_n_gfs")
     for i in range(3):
-        launch_body = launch_body.replace(f"x{i},", f"xx[{i}],")
+        launch_body = launch_body.replace(f"x{i},", f"xx[{i}],") if parallelization == "cuda" else launch_body.replace("xx[3],","xx,")
 
     return prefunc, launch_body
 
@@ -709,12 +714,12 @@ typedef struct __rescaled_BSSN_rfm_basis_struct__ {
             for nu in range(mu, 4):
                 gf = f"T4UU{mu}{nu}"
                 body += f"gridfuncs->auxevol_gfs[IDX4pt({gf.upper()}GF, idx3)] = rescaled_BSSN_rfm_basis.{gf};\n"
-    post_initial_data_call = """
+    post_initial_data_call = ("""
     for (int which_gf = 0; which_gf < NUM_EVOL_GFS; which_gf++) {
         cpyHosttoDevice__gf(commondata, params, gridfuncs->y_n_gfs, d_gridfuncs->y_n_gfs, which_gf, which_gf);
     }
     cudaDeviceSynchronize();
-    """
+    """ if parallelization == "cuda" else "")
     body += f"""
     // Initialize lambdaU to zero
     gridfuncs->y_n_gfs[IDX4pt(LAMBDAU0GF, idx3)] = 0.0;

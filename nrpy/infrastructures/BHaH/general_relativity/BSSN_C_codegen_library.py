@@ -37,7 +37,7 @@ from nrpy.equations.general_relativity.InitialData_Cartesian import (
 from nrpy.equations.general_relativity.InitialData_Spherical import (
     InitialData_Spherical,
 )
-from nrpy.helpers.expression_utils import get_unique_expression_symbols_as_strings
+from nrpy.helpers.expression_utils import get_unique_expression_symbols_as_strings, get_params_commondata_symbols_from_expr_list
 
 
 def register_CFunction_initial_data(
@@ -136,7 +136,7 @@ griddata[grid].xx, &griddata[grid].bcstruct, &griddata[grid].gridfuncs, &ID_pers
         (
             "griddata[grid].xx, d_griddata[grid].xx, &d_griddata[grid].bcstruct, &griddata[grid].gridfuncs,&d_griddata[grid].gridfuncs,"
             if parallelization == "cuda"
-            else "&griddata[grid].bcstruct, &griddata[grid].gridfuncs,"
+            else "griddata[grid].xx, &griddata[grid].bcstruct, &griddata[grid].gridfuncs,"
         ),
     )
     body += """
@@ -614,37 +614,20 @@ def register_CFunction_rhs_eval(
     expr_list = list(local_BSSN_RHSs_varname_to_expr_dict.values())
 
     # Find symbols stored in params
-    unique_symbols = []
-    for tmp_expr in expr_list:
-        unique_symbols += get_unique_expression_symbols_as_strings(
-            tmp_expr, exclude=[f"xx{j}" for j in range(3)]
-        )
-    unique_symbols = list(set(unique_symbols))
-
-    param_symbols = list(
-        set(unique_symbols)
-        & set(
-            k if not v.commondata else "" for k, v in par.glb_code_params_dict.items()
-        )
-    )
+    param_symbols, commondata_symbols = get_params_commondata_symbols_from_expr_list(expr_list, exclude=[f"xx{j}" for j in range(3)])
     params_body = ""
     for symbol in param_symbols:
         params_body += f"const REAL {symbol} = params->{symbol};\n"
     params_body.replace("params->", gpu_utils.get_params_access(parallelization))
 
-    commondata_symbols = list(
-        set(unique_symbols)
-        & set(k if v.commondata else "" for k, v in par.glb_code_params_dict.items())
-    )
-
     arg_dict_cuda = {
         **arg_dict_cuda,
-        **{k: "const REAL" for k in commondata_symbols},
+        **{f"NOCUDA{k}" if enable_intrinsics else k: "const REAL" for k in commondata_symbols},
     }
 
     arg_dict_host = {
         "params": "const params_struct *restrict",
-        **arg_dict_cuda,
+        **{k.replace("CUDA", "SIMD"): v for k,v in arg_dict_cuda.items()},
     }
 
     kernel_body = lp.simple_loop(
@@ -667,8 +650,12 @@ def register_CFunction_rhs_eval(
         OMP_collapse=OMP_collapse,
         parallelization=parallelization,
     )
+    loop_params = f"{gpu_utils.get_loop_parameters(parallelization, enable_intrinsics=enable_intrinsics)}\n"
+    if enable_intrinsics:
+        for symbol in commondata_symbols:
+            loop_params += f"MAYBE_UNUSED const REAL_SIMD_ARRAY {symbol} = ConstSIMD(NOSIMD{symbol});\n"
 
-    kernel_body = f"{params_body}\n{kernel_body}"
+    kernel_body = f"{loop_params}\n{kernel_body}"
 
     kernel, launch_body = gpu_utils.generate_kernel_and_launch_code(
         name,
@@ -682,7 +669,8 @@ def register_CFunction_rhs_eval(
     )
 
     for symbol in commondata_symbols:
-        launch_body = launch_body.replace(symbol, f"commondata->{symbol}")
+        tmp_sym = f"NOSIMD{symbol}" if enable_intrinsics else symbol
+        launch_body = launch_body.replace(tmp_sym, f"commondata->{symbol}")
 
     prefunc = ""
     if parallelization == "cuda" and enable_fd_functions:
@@ -794,6 +782,8 @@ def register_CFunction_Ricci_eval(
         OMP_collapse=OMP_collapse,
         parallelization=parallelization,
     )
+    loop_params = gpu_utils.get_loop_parameters(parallelization, enable_intrinsics=enable_intrinsics)
+    kernel_body = f"{loop_params}\n{kernel_body}"
 
     kernel, launch_body = gpu_utils.generate_kernel_and_launch_code(
         name,
@@ -924,6 +914,8 @@ def register_CFunction_constraints(
         OMP_collapse=OMP_collapse,
         parallelization=parallelization,
     )
+    loop_params = gpu_utils.get_loop_parameters(parallelization, enable_intrinsics=enable_intrinsics)
+    kernel_body = f"{loop_params}\n{kernel_body}"
 
     prefunc = ""
     if parallelization == "cuda" and enable_fd_functions:
@@ -1064,6 +1056,8 @@ def register_CFunction_enforce_detgammabar_equals_detgammahat(
         OMP_collapse=OMP_collapse,
         parallelization=parallelization,
     )
+    loop_params = gpu_utils.get_loop_parameters(parallelization, enable_intrinsics=False)
+    kernel_body = f"{loop_params}\n{kernel_body}"
 
     kernel, launch_body = gpu_utils.generate_kernel_and_launch_code(
         name,
