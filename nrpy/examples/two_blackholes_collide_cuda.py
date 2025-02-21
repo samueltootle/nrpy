@@ -27,6 +27,7 @@ import nrpy.infrastructures.BHaH.diagnostics.progress_indicator as progress
 import nrpy.infrastructures.BHaH.general_relativity.BSSN_C_codegen_library as BCl
 import nrpy.infrastructures.BHaH.griddata_commondata as griddata_commondata
 import nrpy.infrastructures.BHaH.Makefile_helpers as Makefile
+import nrpy.infrastructures.BHaH.xx_tofrom_Cart as xxCartxx
 import nrpy.infrastructures.gpu.grid_management.cuda.numerical_grids_and_timestep as numericalgrids
 import nrpy.infrastructures.gpu.header_definitions.cuda_headers as gpudefines
 import nrpy.infrastructures.gpu.main_driver.cuda.main_c as main
@@ -34,7 +35,6 @@ import nrpy.params as par
 from nrpy.helpers.generic import copy_files
 from nrpy.infrastructures.BHaH import rfm_precompute, rfm_wrapper_functions
 from nrpy.infrastructures.BHaH.MoLtimestepping import MoL_register_all
-import nrpy.infrastructures.BHaH.xx_tofrom_Cart as xxCartxx
 
 par.set_parval_from_str("Infrastructure", "BHaH")
 
@@ -70,7 +70,7 @@ enable_KreissOliger_dissipation = False
 enable_CAKO = True
 boundary_conditions_desc = "outgoing radiation"
 num_streams = 3
-parallelization="cuda"
+parallelization = "cuda"
 
 OMP_collapse = 1
 if "Spherical" in CoordSystem:
@@ -129,6 +129,7 @@ BCl.register_CFunction_diagnostics(
         "convergence_factor, time",
     ),
     out_quantities_dict="default",
+    parallelization=parallelization,
 )
 if enable_rfm_precompute:
     rfm_precompute.register_CFunctions_rfm_precompute(
@@ -185,9 +186,7 @@ cbc.CurviBoundaryConditions_register_C_functions(
 )
 rhs_string = ""
 if separate_Ricci_and_BSSN_RHS:
-    rhs_string += (
-        "Ricci_eval(params, rfmstruct, RK_INPUT_GFS, auxevol_gfs);"
-    )
+    rhs_string += "Ricci_eval(params, rfmstruct, RK_INPUT_GFS, auxevol_gfs);"
 rhs_string += """
 rhs_eval(commondata, params, rfmstruct, auxevol_gfs, RK_INPUT_GFS, RK_OUTPUT_GFS);
 if (strncmp(commondata->outer_bc_type, "radiation", 50) == 0)
@@ -256,7 +255,9 @@ main.register_CFunction_main_c(
     boundary_conditions_desc=boundary_conditions_desc,
 )
 griddata_commondata.register_CFunction_griddata_free(
-    enable_rfm_precompute=enable_rfm_precompute, enable_CurviBCs=True, parallelization=parallelization,
+    enable_rfm_precompute=enable_rfm_precompute,
+    enable_CurviBCs=True,
+    parallelization=parallelization,
 )
 
 if enable_intrinsics:
