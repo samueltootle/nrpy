@@ -520,7 +520,7 @@ def Cfunction_initial_data_lambdaU_grid_interior(
         param_symbols,
         enable_intrinsics=enable_intrinsics,
         var_access=gpu_utils.get_params_access(parallelization),
-    )
+    ).replace("SIMD", "CUDA" if parallelization == "cuda" else "SIMD")
 
     kernel_body = f"{loop_params}\n{params_definitions}\n{kernel_body}"
 
