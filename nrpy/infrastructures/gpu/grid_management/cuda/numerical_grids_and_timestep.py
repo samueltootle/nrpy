@@ -167,7 +167,6 @@ const int Nxx_tot = (Nxx_plus_2NGHOSTS0)*(Nxx_plus_2NGHOSTS1)*(Nxx_plus_2NGHOSTS
             read_xxs=True,
             loop_region="all points",
             CoordSystem=self.CoordSystem,
-            parallelization="cuda",
         )
 
         loop_params = gpu_utils.get_loop_parameters("cuda")
