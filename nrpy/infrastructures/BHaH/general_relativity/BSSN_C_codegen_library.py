@@ -52,7 +52,7 @@ def register_CFunction_initial_data(
     populate_ID_persist_struct_str: str = "",
     free_ID_persist_struct_str: str = "",
     enable_T4munu: bool = False,
-    parallelization: str = "openmp",
+    **kwargs
 ) -> Union[None, pcg.NRPyEnv_type]:
     """
     Register C functions for converting ADM initial data to BSSN variables and applying boundary conditions.
@@ -70,10 +70,10 @@ def register_CFunction_initial_data(
     :param populate_ID_persist_struct_str: Optional string to populate the persistent structure for initial data.
     :param free_ID_persist_struct_str: Optional string to free the persistent structure for initial data.
     :param enable_T4munu: Whether to include the stress-energy tensor. Defaults to False.
-    :param parallelization: The parallelization strategy to be used. Defaults to "openmp".
 
     :return: None if in registration phase, else the updated NRPy environment.
     """
+    parallelization = par.parval_from_str("parallelization")
     if pcg.pcg_registration_phase():
         pcg.register_func_call(f"{__name__}.{cast(FT, cfr()).f_code.co_name}", locals())
         return None
@@ -107,7 +107,6 @@ def register_CFunction_initial_data(
         IDCoordSystem=IDCoordSystem,
         ID_persist_struct_str=ID_persist_struct_str,
         enable_T4munu=enable_T4munu,
-        parallelization=parallelization,
     )
 
     desc = "Set initial data."
@@ -182,7 +181,6 @@ def register_CFunction_diagnostics(
         "CoordSystemName, convergence_factor, time",
     ),
     out_quantities_dict: Union[str, Dict[Tuple[str, str], str]] = "default",
-    parallelization: str = "openmp",
 ) -> Union[None, pcg.NRPyEnv_type]:
     """
     Register C function for simulation diagnostics.
@@ -196,7 +194,6 @@ def register_CFunction_diagnostics(
     :param axis_filename_tuple: Tuple containing filename and variables for axis output.
     :param plane_filename_tuple: Tuple containing filename and variables for plane output.
     :param out_quantities_dict: Dictionary or string specifying output quantities.
-    :param parallelization: The parallelization strategy to be used. Defaults to "openmp".
 
     :return: None if in registration phase, else the updated NRPy environment.
     :raises TypeError: If `out_quantities_dict` is not a dictionary and not set to "default".
@@ -213,6 +210,7 @@ def register_CFunction_diagnostics(
     )
 
     includes = ["BHaH_defines.h", "BHaH_function_prototypes.h"]
+    parallelization = par.parval_from_str("parallelization")
 
     # fmt: off
     if out_quantities_dict == "default":
@@ -392,7 +390,6 @@ def register_CFunction_rhs_eval(
     enable_CAHD: bool = False,
     enable_SSL: bool = False,
     OMP_collapse: int = 1,
-    parallelization: str = "openmp",
     validate_expressions: bool = False,
 ) -> Union[None, Dict[str, Union[mpf, mpc]], pcg.NRPyEnv_type]:
     """
@@ -413,7 +410,6 @@ def register_CFunction_rhs_eval(
     :param enable_CAHD: Whether to enable curvature-aware Hamiltonian-constraint damping.
     :param enable_SSL: Whether to enable slow-start lapse.
     :param OMP_collapse: Degree of OpenMP loop collapsing.
-    :param parallelization: The parallelization strategy to be used. Defaults to "openmp".
     :param validate_expressions: Whether to validate generated sympy expressions against trusted values.
 
     :raises ValueError: If EvolvedConformalFactor_cf not set to a supported value: {phi, chi, W}.
@@ -424,6 +420,7 @@ def register_CFunction_rhs_eval(
         pcg.register_func_call(f"{__name__}.{cast(FT, cfr()).f_code.co_name}", locals())
         return None
 
+    parallelization = par.parval_from_str("parallelization")
     includes = ["BHaH_defines.h"]
     if enable_intrinsics:
         includes += [
@@ -693,7 +690,6 @@ def register_CFunction_rhs_eval(
         enable_rfm_precompute=enable_rfm_precompute,
         read_xxs=not enable_rfm_precompute,
         OMP_collapse=OMP_collapse,
-        parallelization=parallelization,
     )
     loop_params = f"{gpu_utils.get_loop_parameters(parallelization, enable_intrinsics=enable_intrinsics)}\n"
     if enable_intrinsics:
@@ -755,7 +751,6 @@ def register_CFunction_Ricci_eval(
     enable_intrinsics: bool,
     enable_fd_functions: bool,
     OMP_collapse: int,
-    parallelization: str = "openmp",
 ) -> Union[None, pcg.NRPyEnv_type]:
     """
     Register the Ricci evaluation function.
@@ -765,7 +760,6 @@ def register_CFunction_Ricci_eval(
     :param enable_intrinsics: Whether to enable SIMD instructions.
     :param enable_fd_functions: Whether to enable finite difference functions.
     :param OMP_collapse: Degree of OpenMP loop collapsing.
-    :param parallelization: The parallelization strategy to be used. Defaults to "openmp".
 
     :return: None if in registration phase, else the updated NRPy environment.
     """
@@ -773,6 +767,7 @@ def register_CFunction_Ricci_eval(
         pcg.register_func_call(f"{__name__}.{cast(FT, cfr()).f_code.co_name}", locals())
         return None
 
+    parallelization = par.parval_from_str("parallelization")
     Bq = BSSN_quantities[
         CoordSystem + ("_rfm_precompute" if enable_rfm_precompute else "")
     ]
@@ -834,7 +829,6 @@ def register_CFunction_Ricci_eval(
         enable_rfm_precompute=enable_rfm_precompute,
         read_xxs=not enable_rfm_precompute,
         OMP_collapse=OMP_collapse,
-        parallelization=parallelization,
     )
     loop_params = gpu_utils.get_loop_parameters(
         parallelization, enable_intrinsics=enable_intrinsics
@@ -890,7 +884,6 @@ def register_CFunction_constraints(
     enable_intrinsics: bool,
     enable_fd_functions: bool,
     OMP_collapse: int,
-    parallelization: str = "openmp",
 ) -> Union[None, pcg.NRPyEnv_type]:
     """
     Register the BSSN constraints evaluation function.
@@ -902,7 +895,6 @@ def register_CFunction_constraints(
     :param enable_intrinsics: Whether to enable SIMD instructions.
     :param enable_fd_functions: Whether to enable finite difference functions.
     :param OMP_collapse: Degree of OpenMP loop collapsing.
-    :param parallelization: The parallelization strategy to be used. Defaults to "openmp".
 
     :return: None if in registration phase, else the updated NRPy environment.
     """
@@ -910,6 +902,7 @@ def register_CFunction_constraints(
         pcg.register_func_call(f"{__name__}.{cast(FT, cfr()).f_code.co_name}", locals())
         return None
 
+    parallelization = par.parval_from_str("parallelization")
     Bcon = BSSN_constraints[
         CoordSystem
         + ("_rfm_precompute" if enable_rfm_precompute else "")
@@ -976,7 +969,6 @@ def register_CFunction_constraints(
         enable_rfm_precompute=enable_rfm_precompute,
         read_xxs=not enable_rfm_precompute,
         OMP_collapse=OMP_collapse,
-        parallelization=parallelization,
     )
     loop_params = gpu_utils.get_loop_parameters(
         parallelization, enable_intrinsics=enable_intrinsics
@@ -1028,7 +1020,6 @@ def register_CFunction_enforce_detgammabar_equals_detgammahat(
     enable_rfm_precompute: bool,
     enable_fd_functions: bool,
     OMP_collapse: int,
-    parallelization: str = "openmp",
 ) -> Union[None, pcg.NRPyEnv_type]:
     """
     Register the function that enforces the det(gammabar) = det(gammahat) constraint.
@@ -1037,7 +1028,6 @@ def register_CFunction_enforce_detgammabar_equals_detgammahat(
     :param enable_rfm_precompute: Whether to enable reference metric precomputation.
     :param enable_fd_functions: Whether to enable finite difference functions.
     :param OMP_collapse: Degree of OpenMP loop collapsing.
-    :param parallelization: The parallelization strategy to be used. Defaults to "openmp".
 
     :return: None if in registration phase, else the updated NRPy environment.
     """
@@ -1045,6 +1035,7 @@ def register_CFunction_enforce_detgammabar_equals_detgammahat(
         pcg.register_func_call(f"{__name__}.{cast(FT, cfr()).f_code.co_name}", locals())
         return None
 
+    parallelization = par.parval_from_str("parallelization")
     Bq = BSSN_quantities[
         CoordSystem + ("_rfm_precompute" if enable_rfm_precompute else "")
     ]
@@ -1126,7 +1117,6 @@ def register_CFunction_enforce_detgammabar_equals_detgammahat(
         enable_rfm_precompute=enable_rfm_precompute,
         read_xxs=not enable_rfm_precompute,
         OMP_collapse=OMP_collapse,
-        parallelization=parallelization,
     )
     loop_params = gpu_utils.get_loop_parameters(
         parallelization, enable_intrinsics=False

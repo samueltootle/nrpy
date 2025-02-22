@@ -18,6 +18,7 @@ import nrpy.helpers.gpu.utilities as gpu_utils
 import nrpy.helpers.jacobians as jac
 import nrpy.indexedexp as ixp  # NRPy+: Symbolic indexed expression (e.g., tensors, vectors, etc.) support
 import nrpy.infrastructures.BHaH.simple_loop as lp
+import nrpy.params as par  # NRPy+: Parameter interface
 import nrpy.reference_metric as refmetric  # NRPy+: Reference metric support
 from nrpy.equations.general_relativity.ADM_to_BSSN import ADM_to_BSSN
 
@@ -442,19 +443,18 @@ After the basis transform, all BSSN quantities are rescaled."""
 # finite-difference derivatives of rescaled metric quantities
 def Cfunction_initial_data_lambdaU_grid_interior(
     CoordSystem: str,
-    parallelization: str = "openmp",
 ) -> Tuple[str, str]:
     """
     Compute lambdaU in the specified coordinate system.
 
     :param CoordSystem: The coordinate system to be used.
-    :param parallelization: The parallelization strategy to be used. Defaults to "openmp".
     :return: The full function generated for computing lambdaU.
     """
     cfunc_type = "static void"
 
     desc = f"Compute lambdaU in {CoordSystem} coordinates"
     name = "initial_data_lambdaU_grid_interior"
+    parallelization = par.parval_from_str("parallelization")
     arg_dict_cuda = {
         "x0": "const REAL *restrict",
         "x1": "const REAL *restrict",
@@ -510,7 +510,6 @@ def Cfunction_initial_data_lambdaU_grid_interior(
         ).replace("SIMD", "CUDA" if parallelization == "cuda" else "SIMD"),
         loop_region="interior",
         read_xxs=True,
-        parallelization=parallelization,
         enable_intrinsics=enable_intrinsics,
     )
     loop_params = gpu_utils.get_loop_parameters(
@@ -554,7 +553,6 @@ def register_CFunction_initial_data_reader__convert_ADM_Sph_or_Cart_to_BSSN(
     enable_T4munu: bool = False,
     enable_fd_functions: bool = False,
     ID_persist_struct_str: str = "",
-    parallelization: str = "openmp",
 ) -> None:
     """
     Register the CFunction for converting initial ADM data to BSSN variables.
@@ -565,10 +563,10 @@ def register_CFunction_initial_data_reader__convert_ADM_Sph_or_Cart_to_BSSN(
     :param enable_T4munu: Whether to include stress-energy tensor components.
     :param enable_fd_functions: Whether to enable finite-difference functions.
     :param ID_persist_struct_str: String for persistent ID structure.
-    :param parallelization: The parallelization strategy to be used. Defaults to "openmp".
 
     :raises ValueError: If `addl_includes` is provided but is not a list, ensuring that additional includes are correctly formatted for inclusion.
     """
+    parallelization = par.parval_from_str("parallelization")
     # Step 1: construct this function's contribution to BHaH_defines.h:
     BHd = r"""typedef struct __initial_data_struct__ {
   REAL alpha;
@@ -666,7 +664,7 @@ typedef struct __rescaled_BSSN_rfm_basis_struct__ {
         enable_T4munu=enable_T4munu,
     )
     lambdaU_prefunc, lambdaU_launch = Cfunction_initial_data_lambdaU_grid_interior(
-        CoordSystem=CoordSystem, parallelization=parallelization
+        CoordSystem=CoordSystem
     )
     prefunc += lambdaU_prefunc
 
