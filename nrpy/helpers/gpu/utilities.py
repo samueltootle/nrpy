@@ -54,7 +54,7 @@ def get_check_errors_str(
     opt_msg = f"{kernel_name} failed." if opt_msg == "" else opt_msg
 
     if parallelization == "cuda":
-        check_errors_str = f"cudaCheckErrors({kernel_name}, \"{opt_msg}\");\n"
+        check_errors_str = f'cudaCheckErrors({kernel_name}, "{opt_msg}");\n'
     else:
         check_errors_str = ""
     return check_errors_str
@@ -88,6 +88,8 @@ def generate_kernel_and_launch_code(
     :param cfunc_type: e.g. "static void"
     :param comments: Kernel docstring or extra comments
     :param launch_dict: Dictionary to overload CUDA launch settings.
+    :param launchblock_with_braces: If True, wrap the launch block in braces.
+
     :return: (prefunc, body) code strings.
     """
     # Prepare return strings
