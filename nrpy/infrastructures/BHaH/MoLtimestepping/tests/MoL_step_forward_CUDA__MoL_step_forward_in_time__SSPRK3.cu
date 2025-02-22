@@ -33,7 +33,6 @@ static void rk_substep_1__launcher(params_struct *restrict params, REAL *restric
   MAYBE_UNUSED const int Ntot = Nxx_plus_2NGHOSTS0 * Nxx_plus_2NGHOSTS1 * Nxx_plus_2NGHOSTS2 * NUM_EVOL_GFS;
 
   {
-
     const size_t threads_in_x_dir = 32;
     const size_t threads_in_y_dir = 1;
     const size_t threads_in_z_dir = 1;
@@ -56,7 +55,7 @@ __global__ static void rk_substep_2_gpu(const size_t streamid, REAL *restrict k1
     const REAL k1_gfsL = k1_gfs[i];
     const REAL k2_gfsL = k2_gfs[i];
     const REAL y_n_gfsL = y_n_gfs[i];
-    static const double dblRK_Rational_1_4 = 1.0 / 4.0;
+    static constexpr double dblRK_Rational_1_4 = 1.0 / 4.0;
     const REAL_CUDA_ARRAY RK_Rational_1_4 = ConstCUDA(dblRK_Rational_1_4);
 
     const REAL_CUDA_ARRAY __rk_exp_0 = FusedMulAddCUDA(RK_Rational_1_4, FusedMulAddCUDA(k1_gfsL, dt, MulCUDA(k2_gfsL, dt)), y_n_gfsL);
@@ -75,7 +74,6 @@ static void rk_substep_2__launcher(params_struct *restrict params, REAL *restric
   MAYBE_UNUSED const int Ntot = Nxx_plus_2NGHOSTS0 * Nxx_plus_2NGHOSTS1 * Nxx_plus_2NGHOSTS2 * NUM_EVOL_GFS;
 
   {
-
     const size_t threads_in_x_dir = 32;
     const size_t threads_in_y_dir = 1;
     const size_t threads_in_z_dir = 1;
@@ -99,10 +97,10 @@ __global__ static void rk_substep_3_gpu(const size_t streamid, REAL *restrict k1
     const REAL k2_gfsL = k2_gfs[i];
     const REAL k3_gfsL = k3_gfs[i];
     const REAL y_n_gfsL = y_n_gfs[i];
-    static const double dblRK_Rational_1_6 = 1.0 / 6.0;
+    static constexpr double dblRK_Rational_1_6 = 1.0 / 6.0;
     const REAL_CUDA_ARRAY RK_Rational_1_6 = ConstCUDA(dblRK_Rational_1_6);
 
-    static const double dblRK_Rational_2_3 = 2.0 / 3.0;
+    static constexpr double dblRK_Rational_2_3 = 2.0 / 3.0;
     const REAL_CUDA_ARRAY RK_Rational_2_3 = ConstCUDA(dblRK_Rational_2_3);
 
     const REAL_CUDA_ARRAY __rk_exp_0 = FusedMulAddCUDA(RK_Rational_1_6, FusedMulAddCUDA(k1_gfsL, dt, MulCUDA(k2_gfsL, dt)),
@@ -122,7 +120,6 @@ static void rk_substep_3__launcher(params_struct *restrict params, REAL *restric
   MAYBE_UNUSED const int Ntot = Nxx_plus_2NGHOSTS0 * Nxx_plus_2NGHOSTS1 * Nxx_plus_2NGHOSTS2 * NUM_EVOL_GFS;
 
   {
-
     const size_t threads_in_x_dir = 32;
     const size_t threads_in_y_dir = 1;
     const size_t threads_in_z_dir = 1;

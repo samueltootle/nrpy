@@ -32,7 +32,6 @@ static void rk_substep_None__launcher(params_struct *restrict params, REAL *rest
   MAYBE_UNUSED const int Ntot = Nxx_plus_2NGHOSTS0 * Nxx_plus_2NGHOSTS1 * Nxx_plus_2NGHOSTS2 * NUM_EVOL_GFS;
 
   {
-
     const size_t threads_in_x_dir = 32;
     const size_t threads_in_y_dir = 1;
     const size_t threads_in_z_dir = 1;

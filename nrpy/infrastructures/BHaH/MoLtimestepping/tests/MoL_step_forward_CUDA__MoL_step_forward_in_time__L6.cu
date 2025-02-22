@@ -33,7 +33,6 @@ static void rk_substep_1__launcher(params_struct *restrict params, REAL *restric
   MAYBE_UNUSED const int Ntot = Nxx_plus_2NGHOSTS0 * Nxx_plus_2NGHOSTS1 * Nxx_plus_2NGHOSTS2 * NUM_EVOL_GFS;
 
   {
-
     const size_t threads_in_x_dir = 32;
     const size_t threads_in_y_dir = 1;
     const size_t threads_in_z_dir = 1;
@@ -56,10 +55,10 @@ __global__ static void rk_substep_2_gpu(const size_t streamid, REAL *restrict k1
     const REAL k1_gfsL = k1_gfs[i];
     const REAL k2_gfsL = k2_gfs[i];
     const REAL y_n_gfsL = y_n_gfs[i];
-    static const double dblRK_Rational_1_8 = 1.0 / 8.0;
+    static constexpr double dblRK_Rational_1_8 = 1.0 / 8.0;
     const REAL_CUDA_ARRAY RK_Rational_1_8 = ConstCUDA(dblRK_Rational_1_8);
 
-    static const double dblRK_Rational_3_8 = 3.0 / 8.0;
+    static constexpr double dblRK_Rational_3_8 = 3.0 / 8.0;
     const REAL_CUDA_ARRAY RK_Rational_3_8 = ConstCUDA(dblRK_Rational_3_8);
 
     const REAL_CUDA_ARRAY __rk_exp_0 =
@@ -79,7 +78,6 @@ static void rk_substep_2__launcher(params_struct *restrict params, REAL *restric
   MAYBE_UNUSED const int Ntot = Nxx_plus_2NGHOSTS0 * Nxx_plus_2NGHOSTS1 * Nxx_plus_2NGHOSTS2 * NUM_EVOL_GFS;
 
   {
-
     const size_t threads_in_x_dir = 32;
     const size_t threads_in_y_dir = 1;
     const size_t threads_in_z_dir = 1;
@@ -103,10 +101,10 @@ __global__ static void rk_substep_3_gpu(const size_t streamid, REAL *restrict k1
     const REAL k2_gfsL = k2_gfs[i];
     const REAL k3_gfsL = k3_gfs[i];
     const REAL y_n_gfsL = y_n_gfs[i];
-    static const double dblRK_Rational_2_27 = 2.0 / 27.0;
+    static constexpr double dblRK_Rational_2_27 = 2.0 / 27.0;
     const REAL_CUDA_ARRAY RK_Rational_2_27 = ConstCUDA(dblRK_Rational_2_27);
 
-    static const double dblRK_Rational_8_27 = 8.0 / 27.0;
+    static constexpr double dblRK_Rational_8_27 = 8.0 / 27.0;
     const REAL_CUDA_ARRAY RK_Rational_8_27 = ConstCUDA(dblRK_Rational_8_27);
 
     const REAL_CUDA_ARRAY __rk_exp_0 = FusedMulAddCUDA(RK_Rational_8_27, FusedMulAddCUDA(k1_gfsL, dt, MulCUDA(k3_gfsL, dt)),
@@ -126,7 +124,6 @@ static void rk_substep_3__launcher(params_struct *restrict params, REAL *restric
   MAYBE_UNUSED const int Ntot = Nxx_plus_2NGHOSTS0 * Nxx_plus_2NGHOSTS1 * Nxx_plus_2NGHOSTS2 * NUM_EVOL_GFS;
 
   {
-
     const size_t threads_in_x_dir = 32;
     const size_t threads_in_y_dir = 1;
     const size_t threads_in_z_dir = 1;
@@ -151,31 +148,31 @@ __global__ static void rk_substep_4_gpu(const size_t streamid, REAL *restrict k1
     const REAL k3_gfsL = k3_gfs[i];
     const REAL k4_gfsL = k4_gfs[i];
     const REAL y_n_gfsL = y_n_gfs[i];
-    static const double dbl_NegativeOne_ = -1.0;
+    static constexpr double dbl_NegativeOne_ = -1.0;
     MAYBE_UNUSED const REAL_CUDA_ARRAY _NegativeOne_ = ConstCUDA(dbl_NegativeOne_);
 
-    static const double dblRK_Rational_1_49 = 1.0 / 49.0;
+    static constexpr double dblRK_Rational_1_49 = 1.0 / 49.0;
     const REAL_CUDA_ARRAY RK_Rational_1_49 = ConstCUDA(dblRK_Rational_1_49);
 
-    static const double dblRK_Rational_1_7 = 1.0 / 7.0;
+    static constexpr double dblRK_Rational_1_7 = 1.0 / 7.0;
     const REAL_CUDA_ARRAY RK_Rational_1_7 = ConstCUDA(dblRK_Rational_1_7);
 
-    static const double dblRK_Rational_3_392 = 3.0 / 392.0;
+    static constexpr double dblRK_Rational_3_392 = 3.0 / 392.0;
     const REAL_CUDA_ARRAY RK_Rational_3_392 = ConstCUDA(dblRK_Rational_3_392);
 
-    static const double dblRK_Rational_3_56 = 3.0 / 56.0;
+    static constexpr double dblRK_Rational_3_56 = 3.0 / 56.0;
     const REAL_CUDA_ARRAY RK_Rational_3_56 = ConstCUDA(dblRK_Rational_3_56);
 
-    static const double dblRK_Rational_6_49 = 6.0 / 49.0;
+    static constexpr double dblRK_Rational_6_49 = 6.0 / 49.0;
     const REAL_CUDA_ARRAY RK_Rational_6_49 = ConstCUDA(dblRK_Rational_6_49);
 
-    static const double dblRK_Rational_6_7 = 6.0 / 7.0;
+    static constexpr double dblRK_Rational_6_7 = 6.0 / 7.0;
     const REAL_CUDA_ARRAY RK_Rational_6_7 = ConstCUDA(dblRK_Rational_6_7);
 
-    static const double dblRK_Rational_9_392 = 9.0 / 392.0;
+    static constexpr double dblRK_Rational_9_392 = 9.0 / 392.0;
     const REAL_CUDA_ARRAY RK_Rational_9_392 = ConstCUDA(dblRK_Rational_9_392);
 
-    static const double dblRK_Rational_9_56 = 9.0 / 56.0;
+    static constexpr double dblRK_Rational_9_56 = 9.0 / 56.0;
     const REAL_CUDA_ARRAY RK_Rational_9_56 = ConstCUDA(dblRK_Rational_9_56);
 
     const REAL_CUDA_ARRAY __rk_exp_0 = FusedMulAddCUDA(
@@ -199,7 +196,6 @@ static void rk_substep_4__launcher(params_struct *restrict params, REAL *restric
   MAYBE_UNUSED const int Ntot = Nxx_plus_2NGHOSTS0 * Nxx_plus_2NGHOSTS1 * Nxx_plus_2NGHOSTS2 * NUM_EVOL_GFS;
 
   {
-
     const size_t threads_in_x_dir = 32;
     const size_t threads_in_y_dir = 1;
     const size_t threads_in_z_dir = 1;
@@ -227,34 +223,34 @@ __global__ static void rk_substep_5_gpu(const size_t streamid, REAL *restrict k1
     const REAL k4_gfsL = k4_gfs[i];
     const REAL k5_gfsL = k5_gfs[i];
     const REAL y_n_gfsL = y_n_gfs[i];
-    static const double dbl_NegativeOne_ = -1.0;
+    static constexpr double dbl_NegativeOne_ = -1.0;
     MAYBE_UNUSED const REAL_CUDA_ARRAY _NegativeOne_ = ConstCUDA(dbl_NegativeOne_);
 
-    static const double dblRK_Rational_1_49 = 1.0 / 49.0;
+    static constexpr double dblRK_Rational_1_49 = 1.0 / 49.0;
     const REAL_CUDA_ARRAY RK_Rational_1_49 = ConstCUDA(dblRK_Rational_1_49);
 
-    static const double dblRK_Rational_1_5 = 1.0 / 5.0;
+    static constexpr double dblRK_Rational_1_5 = 1.0 / 5.0;
     const REAL_CUDA_ARRAY RK_Rational_1_5 = ConstCUDA(dblRK_Rational_1_5);
 
-    static const double dblRK_Rational_1_7 = 1.0 / 7.0;
+    static constexpr double dblRK_Rational_1_7 = 1.0 / 7.0;
     const REAL_CUDA_ARRAY RK_Rational_1_7 = ConstCUDA(dblRK_Rational_1_7);
 
-    static const double dblRK_Rational_33_56 = 33.0 / 56.0;
+    static constexpr double dblRK_Rational_33_56 = 33.0 / 56.0;
     const REAL_CUDA_ARRAY RK_Rational_33_56 = ConstCUDA(dblRK_Rational_33_56);
 
-    static const double dblRK_Rational_363_1960 = 363.0 / 1960.0;
+    static constexpr double dblRK_Rational_363_1960 = 363.0 / 1960.0;
     const REAL_CUDA_ARRAY RK_Rational_363_1960 = ConstCUDA(dblRK_Rational_363_1960);
 
-    static const double dblRK_Rational_51_392 = 51.0 / 392.0;
+    static constexpr double dblRK_Rational_51_392 = 51.0 / 392.0;
     const REAL_CUDA_ARRAY RK_Rational_51_392 = ConstCUDA(dblRK_Rational_51_392);
 
-    static const double dblRK_Rational_6_5 = 6.0 / 5.0;
+    static constexpr double dblRK_Rational_6_5 = 6.0 / 5.0;
     const REAL_CUDA_ARRAY RK_Rational_6_5 = ConstCUDA(dblRK_Rational_6_5);
 
-    static const double dblRK_Rational_8_49 = 8.0 / 49.0;
+    static constexpr double dblRK_Rational_8_49 = 8.0 / 49.0;
     const REAL_CUDA_ARRAY RK_Rational_8_49 = ConstCUDA(dblRK_Rational_8_49);
 
-    static const double dblRK_Rational_9_280 = 9.0 / 280.0;
+    static constexpr double dblRK_Rational_9_280 = 9.0 / 280.0;
     const REAL_CUDA_ARRAY RK_Rational_9_280 = ConstCUDA(dblRK_Rational_9_280);
 
     const REAL_CUDA_ARRAY tmp1 = MulCUDA(_NegativeOne_, SqrtCUDA(21));
@@ -282,7 +278,6 @@ static void rk_substep_5__launcher(params_struct *restrict params, REAL *restric
   MAYBE_UNUSED const int Ntot = Nxx_plus_2NGHOSTS0 * Nxx_plus_2NGHOSTS1 * Nxx_plus_2NGHOSTS2 * NUM_EVOL_GFS;
 
   {
-
     const size_t threads_in_x_dir = 32;
     const size_t threads_in_y_dir = 1;
     const size_t threads_in_z_dir = 1;
@@ -311,37 +306,37 @@ __global__ static void rk_substep_6_gpu(const size_t streamid, REAL *restrict k1
     const REAL k5_gfsL = k5_gfs[i];
     const REAL k6_gfsL = k6_gfs[i];
     const REAL y_n_gfsL = y_n_gfs[i];
-    static const double dbl_NegativeOne_ = -1.0;
+    static constexpr double dbl_NegativeOne_ = -1.0;
     MAYBE_UNUSED const REAL_CUDA_ARRAY _NegativeOne_ = ConstCUDA(dbl_NegativeOne_);
 
-    static const double dblRK_Rational_10_9 = 10.0 / 9.0;
+    static constexpr double dblRK_Rational_10_9 = 10.0 / 9.0;
     const REAL_CUDA_ARRAY RK_Rational_10_9 = ConstCUDA(dblRK_Rational_10_9);
 
-    static const double dblRK_Rational_11_6 = 11.0 / 6.0;
+    static constexpr double dblRK_Rational_11_6 = 11.0 / 6.0;
     const REAL_CUDA_ARRAY RK_Rational_11_6 = ConstCUDA(dblRK_Rational_11_6);
 
-    static const double dblRK_Rational_14_9 = 14.0 / 9.0;
+    static constexpr double dblRK_Rational_14_9 = 14.0 / 9.0;
     const REAL_CUDA_ARRAY RK_Rational_14_9 = ConstCUDA(dblRK_Rational_14_9);
 
-    static const double dblRK_Rational_21_20 = 21.0 / 20.0;
+    static constexpr double dblRK_Rational_21_20 = 21.0 / 20.0;
     const REAL_CUDA_ARRAY RK_Rational_21_20 = ConstCUDA(dblRK_Rational_21_20);
 
-    static const double dblRK_Rational_2_3 = 2.0 / 3.0;
+    static constexpr double dblRK_Rational_2_3 = 2.0 / 3.0;
     const REAL_CUDA_ARRAY RK_Rational_2_3 = ConstCUDA(dblRK_Rational_2_3);
 
-    static const double dblRK_Rational_343_90 = 343.0 / 90.0;
+    static constexpr double dblRK_Rational_343_90 = 343.0 / 90.0;
     const REAL_CUDA_ARRAY RK_Rational_343_90 = ConstCUDA(dblRK_Rational_343_90);
 
-    static const double dblRK_Rational_49_18 = 49.0 / 18.0;
+    static constexpr double dblRK_Rational_49_18 = 49.0 / 18.0;
     const REAL_CUDA_ARRAY RK_Rational_49_18 = ConstCUDA(dblRK_Rational_49_18);
 
-    static const double dblRK_Rational_7_10 = 7.0 / 10.0;
+    static constexpr double dblRK_Rational_7_10 = 7.0 / 10.0;
     const REAL_CUDA_ARRAY RK_Rational_7_10 = ConstCUDA(dblRK_Rational_7_10);
 
-    static const double dblRK_Rational_7_12 = 7.0 / 12.0;
+    static constexpr double dblRK_Rational_7_12 = 7.0 / 12.0;
     const REAL_CUDA_ARRAY RK_Rational_7_12 = ConstCUDA(dblRK_Rational_7_12);
 
-    static const double dblRK_Rational_7_18 = 7.0 / 18.0;
+    static constexpr double dblRK_Rational_7_18 = 7.0 / 18.0;
     const REAL_CUDA_ARRAY RK_Rational_7_18 = ConstCUDA(dblRK_Rational_7_18);
 
     const REAL_CUDA_ARRAY tmp1 = MulCUDA(_NegativeOne_, SqrtCUDA(21));
@@ -369,7 +364,6 @@ static void rk_substep_6__launcher(params_struct *restrict params, REAL *restric
   MAYBE_UNUSED const int Ntot = Nxx_plus_2NGHOSTS0 * Nxx_plus_2NGHOSTS1 * Nxx_plus_2NGHOSTS2 * NUM_EVOL_GFS;
 
   {
-
     const size_t threads_in_x_dir = 32;
     const size_t threads_in_y_dir = 1;
     const size_t threads_in_z_dir = 1;
@@ -396,13 +390,13 @@ __global__ static void rk_substep_7_gpu(const size_t streamid, REAL *restrict k1
     const REAL k6_gfsL = k6_gfs[i];
     const REAL k7_gfsL = k7_gfs[i];
     const REAL y_n_gfsL = y_n_gfs[i];
-    static const double dblRK_Rational_16_45 = 16.0 / 45.0;
+    static constexpr double dblRK_Rational_16_45 = 16.0 / 45.0;
     const REAL_CUDA_ARRAY RK_Rational_16_45 = ConstCUDA(dblRK_Rational_16_45);
 
-    static const double dblRK_Rational_1_20 = 1.0 / 20.0;
+    static constexpr double dblRK_Rational_1_20 = 1.0 / 20.0;
     const REAL_CUDA_ARRAY RK_Rational_1_20 = ConstCUDA(dblRK_Rational_1_20);
 
-    static const double dblRK_Rational_49_180 = 49.0 / 180.0;
+    static constexpr double dblRK_Rational_49_180 = 49.0 / 180.0;
     const REAL_CUDA_ARRAY RK_Rational_49_180 = ConstCUDA(dblRK_Rational_49_180);
 
     const REAL_CUDA_ARRAY __rk_exp_0 =
@@ -424,7 +418,6 @@ static void rk_substep_7__launcher(params_struct *restrict params, REAL *restric
   MAYBE_UNUSED const int Ntot = Nxx_plus_2NGHOSTS0 * Nxx_plus_2NGHOSTS1 * Nxx_plus_2NGHOSTS2 * NUM_EVOL_GFS;
 
   {
-
     const size_t threads_in_x_dir = 32;
     const size_t threads_in_y_dir = 1;
     const size_t threads_in_z_dir = 1;

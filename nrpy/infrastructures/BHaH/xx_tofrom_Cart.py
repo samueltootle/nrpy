@@ -12,6 +12,7 @@ import sympy as sp
 import nrpy.c_codegen as ccg
 import nrpy.c_function as cfc
 import nrpy.grid as gri
+import nrpy.params as par
 import nrpy.reference_metric as refmetric
 from nrpy.helpers.expression_utils import get_unique_expression_symbols_as_strings
 
@@ -22,7 +23,6 @@ def register_CFunction__Cart_to_xx_and_nearest_i0i1i2(
     CoordSystem: str,
     relative_to: str = "local_grid_center",
     gridding_approach: str = "independent grid(s)",
-    parallelization: str = "openmp",
 ) -> None:
     """
     Construct and register a C function that maps Cartesian coordinates to xx and finds the nearest grid indices.
@@ -36,10 +36,10 @@ def register_CFunction__Cart_to_xx_and_nearest_i0i1i2(
     :param relative_to: Whether the computation is relative to the "local_grid_center"
                         (default) or "global_grid_center".
     :param gridding_approach: Choices: "independent grid(s)" (default) or "multipatch".
-    :param parallelization: The parallelization method to use.
     :raises ValueError: When the value of `gridding_approach` is not "independent grid(s)"
                         or "multipatch".
     """
+    parallelization = par.parval_from_str("parallelization")
     if gridding_approach not in {"independent grid(s)", "multipatch"}:
         raise ValueError(
             "Invalid value for 'gridding_approach'. Must be 'independent grid(s)' or 'multipatch'."
@@ -164,17 +164,16 @@ def register_CFunction__Cart_to_xx_and_nearest_i0i1i2(
 def register_CFunction_xx_to_Cart(
     CoordSystem: str,
     gridding_approach: str = "independent grid(s)",
-    parallelization: str = "openmp",
 ) -> None:
     """
     Convert uniform-grid coordinate (xx[0], xx[1], xx[2]) to the corresponding Cartesian coordinate.
 
     :param CoordSystem: The coordinate system name as a string.
     :param gridding_approach: Choices: "independent grid(s)" (default) or "multipatch".
-    :param parallelization: The parallelization method to use.
 
     :raises ValueError: If an invalid gridding_approach is provided.
     """
+    parallelization = par.parval_from_str("parallelization")
     if gridding_approach not in {"independent grid(s)", "multipatch"}:
         raise ValueError(
             "Invalid value for 'gridding_approach'. Must be 'independent grid(s)' or 'multipatch'."
