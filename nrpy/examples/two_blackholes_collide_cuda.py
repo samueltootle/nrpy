@@ -41,7 +41,7 @@ par.set_parval_from_str("Infrastructure", "BHaH")
 # Code-generation-time parameters:
 project_name = "two_blackholes_collide_cuda"
 fp_type = "double"
-CoordSystem = "Spherical"
+CoordSystem = "SinhCylindricalv2n2" #"Spherical"
 IDtype = "BrillLindquist"
 IDCoordSystem = "Cartesian"
 LapseEvolutionOption = "OnePlusLog"
@@ -54,7 +54,16 @@ Nxx_dict = {
     "Spherical": [72, 12, 2],
     "SinhSpherical": [72, 12, 2],
     "Cartesian": [64, 64, 64],
+    "SinhCylindricalv2n2": [128, 16, 256],
 }
+# Set parameters specific to SinhCylindricalv2 coordinates
+AMPLRHO = grid_physical_size
+AMPLZ = grid_physical_size
+SINHWRHO = 0.04
+SINHWZ = 0.04
+const_drho = 2.0e-5
+const_dz = 2.0e-5
+
 default_BH1_mass = default_BH2_mass = 0.5
 default_BH1_z_posn = +0.5
 default_BH2_z_posn = -0.5
@@ -211,6 +220,13 @@ rfm_wrapper_functions.register_CFunctions_CoordSystem_wrapper_funcs()
 #         Project is output to project/[project_name]/
 if CoordSystem == "SinhSpherical":
     par.adjust_CodeParam_default("SINHW", 0.4)
+if CoordSystem == "SinhCylindricalv2n2":
+    par.adjust_CodeParam_default("AMPLRHO", AMPLRHO)
+    par.adjust_CodeParam_default("AMPLZ", AMPLZ)
+    par.adjust_CodeParam_default("SINHWRHO", SINHWRHO)
+    par.adjust_CodeParam_default("SINHWZ", SINHWZ)
+    # par.adjust_CodeParam_default("const_drho", const_drho)
+    # par.adjust_CodeParam_default("const_dz", const_dz)
 par.adjust_CodeParam_default("eta", GammaDriving_eta)
 par.adjust_CodeParam_default("BH1_mass", default_BH1_mass)
 par.adjust_CodeParam_default("BH2_mass", default_BH2_mass)
