@@ -156,6 +156,7 @@ project_dir = os.path.join("project", project_name)
 # First clean the project directory, if it exists.
 shutil.rmtree(project_dir, ignore_errors=True)
 
+par.set_parval_from_str("parallelization", "cuda")
 par.set_parval_from_str("fp_type", fp_type)
 par.set_parval_from_str("parallel_codegen_enable", parallel_codegen_enable)
 par.set_parval_from_str("fd_order", fd_order)
@@ -196,9 +197,7 @@ numericalgrids.register_CFunctions(
     enable_rfm_precompute=enable_rfm_precompute,
     enable_CurviBCs=True,
 )
-xx_tofrom_Cart.register_CFunction_xx_to_Cart(
-    CoordSystem=CoordSystem, parallelization="cuda"
-)
+xx_tofrom_Cart.register_CFunction_xx_to_Cart(CoordSystem=CoordSystem)
 
 nrpyellClib.register_CFunction_diagnostics(
     CoordSystem=CoordSystem,
@@ -208,7 +207,7 @@ nrpyellClib.register_CFunction_diagnostics(
 
 if enable_rfm_precompute:
     rfm_precompute.register_CFunctions_rfm_precompute(
-        list_of_CoordSystems=list(set(list_of_CoordSystems)), parallelization="cuda"
+        list_of_CoordSystems=list(set(list_of_CoordSystems))
     )
 
 # Generate function to compute RHSs
@@ -238,7 +237,6 @@ if __name__ == "__main__" and parallel_codegen_enable:
 cbc.CurviBoundaryConditions_register_C_functions(
     list_of_CoordSystems=list(set(list_of_CoordSystems)),
     radiation_BC_fd_order=radiation_BC_fd_order,
-    parallelization="cuda",
 )
 rhs_string = """rhs_eval(commondata, params, rfmstruct,  auxevol_gfs, RK_INPUT_GFS, RK_OUTPUT_GFS);
 if (strncmp(commondata->outer_bc_type, "radiation", 50) == 0){
@@ -262,7 +260,6 @@ MoL_register_all.register_CFunctions(
     enable_rfm_precompute=enable_rfm_precompute,
     enable_curviBCs=True,
     enable_intrinsics=enable_intrinsics,
-    parallelization="cuda",
     rational_const_alias="static constexpr",
 )
 chkpt.register_CFunctions(default_checkpoint_every=default_checkpoint_every)
@@ -397,7 +394,6 @@ main.register_CFunction_main_c(
 griddata_commondata.register_CFunction_griddata_free(
     enable_rfm_precompute=enable_rfm_precompute,
     enable_CurviBCs=True,
-    parallelization="cuda",
 )
 
 if enable_intrinsics:
