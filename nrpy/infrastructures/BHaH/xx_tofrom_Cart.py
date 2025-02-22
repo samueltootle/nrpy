@@ -17,7 +17,8 @@ import nrpy.grid as gri
 import nrpy.helpers.parallel_codegen as pcg
 import nrpy.params as par
 import nrpy.reference_metric as refmetric
-from nrpy.helpers.expression_utils import get_unique_expression_symbols_as_strings
+from nrpy.helpers.expression_utils import get_unique_expression_symbols_as_strings, get_params_commondata_symbols_from_expr_list, generate_definition_header
+import nrpy.helpers.gpu.utilities as gpu_utils
 
 
 # Construct Cart_to_xx_and_nearest_i0i1i2() C function for
@@ -99,13 +100,22 @@ def register_CFunction__Cart_to_xx_and_nearest_i0i1i2(
 """
         for i in range(3):
             if rfm.NewtonRaphson_f_of_xx[i] != sp.sympify(0):
-                body += f"""
+                NR1_expr = [rfm.NewtonRaphson_f_of_xx[i], sp.diff(rfm.NewtonRaphson_f_of_xx[i], rfm.xx[i])]
+                param_symbols, commondata_symbols = get_params_commondata_symbols_from_expr_list(
+                    NR1_expr, exclude=[f"xx{j}" for j in range(3)]
+                )
+                params_definitions = generate_definition_header(
+                    param_symbols,
+                    enable_intrinsics=False,
+                    var_access=gpu_utils.get_params_access("openmp"),
+                )
+                body += f"""{params_definitions}
   iter=0;
   REAL xx{i}  = 0.5 * (params->xxmin{i} + params->xxmax{i});
   while(iter < ITER_MAX && !tolerance_has_been_met) {{
     REAL f_of_xx{i}, fprime_of_xx{i};
 
-{ccg.c_codegen([rfm.NewtonRaphson_f_of_xx[i], sp.diff(rfm.NewtonRaphson_f_of_xx[i], rfm.xx[i])],
+{ccg.c_codegen(NR1_expr,
 [f'f_of_xx{i}', f'fprime_of_xx{i}'], include_braces=True, verbose=False)}
     const REAL xx{i}_np1 = xx{i} - f_of_xx{i} / fprime_of_xx{i};
 
@@ -116,8 +126,7 @@ def register_CFunction__Cart_to_xx_and_nearest_i0i1i2(
     iter++;
   }} // END Newton-Raphson iterations to compute xx{i}
   if(iter >= ITER_MAX) {{
-    fprintf(stderr, "ERROR: Newton-Raphson failed for {CoordSystem}: xx{i}, x,y,z = %.15e %.15e %.15e\\n", Cartx,Carty,Cartz);
-    exit(1);
+    printf("ERROR: Newton-Raphson failed for {CoordSystem}: xx{i}, x,y,z = %.15e %.15e %.15e\\n", Cartx,Carty,Cartz);
   }}
   xx[{i}] = xx{i};
 """
