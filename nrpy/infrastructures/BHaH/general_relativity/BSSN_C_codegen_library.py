@@ -696,7 +696,9 @@ def register_CFunction_rhs_eval(
         read_xxs=not enable_rfm_precompute,
         OMP_collapse=OMP_collapse,
     )
-    loop_params = f"{gpu_utils.get_loop_parameters(parallelization, enable_intrinsics=enable_intrinsics)}\n"
+    loop_params = gpu_utils.get_loop_parameters(
+        parallelization, enable_intrinsics=enable_intrinsics
+    )
     if enable_intrinsics:
         for symbol in commondata_symbols:
             loop_params += f"MAYBE_UNUSED const REAL_SIMD_ARRAY {symbol} = ConstSIMD(NOSIMD{symbol});\n"
