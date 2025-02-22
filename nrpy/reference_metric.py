@@ -138,49 +138,7 @@ class ReferenceMetric:
                 "f4_of_xx1",
             ],
             add_to_parfile=False,
-            add_to_glb_code_params_dict=self.add_CodeParams_to_glb_code_params_dict,
-        )
-
-        # return values of register_rfm_CodeParameters() in the following code block are unused, so we ignore them.
-        par.register_CodeParameters(
-            "REAL",
-            self.CodeParam_modulename,
-            ["f0_of_xx0__D0", "f0_of_xx0__DD00", "f0_of_xx0__DDD000"],
-            add_to_parfile=False,
-            add_to_set_CodeParameters_h=False,
-            add_to_glb_code_params_dict=self.add_CodeParams_to_glb_code_params_dict,
-        )
-        par.register_CodeParameters(
-            "REAL",
-            self.CodeParam_modulename,
-            ["f1_of_xx1__D1", "f1_of_xx1__DD11", "f1_of_xx1__DDD111"],
-            add_to_parfile=False,
-            add_to_set_CodeParameters_h=False,
-            add_to_glb_code_params_dict=self.add_CodeParams_to_glb_code_params_dict,
-        )
-        par.register_CodeParameters(
-            "REAL",
-            self.CodeParam_modulename,
-            ["f2_of_xx0__D0", "f2_of_xx0__DD00"],
-            add_to_parfile=False,
-            add_to_set_CodeParameters_h=False,
-            add_to_glb_code_params_dict=self.add_CodeParams_to_glb_code_params_dict,
-        )
-        par.register_CodeParameters(
-            "REAL",
-            self.CodeParam_modulename,
-            ["f3_of_xx2__D2", "f3_of_xx2__DD22"],
-            add_to_parfile=False,
-            add_to_set_CodeParameters_h=False,
-            add_to_glb_code_params_dict=self.add_CodeParams_to_glb_code_params_dict,
-        )
-        par.register_CodeParameters(
-            "REAL",
-            self.CodeParam_modulename,
-            ["f4_of_xx1__D1", "f4_of_xx1__DD11", "f4_of_xx1__DDD111"],
-            add_to_parfile=False,
-            add_to_set_CodeParameters_h=False,
-            add_to_glb_code_params_dict=self.add_CodeParams_to_glb_code_params_dict,
+            add_to_glb_code_params_dict=False,
         )
         # END: RFM PRECOMPUTE STUFF
 
@@ -650,6 +608,50 @@ class ReferenceMetric:
     ) -> Any:
         """
         Set the sinh transformation used by SinhSphericalv2*, SinhCylindricalv2, and SinhCartesianv2 (future).
+
+        Implements the Sinhv2* coordinate transformation.
+
+        This function computes a modified hyperbolic sine transformation used in several coordinate systems,
+        including Sinhv2*, SinhCylindricalv2, and (in the future) SinhCartesianv2. It builds upon
+        the base transformation defined in Sinhv1 (see the Sinhv1 function above), extending it by adding a
+        polynomial prefactor and a linear slope modifier. These adjustments are designed to:
+          - Suppress the linear term inherent in the sinh Taylor expansion for small x,
+          - Maintain the odd-function property (i.e. r(-x) = -r(x)) necessary for symmetric grid mappings,
+          - Ensure that r(1) exactly equals AMPL despite the addition of the slope term.
+
+        Transformation Definition:
+            r(x) = (AMPL - slope) * x^n * sinh(x / SINHW) / sinh(1 / SINHW) + slope * x
+
+        where:
+            - x:      The normalized coordinate, typically in the interval [0, 1].
+            - AMPL:   The amplitude of the transformation (ensuring that r(1) equals AMPL).
+            - SINHW:  The width parameter controlling the steepness of the hyperbolic sine.
+            - slope:  A small linear modifier added to adjust the transformation for small x.
+            - n:      An even integer (extracted from self.CoordSystem) that scales the sinh component by x^n.
+                      This polynomial factor delays the onset of nonlinearity, making the transformation
+                      approximate a simple linear behavior (slope * x) for small x.
+
+        Design and Rationale:
+            - The base transformation Sinhv1 is defined as:
+                  Sinhv1(x, AMPL, SINHW) = AMPL * (exp(x/SINHW) - exp(-x/SINHW)) /
+                                            (exp(1/SINHW) - exp(-1/SINHW))
+              which naturally satisfies r(1) = AMPL.
+            - Adding slope*x directly (i.e., the *original* sinhv2 approach) causes r(1) to become AMPL + slope.
+              To correct this, the amplitude of the sinh term is reduced to (AMPL - slope) so that:
+                  r(1) = (AMPL - slope) + slope = AMPL.
+            - The multiplication by x^n (with n an even integer) ensures that the overall function remains
+              odd and that for small x, the nonlinear sinh contribution is sufficiently suppressed.
+            - When n = 2 or 4, the transformation follows the linear behavior (slope * x) for a longer portion
+              of the domain before transitioning to the nonlinear sinh-dominated behavior.
+
+        Coordinate System Naming and Parameter Extraction:
+            This function uses the attribute 'self.CoordSystem', which must follow the naming convention:
+                "Sinh...v2n{even_integer}"
+            Specifically:
+                - The string must start with "Sinh" and contain "v2n".
+                - The suffix after "v2n" must be a digit representing an even integer (e.g., "2" or "4").
+                  This integer is parsed and used as the exponent n (referred to as power_n in the code).
+            If these conditions are not met, a ValueError is raised.
 
         :param x: The input symbol for the transformation.
         :param AMPL: The amplitude of the sinh transformation.
@@ -1515,6 +1517,23 @@ class rfm_dict(Dict[str, ReferenceMetric]):
 
 reference_metric = rfm_dict()
 
+supported_CoordSystems = [
+    "Spherical",
+    "SinhSpherical",
+    "SinhSphericalv2n2",
+    "Cartesian",
+    "SinhCartesian",
+    "Cylindrical",
+    "SinhCylindrical",
+    "SinhCylindricalv2n2",
+    "SymTP",
+    "SinhSymTP",
+    "LWedgeHSinhSph",
+    "UWedgeHSinhSph",
+    "RingHoleySinhSpherical",
+    "HoleySinhSpherical",
+]
+
 if __name__ == "__main__":
     import doctest
     import os
@@ -1529,22 +1548,7 @@ if __name__ == "__main__":
     else:
         print(f"Doctest passed: All {results.attempted} test(s) passed")
 
-    for Coord in [
-        "Spherical",
-        "SinhSpherical",
-        "SinhSphericalv2n2",
-        "Cartesian",
-        "SinhCartesian",
-        "Cylindrical",
-        "SinhCylindrical",
-        "SinhCylindricalv2n2",
-        "SymTP",
-        "SinhSymTP",
-        "LWedgeHSinhSph",
-        "UWedgeHSinhSph",
-        "RingHoleySinhSpherical",
-        "HoleySinhSpherical",
-    ]:
+    for Coord in supported_CoordSystems:
         rfm = reference_metric[Coord]
         results_dict = ve.process_dictionary_of_expressions(
             rfm.__dict__, fixed_mpfs_for_free_symbols=True
