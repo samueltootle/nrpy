@@ -90,7 +90,7 @@ for(int grid=0; grid<commondata.NUMGRIDS; grid++) {
 }
 """
         setup_initial_data_code = """Set up initial data.
-  initial_data(&commondata, griddata);
+  initial_data(&commondata, griddata_host, griddata);
 """
         allocate_storage_code = """Allocate storage for non-y_n gridfunctions, needed for the Runge-Kutta-like timestepping.
 for(int grid=0; grid<commondata.NUMGRIDS; grid++)
