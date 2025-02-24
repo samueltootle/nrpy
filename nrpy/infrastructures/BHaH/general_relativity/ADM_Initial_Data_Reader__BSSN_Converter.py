@@ -494,7 +494,7 @@ def Cfunction_initial_data_lambdaU_grid_interior(
     for i in range(3):
         lambdaU[i] = LambdabarU[i] / rfm.ReU[i]
 
-    enable_intrinsics = True if parallelization != "openmp" else False
+    enable_intrinsics = False # FAILS FOR float: True if parallelization != "openmp" else False
     kernel_body = lp.simple_loop(
         ccg.c_codegen(
             lambdaU,

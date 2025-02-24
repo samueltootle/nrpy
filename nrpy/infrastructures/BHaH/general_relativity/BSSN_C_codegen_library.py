@@ -717,8 +717,12 @@ def register_CFunction_rhs_eval(
     for symbol in commondata_symbols:
         tmp_sym = (
             f"NOCUDA{symbol}"
-            if parallelization == "cuda"
-            else f"NOSIMD{symbol}" if enable_intrinsics else symbol
+            if parallelization == "cuda" and enable_intrinsics
+            else
+            f"NOSIMD{symbol}" if enable_intrinsics else symbol
+            if enable_intrinsics
+            else
+            symbol
         )
         launch_body = launch_body.replace(tmp_sym, f"commondata->{symbol}")
 
