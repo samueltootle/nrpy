@@ -297,6 +297,7 @@ def single_RK_substep_input_symbolic(
     body += (
         f"commondata->time = time_start + {substep_time_offset_str} * commondata->dt;\n"
     )
+    body += "cpyHosttoDevice_params__constant(&griddata[grid].params, griddata[grid].params.grid_idx % NUM_STREAMS);\n" if parallelization == "cuda" else ""
     body += gf_aliases
 
     # (1) RHS
