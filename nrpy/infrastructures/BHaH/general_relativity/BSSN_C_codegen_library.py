@@ -52,7 +52,6 @@ def register_CFunction_initial_data(
     populate_ID_persist_struct_str: str = "",
     free_ID_persist_struct_str: str = "",
     enable_T4munu: bool = False,
-    **kwargs
 ) -> Union[None, pcg.NRPyEnv_type]:
     """
     Register C functions for converting ADM initial data to BSSN variables and applying boundary conditions.
@@ -73,10 +72,10 @@ def register_CFunction_initial_data(
 
     :return: None if in registration phase, else the updated NRPy environment.
     """
-    parallelization = par.parval_from_str("parallelization")
     if pcg.pcg_registration_phase():
         pcg.register_func_call(f"{__name__}.{cast(FT, cfr()).f_code.co_name}", locals())
         return None
+    parallelization = par.parval_from_str("parallelization")
 
     includes = ["BHaH_defines.h", "BHaH_function_prototypes.h"]
 
@@ -724,11 +723,11 @@ def register_CFunction_rhs_eval(
         tmp_sym = (
             f"NOCUDA{symbol}"
             if parallelization == "cuda" and enable_intrinsics
-            else
-            f"NOSIMD{symbol}" if enable_intrinsics else symbol
-            if enable_intrinsics
-            else
-            symbol
+            else (
+                f"NOSIMD{symbol}"
+                if enable_intrinsics
+                else symbol if enable_intrinsics else symbol
+            )
         )
         launch_body = launch_body.replace(tmp_sym, f"commondata->{symbol}")
 
