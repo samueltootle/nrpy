@@ -297,12 +297,17 @@ if(fabs(round(currtime / outevery) * outevery - currtime) < 0.5*currdt) {
     )
     if parallelization == "cuda":
         body += r"""
+    // This does not leverage async memory transfers using multiple streams at the moment
+    // given the current intent is one cuda stream per grid. This could be leveraged
+    // in the future by increasing NUM_STREAMS such that a diagnostic stream is included per grid
+    size_t streamid = params->grid_idx % NUM_STREAMS;
+    cpyHosttoDevice_params__constant(&griddata[grid].params, streamid);
     REAL *restrict host_y_n_gfs = griddata_host[grid].gridfuncs.y_n_gfs;
     REAL *restrict host_diagnostic_output_gfs = griddata_host[grid].gridfuncs.diagnostic_output_gfs;
 """
         for cnt, (idx, gf) in enumerate(out_quantities_gf_indexes_dict.items()):
             if "y_n_gfs" in gf:
-                body += f"    size_t streamid{cnt} = cpyDevicetoHost__gf(commondata, params, host_{gf}, {gf}, {idx}, {idx});\n"
+                body += f"    cpyDevicetoHost__gf(commondata, params, host_{gf}, {gf}, {idx}, {idx}, streamid);\n"
     body += r"""
     // Constraint output
     {
@@ -316,7 +321,8 @@ if(fabs(round(currtime / outevery) * outevery - currtime) < 0.5*currdt) {
     if parallelization == "cuda":
         for cnt, (idx, gf) in enumerate(out_quantities_gf_indexes_dict.items()):
             if "diagnostic_output_gfs" in gf:
-                body += f"    size_t streamid{cnt} = cpyDevicetoHost__gf(commondata, params, host_{gf}, {gf}, {idx}, {idx});\n"
+                body += f"    cpyDevicetoHost__gf(commondata, params, host_{gf}, {gf}, {idx}, {idx}, streamid);\n"
+            body += "cudaStreamSynchronize(streams[streamid]);"
 
     body += """
     // 0D output
