@@ -641,14 +641,16 @@ class gpu_register_CFunction_diagnostics(
   REAL *restrict host_y_n_gfs = griddata_host[grid].gridfuncs.y_n_gfs;
   REAL *restrict host_diag_gfs = griddata_host[grid].gridfuncs.diagnostic_output_gfs;
   if (n_step % outevery == 0) {
-    size_t streamid = cpyDevicetoHost__gf(commondata, params, host_y_n_gfs, y_n_gfs, UUGF, UUGF);
+    size_t streamid = params->grid_idx % NUM_STREAMS;
+    cpyDevicetoHost__gf(commondata, params, host_y_n_gfs, y_n_gfs, UUGF, UUGF, streamid);
   }
 
   // Compute Hamiltonian constraint violation and store it at diagnostic_output_gfs
   compute_residual_all_points(commondata, params, rfmstruct, auxevol_gfs, y_n_gfs, diagnostic_output_gfs);
   if (n_step % outevery == 0) {
     cudaDeviceSynchronize();
-    size_t streamid = cpyDevicetoHost__gf(commondata, params, host_diag_gfs, diagnostic_output_gfs, RESIDUAL_HGF, RESIDUAL_HGF);
+    size_t streamid = params->grid_idx % NUM_STREAMS;
+    cpyDevicetoHost__gf(commondata, params, host_diag_gfs, diagnostic_output_gfs, RESIDUAL_HGF, RESIDUAL_HGF, streamid);
   }
 
   // Set integration radius for l2-norm computation

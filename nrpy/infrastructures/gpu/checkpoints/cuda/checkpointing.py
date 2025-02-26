@@ -144,7 +144,8 @@ class register_CFunction_write_checkpoint(
     // Make sure host griddata has correct params
     memcpy(&griddata[grid].params, &griddata_GPU[grid].params, sizeof(params_struct));
     for(int gf = 0; gf < NUM_EVOL_GFS; ++gf) {
-      cpyDevicetoHost__gf(commondata, &griddata[grid].params, diagnostic_output_gfs, y_n_gfs, gf, gf);
+      size_t streamid = griddata[grid].params->grid_idx % NUM_STREAMS;
+      cpyDevicetoHost__gf(commondata, &griddata[grid].params, diagnostic_output_gfs, y_n_gfs, gf, gf, streamid);
     }
 
     fwrite(&griddata[grid].params, sizeof(params_struct), 1, cp_file);
