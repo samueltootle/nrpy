@@ -696,6 +696,7 @@ typedef struct __rescaled_BSSN_rfm_basis_struct__ {
   const int Nxx_plus_2NGHOSTS0 = params->Nxx_plus_2NGHOSTS0;
   const int Nxx_plus_2NGHOSTS1 = params->Nxx_plus_2NGHOSTS1;
   const int Nxx_plus_2NGHOSTS2 = params->Nxx_plus_2NGHOSTS2;
+  const int Nxx_plus_2NGHOSTS0_PADDED = params->Nxx_plus_2NGHOSTS0_PADDED;
 
   LOOP_OMP("omp parallel for", i0, 0, Nxx_plus_2NGHOSTS0, i1, 0, Nxx_plus_2NGHOSTS1, i2, 0, Nxx_plus_2NGHOSTS2) {
     // xxL are the local coordinates on the destination grid
