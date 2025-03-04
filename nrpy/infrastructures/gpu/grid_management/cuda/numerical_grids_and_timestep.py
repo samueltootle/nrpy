@@ -194,7 +194,7 @@ const int Nxx_tot = (Nxx_plus_2NGHOSTS0)*(Nxx_plus_2NGHOSTS1)*(Nxx_plus_2NGHOSTS
   REAL ds_min__global = find_global__minimum(ds_min, Nxx_tot);
 
   commondata->dt = MIN(commondata->dt, ds_min__global * commondata->CFL_FACTOR);
-  cudaFree(ds_min);
+  NRPY_FREE_DEVICE(ds_min);
 """
 
         self.prefunc = self.device_kernel.CFunction.full_function
