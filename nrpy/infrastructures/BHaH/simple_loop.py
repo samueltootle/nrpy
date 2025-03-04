@@ -182,24 +182,30 @@ def simple_loop(
     )
 
     read_rfm_xx_arrays = ["", "", ""]
+
+    # SIMD is used only if intrinsics are enabled and we're not, currently, using CUDA.
+    use_simd = enable_intrinsics and (parallelization != "cuda")
+
+    # Determine if a reset is needed since it is only relevant to openmp
+    OMP_collapse = OMP_collapse if parallelization == "openmp" else 1
+
     # 'Read_xxs': read the xx[3][:] 1D coordinate arrays, as some interior dependency exists
-    if read_xxs:
-        if not enable_intrinsics or parallelization == "cuda":
-            read_rfm_xx_arrays = (
-                [
-                    "MAYBE_UNUSED const REAL xx0 = x0[i0];",
-                    "MAYBE_UNUSED const REAL xx1 = x1[i1];",
-                    "MAYBE_UNUSED const REAL xx2 = x2[i2];",
-                ]
-                if parallelization == "cuda"
-                else [
-                    "MAYBE_UNUSED const REAL xx0 = xx[0][i0];",
-                    "MAYBE_UNUSED const REAL xx1 = xx[1][i1];",
-                    "MAYBE_UNUSED const REAL xx2 = xx[2][i2];",
-                ]
-            )
+    if not use_simd and read_xxs:
+        if parallelization == "cuda":
+            read_rfm_xx_arrays = [
+                "MAYBE_UNUSED const REAL xx0 = x0[i0];",
+                "MAYBE_UNUSED const REAL xx1 = x1[i1];",
+                "MAYBE_UNUSED const REAL xx2 = x2[i2];",
+            ]
         else:
-            raise ValueError("no innerSIMD support for Read_xxs (currently).")
+            read_rfm_xx_arrays = [
+                "MAYBE_UNUSED const REAL xx0 = xx[0][i0];",
+                "MAYBE_UNUSED const REAL xx1 = xx[1][i1];",
+                "MAYBE_UNUSED const REAL xx2 = xx[2][i2];",
+            ]
+    elif read_xxs and use_simd:
+        raise ValueError("no innerSIMD support for Read_xxs (currently).")
+
     # 'enable_rfm_precompute': enable pre-computation of reference metric
     if enable_rfm_precompute:
         if read_xxs:
@@ -241,21 +247,21 @@ def simple_loop(
 
     loop_body = read_rfm_xx_arrays[0] + f"\n\n{loop_body}"
     prefix_loop_with = [pragma, read_rfm_xx_arrays[2], read_rfm_xx_arrays[1]]
-    if parallelization != "cuda":
-        if OMP_collapse == 2:
-            prefix_loop_with = [
-                pragma,
-                "",
-                read_rfm_xx_arrays[2] + read_rfm_xx_arrays[1],
-            ]
-        elif OMP_collapse == 3:
-            prefix_loop_with = [
-                pragma,
-                "",
-                "",
-            ]
-            # above: loop_body = read_rfm_xx_arrays[0] + loop_body -----v
-            loop_body = read_rfm_xx_arrays[2] + read_rfm_xx_arrays[1] + loop_body
+
+    if OMP_collapse == 2:
+        prefix_loop_with = [
+            pragma,
+            "",
+            read_rfm_xx_arrays[2] + read_rfm_xx_arrays[1],
+        ]
+    elif OMP_collapse == 3:
+        prefix_loop_with = [
+            pragma,
+            "",
+            "",
+        ]
+        # above: loop_body = read_rfm_xx_arrays[0] + loop_body -----v
+        loop_body = read_rfm_xx_arrays[2] + read_rfm_xx_arrays[1] + loop_body
 
     full_loop_body = str(
         lp.loop(
@@ -611,7 +617,7 @@ def simple_loop_2D(
     >>> diag2d = clang_format(simple_loop_2D(CoordSystem="SinhSpherical", out_quantities_dict = {("REAL", "log10HL"): "log10(fabs(diagnostic_output_gfs[IDX4pt(HGF, idx3)] + 1e-16))"}, plane="yz"))
     >>> validate_strings(diag2d, "SinhSpherical_yz_plane")
     >>> diag2d = clang_format(simple_loop_2D(CoordSystem="SinhSymTP", out_quantities_dict = {("REAL", "log10HL"): "log10(fabs(diagnostic_output_gfs[IDX4pt(HGF, idx3)] + 1e-16))"}, plane="xy"))
-    >>> validate_strings(diag2d, "SinhSpherical_xy_plane")
+    >>> validate_strings(diag2d, "SinhSymTP_xy_plane")
     """
     pragma = "#pragma omp parallel for\n"
     max_numpts, i012_pts, numpts = max_numpts__i012_pts__numpts_2D(CoordSystem, plane)
