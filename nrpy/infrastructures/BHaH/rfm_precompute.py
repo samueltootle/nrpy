@@ -5,7 +5,7 @@ Author: Zachariah B. Etienne
         zachetie **at** gmail **dot* com
 """
 
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Set, Tuple
 
 import sympy as sp
 import sympy.codegen.ast as sp_ast
@@ -339,11 +339,15 @@ def generate_rfmprecompute_free(
     return prefunc, body
 
 
-def register_CFunctions_rfm_precompute(list_of_CoordSystems: List[str]) -> None:
+def register_CFunctions_rfm_precompute(
+    set_of_CoordSystems: Set[str],
+    parallelization: str = "openmp",
+) -> None:
     """
     Register C functions for reference metric precomputed lookup arrays.
 
-    :param list_of_CoordSystems: List of coordinate systems to register the C functions.
+    :param set_of_CoordSystems: Set of coordinate systems to register the C functions.
+    :param parallelization: Parallelization method to use.
 
     Doctest:
     >>> import nrpy.c_function as cfc
@@ -365,7 +369,7 @@ def register_CFunctions_rfm_precompute(list_of_CoordSystems: List[str]) -> None:
     """
     combined_BHaH_defines_list = []
     parallelization = par.parval_from_str("parallelization")
-    for CoordSystem in list_of_CoordSystems:
+    for CoordSystem in set_of_CoordSystems:
         rfm_precompute = ReferenceMetricPrecompute(CoordSystem)
 
         includes = ["BHaH_defines.h"]
