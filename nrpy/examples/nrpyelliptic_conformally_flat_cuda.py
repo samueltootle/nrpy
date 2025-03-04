@@ -207,7 +207,7 @@ nrpyellClib.register_CFunction_diagnostics(
 
 if enable_rfm_precompute:
     rfm_precompute.register_CFunctions_rfm_precompute(
-        list_of_CoordSystems=list(set(list_of_CoordSystems))
+        set_of_CoordSystems=set(list_of_CoordSystems)
     )
 
 # Generate function to compute RHSs
@@ -235,7 +235,7 @@ if __name__ == "__main__" and parallel_codegen_enable:
     pcg.do_parallel_codegen()
 
 cbc.CurviBoundaryConditions_register_C_functions(
-    list_of_CoordSystems=list(set(list_of_CoordSystems)),
+    set_of_CoordSystems=set(list_of_CoordSystems),
     radiation_BC_fd_order=radiation_BC_fd_order,
 )
 rhs_string = """rhs_eval(commondata, params, rfmstruct,  auxevol_gfs, RK_INPUT_GFS, RK_OUTPUT_GFS);
