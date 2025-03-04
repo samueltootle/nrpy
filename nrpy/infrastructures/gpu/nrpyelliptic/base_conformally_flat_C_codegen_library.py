@@ -76,9 +76,7 @@ class base_register_CFunction_initial_guess_all_points:
         self.desc = r"""Set initial guess to solutions of hyperbolic relaxation equation at all points."""
         self.cfunc_type = "void"
         self.name = "initial_data"
-        self.params = (
-            "commondata_struct *restrict commondata, griddata_struct *restrict griddata"
-        )
+        self.params = "commondata_struct *restrict commondata, griddata_struct *restrict griddata_host, griddata_struct *restrict griddata"
         self.uu_gf_memaccess = gri.BHaHGridFunction.access_gf("uu")
         self.vv_gf_memaccess = gri.BHaHGridFunction.access_gf("vv")
         self.body = ""

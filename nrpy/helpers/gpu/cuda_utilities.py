@@ -6,6 +6,7 @@ Authors: Samuel D. Tootle; sdtootle **at** gmail **dot** com
 
 import nrpy.c_function as cfc
 import nrpy.params as par  # NRPy+: Parameter interface
+import nrpy.params as par  # NRPy+: Parameter interface
 from nrpy.helpers.gpu.gpu_kernel import GPU_Kernel
 
 """
@@ -47,6 +48,115 @@ def register_CFunction_cpyHosttoDevice_params__constant() -> None:
     name = "cpyHosttoDevice_params__constant"
     params = r"""const params_struct *restrict params, const int streamid"""
     body = "cudaMemcpyToSymbol(d_params, params, sizeof(params_struct), streamid * sizeof(params_struct), cudaMemcpyHostToDevice);"
+    cfc.register_CFunction(
+        includes=includes,
+        desc=desc,
+        cfunc_type=cfunc_type,
+        CoordSystem_for_wrapper_func="",
+        name=name,
+        params=params,
+        include_CodeParameters_h=False,
+        body=body,
+        subdirectory="CUDA_utils",
+    )
+
+
+# Define functions to copy params to device
+def register_CFunction_cpyHosttoDevice_bc_struct() -> None:
+    """
+    Register C function for copying relevant aspects of bc_struct to the device.
+
+    Currently bc_struct is allocated on the host with inner/outer_bc arrays being
+    allocated on the device.
+
+    DOCTEST:
+    >>> import nrpy.c_function as cfc
+    >>> register_CFunction_cpyHosttoDevice_bc_struct()
+    >>> print(cfc.CFunction_dict['cpyHosttoDevice_bc_struct'].full_function)
+    #include "../BHaH_defines.h"
+    /**
+     * Copy parameters to GPU __constant__.
+     */
+    __host__ void cpyHosttoDevice_bc_struct(const bc_struct *restrict host_src, bc_struct *restrict device_dst, const int streamid) {
+    <BLANKLINE>
+      // Copy the bc_info structure (basic metadata)
+      // This is always stored on the host currently.
+      memcpy(&device_dst->bc_info, &host_src->bc_info, sizeof(bc_info_struct));
+    <BLANKLINE>
+      // Copy inner boundary array if it exists
+      int num_inner = host_src->bc_info.num_inner_boundary_points;
+      if (num_inner > 0) {
+        cudaMalloc(&device_dst->inner_bc_array, sizeof(innerpt_bc_struct) * num_inner);
+        cudaCheckErrors(cudaMalloc, "inner_bc_array malloc failed");
+    <BLANKLINE>
+        cudaMemcpy(device_dst->inner_bc_array, host_src->inner_bc_array, sizeof(innerpt_bc_struct) * num_inner, cudaMemcpyHostToDevice);
+        cudaCheckErrors(cudaMemcpy, "inner_bc_array Memcpy failed.");
+      } else {
+        device_dst->inner_bc_array = NULL;
+      }
+    <BLANKLINE>
+      // Copy outer boundary arrays
+      for (int gz = 0; gz < NGHOSTS; gz++) {
+        for (int dirn = 0; dirn < 3; dirn++) {
+          int num_outer = host_src->bc_info.num_pure_outer_boundary_points[gz][dirn];
+          if (num_outer > 0) {
+            int idx = gz * 3 + dirn; // Calculate the index in the array
+    <BLANKLINE>
+            cudaMalloc(&device_dst->pure_outer_bc_array[idx], sizeof(outerpt_bc_struct) * num_outer);
+            cudaCheckErrors(cudaMalloc, "inner_bc_array malloc failed");
+    <BLANKLINE>
+            cudaMemcpy(device_dst->pure_outer_bc_array[idx], host_src->pure_outer_bc_array[idx], sizeof(outerpt_bc_struct) * num_outer,
+                       cudaMemcpyHostToDevice);
+            cudaCheckErrors(cudaMemcpy, "inner_bc_array Memcpy failed.");
+          } else {
+            device_dst->pure_outer_bc_array[gz * 3 + dirn] = NULL;
+          }
+        }
+      }
+    } // END FUNCTION cpyHosttoDevice_bc_struct
+    <BLANKLINE>
+    """
+    includes = ["BHaH_defines.h"]
+
+    desc = r"""Copy parameters to GPU __constant__."""
+    cfunc_type = "__host__ void"
+    name = "cpyHosttoDevice_bc_struct"
+    params = r"""const bc_struct *restrict host_src, bc_struct *restrict device_dst, const int streamid"""
+    body = """
+  // Copy the bc_info structure (basic metadata)
+  // This is always stored on the host currently.
+  memcpy(&device_dst->bc_info, &host_src->bc_info, sizeof(bc_info_struct));
+
+  // Copy inner boundary array if it exists
+  int num_inner = host_src->bc_info.num_inner_boundary_points;
+  if (num_inner > 0) {
+      cudaMalloc(&device_dst->inner_bc_array, sizeof(innerpt_bc_struct) * num_inner);
+      cudaCheckErrors(cudaMalloc, "inner_bc_array malloc failed");
+
+      cudaMemcpy(device_dst->inner_bc_array, host_src->inner_bc_array, sizeof(innerpt_bc_struct) * num_inner, cudaMemcpyHostToDevice);
+      cudaCheckErrors(cudaMemcpy, "inner_bc_array Memcpy failed.");
+  } else {
+      device_dst->inner_bc_array = NULL;
+  }
+
+  // Copy outer boundary arrays
+  for (int gz = 0; gz < NGHOSTS; gz++) {
+      for (int dirn = 0; dirn < 3; dirn++) {
+          int num_outer = host_src->bc_info.num_pure_outer_boundary_points[gz][dirn];
+          if (num_outer > 0) {
+              int idx = gz * 3 + dirn; // Calculate the index in the array
+
+              cudaMalloc(&device_dst->pure_outer_bc_array[idx], sizeof(outerpt_bc_struct) * num_outer);
+              cudaCheckErrors(cudaMalloc, "inner_bc_array malloc failed");
+
+              cudaMemcpy(device_dst->pure_outer_bc_array[idx], host_src->pure_outer_bc_array[idx],sizeof(outerpt_bc_struct) * num_outer, cudaMemcpyHostToDevice);
+              cudaCheckErrors(cudaMemcpy, "inner_bc_array Memcpy failed.");
+          } else {
+              device_dst->pure_outer_bc_array[gz * 3 + dirn] = NULL;
+          }
+      }
+  }
+    """
     cfc.register_CFunction(
         includes=includes,
         desc=desc,
@@ -449,36 +559,33 @@ def register_CFunction_cpyDevicetoHost__gf() -> None:
     /**
      * Asynchronously copying a grid function from device to host.
      */
-    __host__ size_t cpyDevicetoHost__gf(const commondata_struct *restrict commondata, const params_struct *restrict params, REAL *gf_host,
-                                        const REAL *gf_gpu, const int host_GF_IDX, const int gpu_GF_IDX) {
+    __host__ void cpyDevicetoHost__gf(const commondata_struct *restrict commondata, const params_struct *restrict params, REAL *gf_host,
+                                      const REAL *gf_gpu, const int host_GF_IDX, const int gpu_GF_IDX, const size_t streamid) {
     <BLANKLINE>
       int const Nxx_plus_2NGHOSTS0 = params->Nxx_plus_2NGHOSTS0;
       int const Nxx_plus_2NGHOSTS1 = params->Nxx_plus_2NGHOSTS1;
       int const Nxx_plus_2NGHOSTS2 = params->Nxx_plus_2NGHOSTS2;
       const int Nxx_plus_2NGHOSTS_tot = Nxx_plus_2NGHOSTS0 * Nxx_plus_2NGHOSTS1 * Nxx_plus_2NGHOSTS2;
     <BLANKLINE>
-      size_t streamid = (params->grid_idx + gpu_GF_IDX) % NUM_STREAMS;
       int offset_gpu = Nxx_plus_2NGHOSTS_tot * gpu_GF_IDX;
       int offset_host = Nxx_plus_2NGHOSTS_tot * host_GF_IDX;
       cudaMemcpyAsync(&gf_host[offset_host], &gf_gpu[offset_gpu], sizeof(REAL) * Nxx_plus_2NGHOSTS_tot, cudaMemcpyDeviceToHost, streams[streamid]);
       cudaCheckErrors(cudaMemcpyAsync, "Copy of gf data failed");
-      return streamid;
     } // END FUNCTION cpyDevicetoHost__gf
     <BLANKLINE>
     """
     includes = ["BHaH_defines.h"]
     desc = r"""Asynchronously copying a grid function from device to host."""
-    cfunc_type = "__host__ size_t"
+    cfunc_type = "__host__ void"
     name = "cpyDevicetoHost__gf"
     params = "const commondata_struct *restrict commondata, const params_struct *restrict params, "
-    params += "REAL * gf_host, const REAL * gf_gpu, const int host_GF_IDX, const int gpu_GF_IDX"
+    params += "REAL * gf_host, const REAL * gf_gpu, const int host_GF_IDX, const int gpu_GF_IDX, const size_t streamid"
     body = """
   int const Nxx_plus_2NGHOSTS0 = params->Nxx_plus_2NGHOSTS0;
   int const Nxx_plus_2NGHOSTS1 = params->Nxx_plus_2NGHOSTS1;
   int const Nxx_plus_2NGHOSTS2 = params->Nxx_plus_2NGHOSTS2;
   const int Nxx_plus_2NGHOSTS_tot = Nxx_plus_2NGHOSTS0 * Nxx_plus_2NGHOSTS1 * Nxx_plus_2NGHOSTS2;
 
-  size_t streamid = (params->grid_idx + gpu_GF_IDX) % NUM_STREAMS;
   int offset_gpu  = Nxx_plus_2NGHOSTS_tot * gpu_GF_IDX;
   int offset_host = Nxx_plus_2NGHOSTS_tot * host_GF_IDX;
   cudaMemcpyAsync(&gf_host[offset_host],
@@ -486,7 +593,6 @@ def register_CFunction_cpyDevicetoHost__gf() -> None:
                   sizeof(REAL) * Nxx_plus_2NGHOSTS_tot,
                   cudaMemcpyDeviceToHost, streams[streamid]);
   cudaCheckErrors(cudaMemcpyAsync, "Copy of gf data failed");
-  return streamid;
 """
     cfc.register_CFunction(
         includes=includes,
@@ -508,13 +614,13 @@ def register_CFunction_cpyHosttoDevice__gf() -> None:
     DOCTEST:
     >>> import nrpy.c_function as cfc
     >>> register_CFunction_cpyHosttoDevice__gf()
-    >>> print(cfc.CFunction_dict['cpyDevicetoHost__gf'].full_function)
+    >>> print(cfc.CFunction_dict['cpyHosttoDevice__gf'].full_function)
     #include "../BHaH_defines.h"
     /**
-     * Asynchronously copying a grid function from device to host.
+     * Asynchronously copying a grid function from host to device.
      */
-    __host__ size_t cpyDevicetoHost__gf(const commondata_struct *restrict commondata, const params_struct *restrict params, REAL *gf_host,
-                                        const REAL *gf_gpu, const int host_GF_IDX, const int gpu_GF_IDX) {
+    __host__ size_t cpyHosttoDevice__gf(const commondata_struct *restrict commondata, const params_struct *restrict params, const REAL *gf_host,
+                                        REAL *gf_gpu, const int host_GF_IDX, const int gpu_GF_IDX) {
     <BLANKLINE>
       int const Nxx_plus_2NGHOSTS0 = params->Nxx_plus_2NGHOSTS0;
       int const Nxx_plus_2NGHOSTS1 = params->Nxx_plus_2NGHOSTS1;
@@ -524,11 +630,12 @@ def register_CFunction_cpyHosttoDevice__gf() -> None:
       size_t streamid = (params->grid_idx + gpu_GF_IDX) % NUM_STREAMS;
       int offset_gpu = Nxx_plus_2NGHOSTS_tot * gpu_GF_IDX;
       int offset_host = Nxx_plus_2NGHOSTS_tot * host_GF_IDX;
-      cudaMemcpyAsync(&gf_host[offset_host], &gf_gpu[offset_gpu], sizeof(REAL) * Nxx_plus_2NGHOSTS_tot, cudaMemcpyDeviceToHost, streams[streamid]);
+      cudaMemcpyAsync(&gf_gpu[offset_host], &gf_host[offset_gpu], sizeof(REAL) * Nxx_plus_2NGHOSTS_tot, cudaMemcpyHostToDevice, streams[streamid]);
       cudaCheckErrors(cudaMemcpyAsync, "Copy of gf data failed");
       return streamid;
-    } // END FUNCTION cpyDevicetoHost__gf
+    } // END FUNCTION cpyHosttoDevice__gf
     <BLANKLINE>
+
     """
     includes = ["BHaH_defines.h"]
     desc = r"""Asynchronously copying a grid function from host to device."""
@@ -640,9 +747,12 @@ class CUDA_reductions:
     DOCTEST:
     >>> from nrpy.helpers.generic import validate_strings
     >>> import nrpy.params as par
+    >>> import nrpy.params as par
     >>> for fp_type in ['float', 'double']:
     ...     par.set_parval_from_str("fp_type", fp_type)
+    ...     par.set_parval_from_str("fp_type", fp_type)
     ...     for reduction_type, _reduction_func in implemented_reduction_dict.items():
+    ...         reduction = CUDA_reductions(reduction_type=reduction_type)
     ...         reduction = CUDA_reductions(reduction_type=reduction_type)
     ...         reduction.generate_CFunction()
     ...         generated_str = reduction.CFunction.full_function
@@ -821,6 +931,8 @@ static void {self.kernel_name}(REAL * data, REAL * min, uint const data_length) 
         )
 
 
+def register_CFunction_find_global_minimum() -> None:
+    """Register C function for finding the global minimum of an array."""
 def register_CFunction_find_global_minimum() -> None:
     """Register C function for finding the global minimum of an array."""
     reduction = CUDA_reductions(

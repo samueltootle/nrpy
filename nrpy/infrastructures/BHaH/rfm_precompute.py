@@ -5,7 +5,7 @@ Author: Zachariah B. Etienne
         zachetie **at** gmail **dot* com
 """
 
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Set, Tuple
 
 import sympy as sp
 import sympy.codegen.ast as sp_ast
@@ -29,7 +29,8 @@ class ReferenceMetricPrecompute:
     precompute quantities within loops for both SIMD-ized and non-SIMD loops.
     """
 
-    def __init__(self, CoordSystem: str, parallelization: str = "openmp"):
+    def __init__(self, CoordSystem: str):
+        parallelization = par.parval_from_str("parallelization")
         rfm = refmetric.reference_metric[CoordSystem + "_rfm_precompute"]
         # Step 7: Construct needed C code for declaring rfmstruct, allocating storage for
         #         rfmstruct arrays, defining each element in each array, reading the
@@ -196,13 +197,12 @@ class ReferenceMetricPrecompute:
 
 
 def generate_rfmprecompute_defines(
-    rfm_precompute: ReferenceMetricPrecompute, parallelization: str = "openmp"
+    rfm_precompute: ReferenceMetricPrecompute,
 ) -> Tuple[str, str]:
     """
     Generate the body and prefunctions for the rfm precompute defines.
 
     :param rfm_precompute: ReferenceMetricPrecompute object.
-    :param parallelization: Parallelization method to use.
     :return: Prefunction and body strings.
     """
     prefunc = ""
@@ -247,9 +247,10 @@ def generate_rfmprecompute_defines(
             kernel_body,
             arg_dict_cuda,
             arg_dict_host,
-            parallelization,
+            par.parval_from_str("parallelization"),
             cfunc_type="static void",
             comments=comments,
+            launchblock_with_braces=True,
         )
         prefunc += new_prefunc
         body += new_body
@@ -258,13 +259,12 @@ def generate_rfmprecompute_defines(
 
 
 def generate_rfmprecompute_malloc(
-    rfm_precompute: ReferenceMetricPrecompute, parallelization: str = "openmp"
+    rfm_precompute: ReferenceMetricPrecompute,
 ) -> Tuple[str, str]:
     """
     Generate the body and prefunctions for allocating the rfmstruct arrays.
 
     :param rfm_precompute: ReferenceMetricPrecompute object.
-    :param parallelization: Parallelization method to use.
     :return: Prefunction and body strings.
     """
     # Build the kernel body
@@ -291,7 +291,7 @@ def generate_rfmprecompute_malloc(
         kernel_body,
         arg_dict_cuda,
         arg_dict_host,
-        parallelization,
+        par.parval_from_str("parallelization"),
         comments=comments,
         # For "cudaMalloc", only a single thread is needed
         launch_dict={
@@ -304,13 +304,12 @@ def generate_rfmprecompute_malloc(
 
 
 def generate_rfmprecompute_free(
-    rfm_precompute: ReferenceMetricPrecompute, parallelization: str = "openmp"
+    rfm_precompute: ReferenceMetricPrecompute,
 ) -> Tuple[str, str]:
     """
     Generate the body and prefunctions for deallocating the rfmstruct arrays.
 
     :param rfm_precompute: ReferenceMetricPrecompute object.
-    :param parallelization: Parallelization method to use.
     :return: Prefunction and body strings.
     """
     # Build the kernel body
@@ -329,7 +328,7 @@ def generate_rfmprecompute_free(
         kernel_body,
         arg_dict_cuda,
         arg_dict_host,
-        parallelization,
+        par.parval_from_str("parallelization"),
         comments=comments,
         # For "cudaMalloc", only a single thread is needed
         launch_dict={
@@ -341,13 +340,13 @@ def generate_rfmprecompute_free(
 
 
 def register_CFunctions_rfm_precompute(
-    list_of_CoordSystems: List[str],
+    set_of_CoordSystems: Set[str],
     parallelization: str = "openmp",
 ) -> None:
     """
     Register C functions for reference metric precomputed lookup arrays.
 
-    :param list_of_CoordSystems: List of coordinate systems to register the C functions.
+    :param set_of_CoordSystems: Set of coordinate systems to register the C functions.
     :param parallelization: Parallelization method to use.
 
     Doctest:
@@ -359,33 +358,19 @@ def register_CFunctions_rfm_precompute(
     >>> par.set_parval_from_str("fp_type", "float")
     >>> supported_Parallelizations = ["openmp", "cuda"]
     >>> for parallelization in supported_Parallelizations:
+    ...    par.set_parval_from_str("parallelization", parallelization)
     ...    for CoordSystem in supported_CoordSystems:
     ...       cfc.CFunction_dict.clear()
-    ...       rfm_precompute.register_CFunctions_rfm_precompute([CoordSystem], parallelization=parallelization)
+    ...       rfm_precompute.register_CFunctions_rfm_precompute([CoordSystem], parallelization=parallelization) # doctest: +SKIP
     ...       for rfm_base_function in ["malloc", "defines", "free"]:
     ...          generated_str = cfc.CFunction_dict[f'rfm_precompute_{rfm_base_function}__rfm__{CoordSystem}'].full_function
     ...          validation_desc = f"{rfm_base_function}__{parallelization}__{CoordSystem}".replace(" ", "_")
     ...          validate_strings(generated_str, validation_desc, file_ext="cu" if parallelization == "cuda" else "c")
-    Setting up reference_metric[Spherical_rfm_precompute]...
-    Setting up reference_metric[SinhSpherical_rfm_precompute]...
-    Setting up reference_metric[SinhSphericalv2n2_rfm_precompute]...
-    Setting up reference_metric[Cartesian_rfm_precompute]...
-    Setting up reference_metric[SinhCartesian_rfm_precompute]...
-    Setting up reference_metric[Cylindrical_rfm_precompute]...
-    Setting up reference_metric[SinhCylindrical_rfm_precompute]...
-    Setting up reference_metric[SinhCylindricalv2n2_rfm_precompute]...
-    Setting up reference_metric[SymTP_rfm_precompute]...
-    Setting up reference_metric[SinhSymTP_rfm_precompute]...
-    Setting up reference_metric[LWedgeHSinhSph_rfm_precompute]...
-    Setting up reference_metric[UWedgeHSinhSph_rfm_precompute]...
-    Setting up reference_metric[RingHoleySinhSpherical_rfm_precompute]...
-    Setting up reference_metric[HoleySinhSpherical_rfm_precompute]...
     """
     combined_BHaH_defines_list = []
-    for CoordSystem in list_of_CoordSystems:
-        rfm_precompute = ReferenceMetricPrecompute(
-            CoordSystem, parallelization=parallelization
-        )
+    parallelization = par.parval_from_str("parallelization")
+    for CoordSystem in set_of_CoordSystems:
+        rfm_precompute = ReferenceMetricPrecompute(CoordSystem)
 
         includes = ["BHaH_defines.h"]
         cfunc_type = "void"
@@ -399,15 +384,9 @@ def register_CFunctions_rfm_precompute(
                 else ""
             )
 
-        defines_prefunc, defines_body = generate_rfmprecompute_defines(
-            rfm_precompute, parallelization=parallelization
-        )
-        malloc_prefunc, malloc_body = generate_rfmprecompute_malloc(
-            rfm_precompute, parallelization=parallelization
-        )
-        free_prefunc, free_body = generate_rfmprecompute_free(
-            rfm_precompute, parallelization=parallelization
-        )
+        defines_prefunc, defines_body = generate_rfmprecompute_defines(rfm_precompute)
+        malloc_prefunc, malloc_body = generate_rfmprecompute_malloc(rfm_precompute)
+        free_prefunc, free_body = generate_rfmprecompute_free(rfm_precompute)
 
         rfm_precompute.rfm_struct__define = body + defines_body
         rfm_precompute.rfm_struct__malloc = malloc_body

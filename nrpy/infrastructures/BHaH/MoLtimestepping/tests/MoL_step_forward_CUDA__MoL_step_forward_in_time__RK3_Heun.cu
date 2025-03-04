@@ -17,7 +17,7 @@ __global__ static void rk_substep_1_gpu(const size_t streamid, REAL *restrict k1
   LOOP_ALL_GFS_GPS(i) {
     const REAL k1_or_y_nplus_a21_k1_or_y_nplus1_running_total_gfsL = k1_or_y_nplus_a21_k1_or_y_nplus1_running_total_gfs[i];
     const REAL y_n_gfsL = y_n_gfs[i];
-    static const double dblRK_Rational_1_3 = 1.0 / 3.0;
+    static constexpr double dblRK_Rational_1_3 = 1.0 / 3.0;
     const REAL_CUDA_ARRAY RK_Rational_1_3 = ConstCUDA(dblRK_Rational_1_3);
 
     const REAL_CUDA_ARRAY __rk_exp_0 = FusedMulAddCUDA(RK_Rational_1_3, MulCUDA(dt, k1_or_y_nplus_a21_k1_or_y_nplus1_running_total_gfsL), y_n_gfsL);
@@ -36,7 +36,6 @@ static void rk_substep_1__launcher(params_struct *restrict params, REAL *restric
   MAYBE_UNUSED const int Ntot = Nxx_plus_2NGHOSTS0 * Nxx_plus_2NGHOSTS1 * Nxx_plus_2NGHOSTS2 * NUM_EVOL_GFS;
 
   {
-
     const size_t threads_in_x_dir = 32;
     const size_t threads_in_y_dir = 1;
     const size_t threads_in_z_dir = 1;
@@ -60,13 +59,13 @@ __global__ static void rk_substep_2_gpu(const size_t streamid, REAL *restrict k1
     const REAL k1_or_y_nplus_a21_k1_or_y_nplus1_running_total_gfsL = k1_or_y_nplus_a21_k1_or_y_nplus1_running_total_gfs[i];
     const REAL y_n_gfsL = y_n_gfs[i];
     const REAL k2_or_y_nplus_a32_k2_gfsL = k2_or_y_nplus_a32_k2_gfs[i];
-    static const double dblRK_Rational_1_4 = 1.0 / 4.0;
+    static constexpr double dblRK_Rational_1_4 = 1.0 / 4.0;
     const REAL_CUDA_ARRAY RK_Rational_1_4 = ConstCUDA(dblRK_Rational_1_4);
 
-    static const double dblRK_Rational_2_3 = 2.0 / 3.0;
+    static constexpr double dblRK_Rational_2_3 = 2.0 / 3.0;
     const REAL_CUDA_ARRAY RK_Rational_2_3 = ConstCUDA(dblRK_Rational_2_3);
 
-    static const double dblRK_Rational_3_4 = 3.0 / 4.0;
+    static constexpr double dblRK_Rational_3_4 = 3.0 / 4.0;
     const REAL_CUDA_ARRAY RK_Rational_3_4 = ConstCUDA(dblRK_Rational_3_4);
 
     const REAL_CUDA_ARRAY __rk_exp_0 =
@@ -88,7 +87,6 @@ static void rk_substep_2__launcher(params_struct *restrict params, REAL *restric
   MAYBE_UNUSED const int Ntot = Nxx_plus_2NGHOSTS0 * Nxx_plus_2NGHOSTS1 * Nxx_plus_2NGHOSTS2 * NUM_EVOL_GFS;
 
   {
-
     const size_t threads_in_x_dir = 32;
     const size_t threads_in_y_dir = 1;
     const size_t threads_in_z_dir = 1;
@@ -111,7 +109,7 @@ __global__ static void rk_substep_3_gpu(const size_t streamid, REAL *restrict k1
   LOOP_ALL_GFS_GPS(i) {
     const REAL k1_or_y_nplus_a21_k1_or_y_nplus1_running_total_gfsL = k1_or_y_nplus_a21_k1_or_y_nplus1_running_total_gfs[i];
     const REAL y_n_gfsL = y_n_gfs[i];
-    static const double dblRK_Rational_3_4 = 3.0 / 4.0;
+    static constexpr double dblRK_Rational_3_4 = 3.0 / 4.0;
     const REAL_CUDA_ARRAY RK_Rational_3_4 = ConstCUDA(dblRK_Rational_3_4);
 
     const REAL_CUDA_ARRAY __rk_exp_0 = FusedMulAddCUDA(RK_Rational_3_4, MulCUDA(dt, y_n_gfsL), k1_or_y_nplus_a21_k1_or_y_nplus1_running_total_gfsL);
@@ -130,7 +128,6 @@ static void rk_substep_3__launcher(params_struct *restrict params, REAL *restric
   MAYBE_UNUSED const int Ntot = Nxx_plus_2NGHOSTS0 * Nxx_plus_2NGHOSTS1 * Nxx_plus_2NGHOSTS2 * NUM_EVOL_GFS;
 
   {
-
     const size_t threads_in_x_dir = 32;
     const size_t threads_in_y_dir = 1;
     const size_t threads_in_z_dir = 1;

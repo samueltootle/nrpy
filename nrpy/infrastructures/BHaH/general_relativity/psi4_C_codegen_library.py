@@ -63,7 +63,7 @@ REAL xx0, xx1, xx2;
     REAL xOrig[3] = {{xx[0][i0], xx[1][i1], xx[2][i2]}};
     xx_to_Cart(params, xOrig, xCart_rel_to_globalgrid_center);
     int ignore_Cart_to_i0i1i2[3];  REAL xx_rel_to_globalgridorigin[3];
-    Cart_to_xx_and_nearest_i0i1i2_global_grid_center(commondata, params, xCart_rel_to_globalgrid_center,xx_rel_to_globalgridorigin,ignore_Cart_to_i0i1i2);
+    Cart_to_xx_and_nearest_i0i1i2_global_grid_center(params, xCart_rel_to_globalgrid_center,xx_rel_to_globalgridorigin,ignore_Cart_to_i0i1i2);
     xx0=xx_rel_to_globalgridorigin[0];
     xx1=xx_rel_to_globalgridorigin[1];
     xx2=xx_rel_to_globalgridorigin[2];
@@ -109,7 +109,7 @@ MAYBE_UNUSED REAL {psi4_class.metric_deriv_var_list_str};
             enable_fd_codegen=True,
         ),
         loop_region="interior",
-        enable_simd=False,
+        enable_intrinsics=False,
         CoordSystem=CoordSystem,
         enable_rfm_precompute=False,
         read_xxs=False,

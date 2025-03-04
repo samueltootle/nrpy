@@ -21,16 +21,19 @@ import nrpy.infrastructures.BHaH.CurviBoundaryConditions.CurviBoundaryConditions
 import nrpy.infrastructures.BHaH.diagnostics.progress_indicator as progress
 import nrpy.infrastructures.BHaH.Makefile_helpers as Makefile
 import nrpy.infrastructures.gpu.checkpoints.cuda.checkpointing as chkpt
-import nrpy.infrastructures.gpu.grid_management.cuda.griddata_free as griddata_commondata
 import nrpy.infrastructures.gpu.grid_management.cuda.numerical_grids_and_timestep as numericalgrids
 import nrpy.infrastructures.gpu.header_definitions.cuda_headers as gpudefines
 import nrpy.infrastructures.gpu.main_driver.cuda.main_c as main
 import nrpy.infrastructures.gpu.nrpyelliptic.cuda.conformally_flat_C_codegen_library as nrpyellClib
 import nrpy.params as par
 from nrpy.helpers.generic import copy_files
-from nrpy.infrastructures.BHaH import rfm_precompute, rfm_wrapper_functions
+from nrpy.infrastructures.BHaH import (
+    griddata_commondata,
+    rfm_precompute,
+    rfm_wrapper_functions,
+    xx_tofrom_Cart,
+)
 from nrpy.infrastructures.BHaH.MoLtimestepping import MoL_register_all
-from nrpy.infrastructures.gpu.grid_management.cuda import xx_tofrom_Cart
 
 par.set_parval_from_str("Infrastructure", "BHaH")
 
@@ -153,6 +156,7 @@ project_dir = os.path.join("project", project_name)
 # First clean the project directory, if it exists.
 shutil.rmtree(project_dir, ignore_errors=True)
 
+par.set_parval_from_str("parallelization", "cuda")
 par.set_parval_from_str("fp_type", fp_type)
 par.set_parval_from_str("parallel_codegen_enable", parallel_codegen_enable)
 par.set_parval_from_str("fd_order", fd_order)
@@ -203,7 +207,7 @@ nrpyellClib.register_CFunction_diagnostics(
 
 if enable_rfm_precompute:
     rfm_precompute.register_CFunctions_rfm_precompute(
-        list_of_CoordSystems=list(set(list_of_CoordSystems)), parallelization="cuda"
+        list_of_CoordSystems=list(set(list_of_CoordSystems))
     )
 
 # Generate function to compute RHSs
@@ -233,7 +237,6 @@ if __name__ == "__main__" and parallel_codegen_enable:
 cbc.CurviBoundaryConditions_register_C_functions(
     list_of_CoordSystems=list(set(list_of_CoordSystems)),
     radiation_BC_fd_order=radiation_BC_fd_order,
-    parallelization="cuda",
 )
 rhs_string = """rhs_eval(commondata, params, rfmstruct,  auxevol_gfs, RK_INPUT_GFS, RK_OUTPUT_GFS);
 if (strncmp(commondata->outer_bc_type, "radiation", 50) == 0){
@@ -257,7 +260,6 @@ MoL_register_all.register_CFunctions(
     enable_rfm_precompute=enable_rfm_precompute,
     enable_curviBCs=True,
     enable_intrinsics=enable_intrinsics,
-    parallelization="cuda",
     rational_const_alias="static constexpr",
 )
 chkpt.register_CFunctions(default_checkpoint_every=default_checkpoint_every)
@@ -390,7 +392,8 @@ main.register_CFunction_main_c(
     boundary_conditions_desc=boundary_conditions_desc,
 )
 griddata_commondata.register_CFunction_griddata_free(
-    enable_rfm_precompute=enable_rfm_precompute, enable_CurviBCs=True
+    enable_rfm_precompute=enable_rfm_precompute,
+    enable_CurviBCs=True,
 )
 
 if enable_intrinsics:

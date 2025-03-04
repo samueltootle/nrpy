@@ -72,9 +72,9 @@ class GPU_Kernel:
     const size_t threads_in_z_dir = 1;
     dim3 threads_per_block(threads_in_x_dir, threads_in_y_dir, threads_in_z_dir);
     dim3 blocks_per_grid(
-        (Nxx_plus_2NGHOSTS0 + threads_in_x_dir - 1) / threads_in_x_dir,
-        (Nxx_plus_2NGHOSTS1 + threads_in_y_dir - 1) / threads_in_y_dir,
-        (Nxx_plus_2NGHOSTS2 + threads_in_z_dir - 1) / threads_in_z_dir
+        (params->Nxx_plus_2NGHOSTS0 + threads_in_x_dir - 1) / threads_in_x_dir,
+        (params->Nxx_plus_2NGHOSTS1 + threads_in_y_dir - 1) / threads_in_y_dir,
+        (params->Nxx_plus_2NGHOSTS2 + threads_in_z_dir - 1) / threads_in_z_dir
     );
     <BLANKLINE>
     """
@@ -141,9 +141,9 @@ dim3 threads_per_block(threads_in_x_dir, threads_in_y_dir, threads_in_z_dir);"""
             grid_def_str = f"dim3 blocks_per_grid({blocks_per_grid_str});"
         else:
             grid_def_str = """dim3 blocks_per_grid(
-    (Nxx_plus_2NGHOSTS0 + threads_in_x_dir - 1) / threads_in_x_dir,
-    (Nxx_plus_2NGHOSTS1 + threads_in_y_dir - 1) / threads_in_y_dir,
-    (Nxx_plus_2NGHOSTS2 + threads_in_z_dir - 1) / threads_in_z_dir
+    (params->Nxx_plus_2NGHOSTS0 + threads_in_x_dir - 1) / threads_in_x_dir,
+    (params->Nxx_plus_2NGHOSTS1 + threads_in_y_dir - 1) / threads_in_y_dir,
+    (params->Nxx_plus_2NGHOSTS2 + threads_in_z_dir - 1) / threads_in_z_dir
 );"""
 
         # Determine if the stream needs to be added to launch
@@ -153,9 +153,9 @@ dim3 threads_per_block(threads_in_x_dir, threads_in_y_dir, threads_in_z_dir);"""
                 self.launch_dict["stream"] == ""
                 or self.launch_dict["stream"] == "default"
             ):
-                stream_def_str = "size_t streamid = params->grid_idx % NUM_STREAMS;"
+                stream_def_str = "size_t streamid = params->grid_idx % NUM_STREAMS;\n"
             else:
-                stream_def_str = f"size_t streamid = {self.launch_dict['stream']};"
+                stream_def_str = f"size_t streamid = {self.launch_dict['stream']};\n"
 
         # Determine if the shared memory size needs to be added to launch
         # If a stream is specified, we need to at least set SM to 0
@@ -166,10 +166,10 @@ dim3 threads_per_block(threads_in_x_dir, threads_in_y_dir, threads_in_z_dir);"""
                 or self.launch_dict["sm"] == ""
                 or self.launch_dict["sm"] == "default"
             ):
-                sm_def_str = "size_t sm = 0;"
+                sm_def_str = "size_t sm = 0;\n"
                 self.launch_dict["sm"] = 0
             else:
-                sm_def_str = f"size_t sm = {self.launch_dict['sm']};"
+                sm_def_str = f"size_t sm = {self.launch_dict['sm']};\n"
 
         self.launch_block = f"""{block_def_str}
 {grid_def_str}
@@ -205,22 +205,6 @@ dim3 threads_per_block(threads_in_x_dir, threads_in_y_dir, threads_in_z_dir);"""
             c_function_call += f"{msg};\n"
 
         return c_function_call
-
-
-def get_params_access(parallelization: str) -> str:
-    """
-    Return the appropriate params_struct-access prefix for CUDA vs. non-CUDA.
-    E.g. 'd_params[streamid].' vs. 'params->' where 'd_params' is
-    allocated in __constant__ memory rather a pointer passed as a function argument.
-
-    :param parallelization: The parallelization method to use.
-    :returns: The appropriate prefix for accessing the params struct.
-    """
-    if parallelization == "cuda":
-        params_access = "d_params[streamid]."
-    else:
-        params_access = "params->"
-    return params_access
 
 
 if __name__ == "__main__":

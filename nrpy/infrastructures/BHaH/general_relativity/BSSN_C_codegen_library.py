@@ -9,7 +9,7 @@ from collections import OrderedDict as ODict
 from inspect import currentframe as cfr
 from pathlib import Path
 from types import FrameType as FT
-from typing import Dict, List, Tuple, Union, cast
+from typing import Dict, List, Set, Tuple, Union, cast
 
 import sympy as sp
 from mpmath import mpc, mpf  # type: ignore
@@ -18,6 +18,7 @@ import nrpy.c_codegen as ccg
 import nrpy.c_function as cfc
 import nrpy.finite_difference as fin
 import nrpy.grid as gri
+import nrpy.helpers.gpu.utilities as gpu_utils
 import nrpy.helpers.parallel_codegen as pcg
 import nrpy.indexedexp as ixp
 import nrpy.infrastructures.BHaH.diagnostics.output_0d_1d_2d_nearest_gridpoint_slices as out012d
@@ -35,6 +36,10 @@ from nrpy.equations.general_relativity.InitialData_Cartesian import (
 )
 from nrpy.equations.general_relativity.InitialData_Spherical import (
     InitialData_Spherical,
+)
+from nrpy.helpers.expression_utils import (
+    generate_definition_header,
+    get_params_commondata_symbols_from_expr_list,
 )
 
 
@@ -70,6 +75,7 @@ def register_CFunction_initial_data(
     if pcg.pcg_registration_phase():
         pcg.register_func_call(f"{__name__}.{cast(FT, cfr()).f_code.co_name}", locals())
         return None
+    parallelization = par.parval_from_str("parallelization")
 
     includes = ["BHaH_defines.h", "BHaH_function_prototypes.h"]
 
@@ -108,6 +114,9 @@ def register_CFunction_initial_data(
     params = (
         "commondata_struct *restrict commondata, griddata_struct *restrict griddata"
     )
+    params += (
+        ", griddata_struct *restrict d_griddata" if parallelization == "cuda" else ""
+    )
 
     body = ""
     if enable_checkpointing:
@@ -123,11 +132,20 @@ for(int grid=0; grid<commondata->NUMGRIDS; grid++) {
   params_struct *restrict params = &griddata[grid].params;
 """
     body += f"""initial_data_reader__convert_ADM_{IDCoordSystem}_to_BSSN(commondata, params,
-griddata[grid].xx, &griddata[grid].bcstruct, &griddata[grid].gridfuncs, &ID_persist, {IDtype});"""
+(const REAL* *restrict) griddata[grid].xx, &griddata[grid].bcstruct, &griddata[grid].gridfuncs, &ID_persist, {IDtype});""".replace(
+        "(const REAL* *restrict) griddata[grid].xx, &griddata[grid].bcstruct, &griddata[grid].gridfuncs,",
+        (
+            "(const REAL* *restrict) griddata[grid].xx, (const REAL* *restrict) d_griddata[grid].xx, &d_griddata[grid].bcstruct, &griddata[grid].gridfuncs,&d_griddata[grid].gridfuncs,"
+            if parallelization == "cuda"
+            else "(const REAL* *restrict) griddata[grid].xx, &griddata[grid].bcstruct, &griddata[grid].gridfuncs,"
+        ),
+    )
     body += """
   apply_bcs_outerextrap_and_inner(commondata, params, &griddata[grid].bcstruct, griddata[grid].gridfuncs.y_n_gfs);
 }
-"""
+""".replace(
+        "griddata", "d_griddata" if parallelization == "cuda" else "griddata"
+    )
     if free_ID_persist_struct_str:
         body += free_ID_persist_struct_str
 
@@ -144,7 +162,7 @@ griddata[grid].xx, &griddata[grid].bcstruct, &griddata[grid].gridfuncs, &ID_pers
 
 
 def register_CFunction_diagnostics(
-    list_of_CoordSystems: List[str],
+    set_of_CoordSystems: Set[str],
     default_diagnostics_out_every: float,
     enable_psi4_diagnostics: bool = False,
     enable_progress_indicator: bool = True,
@@ -166,7 +184,7 @@ def register_CFunction_diagnostics(
     """
     Register C function for simulation diagnostics.
 
-    :param list_of_CoordSystems: Lists of unique CoordSystems used.
+    :param set_of_CoordSystems: Sets of unique CoordSystems used.
     :param default_diagnostics_out_every: Specifies the default diagnostics output frequency.
     :param enable_psi4_diagnostics: Whether to enable psi4 diagnostics.
     :param enable_progress_indicator: Whether to enable the progress indicator.
@@ -191,6 +209,7 @@ def register_CFunction_diagnostics(
     )
 
     includes = ["BHaH_defines.h", "BHaH_function_prototypes.h"]
+    parallelization = par.parval_from_str("parallelization")
 
     # fmt: off
     if out_quantities_dict == "default":
@@ -204,8 +223,18 @@ def register_CFunction_diagnostics(
     if not isinstance(out_quantities_dict, dict):
         raise TypeError(f"out_quantities_dict was initialized to {out_quantities_dict}, which is not a dictionary!")
     # fmt: on
+    out_quantities_gf_indexes_dict = {
+        tmp_str.replace(" ", "")
+        .split("[")[1]
+        .split(",")[0]
+        .replace("IDX4pt(", ""): gf_ptr
+        for gf_ptr in ["y_n_gfs", "diagnostic_output_gfs"]
+        for v in out_quantities_dict.values()
+        for tmp_str in v.split(gf_ptr)
+        if "IDX4pt" in tmp_str and tmp_str and tmp_str[0] == "["
+    }
 
-    for CoordSystem in list_of_CoordSystems:
+    for CoordSystem in set_of_CoordSystems:
         out012d.register_CFunction_diagnostics_nearest_grid_center(
             CoordSystem=CoordSystem,
             out_quantities_dict=out_quantities_dict,
@@ -231,6 +260,11 @@ def register_CFunction_diagnostics(
     name = "diagnostics"
     params = (
         "commondata_struct *restrict commondata, griddata_struct *restrict griddata"
+        + (
+            ", griddata_struct *restrict griddata_host"
+            if parallelization == "cuda"
+            else ""
+        )
     )
 
     body = r"""
@@ -252,16 +286,44 @@ if(fabs(round(currtime / outevery) * outevery - currtime) < 0.5*currdt) {
     }
     const params_struct *restrict params = &griddata[grid].params;
 #include "set_CodeParameters.h"
-
+""".replace(
+        "griddata[grid].xx[ww];",
+        (
+            "griddata_host[grid].xx[ww];"
+            if parallelization == "cuda"
+            else "griddata[grid].xx[ww];"
+        ),
+    )
+    if parallelization == "cuda":
+        body += r"""
+    // This does not leverage async memory transfers using multiple streams at the moment
+    // given the current intent is one cuda stream per grid. This could be leveraged
+    // in the future by increasing NUM_STREAMS such that a diagnostic stream is included per grid
+    size_t streamid = params->grid_idx % NUM_STREAMS;
+    cpyHosttoDevice_params__constant(&griddata[grid].params, streamid);
+    REAL *restrict host_y_n_gfs = griddata_host[grid].gridfuncs.y_n_gfs;
+    REAL *restrict host_diagnostic_output_gfs = griddata_host[grid].gridfuncs.diagnostic_output_gfs;
+"""
+        for cnt, (idx, gf) in enumerate(out_quantities_gf_indexes_dict.items()):
+            if "y_n_gfs" in gf:
+                body += f"    cpyDevicetoHost__gf(commondata, params, host_{gf}, {gf}, {idx}, {idx}, streamid);\n"
+    body += r"""
     // Constraint output
     {
 """
     if use_Ricci_eval_func:
-        body += "Ricci_eval(commondata, params, griddata[grid].rfmstruct, y_n_gfs, auxevol_gfs);\n"
+        body += "Ricci_eval(params, griddata[grid].rfmstruct, y_n_gfs, auxevol_gfs);\n"
     body += r"""
-      constraints_eval(commondata, params, griddata[grid].rfmstruct, y_n_gfs, auxevol_gfs, diagnostic_output_gfs);
-    }
+      constraints_eval(params, griddata[grid].rfmstruct, y_n_gfs, auxevol_gfs, diagnostic_output_gfs);
+    }"""
 
+    if parallelization == "cuda":
+        for cnt, (idx, gf) in enumerate(out_quantities_gf_indexes_dict.items()):
+            if "diagnostic_output_gfs" in gf:
+                body += f"    cpyDevicetoHost__gf(commondata, params, host_{gf}, {gf}, {idx}, {idx}, streamid);\n"
+            body += "cudaStreamSynchronize(streams[streamid]);"
+
+    body += """
     // 0D output
     diagnostics_nearest_grid_center(commondata, params, &griddata[grid].gridfuncs);
 
@@ -272,7 +334,9 @@ if(fabs(round(currtime / outevery) * outevery - currtime) < 0.5*currdt) {
     // 2D output
     diagnostics_nearest_2d_xy_plane(commondata, params, xx, &griddata[grid].gridfuncs);
     diagnostics_nearest_2d_yz_plane(commondata, params, xx, &griddata[grid].gridfuncs);
-"""
+""".replace(
+        "griddata", "griddata_host" if parallelization == "cuda" else "griddata"
+    )
     if enable_psi4_diagnostics:
         body += r"""      // Do psi4 output, but only if the grid is spherical-like.
       if (strstr(CoordSystemName, "Spherical") != NULL) {
@@ -320,7 +384,7 @@ def register_CFunction_rhs_eval(
     enable_rfm_precompute: bool,
     enable_RbarDD_gridfunctions: bool,
     enable_T4munu: bool,
-    enable_simd: bool,
+    enable_intrinsics: bool,
     enable_fd_functions: bool,
     LapseEvolutionOption: str,
     ShiftEvolutionOption: str,
@@ -340,7 +404,7 @@ def register_CFunction_rhs_eval(
     :param enable_rfm_precompute: Whether to enable reference metric precomputation.
     :param enable_RbarDD_gridfunctions: Whether to enable RbarDD gridfunctions.
     :param enable_T4munu: Whether to enable T4munu (stress-energy terms).
-    :param enable_simd: Whether to enable SIMD (Single Instruction, Multiple Data).
+    :param enable_intrinsics: Whether to enable SIMD (Single Instruction, Multiple Data).
     :param enable_fd_functions: Whether to enable finite difference functions.
     :param LapseEvolutionOption: Lapse evolution equation choice.
     :param ShiftEvolutionOption: Lapse evolution equation choice.
@@ -361,17 +425,44 @@ def register_CFunction_rhs_eval(
         pcg.register_func_call(f"{__name__}.{cast(FT, cfr()).f_code.co_name}", locals())
         return None
 
+    parallelization = par.parval_from_str("parallelization")
     includes = ["BHaH_defines.h"]
-    if enable_simd:
-        includes += [str(Path("intrinsics") / "simd_intrinsics.h")]
+    if enable_intrinsics:
+        includes += [
+            str(
+                Path("intrinsics") / "cuda_intrinsics.h"
+                if parallelization == "cuda"
+                else Path("intrinsics") / "simd_intrinsics.h"
+            )
+        ]
     desc = r"""Set RHSs for the BSSN evolution equations."""
     cfunc_type = "void"
     name = "rhs_eval"
-    params = "const commondata_struct *restrict commondata, const params_struct *restrict params, REAL *restrict xx[3], const REAL *restrict auxevol_gfs, const REAL *restrict in_gfs, REAL *restrict rhs_gfs"
+    arg_dict_cuda = {
+        "auxevol_gfs": "const REAL *restrict",
+        "in_gfs": "const REAL *restrict",
+        "rhs_gfs": "REAL *restrict",
+    }
     if enable_rfm_precompute:
-        params = params.replace(
-            "REAL *restrict xx[3]", "const rfm_struct *restrict rfmstruct"
-        )
+        arg_dict_cuda = {
+            "rfmstruct": "const rfm_struct *restrict",
+            **arg_dict_cuda,
+        }
+    else:
+        arg_dict_cuda = {
+            "x0": "const REAL *restrict",
+            "x1": "const REAL *restrict",
+            "x2": "const REAL *restrict",
+            **arg_dict_cuda,
+        }
+
+    arg_dict_host = {
+        "commondata": "const commondata_struct *restrict",
+        "params": "const params_struct *restrict",
+        **arg_dict_cuda,
+    }
+    params = ",".join([f"{v} {k}" for k, v in arg_dict_host.items()])
+
     # Populate BSSN rhs variables
     rhs = BSSN_RHSs[
         CoordSystem
@@ -566,33 +657,99 @@ def register_CFunction_rhs_eval(
     #     cast(Dict[str, Union[mpf, mpc]], results_dict),
     # )
 
-    body = lp.simple_loop(
+    expr_list = list(local_BSSN_RHSs_varname_to_expr_dict.values())
+
+    # Find symbols stored in params
+    param_symbols, commondata_symbols = get_params_commondata_symbols_from_expr_list(
+        expr_list, exclude=[f"xx{j}" for j in range(3)]
+    )
+
+    arg_dict_cuda = {
+        **arg_dict_cuda,
+        **{
+            f"NOCUDA{k}" if enable_intrinsics else k: "const REAL"
+            for k in commondata_symbols
+        },
+    }
+
+    arg_dict_host = {
+        "params": "const params_struct *restrict",
+        **{k.replace("CUDA", "SIMD"): v for k, v in arg_dict_cuda.items()},
+    }
+
+    kernel_body = lp.simple_loop(
         loop_body=ccg.c_codegen(
-            list(local_BSSN_RHSs_varname_to_expr_dict.values()),
+            expr_list,
             BSSN_RHSs_access_gf,
             enable_fd_codegen=True,
-            enable_simd=enable_simd,
+            enable_simd=enable_intrinsics,
             upwind_control_vec=betaU,
             enable_fd_functions=enable_fd_functions,
+            rational_const_alias=(
+                "static constexpr" if parallelization == "cuda" else "static const"
+            ),
         ),
         loop_region="interior",
-        enable_simd=enable_simd,
+        enable_intrinsics=enable_intrinsics,
         CoordSystem=CoordSystem,
         enable_rfm_precompute=enable_rfm_precompute,
         read_xxs=not enable_rfm_precompute,
         OMP_collapse=OMP_collapse,
     )
+    loop_params = f"{gpu_utils.get_loop_parameters(parallelization, enable_intrinsics=enable_intrinsics)}\n"
+    if enable_intrinsics:
+        for symbol in commondata_symbols:
+            loop_params += f"MAYBE_UNUSED const REAL_SIMD_ARRAY {symbol} = ConstSIMD(NOSIMD{symbol});\n"
+
+    params_definitions = generate_definition_header(
+        param_symbols,
+        enable_intrinsics=enable_intrinsics,
+        var_access=gpu_utils.get_params_access(parallelization),
+    )
+    kernel_body = f"{loop_params}\n{params_definitions}\n{kernel_body}"
+
+    kernel, launch_body = gpu_utils.generate_kernel_and_launch_code(
+        name,
+        kernel_body.replace("SIMD", "CUDA" if parallelization == "cuda" else "SIMD"),
+        arg_dict_cuda,
+        arg_dict_host,
+        parallelization=parallelization,
+        comments=desc,
+        cfunc_type=cfunc_type,
+        launchblock_with_braces=False,
+    )
+
+    for symbol in commondata_symbols:
+        tmp_sym = (
+            f"NOCUDA{symbol}"
+            if parallelization == "cuda" and enable_intrinsics
+            else (
+                f"NOSIMD{symbol}"
+                if enable_intrinsics
+                else symbol if enable_intrinsics else symbol
+            )
+        )
+        launch_body = launch_body.replace(tmp_sym, f"commondata->{symbol}")
+
+    prefunc = ""
+    if parallelization == "cuda" and enable_fd_functions:
+        prefunc = fin.construct_FD_functions_prefunc(
+            cfunc_decorators="__device__ "
+        ).replace("SIMD", "CUDA")
+    elif enable_fd_functions:
+        prefunc = fin.construct_FD_functions_prefunc()
+
     cfc.register_CFunction(
-        include_CodeParameters_h=True,
+        include_CodeParameters_h=False,
         includes=includes,
-        prefunc=fin.construct_FD_functions_prefunc() if enable_fd_functions else "",
+        prefunc=prefunc + kernel,
         desc=desc,
         cfunc_type=cfunc_type,
         CoordSystem_for_wrapper_func=CoordSystem,
         name=name,
         params=params,
-        body=body,
-        enable_simd=enable_simd,
+        body=launch_body,
+        enable_simd=enable_intrinsics,
     )
     return cast(pcg.NRPyEnv_type, pcg.NRPyEnv())
 
@@ -600,7 +757,7 @@ def register_CFunction_rhs_eval(
 def register_CFunction_Ricci_eval(
     CoordSystem: str,
     enable_rfm_precompute: bool,
-    enable_simd: bool,
+    enable_intrinsics: bool,
     enable_fd_functions: bool,
     OMP_collapse: int,
 ) -> Union[None, pcg.NRPyEnv_type]:
@@ -609,7 +766,7 @@ def register_CFunction_Ricci_eval(
 
     :param CoordSystem: The coordinate system to be used.
     :param enable_rfm_precompute: Whether to enable reference metric precomputation.
-    :param enable_simd: Whether to enable SIMD instructions.
+    :param enable_intrinsics: Whether to enable SIMD instructions.
     :param enable_fd_functions: Whether to enable finite difference functions.
     :param OMP_collapse: Degree of OpenMP loop collapsing.
 
@@ -619,54 +776,111 @@ def register_CFunction_Ricci_eval(
         pcg.register_func_call(f"{__name__}.{cast(FT, cfr()).f_code.co_name}", locals())
         return None
 
+    parallelization = par.parval_from_str("parallelization")
     Bq = BSSN_quantities[
         CoordSystem + ("_rfm_precompute" if enable_rfm_precompute else "")
     ]
 
     includes = ["BHaH_defines.h"]
-    if enable_simd:
-        includes += [str(Path("intrinsics") / "simd_intrinsics.h")]
+    if enable_intrinsics:
+        includes += [
+            str(
+                Path("intrinsics") / "cuda_intrinsics.h"
+                if parallelization == "cuda"
+                else Path("intrinsics") / "simd_intrinsics.h"
+            )
+        ]
     desc = r"""Set Ricci tensor."""
     cfunc_type = "void"
     name = "Ricci_eval"
-    params = "const commondata_struct *restrict commondata, const params_struct *restrict params, REAL *restrict xx[3], const REAL *restrict in_gfs, REAL *restrict auxevol_gfs"
+    arg_dict_cuda = {
+        "in_gfs": "const REAL *restrict",
+        "auxevol_gfs": "REAL *restrict",
+    }
     if enable_rfm_precompute:
-        params = params.replace(
-            "REAL *restrict xx[3]", "const rfm_struct *restrict rfmstruct"
-        )
+        arg_dict_cuda = {
+            "rfmstruct": "const rfm_struct *restrict",
+            **arg_dict_cuda,
+        }
+    else:
+        arg_dict_cuda = {
+            "x0": "const REAL *restrict",
+            "x1": "const REAL *restrict",
+            "x2": "const REAL *restrict",
+            **arg_dict_cuda,
+        }
+    arg_dict_host = {
+        "params": "const params_struct *restrict",
+        **arg_dict_cuda,
+    }
+    params = ",".join([f"{v} {k}" for k, v in arg_dict_host.items()])
+
     # Populate Ricci tensor
     Ricci_access_gfs: List[str] = []
     for var in Bq.Ricci_varnames:
         Ricci_access_gfs += [
             gri.BHaHGridFunction.access_gf(var, 0, 0, 0, gf_array_name="auxevol_gfs")
         ]
-    body = lp.simple_loop(
+    kernel_body = lp.simple_loop(
         loop_body=ccg.c_codegen(
             Bq.Ricci_exprs,
             Ricci_access_gfs,
             enable_fd_codegen=True,
-            enable_simd=enable_simd,
+            enable_simd=enable_intrinsics,
             enable_fd_functions=enable_fd_functions,
+            rational_const_alias=(
+                "static constexpr" if parallelization == "cuda" else "static const"
+            ),
         ),
         loop_region="interior",
-        enable_simd=enable_simd,
+        enable_intrinsics=enable_intrinsics,
         CoordSystem=CoordSystem,
         enable_rfm_precompute=enable_rfm_precompute,
         read_xxs=not enable_rfm_precompute,
         OMP_collapse=OMP_collapse,
     )
+    loop_params = gpu_utils.get_loop_parameters(
+        parallelization, enable_intrinsics=enable_intrinsics
+    )
+
+    param_symbols, _ = get_params_commondata_symbols_from_expr_list(Bq.Ricci_exprs)
+    params_definitions = params_definitions = generate_definition_header(
+        param_symbols,
+        enable_intrinsics=enable_intrinsics,
+        var_access=gpu_utils.get_params_access(parallelization),
+    )
+    kernel_body = f"{loop_params}\n{params_definitions}\n{kernel_body}"
+
+    kernel, launch_body = gpu_utils.generate_kernel_and_launch_code(
+        name,
+        kernel_body.replace("SIMD", "CUDA" if parallelization == "cuda" else "SIMD"),
+        arg_dict_cuda,
+        arg_dict_host,
+        parallelization=parallelization,
+        comments=desc,
+        cfunc_type=cfunc_type,
+        launchblock_with_braces=False,
+    )
+
+    prefunc = ""
+    if parallelization == "cuda" and enable_fd_functions:
+        prefunc = fin.construct_FD_functions_prefunc(
+            cfunc_decorators="__device__ "
+        ).replace("SIMD", "CUDA")
+    elif enable_fd_functions:
+        prefunc = fin.construct_FD_functions_prefunc()
 
     cfc.register_CFunction(
-        include_CodeParameters_h=True,
-        prefunc=fin.construct_FD_functions_prefunc() if enable_fd_functions else "",
+        include_CodeParameters_h=False,
+        prefunc=prefunc + kernel,
         includes=includes,
         desc=desc,
         cfunc_type=cfunc_type,
         CoordSystem_for_wrapper_func=CoordSystem,
         name=name,
         params=params,
-        body=body,
-        enable_simd=enable_simd,
+        body=launch_body,
+        enable_simd=enable_intrinsics,
     )
     return cast(pcg.NRPyEnv_type, pcg.NRPyEnv())
 
@@ -676,7 +890,7 @@ def register_CFunction_constraints(
     enable_rfm_precompute: bool,
     enable_RbarDD_gridfunctions: bool,
     enable_T4munu: bool,
-    enable_simd: bool,
+    enable_intrinsics: bool,
     enable_fd_functions: bool,
     OMP_collapse: int,
 ) -> Union[None, pcg.NRPyEnv_type]:
@@ -687,7 +901,7 @@ def register_CFunction_constraints(
     :param enable_rfm_precompute: Whether to enable reference metric precomputation.
     :param enable_RbarDD_gridfunctions: Whether to enable RbarDD gridfunctions.
     :param enable_T4munu: Whether to enable T4munu (stress-energy terms).
-    :param enable_simd: Whether to enable SIMD instructions.
+    :param enable_intrinsics: Whether to enable SIMD instructions.
     :param enable_fd_functions: Whether to enable finite difference functions.
     :param OMP_collapse: Degree of OpenMP loop collapsing.
 
@@ -697,6 +911,7 @@ def register_CFunction_constraints(
         pcg.register_func_call(f"{__name__}.{cast(FT, cfr()).f_code.co_name}", locals())
         return None
 
+    parallelization = par.parval_from_str("parallelization")
     Bcon = BSSN_constraints[
         CoordSystem
         + ("_rfm_precompute" if enable_rfm_precompute else "")
@@ -705,16 +920,39 @@ def register_CFunction_constraints(
     ]
 
     includes = ["BHaH_defines.h"]
-    if enable_simd:
-        includes += [str(Path("intrinsics") / "simd_intrinsics.h")]
+    if enable_intrinsics:
+        includes += [
+            str(
+                Path("intrinsics") / "cuda_intrinsics.h"
+                if parallelization == "cuda"
+                else Path("intrinsics") / "simd_intrinsics.h"
+            )
+        ]
     desc = r"""Evaluate BSSN constraints."""
     cfunc_type = "void"
     name = "constraints_eval"
-    params = "const commondata_struct *restrict commondata, const params_struct *restrict params, REAL *restrict xx[3], const REAL *restrict in_gfs, const REAL *restrict auxevol_gfs, REAL *restrict diagnostic_output_gfs"
+    arg_dict_cuda = {
+        "in_gfs": "const REAL *restrict",
+        "auxevol_gfs": "const REAL *restrict",
+        "diagnostic_output_gfs": "REAL *restrict",
+    }
     if enable_rfm_precompute:
-        params = params.replace(
-            "REAL *restrict xx[3]", "const rfm_struct *restrict rfmstruct"
-        )
+        arg_dict_cuda = {
+            "rfmstruct": "const rfm_struct *restrict",
+            **arg_dict_cuda,
+        }
+    else:
+        arg_dict_cuda = {
+            "x0": "const REAL *restrict",
+            "x1": "const REAL *restrict",
+            "x2": "const REAL *restrict",
+            **arg_dict_cuda,
+        }
+    arg_dict_host = {
+        "params": "const params_struct *restrict",
+        **arg_dict_cuda,
+    }
+    params = ",".join([f"{v} {k}" for k, v in arg_dict_host.items()])
     Constraints_access_gfs: List[str] = []
     for var in ["H", "MSQUARED"]:
         Constraints_access_gfs += [
@@ -722,33 +960,66 @@ def register_CFunction_constraints(
                 var, 0, 0, 0, gf_array_name="diagnostic_output_gfs"
             )
         ]
-    body = lp.simple_loop(
+    expr_list = [Bcon.H, Bcon.Msquared]
+    kernel_body = lp.simple_loop(
         loop_body=ccg.c_codegen(
-            [Bcon.H, Bcon.Msquared],
+            expr_list,
             Constraints_access_gfs,
             enable_fd_codegen=True,
-            enable_simd=enable_simd,
+            enable_simd=enable_intrinsics,
             enable_fd_functions=enable_fd_functions,
+            rational_const_alias=(
+                "static constexpr" if parallelization == "cuda" else "static const"
+            ),
         ),
         loop_region="interior",
-        enable_simd=enable_simd,
+        enable_intrinsics=enable_intrinsics,
         CoordSystem=CoordSystem,
         enable_rfm_precompute=enable_rfm_precompute,
         read_xxs=not enable_rfm_precompute,
         OMP_collapse=OMP_collapse,
     )
+    loop_params = gpu_utils.get_loop_parameters(
+        parallelization, enable_intrinsics=enable_intrinsics
+    )
+    param_symbols, _ = get_params_commondata_symbols_from_expr_list(expr_list)
+    params_definitions = generate_definition_header(
+        param_symbols,
+        enable_intrinsics=enable_intrinsics,
+        var_access=gpu_utils.get_params_access(parallelization),
+    )
+    kernel_body = f"{loop_params}\n{params_definitions}\n{kernel_body}"
+
+    prefunc = ""
+    if parallelization == "cuda" and enable_fd_functions:
+        prefunc = fin.construct_FD_functions_prefunc(
+            cfunc_decorators="__device__ "
+        ).replace("SIMD", "CUDA")
+    elif enable_fd_functions:
+        prefunc = fin.construct_FD_functions_prefunc()
+
+    kernel, launch_body = gpu_utils.generate_kernel_and_launch_code(
+        name,
+        kernel_body.replace("SIMD", "CUDA" if parallelization == "cuda" else "SIMD"),
+        arg_dict_cuda,
+        arg_dict_host,
+        parallelization=parallelization,
+        comments=desc,
+        cfunc_type=cfunc_type,
+        launchblock_with_braces=False,
+    )
 
     cfc.register_CFunction(
         includes=includes,
-        prefunc=fin.construct_FD_functions_prefunc() if enable_fd_functions else "",
+        prefunc=prefunc + kernel,
         desc=desc,
         cfunc_type=cfunc_type,
         CoordSystem_for_wrapper_func=CoordSystem,
         name=name,
         params=params,
-        include_CodeParameters_h=True,
-        body=body,
-        enable_simd=enable_simd,
+        include_CodeParameters_h=False,
+        body=launch_body,
+        enable_simd=enable_intrinsics,
     )
     return cast(pcg.NRPyEnv_type, pcg.NRPyEnv())
 
@@ -773,6 +1044,7 @@ def register_CFunction_enforce_detgammabar_equals_detgammahat(
         pcg.register_func_call(f"{__name__}.{cast(FT, cfr()).f_code.co_name}", locals())
         return None
 
+    parallelization = par.parval_from_str("parallelization")
     Bq = BSSN_quantities[
         CoordSystem + ("_rfm_precompute" if enable_rfm_precompute else "")
     ]
@@ -784,11 +1056,26 @@ def register_CFunction_enforce_detgammabar_equals_detgammahat(
     desc = r"""Enforce det(gammabar) = det(gammahat) constraint. Required for strong hyperbolicity."""
     cfunc_type = "void"
     name = "enforce_detgammabar_equals_detgammahat"
-    params = "const commondata_struct *restrict commondata, const params_struct *restrict params, REAL *restrict xx[3], REAL *restrict in_gfs"
+    arg_dict_cuda = {
+        "in_gfs": "REAL *restrict",
+    }
     if enable_rfm_precompute:
-        params = params.replace(
-            "REAL *restrict xx[3]", "const rfm_struct *restrict rfmstruct"
-        )
+        arg_dict_cuda = {
+            "rfmstruct": "const rfm_struct *restrict",
+            **arg_dict_cuda,
+        }
+    else:
+        arg_dict_cuda = {
+            "x0": "const REAL *restrict",
+            "x1": "const REAL *restrict",
+            "x2": "const REAL *restrict",
+            **arg_dict_cuda,
+        }
+    arg_dict_host = {
+        "params": "const params_struct *restrict",
+        **arg_dict_cuda,
+    }
+    params = ",".join([f"{v} {k}" for k, v in arg_dict_host.items()])
 
     # First define the Kronecker delta:
     KroneckerDeltaDD = ixp.zerorank2()
@@ -825,7 +1112,7 @@ def register_CFunction_enforce_detgammabar_equals_detgammahat(
     #   Exercise to the reader: prove that for any reasonable grid,
     #   SIMD loops over grid interiors never write data out of bounds
     #   and are threadsafe for any reasonable number of threads.
-    body = lp.simple_loop(
+    kernel_body = lp.simple_loop(
         loop_body=ccg.c_codegen(
             hprimeDD_expr_list,
             hDD_access_gfs,
@@ -834,23 +1121,52 @@ def register_CFunction_enforce_detgammabar_equals_detgammahat(
             enable_fd_functions=enable_fd_functions,
         ),
         loop_region="all points",
-        enable_simd=False,
+        enable_intrinsics=False,
         CoordSystem=CoordSystem,
         enable_rfm_precompute=enable_rfm_precompute,
         read_xxs=not enable_rfm_precompute,
         OMP_collapse=OMP_collapse,
     )
+    loop_params = gpu_utils.get_loop_parameters(
+        parallelization, enable_intrinsics=False
+    )
+    param_symbols, _ = get_params_commondata_symbols_from_expr_list(hprimeDD_expr_list)
+    params_definitions = generate_definition_header(
+        param_symbols,
+        enable_intrinsics=False,
+        var_access=gpu_utils.get_params_access(parallelization),
+    )
+    kernel_body = f"{loop_params}\n{params_definitions}\n{kernel_body}"
+
+    kernel, launch_body = gpu_utils.generate_kernel_and_launch_code(
+        name,
+        kernel_body,
+        arg_dict_cuda,
+        arg_dict_host,
+        parallelization=parallelization,
+        comments=desc,
+        cfunc_type=cfunc_type,
+        launchblock_with_braces=False,
+    )
+
+    prefunc = ""
+    if parallelization == "cuda" and enable_fd_functions:
+        prefunc = fin.construct_FD_functions_prefunc(
+            cfunc_decorators="__device__ "
+        ).replace("SIMD", "CUDA")
+    elif enable_fd_functions:
+        prefunc = fin.construct_FD_functions_prefunc()
 
     cfc.register_CFunction(
-        include_CodeParameters_h=True,
-        prefunc=fin.construct_FD_functions_prefunc() if enable_fd_functions else "",
+        include_CodeParameters_h=False,
+        prefunc=prefunc + kernel,
         includes=includes,
         desc=desc,
         cfunc_type=cfunc_type,
         CoordSystem_for_wrapper_func=CoordSystem,
         name=name,
         params=params,
-        body=body,
+        body=launch_body,
         enable_simd=False,
     )
     return cast(pcg.NRPyEnv_type, pcg.NRPyEnv())
@@ -946,7 +1262,7 @@ static void lowlevel_decompose_psi4_into_swm2_modes(const int Nxx_plus_2NGHOSTS1
     const REAL xCart_R_ext[3] = { R_ext, 0.0, 0.0 }; // just put a point on the x-axis.
 
     int Cart_to_i0i1i2[3]; REAL closest_xx[3];
-    Cart_to_xx_and_nearest_i0i1i2(commondata,params, xCart_R_ext, closest_xx, Cart_to_i0i1i2);
+    Cart_to_xx_and_nearest_i0i1i2(params, xCart_R_ext, closest_xx, Cart_to_i0i1i2);
 
     const int closest_i0=Cart_to_i0i1i2[0];
 
@@ -1014,12 +1330,12 @@ static void lowlevel_decompose_psi4_into_swm2_modes(const int Nxx_plus_2NGHOSTS1
 
 
 def register_CFunction_cahdprefactor_auxevol_gridfunction(
-    list_of_CoordSystems: List[str],
+    set_of_CoordSystems: Set[str],
 ) -> Union[None, pcg.NRPyEnv_type]:
     """
     Add function that sets cahdprefactor gridfunction = C_CAHD * CFL_FACTOR * dsmin to Cfunction dictionary.
 
-    :param list_of_CoordSystems: Coordinate systems used.
+    :param set_of_CoordSystems: Coordinate systems used.
 
     :return: None if in registration phase, else the updated NRPy environment.
     """
@@ -1027,7 +1343,7 @@ def register_CFunction_cahdprefactor_auxevol_gridfunction(
         pcg.register_func_call(f"{__name__}.{cast(FT, cfr()).f_code.co_name}", locals())
         return None
 
-    for CoordSystem in list_of_CoordSystems:
+    for CoordSystem in set_of_CoordSystems:
         desc = "cahdprefactor_auxevol_gridfunction(): Initialize CAHD prefactor (auxevol) gridfunction."
         name = "cahdprefactor_auxevol_gridfunction"
         params = "const commondata_struct *restrict commondata, const params_struct *restrict params, REAL *restrict xx[3], REAL *restrict auxevol_gfs"
@@ -1078,7 +1394,7 @@ if __name__ == "__main__":
                     enable_rfm_precompute=True,
                     enable_RbarDD_gridfunctions=Rbar_gfs,
                     enable_T4munu=T4munu_enable,
-                    enable_simd=False,
+                    enable_intrinsics=False,
                     enable_fd_functions=False,
                     enable_KreissOliger_dissipation=True,
                     LapseEvolutionOption=LapseEvolOption,

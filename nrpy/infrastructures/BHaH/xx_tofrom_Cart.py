@@ -5,13 +5,17 @@ Author: Zachariah B. Etienne
         zachetie **at** gmail **dot* com
 """
 
-from typing import List
+from inspect import currentframe as cfr
+from types import FrameType as FT
+from typing import List, Union, cast
 
 import sympy as sp
 
 import nrpy.c_codegen as ccg
 import nrpy.c_function as cfc
 import nrpy.grid as gri
+import nrpy.params as par
+import nrpy.helpers.parallel_codegen as pcg
 import nrpy.reference_metric as refmetric
 from nrpy.helpers.expression_utils import get_unique_expression_symbols_as_strings
 
@@ -22,7 +26,7 @@ def register_CFunction__Cart_to_xx_and_nearest_i0i1i2(
     CoordSystem: str,
     relative_to: str = "local_grid_center",
     gridding_approach: str = "independent grid(s)",
-) -> None:
+) -> Union[None, pcg.NRPyEnv_type]:
     """
     Construct and register a C function that maps Cartesian coordinates to xx and finds the nearest grid indices.
 
@@ -37,7 +41,13 @@ def register_CFunction__Cart_to_xx_and_nearest_i0i1i2(
     :param gridding_approach: Choices: "independent grid(s)" (default) or "multipatch".
     :raises ValueError: When the value of `gridding_approach` is not "independent grid(s)"
                         or "multipatch".
+    :return: None if in registration phase, else the updated NRPy environment.
     """
+    if pcg.pcg_registration_phase():
+        pcg.register_func_call(f"{__name__}.{cast(FT, cfr()).f_code.co_name}", locals())
+        return None
+
+    parallelization = par.parval_from_str("parallelization")
     if gridding_approach not in {"independent grid(s)", "multipatch"}:
         raise ValueError(
             "Invalid value for 'gridding_approach'. Must be 'independent grid(s)' or 'multipatch'."
@@ -53,6 +63,7 @@ def register_CFunction__Cart_to_xx_and_nearest_i0i1i2(
     namesuffix = f"_{relative_to}" if relative_to == "global_grid_center" else ""
     name = f"Cart_to_xx_and_nearest_i0i1i2{namesuffix}"
     params = "const params_struct *restrict params, const REAL xCart[3], REAL xx[3], int Cart_to_i0i1i2[3]"
+    cfunc_decorators = "__host__ __device__" if parallelization == "cuda" else ""
 
     body = """
   // Set (Cartx, Carty, Cartz) relative to the global (as opposed to local) grid.
@@ -65,12 +76,11 @@ def register_CFunction__Cart_to_xx_and_nearest_i0i1i2(
     if relative_to == "local_grid_center":
         body += """
   // Set the origin, (Cartx, Carty, Cartz) = (0, 0, 0), to the center of the local grid patch.
-  Cartx -= Cart_originx;
-  Carty -= Cart_originy;
-  Cartz -= Cart_originz;
+  Cartx -= params->Cart_originx;
+  Carty -= params->Cart_originy;
+  Cartz -= params->Cart_originz;
   {
 """
-        params += ", " + ", ".join([f"Cart_origin{v}" for v in ["x", "y", "z"]])
     if rfm.requires_NewtonRaphson_for_Cart_to_xx:
         body += "  // First compute analytical coordinate inversions:\n"
         Cart_to_xx_exprs: List[sp.Expr] = []
@@ -116,7 +126,9 @@ def register_CFunction__Cart_to_xx_and_nearest_i0i1i2(
         unique_symbols = []
         for expr in expr_list:
             unique_symbols += get_unique_expression_symbols_as_strings(
-                expr, exclude=[f"xx{i}" for i in range(3)]
+                expr,
+                exclude=[f"xx{i}" for i in range(3)]
+                + [f"Cart{c}" for c in ["x", "y", "z"]],
             )
         unique_symbols = sorted(list(set(unique_symbols)))
         for sym in unique_symbols:
@@ -153,13 +165,15 @@ def register_CFunction__Cart_to_xx_and_nearest_i0i1i2(
         params=params,
         include_CodeParameters_h=False,
         body=body,
+        cfunc_decorators=cfunc_decorators,
     )
+    return cast(pcg.NRPyEnv_type, pcg.NRPyEnv())
 
 
 def register_CFunction_xx_to_Cart(
     CoordSystem: str,
     gridding_approach: str = "independent grid(s)",
-) -> None:
+) -> Union[None, pcg.NRPyEnv_type]:
     """
     Convert uniform-grid coordinate (xx[0], xx[1], xx[2]) to the corresponding Cartesian coordinate.
 
@@ -167,7 +181,13 @@ def register_CFunction_xx_to_Cart(
     :param gridding_approach: Choices: "independent grid(s)" (default) or "multipatch".
 
     :raises ValueError: If an invalid gridding_approach is provided.
+    :return: None if in registration phase, else the updated NRPy environment.
     """
+    if pcg.pcg_registration_phase():
+        pcg.register_func_call(f"{__name__}.{cast(FT, cfr()).f_code.co_name}", locals())
+        return None
+
+    parallelization = par.parval_from_str("parallelization")
     if gridding_approach not in {"independent grid(s)", "multipatch"}:
         raise ValueError(
             "Invalid value for 'gridding_approach'. Must be 'independent grid(s)' or 'multipatch'."
@@ -182,6 +202,7 @@ def register_CFunction_xx_to_Cart(
     name = "xx_to_Cart"
     params = "const params_struct *restrict params, REAL xx[3], REAL xCart[3]"
     body = ""
+    cfunc_decorators = "__host__ __device__" if parallelization == "cuda" else ""
 
     rfm = refmetric.reference_metric[CoordSystem]
     expr_list = [
@@ -220,4 +241,6 @@ const REAL xx2 = xx[2];
         params=params,
         include_CodeParameters_h=False,
         body=body,
+        cfunc_decorators=cfunc_decorators,
     )
+    return cast(pcg.NRPyEnv_type, pcg.NRPyEnv())
