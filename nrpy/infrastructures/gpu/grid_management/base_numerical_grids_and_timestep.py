@@ -302,6 +302,7 @@ class base_register_CFunction_numerical_grids_and_timestep:
                 )
                 self.body += f"griddata[grid].params.grid_physical_size = {list_of_grid_physical_sizes[which_CoordSystem]};\n"
                 self.body += "numerical_grid_params_Nxx_dxx_xx(commondata, &griddata[grid].params, griddata[grid].xx, Nx, set_xxmin_xxmax_to_defaults);\n"
+                self.body += "memcpy(&griddata_host[grid].params, &griddata[grid].params, sizeof(params_struct));"
                 self.body += "grid++;\n\n"
             self.body += "}\n"
         elif self.gridding_approach == "multipatch":

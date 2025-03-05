@@ -249,7 +249,6 @@ for(int grid=0; grid<commondata->NUMGRIDS; grid++) {
   cpyHosttoDevice_params__constant(&griddata[grid].params, griddata[grid].params.grid_idx % NUM_STREAMS);
   rfm_precompute_malloc(commondata, &griddata[grid].params, griddata[grid].rfmstruct);
   rfm_precompute_defines(commondata, &griddata[grid].params, griddata[grid].rfmstruct, griddata[grid].xx);
-  memcpy(&griddata_host[grid].params, &griddata[grid].params, sizeof(params_struct));
 }
 """
         self.body += """
@@ -263,8 +262,7 @@ for(int grid=0; grid<commondata->NUMGRIDS; grid++) {
         if self.enable_CurviBCs:
             self.body += r"""
 for(int grid=0; grid<commondata->NUMGRIDS; grid++) {
-  cpyHosttoDevice_params__constant(&griddata[grid].params, griddata[grid].params.grid_idx % NUM_STREAMS);
-  bcstruct_set_up(commondata, &griddata[grid].params, griddata_host[grid].xx, &griddata[grid].bcstruct);
+  bcstruct_set_up(commondata, &griddata[grid].params, griddata_host[grid].xx, &griddata_host[grid].bcstruct, &griddata[grid].bcstruct);
 }
 """
         else:
