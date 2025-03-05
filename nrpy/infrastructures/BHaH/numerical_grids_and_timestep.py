@@ -7,7 +7,6 @@ Author: Zachariah B. Etienne
         zachetie **at** gmail **dot* com
 """
 
-import os
 from inspect import currentframe as cfr
 from types import FrameType as FT
 from typing import Dict, List, Set, Union, cast
@@ -153,20 +152,16 @@ for (int j = 0; j < params->Nxx_plus_2NGHOSTS0; j++) xx[0][j] = params->xxmin0 +
 for (int j = 0; j < params->Nxx_plus_2NGHOSTS1; j++) xx[1][j] = params->xxmin1 + ((REAL)(j - NGHOSTS) + (1.0 / 2.0)) * params->dxx1;
 for (int j = 0; j < params->Nxx_plus_2NGHOSTS2; j++) xx[2][j] = params->xxmin2 + ((REAL)(j - NGHOSTS) + (1.0 / 2.0)) * params->dxx2;
 """
-    _, actual_name = cfc.function_name_and_subdir_with_CoordSystem(
-        os.path.join("."), name, CoordSystem
+    cfc.register_CFunction(
+        includes=includes,
+        desc=desc,
+        cfunc_type=cfunc_type,
+        CoordSystem_for_wrapper_func=CoordSystem,
+        name=name,
+        params=params,
+        include_CodeParameters_h=False,  # keep this False or regret having to debug the mess.
+        body=body,
     )
-    if actual_name not in cfc.CFunction_dict:
-        cfc.register_CFunction(
-            includes=includes,
-            desc=desc,
-            cfunc_type=cfunc_type,
-            CoordSystem_for_wrapper_func=CoordSystem,
-            name=name,
-            params=params,
-            include_CodeParameters_h=False,  # keep this False or regret having to debug the mess.
-            body=body,
-        )
 
 
 def register_CFunction_ds_min_radial_like_dirns_single_pt(
