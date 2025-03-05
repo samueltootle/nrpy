@@ -8,7 +8,6 @@ Author: Zachariah B. Etienne
 from typing import Dict, List
 
 import nrpy.c_function as cfc
-import nrpy.helpers.gpu.utilities as gpu_utils
 import nrpy.params as par
 
 
@@ -142,6 +141,7 @@ except perhaps non_y_n_gfs (e.g., after a regrid, in which non_y_n_gfs are freed
         body=body,
     )
 
+
 def register_CFunction_griddata_free(
     enable_rfm_precompute: bool,
     enable_CurviBCs: bool,
@@ -153,8 +153,6 @@ def register_CFunction_griddata_free(
     :param enable_rfm_precompute: A flag to enable/disable rfm_precompute_free within the C function body.
     :param enable_CurviBCs: Whether to free CurviBCs within the C function body.
     :param enable_bhahaha: Whether to enable freeing of BHaHAHA memory.
-
-    :raises ValueError: If BHaHAHA is not supported in the parallelization mode.
     """
     parallelization = par.parval_from_str("parallelization")
     desc = """Free all memory within the griddata struct,
@@ -163,15 +161,17 @@ except perhaps non_y_n_gfs (e.g., after a regrid, in which non_y_n_gfs are freed
     name = "griddata_free"
     params = "const commondata_struct *restrict commondata, griddata_struct *restrict griddata, const bool free_non_y_n_gfs_and_core_griddata_pointers"
     if parallelization not in ["openmp"]:
-        register_CFunction_griddata_free__device(enable_rfm_precompute, enable_CurviBCs, enable_bhahaha=enable_bhahaha)
+        register_CFunction_griddata_free__device(
+            enable_rfm_precompute, enable_CurviBCs, enable_bhahaha=enable_bhahaha
+        )
 
     body = ""
     if enable_bhahaha and parallelization == "openmp":
         body += r"""  // Free BHaHAHA memory.
   for (int which_horizon = 0; which_horizon < commondata->bah_max_num_horizons; which_horizon++) {
-    free(commondata->bhahaha_params_and_data[which_horizon].prev_horizon_m1);
-    free(commondata->bhahaha_params_and_data[which_horizon].prev_horizon_m2);
-    free(commondata->bhahaha_params_and_data[which_horizon].prev_horizon_m3);
+    NRPY_FREE(commondata->bhahaha_params_and_data[which_horizon].prev_horizon_m1);
+    NRPY_FREE(commondata->bhahaha_params_and_data[which_horizon].prev_horizon_m2);
+    NRPY_FREE(commondata->bhahaha_params_and_data[which_horizon].prev_horizon_m3);
   }
 """
     body += r"""  // Free memory allocated inside griddata[].
