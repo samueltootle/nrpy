@@ -187,12 +187,16 @@ except perhaps non_y_n_gfs (e.g., after a regrid, in which non_y_n_gfs are freed
       NRPY_FREE(griddata[grid].bcstruct.pure_outer_bc_array[ng]);
 }
 """
-    body += r"""
+    if parallelization == "cuda":
+        body += "CUDA__free_host_gfs(&griddata[grid].gridfuncs);"
+    else:
+        body += r"""
 
   MoL_free_memory_y_n_gfs(&griddata[grid].gridfuncs);
   if(free_non_y_n_gfs_and_core_griddata_pointers) {
     MoL_free_memory_non_y_n_gfs(&griddata[grid].gridfuncs);
-  }
+  }"""
+    body += """
   for(int i=0;i<3;i++) {
     NRPY_FREE(griddata[grid].xx[i]);
   }
