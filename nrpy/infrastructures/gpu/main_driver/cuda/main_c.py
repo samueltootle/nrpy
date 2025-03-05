@@ -149,7 +149,8 @@ for(int i = 0; i < NUM_STREAMS; ++i) {
 // Step 6: Free all allocated memory
 {
   const bool enable_free_non_y_n_gfs=true;
-  griddata_free(&commondata, griddata, griddata_host, enable_free_non_y_n_gfs);
+  griddata_free_device(&commondata, griddata, enable_free_non_y_n_gfs);
+  griddata_free(&commondata, griddata_host, enable_free_non_y_n_gfs);
 }
 return 0;
 """

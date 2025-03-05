@@ -140,9 +140,9 @@ def register_CFunction_MoL_free_memory(
         if gridfunction == "auxevol_gfs":
             body += "  if(NUM_AUXEVOL_GFS > 0)"
         if parallelization == "cuda":
-            body += f" cudaFree(gridfuncs->{gridfunction});\n"
+            body += f" NRPY_FREE_DEVICE(gridfuncs->{gridfunction});\n"
         else:
-            body += f" free(gridfuncs->{gridfunction});\n"
+            body += f" NRPY_FREE(gridfuncs->{gridfunction});\n"
 
     cfc.register_CFunction(
         includes=includes,

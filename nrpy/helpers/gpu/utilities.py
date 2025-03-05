@@ -26,6 +26,20 @@ def get_params_access(parallelization: str) -> str:
     return params_access
 
 
+def get_memory_malloc_function(parallelization: str) -> str:
+    """
+    Return the appropriate function to allocate memory.
+
+    :param parallelization: The parallelization method to use.
+    :returns: The appropriate function to allocate memory.
+    """
+    if parallelization == "cuda":
+        malloc_func = "cudaMalloc"
+    else:
+        malloc_func = "malloc"
+    return malloc_func
+
+
 def get_memory_free_function(parallelization: str) -> str:
     """
     Return the appropriate function to free memory.
@@ -54,7 +68,7 @@ def get_check_errors_str(
     opt_msg = f"{kernel_name} failed." if opt_msg == "" else opt_msg
 
     if parallelization == "cuda":
-        check_errors_str = f'cudaCheckErrors({kernel_name}, "{opt_msg}");\n'
+        check_errors_str = f'cudaCheckErrors({kernel_name}, "{opt_msg}");'
     else:
         check_errors_str = ""
     return check_errors_str

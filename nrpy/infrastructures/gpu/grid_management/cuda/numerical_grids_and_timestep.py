@@ -195,7 +195,7 @@ const int Nxx_tot = (Nxx_plus_2NGHOSTS0_PADDED)*(Nxx_plus_2NGHOSTS1)*(Nxx_plus_2
   REAL ds_min__global = find_global__minimum(ds_min, Nxx_tot);
 
   commondata->dt = MIN(commondata->dt, ds_min__global * commondata->CFL_FACTOR);
-  cudaFree(ds_min);
+  NRPY_FREE_DEVICE(ds_min);
 """
 
         self.prefunc = self.device_kernel.CFunction.full_function
@@ -250,7 +250,6 @@ for(int grid=0; grid<commondata->NUMGRIDS; grid++) {
   cpyHosttoDevice_params__constant(&griddata[grid].params, griddata[grid].params.grid_idx % NUM_STREAMS);
   rfm_precompute_malloc(commondata, &griddata[grid].params, griddata[grid].rfmstruct);
   rfm_precompute_defines(commondata, &griddata[grid].params, griddata[grid].rfmstruct, griddata[grid].xx);
-  memcpy(&griddata_host[grid].params, &griddata[grid].params, sizeof(params_struct));
 }
 """
         self.body += """
@@ -264,8 +263,7 @@ for(int grid=0; grid<commondata->NUMGRIDS; grid++) {
         if self.enable_CurviBCs:
             self.body += r"""
 for(int grid=0; grid<commondata->NUMGRIDS; grid++) {
-  cpyHosttoDevice_params__constant(&griddata[grid].params, griddata[grid].params.grid_idx % NUM_STREAMS);
-  bcstruct_set_up(commondata, &griddata[grid].params, griddata_host[grid].xx, &griddata[grid].bcstruct);
+  bcstruct_set_up(commondata, &griddata[grid].params, griddata_host[grid].xx, &griddata_host[grid].bcstruct, &griddata[grid].bcstruct);
 }
 """
         else:
