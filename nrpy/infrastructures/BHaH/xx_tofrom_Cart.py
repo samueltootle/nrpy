@@ -18,7 +18,7 @@ import nrpy.helpers.parallel_codegen as pcg
 import nrpy.params as par
 import nrpy.reference_metric as refmetric
 from nrpy.helpers.expression_utils import get_unique_expression_symbols_as_strings, get_params_commondata_symbols_from_expr_list, generate_definition_header
-import nrpy.helpers.gpu.utilities as gpu_utils
+import nrpy.helpers.parallelization.utilities as gpu_utils
 
 
 # Construct Cart_to_xx_and_nearest_i0i1i2() C function for
