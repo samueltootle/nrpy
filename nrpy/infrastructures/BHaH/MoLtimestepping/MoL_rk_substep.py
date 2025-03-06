@@ -180,7 +180,7 @@ class RKFunction:
                 "threads_per_block": ["32"],
                 "stream": "params->grid_idx % NUM_STREAMS",
             },
-            launchblock_with_braces=True,
+            launchblock_with_braces=False,
         )
         self.body += new_body
 
@@ -297,7 +297,11 @@ def single_RK_substep_input_symbolic(
     body += (
         f"commondata->time = time_start + {substep_time_offset_str} * commondata->dt;\n"
     )
-    body += "cpyHosttoDevice_params__constant(&griddata[grid].params, griddata[grid].params.grid_idx % NUM_STREAMS);\n" if parallelization == "cuda" else ""
+    body += (
+        "cpyHosttoDevice_params__constant(&griddata[grid].params, griddata[grid].params.grid_idx % NUM_STREAMS);\n"
+        if parallelization == "cuda"
+        else ""
+    )
     body += gf_aliases
 
     # (1) RHS
