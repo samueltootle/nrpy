@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 import nrpy.grid as gri
-import nrpy.helpers.gpu.utilities as gpu_utils
+import nrpy.helpers.parallelization.utilities as gpu_utils
 import nrpy.params as par
 from nrpy.helpers.generic import clang_format
 from nrpy.infrastructures.BHaH import griddata_commondata
@@ -457,20 +457,51 @@ def output_BHaH_defines_h(
         for key in supplemental_defines_dict:
             file_output_str += output_key(key, supplemental_defines_dict[key])
     file_output_str += """
-#define NRPY_FREE(a) \
-    do {{ \
-        if (a) {{ \
+    #ifndef BHAH_TYPEOF
+    #if __cplusplus >= 2000707L
+    #define BHAH_TYPEOF(a) decltype(a)
+    #elif defined(__GNUC__) || defined(__clang__) || defined(__NVCC__)
+    #define BHAH_TYPEOF(a) __typeof__(a)
+    #else
+    #define BHAH_TYPEOF(a)
+    #endif // END check for GCC, Clang, or C++
+    #endif // END BHAH_TYPEOF
+
+    #define BHAH_MALLOC(a, sz) \
+    do { \
+        a = (BHAH_TYPEOF(a)) malloc(sz); \
+    } while(0);
+    #define BHAH_MALLOC__PtrMember(a, b, sz) \
+    do { \
+        if (a) { \
+            BHAH_MALLOC(a->b, sz); \
+        } \
+    } while(0);
+
+    #define BHAH_FREE(a) \
+    do { \
+        if (a) { \
             free((void*)(a)); \
             (a) = NULL; \
-        }} \
-    }} while (0);
-#endif
+        } \
+    } while (0);
+    #define BHAH_FREE__PtrMember(a, b) \
+    do { \
+        if (a) { \
+            BHAH_FREE(a->b); \
+        } \
+    } while(0);
 """
     parallelization = par.parval_from_str("parallelization")
 
     if parallelization != "openmp":
         file_output_str += rf"""
-    #define NRPY_FREE_DEVICE(a) \
+    #define BHAH_MALLOC_DEVICE(a, sz) \
+    do {{ \
+        {gpu_utils.get_memory_malloc_function(parallelization)}(&a, sz); \
+        {gpu_utils.get_check_errors_str(parallelization, gpu_utils.get_memory_malloc_function(parallelization), opt_msg='Malloc: "#a" failed')} \
+    }} while(0);
+    #define BHAH_FREE_DEVICE(a) \
     do {{ \
         if (a) {{ \
             {gpu_utils.get_memory_free_function(parallelization)}((void*)(a)); \
@@ -481,7 +512,7 @@ def output_BHaH_defines_h(
 """
     if parallelization == "cuda":
         file_output_str += rf"""
-    #define NRPY_FREE_PINNED(a) \
+    #define BHAH_FREE_PINNED(a) \
     do {{ \
         if (a) {{ \
             cudaFreeHost((void*)(a)); \
@@ -489,42 +520,27 @@ def output_BHaH_defines_h(
             (a) = nullptr; \
         }} \
     }} while (0);
-    #define NRPY_MALLOC___PtrMember(a, b, sz) \
-    do {{ \
-        if (a) {{ \
-            decltype(a->b) tmp_ptr_##b = nullptr; \
-            {gpu_utils.get_memory_malloc_function(parallelization)}(&tmp_ptr_##b, sz); \
-            {gpu_utils.get_check_errors_str(parallelization, gpu_utils.get_memory_malloc_function(parallelization), opt_msg='Malloc: "#a" failed')} \
-            cudaMemcpy(&a->b, &tmp_ptr_##b, sizeof(void *), cudaMemcpyHostToDevice); \
-        }} \
-    }} while(0);
-    #define NRPY_FREE___PtrMember(a, b) \
+    #define BHAH_FREE_DEVICE__PtrMember(a, b) \
     do {{ \
         if (a) {{ \
             decltype(a->b) tmp_ptr_##b = nullptr; \
             cudaMemcpy(&tmp_ptr_##b, &a->b, sizeof(void *), cudaMemcpyDeviceToHost); \
             if(tmp_ptr_##b) {{ \
-                NRPY_FREE_DEVICE(tmp_ptr_##b); \
+                BHAH_FREE_DEVICE(tmp_ptr_##b); \
                 cudaMemcpy(&a->b, &tmp_ptr_##b, sizeof(void *), cudaMemcpyHostToDevice); \
             }}\
         }} \
     }} while(0);
-"""
-    else:
-        file_output_str += rf"""
-    #define NRPY_MALLOC___PtrMember(a, b, sz) \
+    #define BHAH_MALLOC_DEVICE__PtrMember(a, b, sz) \
     do {{ \
         if (a) {{ \
-            a->b = {gpu_utils.get_memory_malloc_function(parallelization)}(sz); \
-        }} \
-    }} while(0);
-    #define NRPY_FREE___PtrMember(a, b) \
-    do {{ \
-        if (a) {{ \
-            NRPY_FREE(a->b); \
+            decltype(a->b) tmp_ptr_##b = nullptr; \
+            BHAH_MALLOC_DEVICE(tmp_ptr_##b, sz); \
+            cudaMemcpy(&a->b, &tmp_ptr_##b, sizeof(void *), cudaMemcpyHostToDevice); \
         }} \
     }} while(0);
 """
+    file_output_str += r"#endif"
 
     file_output_str = file_output_str.replace("*restrict", restrict_pointer_type)
 

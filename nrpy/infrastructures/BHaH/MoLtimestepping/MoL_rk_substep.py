@@ -16,7 +16,7 @@ import nrpy.c_function as cfc
 import nrpy.params as par
 from nrpy.c_codegen import c_codegen
 from nrpy.helpers.generic import superfast_uniq
-from nrpy.helpers.gpu.utilities import generate_kernel_and_launch_code
+from nrpy.helpers.parallelization.utilities import generate_kernel_and_launch_code
 
 ##############################################################################
 # Parallelization check and set:
@@ -180,7 +180,7 @@ class RKFunction:
                 "threads_per_block": ["32"],
                 "stream": "params->grid_idx % NUM_STREAMS",
             },
-            launchblock_with_braces=True,
+            launchblock_with_braces=False,
         )
         self.body += new_body
 
@@ -297,7 +297,11 @@ def single_RK_substep_input_symbolic(
     body += (
         f"commondata->time = time_start + {substep_time_offset_str} * commondata->dt;\n"
     )
-    body += "cpyHosttoDevice_params__constant(&griddata[grid].params, griddata[grid].params.grid_idx % NUM_STREAMS);\n" if parallelization == "cuda" else ""
+    body += (
+        "cpyHosttoDevice_params__constant(&griddata[grid].params, griddata[grid].params.grid_idx % NUM_STREAMS);\n"
+        if parallelization == "cuda"
+        else ""
+    )
     body += gf_aliases
 
     # (1) RHS

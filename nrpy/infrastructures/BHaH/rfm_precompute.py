@@ -16,7 +16,7 @@ import nrpy.params as par
 import nrpy.reference_metric as refmetric
 from nrpy.helpers.expression_utils import get_unique_expression_symbols_as_strings
 from nrpy.helpers.generic import superfast_uniq
-from nrpy.helpers.gpu.utilities import generate_kernel_and_launch_code
+from nrpy.helpers.parallelization.utilities import generate_kernel_and_launch_code
 from nrpy.infrastructures.BHaH.BHaH_defines_h import register_BHaH_defines
 
 
@@ -88,8 +88,22 @@ class ReferenceMetricPrecompute:
                 self.BHaH_defines_list += [
                     f"REAL *restrict {freevars_uniq_xx_indep[which_freevar]};"
                 ]
-                self.rfm_struct__malloc += f"NRPY_MALLOC___PtrMember(rfmstruct, {freevars_uniq_xx_indep[which_freevar]}, sizeof(REAL)*params->{malloc_size});"
-                self.rfm_struct__freemem += f"NRPY_FREE___PtrMember(rfmstruct, {freevars_uniq_xx_indep[which_freevar]});"
+                self.rfm_struct__malloc += f"BHAH_MALLOC__PtrMember(rfmstruct, {freevars_uniq_xx_indep[which_freevar]}, sizeof(REAL)*params->{malloc_size});".replace(
+                    "BHAH_MALLOC__PtrMember",
+                    (
+                        "BHAH_MALLOC_DEVICE__PtrMember"
+                        if parallelization in ["cuda"]
+                        else "BHAH_MALLOC__PtrMember"
+                    ),
+                )
+                self.rfm_struct__freemem += f"BHAH_FREE__PtrMember(rfmstruct, {freevars_uniq_xx_indep[which_freevar]});".replace(
+                    "BHAH_FREE__PtrMember",
+                    (
+                        "BHAH_FREE_DEVICE__PtrMember"
+                        if parallelization in ["cuda"]
+                        else "BHAH_FREE__PtrMember"
+                    ),
+                )
 
                 output_define_and_readvr = False
                 for dirn in range(3):
@@ -258,13 +272,11 @@ def generate_rfmprecompute_defines(
 
 def register_CFunctions_rfm_precompute(
     set_of_CoordSystems: Set[str],
-    parallelization: str = "openmp",
 ) -> None:
     """
     Register C functions for reference metric precomputed lookup arrays.
 
     :param set_of_CoordSystems: Set of coordinate systems to register the C functions.
-    :param parallelization: Parallelization method to use.
 
     Doctest:
     >>> import nrpy.c_function as cfc
@@ -278,7 +290,7 @@ def register_CFunctions_rfm_precompute(
     ...    par.set_parval_from_str("parallelization", parallelization)
     ...    for CoordSystem in supported_CoordSystems:
     ...       cfc.CFunction_dict.clear()
-    ...       rfm_precompute.register_CFunctions_rfm_precompute([CoordSystem], parallelization=parallelization) # doctest: +SKIP
+    ...       rfm_precompute.register_CFunctions_rfm_precompute({CoordSystem}) # doctest: +SKIP
     ...       for rfm_base_function in ["malloc", "defines", "free"]:
     ...          generated_str = cfc.CFunction_dict[f'rfm_precompute_{rfm_base_function}__rfm__{CoordSystem}'].full_function
     ...          validation_desc = f"{rfm_base_function}__{parallelization}__{CoordSystem}".replace(" ", "_")

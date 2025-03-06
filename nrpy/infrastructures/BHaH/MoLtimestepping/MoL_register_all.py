@@ -81,11 +81,11 @@ def register_CFunctions(
      *
      */
     void MoL_free_memory_non_y_n_gfs(MoL_gridfunctions_struct *restrict gridfuncs) {
-      free(gridfuncs->y_nplus1_running_total_gfs);
-      free(gridfuncs->k_odd_gfs);
-      free(gridfuncs->k_even_gfs);
+      BHAH_FREE(gridfuncs->y_nplus1_running_total_gfs);
+      BHAH_FREE(gridfuncs->k_odd_gfs);
+      BHAH_FREE(gridfuncs->k_even_gfs);
       if (NUM_AUXEVOL_GFS > 0)
-        free(gridfuncs->auxevol_gfs);
+        BHAH_FREE(gridfuncs->auxevol_gfs);
     } // END FUNCTION MoL_free_memory_non_y_n_gfs
     <BLANKLINE>
     >>> print(cfc.CFunction_dict["MoL_malloc_non_y_n_gfs"].full_function) # doctest: +ELLIPSIS
