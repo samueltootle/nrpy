@@ -31,7 +31,6 @@ def register_CFunction_MoL_malloc(
     :param Butcher_dict: Dictionary of Butcher tables for the MoL method.
     :param MoL_method: Method for the Method of Lines.
     :param which_gfs: Specifies which gridfunctions to consider ("y_n_gfs" or "non_y_n_gfs").
-    :param parallelization: Parameter to specify parallelization (openmp or cuda).
 
     :raises ValueError: If the which_gfs parameter is neither "y_n_gfs" nor "non_y_n_gfs".
 
@@ -110,9 +109,7 @@ def register_CFunction_MoL_free_memory(
     :raises ValueError: If the 'which_gfs' argument is unrecognized.
     """
     parallelization = par.parval_from_str("parallelization")
-    check_supported_parallelization(
-        "register_CFunction_MoL_free_memory"
-    )
+    check_supported_parallelization("register_CFunction_MoL_free_memory")
     includes = ["BHaH_defines.h", "BHaH_function_prototypes.h"]
     desc = f'Method of Lines (MoL) for "{MoL_method}" method: Free memory for "{which_gfs}" gridfunctions\n'
     desc += "   - y_n_gfs are used to store data for the vector of gridfunctions y_i at t_n, at the start of each MoL timestep\n"
@@ -140,9 +137,9 @@ def register_CFunction_MoL_free_memory(
         if gridfunction == "auxevol_gfs":
             body += "  if(NUM_AUXEVOL_GFS > 0)"
         if parallelization == "cuda":
-            body += f" NRPY_FREE_DEVICE(gridfuncs->{gridfunction});\n"
+            body += f" BHAH_FREE_DEVICE(gridfuncs->{gridfunction});\n"
         else:
-            body += f" NRPY_FREE(gridfuncs->{gridfunction});\n"
+            body += f" BHAH_FREE(gridfuncs->{gridfunction});\n"
 
     cfc.register_CFunction(
         includes=includes,
