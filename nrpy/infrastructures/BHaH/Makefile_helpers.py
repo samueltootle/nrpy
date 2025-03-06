@@ -31,7 +31,6 @@ def output_CFunctions_function_prototypes_and_construct_Makefile(
     include_dirs: Optional[List[str]] = None,
     src_code_file_ext: str = "c",
     clang_format_options: str = "-style={BasedOnStyle: LLVM, ColumnLimit: 150}",
-    code_ext: str = "c",
 ) -> None:
     """
     Output C functions registered to CFunction_dict and construct a Makefile for compiling C code.
@@ -49,7 +48,6 @@ def output_CFunctions_function_prototypes_and_construct_Makefile(
     :param include_dirs: List of include directories.
     :param src_code_file_ext: set what the file extension is for each code file.
     :param clang_format_options: Options for the clang-format tool.
-    :param code_ext: set what the file extension is for each code file.
 
     :raises ValueError: If the main() function is not defined in CFunction_dict.
     :raises FileNotFoundError: If the specified C compiler is not found.
