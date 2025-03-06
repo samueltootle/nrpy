@@ -18,7 +18,7 @@ import nrpy.c_codegen as ccg
 import nrpy.c_function as cfc
 import nrpy.finite_difference as fin
 import nrpy.grid as gri
-import nrpy.helpers.gpu.utilities as gpu_utils
+import nrpy.helpers.parallelization.utilities as gpu_utils
 import nrpy.helpers.parallel_codegen as pcg
 import nrpy.indexedexp as ixp
 import nrpy.infrastructures.BHaH.diagnostics.output_0d_1d_2d_nearest_gridpoint_slices as out012d

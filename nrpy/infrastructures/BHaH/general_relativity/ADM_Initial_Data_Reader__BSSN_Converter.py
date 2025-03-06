@@ -14,7 +14,7 @@ import sympy as sp  # SymPy: The Python computer algebra package upon which NRPy
 import nrpy.c_codegen as ccg  # NRPy+: C code generation
 import nrpy.c_function as cfc  # NRPy+: C function registration
 import nrpy.grid as gri  # NRPy+: Functions having to do with numerical grids
-import nrpy.helpers.gpu.utilities as gpu_utils
+import nrpy.helpers.parallelization.utilities as gpu_utils
 import nrpy.helpers.jacobians as jac
 import nrpy.indexedexp as ixp  # NRPy+: Symbolic indexed expression (e.g., tensors, vectors, etc.) support
 import nrpy.infrastructures.BHaH.simple_loop as lp
@@ -28,7 +28,7 @@ from nrpy.helpers.expression_utils import (
     generate_definition_header,
     get_params_commondata_symbols_from_expr_list,
 )
-from nrpy.helpers.gpu.utilities import generate_kernel_and_launch_code
+from nrpy.helpers.parallelization.utilities import generate_kernel_and_launch_code
 from nrpy.infrastructures.BHaH import BHaH_defines_h
 
 
