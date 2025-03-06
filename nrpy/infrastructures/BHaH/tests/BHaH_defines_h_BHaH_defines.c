@@ -207,18 +207,24 @@ typedef struct __griddata__ {
   params_struct params; // <- BHaH parameters, generated from NRPy+'s CodeParameters
 } griddata_struct;
 
-#ifndef BHAH_TYPEOF #if __cplusplus >= 2000707L
-#define BHAH_TYPEOF(a)                                                                                                                               \
-  decltype(a) #elif defined(__GNUC__) || defined(__clang__) || defined(__NVCC__) #define BHAH_TYPEOF(a) __typeof__(a) #else #define BHAH_TYPEOF(a)
+#ifndef BHAH_TYPEOF
+#if __cplusplus >= 2000707L
+#define BHAH_TYPEOF(a) decltype(a)
+#elif defined(__GNUC__) || defined(__clang__) || defined(__NVCC__)
+#define BHAH_TYPEOF(a) __typeof__(a)
+#else
+#define BHAH_TYPEOF(a)
+#endif // END check for GCC, Clang, or C++
+#endif // END BHAH_TYPEOF
 
-#define BHAH_MALLOC(a, b, sz)                                                                                                                        \
+#define BHAH_MALLOC(a, sz)                                                                                                                           \
   do {                                                                                                                                               \
-    b = (BHAH_TYPEOF(b))malloc(sz);                                                                                                                  \
+    a = (BHAH_TYPEOF(a))malloc(sz);                                                                                                                  \
   } while (0);
 #define BHAH_MALLOC__PtrMember(a, b, sz)                                                                                                             \
   do {                                                                                                                                               \
     if (a) {                                                                                                                                         \
-      a->b = BHAH_MALLOC(a->b, sz);                                                                                                                  \
+      BHAH_MALLOC(a->b, sz);                                                                                                                         \
     }                                                                                                                                                \
   } while (0);
 

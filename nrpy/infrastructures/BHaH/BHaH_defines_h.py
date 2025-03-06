@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 import nrpy.grid as gri
-import nrpy.helpers.gpu.utilities as gpu_utils
+import nrpy.helpers.parallelization.utilities as gpu_utils
 import nrpy.params as par
 from nrpy.helpers.generic import clang_format
 from nrpy.infrastructures.BHaH import griddata_commondata
@@ -457,22 +457,24 @@ def output_BHaH_defines_h(
         for key in supplemental_defines_dict:
             file_output_str += output_key(key, supplemental_defines_dict[key])
     file_output_str += """
-    #ifndef BHAH_TYPEOF \
+    #ifndef BHAH_TYPEOF
     #if __cplusplus >= 2000707L
-    #define BHAH_TYPEOF(a) decltype(a) \
-    #elif defined(__GNUC__) || defined(__clang__) || defined(__NVCC__) \
-    #define BHAH_TYPEOF(a) __typeof__(a) \
-    #else \
+    #define BHAH_TYPEOF(a) decltype(a)
+    #elif defined(__GNUC__) || defined(__clang__) || defined(__NVCC__)
+    #define BHAH_TYPEOF(a) __typeof__(a)
+    #else
     #define BHAH_TYPEOF(a)
+    #endif // END check for GCC, Clang, or C++
+    #endif // END BHAH_TYPEOF
 
-    #define BHAH_MALLOC(a, b, sz) \
+    #define BHAH_MALLOC(a, sz) \
     do { \
-        b = (BHAH_TYPEOF(b)) malloc(sz); \
+        a = (BHAH_TYPEOF(a)) malloc(sz); \
     } while(0);
     #define BHAH_MALLOC__PtrMember(a, b, sz) \
     do { \
         if (a) { \
-            a->b = BHAH_MALLOC(a->b, sz); \
+            BHAH_MALLOC(a->b, sz); \
         } \
     } while(0);
 

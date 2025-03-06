@@ -16,7 +16,7 @@ import nrpy.c_function as cfc
 import nrpy.params as par
 from nrpy.c_codegen import c_codegen
 from nrpy.helpers.generic import superfast_uniq
-from nrpy.helpers.gpu.utilities import generate_kernel_and_launch_code
+from nrpy.helpers.parallelization.utilities import generate_kernel_and_launch_code
 
 ##############################################################################
 # Parallelization check and set:
