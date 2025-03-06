@@ -17,7 +17,7 @@ import os
 #         and compile-time parameters.
 import shutil
 
-import nrpy.helpers.gpu.cuda_utilities as gputils
+import nrpy.helpers.parallelization.cuda_utilities as gputils
 import nrpy.helpers.parallel_codegen as pcg
 import nrpy.infrastructures.BHaH.BHaH_defines_h as Bdefines_h
 import nrpy.infrastructures.BHaH.cmdline_input_and_parfiles as cmdpar
