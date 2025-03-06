@@ -12,11 +12,11 @@ Author: Samuel D. Tootle
 
 from typing import Dict, List
 
-import nrpy.helpers.gpu.utilities as gpu_utils
+import nrpy.helpers.parallelization.utilities as gpu_utils
 import nrpy.infrastructures.BHaH.simple_loop as lp
 import nrpy.infrastructures.gpu.grid_management.base_numerical_grids_and_timestep as base_gm_classes
 import nrpy.params as par
-from nrpy.helpers.gpu.gpu_kernel import GPU_Kernel
+from nrpy.helpers.parallelization.gpu_kernel import GPU_Kernel
 
 # fmt: off
 for idx in range(3):
