@@ -41,7 +41,7 @@ par.set_parval_from_str("Infrastructure", "BHaH")
 # Code-generation-time parameters:
 project_name = "two_blackholes_collide_cuda"
 fp_type = "double"
-CoordSystem = "SinhCylindricalv2n2" #"Spherical"
+CoordSystem = "Spherical"
 IDtype = "BrillLindquist"
 IDCoordSystem = "Cartesian"
 LapseEvolutionOption = "OnePlusLog"
@@ -51,7 +51,7 @@ grid_physical_size = 7.5
 diagnostics_output_every = 0.25
 t_final = 1.0 * grid_physical_size
 Nxx_dict = {
-    "Spherical": [72, 12, 2],
+    "Spherical": [72, 12, 8],
     "SinhSpherical": [72, 12, 2],
     "Cartesian": [64, 64, 64],
     "SinhCylindricalv2n2": [128, 16, 256],
@@ -82,12 +82,12 @@ num_streams = 3
 par.set_parval_from_str("parallelization", "cuda")
 
 OMP_collapse = 1
-if "Spherical" in CoordSystem:
-    par.set_parval_from_str("symmetry_axes", "2")
-    OMP_collapse = 2  # about 2x faster
-if "Cylindrical" in CoordSystem:
-    par.set_parval_from_str("symmetry_axes", "1")
-    OMP_collapse = 2  # might be slightly faster
+# if "Spherical" in CoordSystem:
+#     par.set_parval_from_str("symmetry_axes", "2")
+#     OMP_collapse = 2  # about 2x faster
+# if "Cylindrical" in CoordSystem:
+#     par.set_parval_from_str("symmetry_axes", "1")
+#     OMP_collapse = 2  # might be slightly faster
 
 project_dir = os.path.join("project", project_name)
 
