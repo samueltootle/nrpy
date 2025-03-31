@@ -31,7 +31,6 @@ from nrpy.helpers.parallelization.cuda_utilities import (
 from nrpy.helpers.parallelization.gpu_kernel import GPU_Kernel
 from nrpy.infrastructures.BHaH import BHaH_defines_h, griddata_commondata
 from nrpy.validate_expressions.validate_expressions import check_zero
-import nrpy.helpers.parallelization.utilities as gpu_utils
 
 _ = par.CodeParameter(
     "char[50]", __name__, "outer_bc_type", "radiation", commondata=True
