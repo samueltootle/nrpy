@@ -165,7 +165,6 @@ def get_loop_parameters(
     param_access = get_params_access(parallelization)
     for i in range(dim):
         loop_params += f"MAYBE_UNUSED const int Nxx_plus_2NGHOSTS{i} = {param_access}Nxx_plus_2NGHOSTS{i};\n"
-    loop_params +=f"MAYBE_UNUSED const int Nxx_plus_2NGHOSTS0_PADDED = {param_access}Nxx_plus_2NGHOSTS0_PADDED;\n"
     loop_params += "\n"
 
     for i in range(dim):

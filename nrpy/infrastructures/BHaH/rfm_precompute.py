@@ -66,7 +66,7 @@ class ReferenceMetricPrecompute:
 
         # Tease out how many variables each function in freevars_uniq_vals
         Nxx_plus_2NGHOSTS = [
-            sp.Symbol("Nxx_plus_2NGHOSTS0_PADDED", real=True),
+            sp.Symbol("Nxx_plus_2NGHOSTS0", real=True),
             sp.Symbol("Nxx_plus_2NGHOSTS1", real=True),
             sp.Symbol("Nxx_plus_2NGHOSTS2", real=True),
         ]

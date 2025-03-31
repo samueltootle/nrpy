@@ -102,7 +102,7 @@ snprintf(params->CoordSystemName, 50, "{CoordSystem}");
 params->Nxx_plus_2NGHOSTS0 = params->Nxx0 + 2*NGHOSTS;
 params->Nxx_plus_2NGHOSTS1 = params->Nxx1 + 2*NGHOSTS;
 params->Nxx_plus_2NGHOSTS2 = params->Nxx2 + 2*NGHOSTS;
-params->Nxx_plus_2NGHOSTS0_PADDED = int((params->Nxx_plus_2NGHOSTS0 * sizeof(REAL) + 15) / 16) * 16 / sizeof(REAL);
+params->Nxx_plus_2NGHOSTS0 = int((params->Nxx_plus_2NGHOSTS0 * sizeof(REAL) + 15) / 16) * 16 / sizeof(REAL);
 """
 
         # Set grid_physical_size & grid_hole_radius

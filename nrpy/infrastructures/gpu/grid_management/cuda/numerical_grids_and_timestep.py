@@ -30,7 +30,6 @@ for idx in range(3):
 _ = par.CodeParameter("REAL", __name__, "convergence_factor", 1.0, commondata=True)
 _ = par.CodeParameter("int", __name__, "CoordSystem_hash", commondata=False, add_to_parfile=False)
 _ = par.CodeParameter("int", __name__, "grid_idx", commondata=False, add_to_parfile=False)
-_ = par.CodeParameter("int", __name__, f"Nxx_plus_2NGHOSTS0_PADDED", add_to_parfile=False, add_to_set_CodeParameters_h=True)
 # fmt: on
 
 
@@ -59,7 +58,7 @@ class register_CFunction_numerical_grid_params_Nxx_dxx_xx(
         self.prefunc = ""
         self.body += """
     // Allocate device storage
-    cudaMalloc(&xx[0], sizeof(REAL) * Nxx_plus_2NGHOSTS0_PADDED);
+    cudaMalloc(&xx[0], sizeof(REAL) * Nxx_plus_2NGHOSTS0);
     cudaCheckErrors(malloc, "Malloc failed");
     cudaMalloc(&xx[1], sizeof(REAL) * Nxx_plus_2NGHOSTS1);
     cudaCheckErrors(malloc, "Malloc failed");
@@ -142,7 +141,7 @@ class register_CFunction_cfl_limited_timestep(
         super().__init__(CoordSystem)
         # could be replaced by simple loop?
         self.body = r"""
-const int Nxx_tot = (Nxx_plus_2NGHOSTS0_PADDED)*(Nxx_plus_2NGHOSTS1)*(Nxx_plus_2NGHOSTS2);
+const int Nxx_tot = (Nxx_plus_2NGHOSTS0)*(Nxx_plus_2NGHOSTS1)*(Nxx_plus_2NGHOSTS2);
   REAL *ds_min;
   REAL *restrict x0 = xx[0];
   REAL *restrict x1 = xx[1];

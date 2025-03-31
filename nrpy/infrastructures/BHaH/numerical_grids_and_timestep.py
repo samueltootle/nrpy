@@ -31,7 +31,6 @@ for i in range(3):
 _ = par.CodeParameter("REAL", __name__, "convergence_factor", 1.0, commondata=True)
 _ = par.CodeParameter("int", __name__, "CoordSystem_hash", commondata=False, add_to_parfile=False)
 _ = par.CodeParameter("int", __name__, "grid_idx", commondata=False, add_to_parfile=False)
-_ = par.CodeParameter("int", __name__, f"Nxx_plus_2NGHOSTS0_PADDED", 0, add_to_parfile=False, add_to_set_CodeParameters_h=True)
 _ = par.CodeParameter("char[100]", __name__, "gridname", commondata=False, add_to_parfile=False)
 # fmt: on
 
