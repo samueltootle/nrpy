@@ -28,7 +28,7 @@ import nrpy.infrastructures.BHaH.general_relativity.BSSN_C_codegen_library as BC
 import nrpy.infrastructures.BHaH.griddata_commondata as griddata_commondata
 import nrpy.infrastructures.BHaH.Makefile_helpers as Makefile
 import nrpy.infrastructures.BHaH.xx_tofrom_Cart as xxCartxx
-import nrpy.infrastructures.gpu.grid_management.cuda.numerical_grids_and_timestep as numericalgrids
+import nrpy.infrastructures.BHaH.numerical_grids_and_timestep as numericalgrids
 import nrpy.infrastructures.gpu.header_definitions.cuda_headers as gpudefines
 import nrpy.infrastructures.gpu.main_driver.cuda.main_c as main
 import nrpy.params as par
@@ -39,7 +39,7 @@ from nrpy.infrastructures.BHaH.MoLtimestepping import MoL_register_all
 par.set_parval_from_str("Infrastructure", "BHaH")
 
 # Code-generation-time parameters:
-project_name = "two_blackholes_collide_cuda"
+project_name = "two_blackholes_collide_cuda_new"
 fp_type = "double"
 CoordSystem = "Spherical"
 IDtype = "BrillLindquist"
@@ -117,7 +117,7 @@ BCl.register_CFunction_initial_data(
 )
 
 numericalgrids.register_CFunctions(
-    list_of_CoordSystems=[CoordSystem],
+    set_of_CoordSystems={CoordSystem},
     list_of_grid_physical_sizes=[grid_physical_size],
     Nxx_dict=Nxx_dict,
     enable_rfm_precompute=enable_rfm_precompute,
