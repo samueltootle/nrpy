@@ -21,7 +21,7 @@ import nrpy.infrastructures.BHaH.CurviBoundaryConditions.CurviBoundaryConditions
 import nrpy.infrastructures.BHaH.diagnostics.progress_indicator as progress
 import nrpy.infrastructures.BHaH.Makefile_helpers as Makefile
 import nrpy.infrastructures.BHaH.numerical_grids_and_timestep as numericalgrids
-import nrpy.infrastructures.gpu.checkpoints.cuda.checkpointing as chkpt
+import nrpy.infrastructures.BHaH.checkpointing as chkpt
 import nrpy.infrastructures.gpu.header_definitions.cuda_headers as gpudefines
 import nrpy.infrastructures.gpu.main_driver.cuda.main_c as main
 import nrpy.infrastructures.gpu.nrpyelliptic.cuda.conformally_flat_C_codegen_library as nrpyellClib
@@ -375,18 +375,18 @@ Bdefines_h.output_BHaH_defines_h(
     enable_rfm_precompute=enable_rfm_precompute,
 )
 # Define post_MoL_step_forward_in_time string for main function
-post_MoL_step_forward_in_time = r"""    check_stop_conditions(&commondata, griddata);
+post_MoL_step_forward_in_time = r"""    check_stop_conditions(&commondata, griddata_device);
     if (commondata.stop_relaxation) {
       // Force a checkpoint when stop condition is reached.
       commondata.checkpoint_every = 1e-4*commondata.dt;
-      write_checkpoint(&commondata, griddata_host, griddata);
+      write_checkpoint(&commondata, griddata_host, griddata_device);
       break;
     }
 """
 main.register_CFunction_main_c(
     initial_data_desc="",
-    post_non_y_n_auxevol_mallocs="initialize_constant_auxevol(&commondata, griddata);\n",
-    pre_MoL_step_forward_in_time="write_checkpoint(&commondata, griddata_host, griddata);\n",
+    post_non_y_n_auxevol_mallocs="initialize_constant_auxevol(&commondata, griddata_device);\n",
+    pre_MoL_step_forward_in_time="write_checkpoint(&commondata, griddata_host, griddata_device);\n",
     post_MoL_step_forward_in_time=post_MoL_step_forward_in_time,
     MoL_method=MoL_method,
     boundary_conditions_desc=boundary_conditions_desc,

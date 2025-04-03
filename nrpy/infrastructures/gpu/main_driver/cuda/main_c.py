@@ -56,7 +56,7 @@ class register_CFunction_main_c(base_main.base_register_CFunction_main_c):
         self.body = r"""
 #include "BHaH_gpu_global_init.h"
 commondata_struct commondata; // commondata contains parameters common to all grids.
-griddata_struct *restrict griddata; // griddata contains data specific to an individual grid.
+griddata_struct *restrict griddata_device; // griddata contains data specific to an individual grid.
 griddata_struct *restrict griddata_host; // stores only the host data needed for diagnostics
 
 // Step 1.a: Initialize each CodeParameter in the commondata struc to its default value.
@@ -68,33 +68,34 @@ cmdline_input_and_parfile_parser(&commondata, argc, argv);
 
 // Step 1.c: Allocate memory for MAXNUMGRIDS griddata structs,
 //           where each structure contains data specific to an individual grid.
-griddata = (griddata_struct *)malloc(sizeof(griddata_struct) * commondata.NUMGRIDS);
+griddata_device = (griddata_struct *)malloc(sizeof(griddata_struct) * commondata.NUMGRIDS);
 griddata_host = (griddata_struct *)malloc(sizeof(griddata_struct) * commondata.NUMGRIDS);
 
 // Step 1.d: Set each CodeParameter in griddata.params to default.
-params_struct_set_to_default(&commondata, griddata);
+params_struct_set_to_default(&commondata, griddata_device);
 
 // Step 1.e: Set up numerical grids, including parameters such as NUMGRIDS, xx[3], masks, Nxx, dxx, invdxx,
 //           bcstruct, rfm_precompute, timestep, and others.
 {
   // If this function is being called for the first time, initialize commondata time, nn, t_0, and nn_0 to 0.
   const bool calling_for_first_time = true;
-  numerical_grids_and_timestep(&commondata, griddata, griddata_host, calling_for_first_time);
+  numerical_grids_and_timestep(&commondata, griddata_device, griddata_host, calling_for_first_time);
 }
 
 for(int grid=0; grid<commondata.NUMGRIDS; grid++) {
   // Step 2.a: Allocate storage for the initial data (y_n_gfs gridfunctions) on each grid.
-  MoL_malloc_y_n_gfs(&commondata, &griddata[grid].params, &griddata[grid].gridfuncs);
+  MoL_malloc_y_n_gfs(&commondata, &griddata_device[grid].params, &griddata_device[grid].gridfuncs);
   // Step 2.b: Allocate host storage for diagnostics
-  CUDA__malloc_host_gfs(&commondata, &griddata[grid].params, &griddata_host[grid].gridfuncs);
+  CUDA__malloc_host_gfs(&commondata, &griddata_device[grid].params, &griddata_host[grid].gridfuncs);
+  CUDA__malloc_host_diagnostic_gfs(&commondata, &griddata_device[grid].params, &griddata_host[grid].gridfuncs);
 }
 """
         setup_initial_data_code = """Set up initial data.
-  initial_data(&commondata, griddata_host, griddata);
+  initial_data(&commondata, griddata_host, griddata_device);
 """
         allocate_storage_code = """Allocate storage for non-y_n gridfunctions, needed for the Runge-Kutta-like timestepping.
 for(int grid=0; grid<commondata.NUMGRIDS; grid++)
-  MoL_malloc_non_y_n_gfs(&commondata, &griddata[grid].params, &griddata[grid].gridfuncs);
+  MoL_malloc_non_y_n_gfs(&commondata, &griddata_device[grid].params, &griddata_device[grid].gridfuncs);
 """
         step3code = setup_initial_data_code
         step4code = allocate_storage_code
@@ -120,7 +121,7 @@ while(commondata.time < commondata.t_final) { // Main loop to progress forward i
             self.body += "// (nothing here; specify by setting pre_diagnostics string in register_CFunction_main_c().)\n"
         self.body += """
   // Step 5.b: Main loop, part 2: Output diagnostics
-  diagnostics(&commondata, griddata, griddata_host);
+  diagnostics(&commondata, griddata_device, griddata_host);
 
   // Step 5.c: Main loop, part 3 (pre_MoL_step_forward_in_time): Prepare to step forward in time
 """
@@ -131,7 +132,7 @@ while(commondata.time < commondata.t_final) { // Main loop to progress forward i
         self.body += f"""
   // Step 5.d: Main loop, part 4: Step forward in time using Method of Lines with {MoL_method} algorithm,
   //           applying {self.boundary_conditions_desc} boundary conditions.
-  MoL_step_forward_in_time(&commondata, griddata);
+  MoL_step_forward_in_time(&commondata, griddata_device);
 
   // Step 5.e: Main loop, part 5 (post_MoL_step_forward_in_time): Finish up step in time
 """
@@ -149,7 +150,7 @@ for(int i = 0; i < NUM_STREAMS; ++i) {
 // Step 6: Free all allocated memory
 {
   const bool enable_free_non_y_n_gfs=true;
-  griddata_free_device(&commondata, griddata, enable_free_non_y_n_gfs);
+  griddata_free_device(&commondata, griddata_device, enable_free_non_y_n_gfs);
   griddata_free(&commondata, griddata_host, enable_free_non_y_n_gfs);
 }
 return 0;
