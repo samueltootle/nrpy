@@ -217,8 +217,6 @@ class CUDA_BHaH_gpu_defines_h:
 #define cudaCheckErrors(v, msg)
 #endif
 
-#define BHAH_DEVICE_SYNC() cudaDeviceSynchronize()
-
 #define BHAH_MEMCPY_HOST_TO_DEVICE(dest_ptr, src_ptr, sz) cudaMemcpy(dest_ptr, src_ptr, sz, cudaMemcpyHostToDevice);
 """
         )
