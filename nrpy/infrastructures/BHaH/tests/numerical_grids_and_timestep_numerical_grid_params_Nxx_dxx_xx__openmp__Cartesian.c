@@ -1,7 +1,7 @@
 #include "../BHaH_defines.h"
 #include "../BHaH_function_prototypes.h"
 
-#define LOOP_OVER_XX(COORD_DIR)                                                                                                                      \
+#define SET_XX_CELL_CENTERED_COORDS(COORD_DIR)                                                                                                       \
   static const REAL onehalf = 1.0 / 2.0;                                                                                                             \
   for (int j = 0; j < params->Nxx_plus_2NGHOSTS##COORD_DIR; j += 1) {                                                                                \
     xx##COORD_DIR[j] = params->xxmin##COORD_DIR + ((REAL)(j - NGHOSTS) + onehalf) * params->dxx##COORD_DIR;                                          \
@@ -11,21 +11,21 @@
  * Kernel to compute xx0 coordinates.
  */
 static void initialize_grid_xx0_host(const params_struct *restrict params, REAL *restrict xx0) {
-  LOOP_OVER_XX(0);
+  SET_XX_CELL_CENTERED_COORDS(0);
 } // END FUNCTION initialize_grid_xx0_host
 /**
  * Kernel: initialize_grid_xx1_host.
  * Kernel to compute xx1 coordinates.
  */
 static void initialize_grid_xx1_host(const params_struct *restrict params, REAL *restrict xx1) {
-  LOOP_OVER_XX(1);
+  SET_XX_CELL_CENTERED_COORDS(1);
 } // END FUNCTION initialize_grid_xx1_host
 /**
  * Kernel: initialize_grid_xx2_host.
  * Kernel to compute xx2 coordinates.
  */
 static void initialize_grid_xx2_host(const params_struct *restrict params, REAL *restrict xx2) {
-  LOOP_OVER_XX(2);
+  SET_XX_CELL_CENTERED_COORDS(2);
 } // END FUNCTION initialize_grid_xx2_host
 
 /**
@@ -113,13 +113,7 @@ void numerical_grid_params_Nxx_dxx_xx__rfm__Cartesian(const commondata_struct *r
   BHAH_MALLOC(xx[0], sizeof(REAL) * params->Nxx_plus_2NGHOSTS0);
   BHAH_MALLOC(xx[1], sizeof(REAL) * params->Nxx_plus_2NGHOSTS1);
   BHAH_MALLOC(xx[2], sizeof(REAL) * params->Nxx_plus_2NGHOSTS2);
-  {
-    initialize_grid_xx0_host(params, xx[0]);
-  }
-  {
-    initialize_grid_xx1_host(params, xx[1]);
-  }
-  {
-    initialize_grid_xx2_host(params, xx[2]);
-  }
+  initialize_grid_xx0_host(params, xx[0]);
+  initialize_grid_xx1_host(params, xx[1]);
+  initialize_grid_xx2_host(params, xx[2]);
 } // END FUNCTION numerical_grid_params_Nxx_dxx_xx__rfm__Cartesian
