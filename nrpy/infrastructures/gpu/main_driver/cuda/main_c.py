@@ -153,6 +153,8 @@ for(int i = 0; i < NUM_STREAMS; ++i) {
   griddata_free_device(&commondata, griddata_device, enable_free_non_y_n_gfs);
   griddata_free(&commondata, griddata_host, enable_free_non_y_n_gfs);
 }
+cudaDeviceSynchronize();
+cudaDeviceReset();
 return 0;
 """
 
