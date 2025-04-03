@@ -114,7 +114,7 @@ class gpu_register_CFunction_initial_guess_all_points(
             comments="GPU Kernel to initialize all grid points.",
         )
 
-        self.body = r"""if (read_checkpoint(commondata, griddata, griddata_host))
+        self.body = r"""if (read_checkpoint(commondata, griddata_host, griddata))
     return;
 for(int grid=0; grid<commondata->NUMGRIDS; grid++) {
   // Unpack griddata struct:
