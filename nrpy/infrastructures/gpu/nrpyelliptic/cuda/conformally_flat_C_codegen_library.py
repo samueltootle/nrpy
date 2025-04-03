@@ -17,8 +17,8 @@ import sympy as sp
 import nrpy.c_codegen as ccg
 import nrpy.c_function as cfc
 import nrpy.grid as gri
-import nrpy.helpers.parallelization.utilities as gpu_utils
 import nrpy.helpers.parallel_codegen as pcg
+import nrpy.helpers.parallelization.utilities as gpu_utils
 import nrpy.infrastructures.BHaH.diagnostics.output_0d_1d_2d_nearest_gridpoint_slices as out012d
 import nrpy.infrastructures.BHaH.simple_loop as lp
 import nrpy.infrastructures.gpu.nrpyelliptic.base_conformally_flat_C_codegen_library as base_npe_classes
@@ -114,7 +114,9 @@ class gpu_register_CFunction_initial_guess_all_points(
             comments="GPU Kernel to initialize all grid points.",
         )
 
-        self.body = r"""for(int grid=0; grid<commondata->NUMGRIDS; grid++) {
+        self.body = r"""if (read_checkpoint(commondata, griddata, griddata_host))
+    return;
+for(int grid=0; grid<commondata->NUMGRIDS; grid++) {
   // Unpack griddata struct:
   params_struct *restrict params = &griddata[grid].params;
   REAL *restrict x0 = griddata[grid].xx[0];
