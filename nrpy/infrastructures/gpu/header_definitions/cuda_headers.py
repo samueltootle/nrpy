@@ -218,6 +218,10 @@ class CUDA_BHaH_gpu_defines_h:
 #endif
 
 #define BHAH_MEMCPY_HOST_TO_DEVICE(dest_ptr, src_ptr, sz) cudaMemcpy(dest_ptr, src_ptr, sz, cudaMemcpyHostToDevice);
+
+#define DEFAULT_THREADS_IN_X_DIR 32
+#define DEFAULT_THREADS_IN_Y_DIR 1
+#define DEFAULT_THREADS_IN_Z_DIR 1
 """
         )
         self.file_output_str = clang_format(
