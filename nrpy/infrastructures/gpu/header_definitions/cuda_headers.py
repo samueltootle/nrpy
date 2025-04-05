@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any, Dict, Union
 
 import nrpy.grid as gri
-from nrpy.helpers.generic import clang_format
+from nrpy.helpers.generic import clang_format, default_clang_format_options
 
 
 def generate_declaration_str(
@@ -97,7 +97,7 @@ class CUDA_BHaH_gpu_defines_h:
         additional_macros_str: Union[str, None] = None,
         num_streams: int = 3,
         nghosts: Union[int, None] = None,
-        clang_format_options: str = "-style={BasedOnStyle: LLVM, ColumnLimit: 150}",
+        clang_format_options: str =  default_clang_format_options,
     ) -> None:
         self.project_Path = Path(project_dir)
         self.project_Path.mkdir(parents=True, exist_ok=True)
@@ -105,7 +105,7 @@ class CUDA_BHaH_gpu_defines_h:
         self.additional_decl_dict = additional_declarations_dict
         self.additional_macros_str = additional_macros_str
         self.clang_format_options = clang_format_options
-        self.bhah_gpu_defines_filename = "BHaH_gpu_defines.h"
+        self.bhah_cuda_defines_filename = "BHaH_CUDA_defines.h"
         self.NGHOSTS = nghosts
 
         # Standard macros str
@@ -227,12 +227,11 @@ class CUDA_BHaH_gpu_defines_h:
         self.file_output_str = clang_format(
             self.file_output_str, clang_format_options=self.clang_format_options
         )
-        # self.write_to_file()
 
     def write_to_file(self) -> None:
         """Write file_output_str to header file."""
-        bhah_gpu_defines_file = self.project_Path / self.bhah_gpu_defines_filename
-        with bhah_gpu_defines_file.open("w", encoding="utf-8") as file:
+        bhah_cuda_defines_file = self.project_Path / self.bhah_cuda_defines_filename
+        with bhah_cuda_defines_file.open("w", encoding="utf-8") as file:
             file.write(self.file_output_str)
 
 
@@ -271,7 +270,7 @@ class CUDA_BHaH_gpu_global_init_h:
         self,
         project_dir: str,
         declarations_dict: Dict[str, Dict[str, str]],
-        clang_format_options: str = "-style={BasedOnStyle: LLVM, ColumnLimit: 150}",
+        clang_format_options: str =  default_clang_format_options,
     ) -> None:
         self.project_Path = Path(project_dir)
         self.project_Path.mkdir(parents=True, exist_ok=True)
@@ -314,7 +313,7 @@ cudaCheckErrors(copy, "Copy to d_gridfunctions_f_infinity failed");
             file.write(self.file_output_str)
 
 
-class CUDA_BHaH_gpu_global_defines_h:
+class BHaH_CUDA_global_defines_h:
     r"""
     Generate and write to file the BHaH_gpu_global_defines.h file.
 
@@ -349,7 +348,7 @@ class CUDA_BHaH_gpu_global_defines_h:
         self,
         project_dir: str,
         declarations_dict: Dict[str, Dict[str, str]],
-        clang_format_options: str = "-style={BasedOnStyle: LLVM, ColumnLimit: 150}",
+        clang_format_options: str =  default_clang_format_options,
         **_: Any,
     ) -> None:
         self.project_Path = Path(project_dir)
@@ -381,7 +380,7 @@ def output_CUDA_headers(
     additional_macros_str: Union[str, None] = None,
     num_streams: int = 3,
     nghosts: Union[int, None] = None,
-    clang_format_options: str = "-style={BasedOnStyle: LLVM, ColumnLimit: 150}",
+    clang_format_options: str =  default_clang_format_options,
 ) -> str:
     """
     Generate CUDA specific header files.
@@ -416,7 +415,7 @@ def output_CUDA_headers(
         gpu_defines.combined_decl_dict,
     )
 
-    return gpu_defines.bhah_gpu_defines_filename
+    return gpu_defines.bhah_cuda_defines_filename
 
 
 if __name__ == "__main__":

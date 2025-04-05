@@ -8,7 +8,7 @@ Author: Samuel D. Tootle
 """
 
 import nrpy.infrastructures.gpu.main_driver.base_main_c as base_main
-
+from nrpy.helpers.generic import default_clang_format_options
 
 class register_CFunction_main_c(base_main.base_register_CFunction_main_c):
     """
@@ -38,7 +38,7 @@ class register_CFunction_main_c(base_main.base_register_CFunction_main_c):
         pre_diagnostics: str = "",
         pre_MoL_step_forward_in_time: str = "",
         post_MoL_step_forward_in_time: str = "",
-        clang_format_options: str = "-style={BasedOnStyle: LLVM, ColumnLimit: 150}",
+        clang_format_options: str =  default_clang_format_options,
     ) -> None:
         super().__init__(
             MoL_method,
@@ -52,9 +52,9 @@ class register_CFunction_main_c(base_main.base_register_CFunction_main_c):
             post_MoL_step_forward_in_time=post_MoL_step_forward_in_time,
             clang_format_options=clang_format_options,
         )
-        self.includes += ["BHaH_gpu_global_defines.h"]
+        self.includes += ["BHaH_global_device_defines.h"]
         self.body = r"""
-#include "BHaH_gpu_global_init.h"
+#include "BHaH_CUDA_global_init.h"
 commondata_struct commondata; // commondata contains parameters common to all grids.
 griddata_struct *restrict griddata_device; // griddata contains data specific to an individual grid.
 griddata_struct *restrict griddata_host; // stores only the host data needed for diagnostics

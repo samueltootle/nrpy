@@ -10,7 +10,7 @@ Author: Zachariah B. Etienne
 from typing import List, Tuple
 
 import nrpy.c_function as cfc
-
+from nrpy.helpers.generic import default_clang_format_options
 
 class base_register_CFunction_main_c:
     """
@@ -40,7 +40,7 @@ class base_register_CFunction_main_c:
         pre_diagnostics: str = "",
         pre_MoL_step_forward_in_time: str = "",
         post_MoL_step_forward_in_time: str = "",
-        clang_format_options: str = "-style={BasedOnStyle: LLVM, ColumnLimit: 150}",
+        clang_format_options: str =  default_clang_format_options,
     ) -> None:
         self.MoL_method = MoL_method
         self.initial_data_desc = initial_data_desc
