@@ -719,6 +719,7 @@ def register_CFunction_rhs_eval(
         comments=desc,
         cfunc_type=cfunc_type,
         launchblock_with_braces=False,
+        thread_macro_prefix="BSSN_RHS"
     )
 
     for symbol in commondata_symbols:
@@ -862,6 +863,7 @@ def register_CFunction_Ricci_eval(
         comments=desc,
         cfunc_type=cfunc_type,
         launchblock_with_braces=False,
+        thread_macro_prefix="RICCI_EVAL"
     )
 
     prefunc = ""
@@ -1009,6 +1011,7 @@ def register_CFunction_constraints(
         comments=desc,
         cfunc_type=cfunc_type,
         launchblock_with_braces=False,
+        thread_macro_prefix="CONSTRAINTS_EVAL"
     )
 
     cfc.register_CFunction(
@@ -1149,6 +1152,7 @@ def register_CFunction_enforce_detgammabar_equals_detgammahat(
         comments=desc,
         cfunc_type=cfunc_type,
         launchblock_with_braces=False,
+        thread_macro_prefix="DETGAMMA"
     )
 
     prefunc = ""

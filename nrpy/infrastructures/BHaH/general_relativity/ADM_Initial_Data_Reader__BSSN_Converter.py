@@ -533,6 +533,7 @@ def Cfunction_initial_data_lambdaU_grid_interior(
         comments=desc,
         cfunc_type=cfunc_type,
         launchblock_with_braces=False,
+        thread_macro_prefix="ID_LAMBDAU"
     )
 
     launch_body = launch_body.replace("in_gfs", "gridfuncs->y_n_gfs")
