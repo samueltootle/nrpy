@@ -43,7 +43,8 @@ def register_CFunction_read_checkpoint(
     parallelization = par.parval_from_str("parallelization")
     includes = ["BHaH_defines.h", "BHaH_function_prototypes.h", "unistd.h"]
     prefunc = r"""
-#define FREAD(ptr, size, nmemb, stream) { MAYBE_UNUSED const int numitems=fread((ptr), (size), (nmemb), (stream)); }
+#define FREAD(ptr, size, nmemb, stream) \
+  MAYBE_UNUSED const int numitems=fread((ptr), (size), (nmemb), (stream));
 """
     prefunc += (
         r"""
@@ -66,8 +67,10 @@ def register_CFunction_read_checkpoint(
     """
         if parallelization == "cuda"
         else r"""
-    #define BHAH_CHKPT_HOST_MOL_GF_FREE(gf_ptr) { MoL_free_memory_y_n_gfs(gf_ptr); }
-    #define BHAH_CHKPT_HOST_MOL_GF_MALLOC(cd, params_ptr, gf_ptr) { MoL_malloc_y_n_gfs(cd, params_ptr, gf_ptr); }
+    #define BHAH_CHKPT_HOST_MOL_GF_FREE(gf_ptr) \
+      MoL_free_memory_y_n_gfs(gf_ptr);
+    #define BHAH_CHKPT_HOST_MOL_GF_MALLOC(cd, params_ptr, gf_ptr) \
+      MoL_malloc_y_n_gfs(cd, params_ptr, gf_ptr);
     """
     )
     desc = "Read a checkpoint file"
@@ -233,7 +236,7 @@ def register_CFunction_write_checkpoint(
         else r"""
     #define BHAH_CHKPT_HOST_MOL_GF_FREE(gf_ptr) \
       MoL_free_memory_y_n_gfs(gf_ptr);
-    #define BHAH_CHKPT_HOST_MOL_GF_MALLOC(cd, params_ptr, gf_ptr)
+    #define BHAH_CHKPT_HOST_MOL_GF_MALLOC(cd, params_ptr, gf_ptr) \
       MoL_malloc_y_n_gfs(cd, params_ptr, gf_ptr);
     """
     )
@@ -309,7 +312,10 @@ if (fabs(round(currtime / outevery) * outevery - currtime) < 0.5 * currdt) {
   fclose(cp_file);
   fprintf(stderr, "FINISHED WRITING CHECKPOINT\n");
 }
-"""
+""".replace(
+        "BHAH_DEVICE_SYNC();",
+        ("" if parallelization not in ["cuda"] else "BHAH_DEVICE_SYNC();"),
+    )
     cfc.register_CFunction(
         prefunc=prefunc,
         includes=includes,
