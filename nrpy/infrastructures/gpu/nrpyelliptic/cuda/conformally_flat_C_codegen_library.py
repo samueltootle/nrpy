@@ -112,6 +112,7 @@ class gpu_register_CFunction_initial_guess_all_points(
                 "stream": "default",
             },
             comments="GPU Kernel to initialize all grid points.",
+            thread_macro_prefix="NELL_ID"
         )
 
         self.body = r"""if (read_checkpoint(commondata, griddata_host, griddata))
@@ -276,6 +277,7 @@ class gpu_register_CFunction_auxevol_gfs_all_points(
                 "stream": "default",
             },
             comments="GPU Kernel to initialize auxillary grid functions at all grid points.",
+            thread_macro_prefix="NELL_AUX"
         )
 
         self.body = r"""cpyHosttoDevice_commondata__constant(commondata);
@@ -371,6 +373,7 @@ class gpu_register_CFunction_variable_wavespeed_gfs_all_points(
                 "stream": "default",
             },
             comments="GPU Kernel to initialize auxillary grid functions at all grid points.",
+            thread_macro_prefix="NELL_WAVESPEED",
         )
         self.body += f"{self.device_kernel.launch_block}"
         self.body += f"{self.device_kernel.c_function_call()}"
@@ -530,6 +533,7 @@ if(r < integration_radius) {{
                 "stream": "default",
             },
             comments="GPU Kernel to compute L2 quantities pointwise (not summed).",
+            thread_macro_prefix="NELL_GRIDL2"
         )
         self.body += f"{self.device_kernel.launch_block}"
         self.body += f"{self.device_kernel.c_function_call()}"
@@ -883,10 +887,11 @@ class gpu_register_CFunction_rhs_eval(
             "rhs_eval_gpu",
             launch_dict={
                 "blocks_per_grid": [],
-                "threads_per_block": ["32", "NGHOSTS"],
+                "threads_per_block": ["64", "NGHOSTS"],
                 "stream": "default",
             },
             comments=self.kernel_comments,
+            thread_macro_prefix="NELL_RHS"
         )
 
         self.body += f"{self.device_kernel.launch_block}"
@@ -1033,6 +1038,7 @@ class gpu_register_CFunction_compute_residual_all_points(
                 "stream": "default",
             },
             comments="GPU Kernel to compute the residual throughout the grid.",
+            thread_macro_prefix="NELL_H"
         )
         self.prefunc = self.device_kernel.CFunction.full_function
         self.body += self.device_kernel.launch_block + "\n\n"
