@@ -737,9 +737,9 @@ typedef struct __rescaled_BSSN_rfm_basis_struct__ {
     post_initial_data_call = (
         """
     for (int which_gf = 0; which_gf < NUM_EVOL_GFS; which_gf++) {
-        cpyHosttoDevice__gf(commondata, params, gridfuncs->y_n_gfs, d_gridfuncs->y_n_gfs, which_gf, which_gf);
+        cpyHosttoDevice__gf(commondata, params, gridfuncs->y_n_gfs, d_gridfuncs->y_n_gfs, which_gf, which_gf, params->grid_idx % NUM_STREAMS);
     }
-    cudaDeviceSynchronize();
+    BHAH_DEVICE_SYNC();
     """
         if parallelization == "cuda"
         else ""
