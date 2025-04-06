@@ -29,7 +29,7 @@ import nrpy.infrastructures.BHaH.griddata_commondata as griddata_commondata
 import nrpy.infrastructures.BHaH.Makefile_helpers as Makefile
 import nrpy.infrastructures.BHaH.xx_tofrom_Cart as xxCartxx
 import nrpy.infrastructures.BHaH.numerical_grids_and_timestep as numericalgrids
-import nrpy.infrastructures.gpu.header_definitions.cuda_headers as gpudefines
+import nrpy.infrastructures.BHaH.BHaH_device_defines_h as gpudefines
 import nrpy.infrastructures.gpu.main_driver.cuda.main_c as main
 import nrpy.params as par
 from nrpy.helpers.generic import copy_files
@@ -239,7 +239,7 @@ cmdpar.generate_default_parfile(project_dir=project_dir, project_name=project_na
 cmdpar.register_CFunction_cmdline_input_and_parfile_parser(
     project_name=project_name, cmdline_inputs=["convergence_factor"]
 )
-gpu_defines_filename = gpudefines.output_CUDA_headers(
+gpu_defines_filename = gpudefines.output_device_headers(
     project_dir, num_streams=num_streams
 )
 Bdefines_h.output_BHaH_defines_h(
