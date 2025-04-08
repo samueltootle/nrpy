@@ -25,7 +25,6 @@ class base_register_CFunction_main_c:
     :param pre_diagnostics: Function calls prior to diagnostics; e.g., regridding. Default is an empty string.
     :param pre_MoL_step_forward_in_time: Code for handling pre-right-hand-side operations, default is an empty string.
     :param post_MoL_step_forward_in_time: Code for handling post-right-hand-side operations, default is an empty string.
-    :param clang_format_options: Clang formatting options, default is "-style={BasedOnStyle: LLVM, ColumnLimit: 150}".
     :raises ValueError: Raised if any required function for BHaH main() is not registered.
     """
 
@@ -40,7 +39,6 @@ class base_register_CFunction_main_c:
         pre_diagnostics: str = "",
         pre_MoL_step_forward_in_time: str = "",
         post_MoL_step_forward_in_time: str = "",
-        clang_format_options: str =  default_clang_format_options,
     ) -> None:
         self.MoL_method = MoL_method
         self.initial_data_desc = initial_data_desc
@@ -53,7 +51,6 @@ class base_register_CFunction_main_c:
         self.pre_diagnostics = pre_diagnostics
         self.pre_MoL_step_forward_in_time = pre_MoL_step_forward_in_time
         self.post_MoL_step_forward_in_time = post_MoL_step_forward_in_time
-        self.clang_format_options = clang_format_options
 
         # Make sure all required C functions are registered
         missing_functions: List[Tuple[str, str]] = []
@@ -129,5 +126,4 @@ Step 6: Free all allocated memory."""
             name=self.name,
             params=self.params,
             body=self.body,
-            clang_format_options=self.clang_format_options,
         )

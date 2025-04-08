@@ -402,10 +402,9 @@ def output_CUDA_headers(
         additional_macros_str=additional_macros_str,
         num_streams=num_streams,
         nghosts=nghosts,
-        clang_format_options=clang_format_options,
     )
 
-    CUDA_BHaH_gpu_global_defines_h(
+    BHaH_CUDA_global_defines_h(
         project_dir,
         gpu_defines.combined_decl_dict,
     )

@@ -23,7 +23,6 @@ class register_CFunction_main_c(base_main.base_register_CFunction_main_c):
     :param pre_diagnostics: Function calls prior to diagnostics; e.g., regridding. Default is an empty string.
     :param pre_MoL_step_forward_in_time: Code for handling pre-right-hand-side operations, default is an empty string.
     :param post_MoL_step_forward_in_time: Code for handling post-right-hand-side operations, default is an empty string.
-    :param clang_format_options: Clang formatting options, default is "-style={BasedOnStyle: LLVM, ColumnLimit: 150}".
     :raises ValueError: Raised if any required function for BHaH main() is not registered.
     """
 
@@ -38,7 +37,6 @@ class register_CFunction_main_c(base_main.base_register_CFunction_main_c):
         pre_diagnostics: str = "",
         pre_MoL_step_forward_in_time: str = "",
         post_MoL_step_forward_in_time: str = "",
-        clang_format_options: str =  default_clang_format_options,
     ) -> None:
         super().__init__(
             MoL_method,
@@ -50,7 +48,6 @@ class register_CFunction_main_c(base_main.base_register_CFunction_main_c):
             pre_diagnostics=pre_diagnostics,
             pre_MoL_step_forward_in_time=pre_MoL_step_forward_in_time,
             post_MoL_step_forward_in_time=post_MoL_step_forward_in_time,
-            clang_format_options=clang_format_options,
         )
         self.includes += ["BHaH_global_device_defines.h"]
         self.body = r"""
