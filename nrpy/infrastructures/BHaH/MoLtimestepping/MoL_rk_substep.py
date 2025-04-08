@@ -177,11 +177,10 @@ class RKFunction:
             comments=comments,
             launch_dict={
                 "blocks_per_grid": ["(Ntot + threads_in_x_dir - 1) / threads_in_x_dir"],
-                "threads_per_block": ["32"],
                 "stream": "params->grid_idx % NUM_STREAMS",
             },
             launchblock_with_braces=False,
-            thread_macro_prefix="MOL_SUBSTEP"
+            thread_tiling_macro_suffix="MOL_SUBSTEP",
         )
         self.body += new_body
 
