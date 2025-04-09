@@ -12,26 +12,26 @@ import os
 #         and compile-time parameters.
 import shutil
 
-import nrpy.helpers.parallelization.cuda_utilities as gputils
 import nrpy.helpers.parallel_codegen as pcg
+import nrpy.helpers.parallelization.cuda_utilities as gputils
 import nrpy.infrastructures.BHaH.BHaH_defines_h as Bdefines_h
+import nrpy.infrastructures.BHaH.BHaH_device_defines_h as gpudefines
+import nrpy.infrastructures.BHaH.checkpointing as chkpt
 import nrpy.infrastructures.BHaH.cmdline_input_and_parfiles as cmdpar
 import nrpy.infrastructures.BHaH.CodeParameters as CPs
 import nrpy.infrastructures.BHaH.CurviBoundaryConditions.CurviBoundaryConditions as cbc
 import nrpy.infrastructures.BHaH.diagnostics.progress_indicator as progress
 import nrpy.infrastructures.BHaH.Makefile_helpers as Makefile
 import nrpy.infrastructures.BHaH.numerical_grids_and_timestep as numericalgrids
-import nrpy.infrastructures.BHaH.checkpointing as chkpt
-import nrpy.infrastructures.BHaH.BHaH_device_defines_h as gpudefines
 import nrpy.infrastructures.gpu.main_driver.cuda.main_c as main
 import nrpy.params as par
 from nrpy.helpers.generic import copy_files
 from nrpy.infrastructures.BHaH import (
     griddata_commondata,
+    nrpyelliptic,
     rfm_precompute,
     rfm_wrapper_functions,
     xx_tofrom_Cart,
-    nrpyelliptic
 )
 from nrpy.infrastructures.BHaH.MoLtimestepping import MoL_register_all
 
@@ -184,7 +184,9 @@ nrpyelliptic.variable_wavespeed_gfs.register_CFunction_variable_wavespeed_gfs_al
 )
 
 # Generate functions to set AUXEVOL gridfunctions
-nrpyelliptic.constant_source_terms_to_auxevol.register_CFunction_auxevol_gfs_single_point(CoordSystem=CoordSystem)
+nrpyelliptic.constant_source_terms_to_auxevol.register_CFunction_auxevol_gfs_single_point(
+    CoordSystem=CoordSystem
+)
 nrpyelliptic.constant_source_terms_to_auxevol.register_CFunction_auxevol_gfs_all_points()
 
 # Generate function that calls functions to set variable wavespeed and all other AUXEVOL gridfunctions
@@ -226,7 +228,9 @@ nrpyelliptic.diagnostics.register_CFunction_compute_residual_all_points(
 )
 
 # Generate diagnostics functions
-nrpyelliptic.diagnostics.register_CFunction_compute_L2_norm_of_gridfunction(CoordSystem=CoordSystem)
+nrpyelliptic.diagnostics.register_CFunction_compute_L2_norm_of_gridfunction(
+    CoordSystem=CoordSystem
+)
 
 # Register function to check for stop conditions
 nrpyelliptic.diagnostics.register_CFunction_check_stop_conditions()
