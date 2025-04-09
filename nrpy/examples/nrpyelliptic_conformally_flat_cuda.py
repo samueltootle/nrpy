@@ -16,7 +16,6 @@ import nrpy.helpers.parallel_codegen as pcg
 import nrpy.helpers.parallelization.cuda_utilities as gputils
 import nrpy.infrastructures.BHaH.CurviBoundaryConditions.CurviBoundaryConditions as cbc
 import nrpy.infrastructures.BHaH.diagnostics.progress_indicator as progress
-import nrpy.infrastructures.gpu.main_driver.cuda.main_c as main
 import nrpy.params as par
 from nrpy.helpers.generic import copy_files
 from nrpy.infrastructures.BHaH import (
@@ -27,6 +26,7 @@ from nrpy.infrastructures.BHaH import (
     checkpointing,
     cmdline_input_and_parfiles,
     griddata_commondata,
+    main_c,
     nrpyelliptic,
     numerical_grids_and_timestep,
     rfm_precompute,
@@ -38,7 +38,7 @@ from nrpy.infrastructures.BHaH.MoLtimestepping import MoL_register_all
 par.set_parval_from_str("Infrastructure", "BHaH")
 
 # Code-generation-time parameters:
-project_name = "nrpyelliptic_conformally_flat_cuda_test2"
+project_name = "nrpyelliptic_conformally_flat_cuda_test3"
 fp_type = "double"
 grid_physical_size = 1.0e6
 t_final = grid_physical_size  # This parameter is effectively not used in NRPyElliptic
@@ -387,7 +387,7 @@ post_MoL_step_forward_in_time = r"""    check_stop_conditions(&commondata, gridd
       break;
     }
 """
-main.register_CFunction_main_c(
+main_c.register_CFunction_main_c(
     initial_data_desc="",
     post_non_y_n_auxevol_mallocs="initialize_constant_auxevol(&commondata, griddata_device);\n",
     pre_MoL_step_forward_in_time="write_checkpoint(&commondata, griddata_host, griddata_device);\n",
