@@ -24,7 +24,6 @@ import nrpy.infrastructures.BHaH.numerical_grids_and_timestep as numericalgrids
 import nrpy.infrastructures.BHaH.checkpointing as chkpt
 import nrpy.infrastructures.BHaH.BHaH_device_defines_h as gpudefines
 import nrpy.infrastructures.gpu.main_driver.cuda.main_c as main
-import nrpy.infrastructures.gpu.nrpyelliptic.cuda.conformally_flat_C_codegen_library as nrpyellClib
 import nrpy.params as par
 from nrpy.helpers.generic import copy_files
 from nrpy.infrastructures.BHaH import (
@@ -32,13 +31,14 @@ from nrpy.infrastructures.BHaH import (
     rfm_precompute,
     rfm_wrapper_functions,
     xx_tofrom_Cart,
+    nrpyelliptic
 )
 from nrpy.infrastructures.BHaH.MoLtimestepping import MoL_register_all
 
 par.set_parval_from_str("Infrastructure", "BHaH")
 
 # Code-generation-time parameters:
-project_name = "nrpyelliptic_conformally_flat_cuda_test"
+project_name = "nrpyelliptic_conformally_flat_cuda_test2"
 fp_type = "double"
 grid_physical_size = 1.0e6
 t_final = grid_physical_size  # This parameter is effectively not used in NRPyElliptic
@@ -172,23 +172,23 @@ gputils.register_CFunction_find_global_minimum()
 gputils.register_CFunction_find_global_sum()
 
 # Generate functions to set initial guess
-nrpyellClib.register_CFunction_initial_guess_single_point()
-nrpyellClib.register_CFunction_initial_guess_all_points(
+nrpyelliptic.initial_data.register_CFunction_initial_guess_single_point()
+nrpyelliptic.initial_data.register_CFunction_initial_guess_all_points(
     OMP_collapse=OMP_collapse,
     enable_checkpointing=enable_checkpointing,
 )
 
 # Generate function to set variable wavespeed
-nrpyellClib.register_CFunction_variable_wavespeed_gfs_all_points(
+nrpyelliptic.variable_wavespeed_gfs.register_CFunction_variable_wavespeed_gfs_all_points(
     CoordSystem=CoordSystem
 )
 
 # Generate functions to set AUXEVOL gridfunctions
-nrpyellClib.register_CFunction_auxevol_gfs_single_point(CoordSystem=CoordSystem)
-nrpyellClib.register_CFunction_auxevol_gfs_all_points()
+nrpyelliptic.constant_source_terms_to_auxevol.register_CFunction_auxevol_gfs_single_point(CoordSystem=CoordSystem)
+nrpyelliptic.constant_source_terms_to_auxevol.register_CFunction_auxevol_gfs_all_points()
 
 # Generate function that calls functions to set variable wavespeed and all other AUXEVOL gridfunctions
-nrpyellClib.register_CFunction_initialize_constant_auxevol()
+nrpyelliptic.constant_source_terms_to_auxevol.register_CFunction_initialize_constant_auxevol()
 
 numericalgrids.register_CFunctions(
     set_of_CoordSystems=set(list_of_CoordSystems),
@@ -199,7 +199,7 @@ numericalgrids.register_CFunctions(
 )
 xx_tofrom_Cart.register_CFunction_xx_to_Cart(CoordSystem=CoordSystem)
 
-nrpyellClib.register_CFunction_diagnostics(
+nrpyelliptic.diagnostics.register_CFunction_diagnostics(
     CoordSystem=CoordSystem,
     default_diagnostics_out_every=default_diagnostics_output_every,
     enable_rfm_precompute=enable_rfm_precompute,
@@ -211,7 +211,7 @@ if enable_rfm_precompute:
     )
 
 # Generate function to compute RHSs
-nrpyellClib.register_CFunction_rhs_eval(
+nrpyelliptic.rhs_eval.register_CFunction_rhs_eval(
     CoordSystem=CoordSystem,
     enable_rfm_precompute=enable_rfm_precompute,
     enable_intrinsics=enable_intrinsics,
@@ -219,17 +219,17 @@ nrpyellClib.register_CFunction_rhs_eval(
 )
 
 # Generate function to compute residuals
-nrpyellClib.register_CFunction_compute_residual_all_points(
+nrpyelliptic.diagnostics.register_CFunction_compute_residual_all_points(
     CoordSystem=CoordSystem,
     enable_rfm_precompute=enable_rfm_precompute,
     enable_intrinsics=enable_intrinsics,
 )
 
 # Generate diagnostics functions
-nrpyellClib.register_CFunction_compute_L2_norm_of_gridfunction(CoordSystem=CoordSystem)
+nrpyelliptic.diagnostics.register_CFunction_compute_L2_norm_of_gridfunction(CoordSystem=CoordSystem)
 
 # Register function to check for stop conditions
-nrpyellClib.register_CFunction_check_stop_conditions()
+nrpyelliptic.diagnostics.register_CFunction_check_stop_conditions()
 
 if __name__ == "__main__" and parallel_codegen_enable:
     pcg.do_parallel_codegen()
