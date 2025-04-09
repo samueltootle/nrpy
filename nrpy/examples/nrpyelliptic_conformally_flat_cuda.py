@@ -14,21 +14,21 @@ import shutil
 
 import nrpy.helpers.parallel_codegen as pcg
 import nrpy.helpers.parallelization.cuda_utilities as gputils
-import nrpy.infrastructures.BHaH.BHaH_defines_h as Bdefines_h
-import nrpy.infrastructures.BHaH.BHaH_device_defines_h as gpudefines
-import nrpy.infrastructures.BHaH.checkpointing as chkpt
-import nrpy.infrastructures.BHaH.cmdline_input_and_parfiles as cmdpar
-import nrpy.infrastructures.BHaH.CodeParameters as CPs
 import nrpy.infrastructures.BHaH.CurviBoundaryConditions.CurviBoundaryConditions as cbc
 import nrpy.infrastructures.BHaH.diagnostics.progress_indicator as progress
-import nrpy.infrastructures.BHaH.Makefile_helpers as Makefile
-import nrpy.infrastructures.BHaH.numerical_grids_and_timestep as numericalgrids
 import nrpy.infrastructures.gpu.main_driver.cuda.main_c as main
 import nrpy.params as par
 from nrpy.helpers.generic import copy_files
 from nrpy.infrastructures.BHaH import (
+    BHaH_defines_h,
+    BHaH_device_defines_h,
+    CodeParameters,
+    Makefile_helpers,
+    checkpointing,
+    cmdline_input_and_parfiles,
     griddata_commondata,
     nrpyelliptic,
+    numerical_grids_and_timestep,
     rfm_precompute,
     rfm_wrapper_functions,
     xx_tofrom_Cart,
@@ -102,8 +102,8 @@ radiation_BC_fd_order = 6
 enable_intrinsics = True
 parallel_codegen_enable = True
 boundary_conditions_desc = "outgoing radiation"
-list_of_CoordSystems = [CoordSystem]
-NUMGRIDS = len(list_of_CoordSystems)
+set_of_CoordSystems = {CoordSystem}
+NUMGRIDS = len(set_of_CoordSystems)
 par.adjust_CodeParam_default("NUMGRIDS", NUMGRIDS)
 num_streams = NUMGRIDS
 # fmt: off
@@ -191,10 +191,9 @@ nrpyelliptic.constant_source_terms_to_auxevol.register_CFunction_auxevol_gfs_all
 
 # Generate function that calls functions to set variable wavespeed and all other AUXEVOL gridfunctions
 nrpyelliptic.constant_source_terms_to_auxevol.register_CFunction_initialize_constant_auxevol()
-
-numericalgrids.register_CFunctions(
-    set_of_CoordSystems=set(list_of_CoordSystems),
-    list_of_grid_physical_sizes=[grid_physical_size for c in list_of_CoordSystems],
+numerical_grids_and_timestep.register_CFunctions(
+    set_of_CoordSystems=set_of_CoordSystems,
+    list_of_grid_physical_sizes=[grid_physical_size for c in set_of_CoordSystems],
     Nxx_dict=Nxx_dict,
     enable_rfm_precompute=enable_rfm_precompute,
     enable_CurviBCs=True,
@@ -208,9 +207,7 @@ nrpyelliptic.diagnostics.register_CFunction_diagnostics(
 )
 
 if enable_rfm_precompute:
-    rfm_precompute.register_CFunctions_rfm_precompute(
-        set_of_CoordSystems=set(list_of_CoordSystems)
-    )
+    rfm_precompute.register_CFunctions_rfm_precompute(set_of_CoordSystems)
 
 # Generate function to compute RHSs
 nrpyelliptic.rhs_eval.register_CFunction_rhs_eval(
@@ -239,7 +236,7 @@ if __name__ == "__main__" and parallel_codegen_enable:
     pcg.do_parallel_codegen()
 
 cbc.CurviBoundaryConditions_register_C_functions(
-    set_of_CoordSystems=set(list_of_CoordSystems),
+    set_of_CoordSystems,
     radiation_BC_fd_order=radiation_BC_fd_order,
 )
 rhs_string = """rhs_eval(commondata, params, rfmstruct,  auxevol_gfs, RK_INPUT_GFS, RK_OUTPUT_GFS);
@@ -266,7 +263,7 @@ MoL_register_all.register_CFunctions(
     enable_intrinsics=enable_intrinsics,
     rational_const_alias="static constexpr",
 )
-chkpt.register_CFunctions(default_checkpoint_every=default_checkpoint_every)
+checkpointing.register_CFunctions(default_checkpoint_every=default_checkpoint_every)
 
 # Define string with print statement for progress indicator
 progress_str = r"""
@@ -348,17 +345,19 @@ if initial_data_type == "axisymmetric":
 #         command line parameters, set up boundary conditions,
 #         and create a Makefile for this project.
 #         Project is output to project/[project_name]/
-CPs.write_CodeParameters_h_files(project_dir=project_dir)
-CPs.register_CFunctions_params_commondata_struct_set_to_default()
-cmdpar.generate_default_parfile(project_dir=project_dir, project_name=project_name)
-cmdpar.register_CFunction_cmdline_input_and_parfile_parser(
+CodeParameters.write_CodeParameters_h_files(project_dir=project_dir)
+CodeParameters.register_CFunctions_params_commondata_struct_set_to_default()
+cmdline_input_and_parfiles.generate_default_parfile(
+    project_dir=project_dir, project_name=project_name
+)
+cmdline_input_and_parfiles.register_CFunction_cmdline_input_and_parfile_parser(
     project_name=project_name, cmdline_inputs=["convergence_factor"]
 )
-gpu_defines_filename = gpudefines.output_device_headers(
+gpu_defines_filename = BHaH_device_defines_h.output_device_headers(
     project_dir, num_streams=num_streams
 )
 
-Bdefines_h.output_BHaH_defines_h(
+BHaH_defines_h.output_BHaH_defines_h(
     project_dir=project_dir,
     enable_intrinsics=enable_intrinsics,
     supplemental_defines_dict={
@@ -377,6 +376,7 @@ Bdefines_h.output_BHaH_defines_h(
     intrinsics_header_lst=["cuda_intrinsics.h"],
     restrict_pointer_type="*",
     enable_rfm_precompute=enable_rfm_precompute,
+    DOUBLE_means="double" if fp_type == "float" else "REAL",
 )
 # Define post_MoL_step_forward_in_time string for main function
 post_MoL_step_forward_in_time = r"""    check_stop_conditions(&commondata, griddata_device);
@@ -408,7 +408,7 @@ if enable_intrinsics:
         subdirectory="intrinsics",
     )
 
-Makefile.output_CFunctions_function_prototypes_and_construct_Makefile(
+Makefile_helpers.output_CFunctions_function_prototypes_and_construct_Makefile(
     project_dir=project_dir,
     project_name=project_name,
     exec_or_library_name=project_name,
