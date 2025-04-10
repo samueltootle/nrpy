@@ -64,7 +64,7 @@ def register_CFunction_main_c(
     ...    _ = initial_data_exact_soln.register_CFunction_initial_data(1)
     ...    register_CFunction_main_c("RK4")
     ...    generated_str = cfc.CFunction_dict["main"].full_function
-    ...    validation_desc = f"__{parallelization}".replace(" ", "_")
+    ...    validation_desc = f"_{parallelization}".replace(" ", "_")
     ...    validate_strings(generated_str, validation_desc, file_ext="cu" if parallelization == "cuda" else "c")
     Setting up reference_metric[Cartesian]...
     """
@@ -269,7 +269,10 @@ while(commondata.time < commondata.t_final) { // Main loop to progress forward i
 } // End main loop to progress forward in time.
 BHAH_DEVICE_SYNC();
 // Step 6: Free all allocated memory
-{"""
+{""".replace(
+        "BHAH_DEVICE_SYNC();",
+        "" if parallelization not in ["cuda"] else "BHAH_DEVICE_SYNC();",
+    )
     body += (
         r"""
   const bool free_non_y_n_gfs_and_core_griddata_pointers=true;

@@ -500,13 +500,12 @@ def output_BHaH_defines_h(
 """
     if parallelization == "cuda":
         file_output_str += rf"""
-
-  cudaCheckErrors(cudaMallocHost, "Malloc diagnostic GFs failed.")
     #define BHAH_MALLOC_PINNED(a, sz) \
     do {{ \
         cudaMallocHost((void**)&a, sz); \
         {parallel_utils.get_check_errors_str(parallelization, "cudaMallocHost", opt_msg='Malloc: "#a" failed')} \
     }} while (0);
+
     #define BHAH_FREE_PINNED(a) \
     do {{ \
         if (a) {{ \
