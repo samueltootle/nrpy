@@ -36,14 +36,35 @@ def register_CFunction_compute_L2_norm_of_gridfunction(
     multiprocess race condition on Python 3.6.7
 
     :param CoordSystem: the rfm coordinate system.
+
+    Doctest:
+    >>> import nrpy.c_function as cfc
+    >>> from nrpy.helpers.generic import validate_strings
+    >>> import nrpy.params as par
+    >>> from nrpy.reference_metric import unittest_CoordSystems
+    >>> supported_Parallelizations = ["openmp", "cuda"]
+    >>> name="compute_L2_norm_of_gridfunction"
+    >>> for parallelization in supported_Parallelizations:
+    ...    par.set_parval_from_str("parallelization", parallelization)
+    ...    for CoordSystem in unittest_CoordSystems:
+    ...       cfc.CFunction_dict.clear()
+    ...       _ = register_CFunction_compute_L2_norm_of_gridfunction(CoordSystem)
+    ...       generated_str = cfc.CFunction_dict[f'{name}__rfm__{CoordSystem}'].full_function
+    ...       validation_desc = f"{name}__{parallelization}__{CoordSystem}".replace(" ", "_")
+    ...       validate_strings(generated_str, validation_desc, file_ext="cu" if parallelization == "cuda" else "c")
+    Setting up reference_metric[SinhSymTP]...
+    Setting up reference_metric[HoleySinhSpherical]...
+    Setting up reference_metric[Cartesian]...
+    Setting up reference_metric[SinhCylindricalv2n2]...
     """
     parallelization = par.parval_from_str("parallelization")
     includes = ["BHaH_defines.h", "BHaH_function_prototypes.h"]
     desc = "Compute l2-norm of a gridfunction assuming a single grid."
-    cfunc_type = "REAL"
+    cfunc_type = "void"
     name = "compute_L2_norm_of_gridfunction"
-    params = """commondata_struct *restrict commondata, griddata_struct *restrict griddata,
-                const REAL integration_radius, const int gf_index, const REAL *restrict in_gf"""
+    params = """commondata_struct *restrict commondata, params_struct *restrict params, REAL *restrict xx[3],
+                const REAL integration_radius, const int gf_index, REAL * l2norm, const REAL *restrict in_gfs"""
+    params += ", REAL *restrict aux_gfs" if parallelization in ["cuda"] else ""
 
     rfm = refmetric.reference_metric[CoordSystem]
 
@@ -177,14 +198,10 @@ if(r < integration_radius) {
 
     # Define launch kernel body
     body = r"""
-  params_struct *restrict params = &griddata->params;
-#include "set_CodeParameters.h"
   MAYBE_UNUSED const int Nxx_plus_2NGHOSTS_tot = Nxx_plus_2NGHOSTS0 * Nxx_plus_2NGHOSTS1 * Nxx_plus_2NGHOSTS2;
-  REAL *restrict x0 = griddata->xx[0];
-  REAL *restrict x1 = griddata->xx[1];
-  REAL *restrict x2 = griddata->xx[2];
-  REAL *restrict in_gfs = griddata->gridfuncs.diagnostic_output_gfs;
-  MAYBE_UNUSED REAL *restrict aux_gfs = griddata->gridfuncs.diagnostic_output_gfs2;
+  REAL *restrict x0 = xx[0];
+  REAL *restrict x1 = xx[1];
+  REAL *restrict x2 = xx[2];
 """
 
     body += (
@@ -220,7 +237,7 @@ if(r < integration_radius) {
 
     body += r"""
   // Compute and output the log of the l2-norm.
-  return log10(1e-16 + sqrt(squared_sum / volume_sum));  // 1e-16 + ... avoids log10(0)
+  *l2norm = log10(1e-16 + sqrt(squared_sum / volume_sum));  // 1e-16 + ... avoids log10(0)
 """
 
     cfc.register_CFunction(
@@ -228,10 +245,10 @@ if(r < integration_radius) {
         includes=includes,
         desc=desc,
         cfunc_type=cfunc_type,
-        CoordSystem_for_wrapper_func="",
+        CoordSystem_for_wrapper_func=CoordSystem,
         name=name,
         params=params,
-        include_CodeParameters_h=False,  # set_CodeParameters.h is manually included after the declaration of params_struct *restrict params
+        include_CodeParameters_h=True,
         body=body,
     )
 
@@ -256,6 +273,22 @@ def register_CFunction_compute_residual_all_points(
     :param OMP_collapse: Level of OpenMP loop collapsing.
 
     :return: None if in registration phase, else the updated NRPy environment.
+
+    Doctest:
+    >>> import nrpy.c_function as cfc
+    >>> from nrpy.helpers.generic import validate_strings
+    >>> import nrpy.params as par
+    >>> from nrpy.reference_metric import unittest_CoordSystems
+    >>> supported_Parallelizations = ["openmp", "cuda"]
+    >>> name="compute_residual_all_points"
+    >>> for parallelization in supported_Parallelizations:
+    ...    par.set_parval_from_str("parallelization", parallelization)
+    ...    for CoordSystem in unittest_CoordSystems:
+    ...       cfc.CFunction_dict.clear()
+    ...       _ = register_CFunction_compute_residual_all_points(CoordSystem, True, True)
+    ...       generated_str = cfc.CFunction_dict[f'{name}__rfm__{CoordSystem}'].full_function
+    ...       validation_desc = f"{name}__{parallelization}__{CoordSystem}".replace(" ", "_")
+    ...       validate_strings(generated_str, validation_desc, file_ext="cu" if parallelization == "cuda" else "c")
     """
     if pcg.pcg_registration_phase():
         pcg.register_func_call(f"{__name__}.{cast(FT, cfr()).f_code.co_name}", locals())
@@ -391,6 +424,20 @@ def register_CFunction_diagnostics(
     :param out_quantities_dict: Dictionary or string specifying output quantities.
     :raises TypeError: If `out_quantities_dict` is not a dictionary and not set to "default".
     :return: None if in registration phase, else the updated NRPy environment.
+
+    Doctest:
+    >>> import nrpy.c_function as cfc
+    >>> from nrpy.helpers.generic import validate_strings
+    >>> import nrpy.params as par
+    >>> supported_Parallelizations = ["openmp", "cuda"]
+    >>> name="diagnostics"
+    >>> for parallelization in supported_Parallelizations:
+    ...    par.set_parval_from_str("parallelization", parallelization)
+    ...    cfc.CFunction_dict.clear()
+    ...    _ = register_CFunction_diagnostics("Cartesian", True, 100)
+    ...    generated_str = cfc.CFunction_dict[f'{name}'].full_function
+    ...    validation_desc = f"{name}__{parallelization}".replace(" ", "_")
+    ...    validate_strings(generated_str, validation_desc, file_ext="cu" if parallelization == "cuda" else "c")
     """
     if pcg.pcg_registration_phase():
         pcg.register_func_call(f"{__name__}.{cast(FT, cfr()).f_code.co_name}", locals())
@@ -456,6 +503,7 @@ def register_CFunction_diagnostics(
   REAL *restrict y_n_gfs = griddata[grid].gridfuncs.y_n_gfs;
   REAL *restrict auxevol_gfs = griddata[grid].gridfuncs.auxevol_gfs;
   REAL *restrict diagnostic_output_gfs = griddata[grid].gridfuncs.diagnostic_output_gfs;
+  MAYBE_UNUSED REAL *restrict diagnostic_output_gfs2 = griddata[grid].gridfuncs.diagnostic_output_gfs2;
   // Set params
   params_struct *restrict params = &griddata[grid].params;
 #include "set_CodeParameters.h"
@@ -499,7 +547,8 @@ def register_CFunction_diagnostics(
   const REAL integration_radius = 1000;
 
   // Compute l2-norm of Hamiltonian constraint violation
-  const REAL residual_H = compute_L2_norm_of_gridfunction(commondata, &griddata[grid], integration_radius, RESIDUAL_HGF, diagnostic_output_gfs);
+  REAL residual_H;
+  compute_L2_norm_of_gridfunction(commondata, &griddata[grid].params, griddata[grid].xx, integration_radius, RESIDUAL_HGF, &residual_H, diagnostic_output_gfs);
   global_norm = MAX(global_norm, residual_H);
   } // END for(grid=0; grid<commondata->NUMGRIDS; ++grid)
 
@@ -523,7 +572,14 @@ def register_CFunction_diagnostics(
     // Only consider a single grid for now.
     const int grid = 0;
     params_struct *restrict params = &griddata[grid].params;
-"""
+""".replace(
+        "diagnostic_output_gfs)",
+        (
+            "diagnostic_output_gfs, diagnostic_output_gfs2)"
+            if parallelization in ["cuda"]
+            else "diagnostic_output_gfs)"
+        ),
+    )
 
     body += r"""// Set reference metric grid xx
     REAL *restrict xx[3];
@@ -626,3 +682,16 @@ def register_CFunction_check_stop_conditions() -> Union[None, pcg.NRPyEnv_type]:
         body=body,
     )
     return cast(pcg.NRPyEnv_type, pcg.NRPyEnv())
+
+
+if __name__ == "__main__":
+    import doctest
+    import sys
+
+    results = doctest.testmod()
+
+    if results.failed > 0:
+        print(f"Doctest failed: {results.failed} of {results.attempted} test(s)")
+        sys.exit(1)
+    else:
+        print(f"Doctest passed: All {results.attempted} test(s) passed")
