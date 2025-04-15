@@ -161,6 +161,9 @@ if(r < integration_radius) {
         expr_list, exclude=[f"xx{i}" for i in range(3)]
     )
     loop_params += "// Load necessary parameters from params_struct\n"
+    # We have to manually add dxx{i} here since they are not in the SymPy
+    # expression list, but, instead, are manually used in calculations
+    # in reduction_loop_body above
     for param in params_symbols + [f"dxx{i}" for i in range(3)]:
         loop_params += f"const REAL {param} = {parallel_utils.get_params_access(parallelization)}{param};\n"
     loop_params += (
@@ -338,10 +341,11 @@ def register_CFunction_compute_residual_all_points(
     params_symbols, _ = get_params_commondata_symbols_from_expr_list(
         [rhs.residual], exclude=[f"xx{i}" for i in range(3)]
     )
-    loop_params += "// Load necessary parameters from params_struct\n"
-    for param in params_symbols:
-        loop_params += f"const REAL {param} = {parallel_utils.get_params_access(parallelization)}{param};\n"
-    loop_params += "\n"
+    if len(params_symbols) > 0:
+        loop_params += "// Load necessary parameters from params_struct\n"
+        for param in params_symbols:
+            loop_params += f"const REAL {param} = {parallel_utils.get_params_access(parallelization)}{param};\n"
+        loop_params += "\n"
 
     comments = "Kernel to compute the residual throughout the grid."
 
@@ -364,6 +368,9 @@ def register_CFunction_compute_residual_all_points(
     }
 
     kernel_body = f"{loop_params}\n{loop_body}"
+
+    for i in range(3):
+        kernel_body = kernel_body.replace(f"xx[{i}]", f"x{i}")
     prefunc, new_body = parallel_utils.generate_kernel_and_launch_code(
         name,
         kernel_body,
@@ -378,7 +385,8 @@ def register_CFunction_compute_residual_all_points(
         },
         thread_tiling_macro_suffix="NELL_H",
     )
-
+    for i in range(3):
+        new_body = new_body.replace(f"x{i}", f"xx[{i}]")
     body = f"{new_body}\n"
 
     cfc.register_CFunction(
@@ -581,25 +589,27 @@ def register_CFunction_diagnostics(
         ),
     )
 
-    body += r"""// Set reference metric grid xx
+    host_griddata = "griddata_host" if parallelization in ["cuda"] else "griddata"
+    body += rf"""// Set reference metric grid xx
     REAL *restrict xx[3];
     for (int ww = 0; ww < 3; ww++)
-        xx[ww] = griddata[grid].xx[ww];
-
+        xx[ww] = {host_griddata}[grid].xx[ww];
+"""
+    if parallelization in ["cuda"]:
+        body += r"""
     // Sync with device when relevant
     BHAH_DEVICE_SYNC();
-
+"""
+    body += rf"""
     // 1D output
-    diagnostics_nearest_1d_y_axis(commondata, params, xx, &griddata[grid].gridfuncs);
-    diagnostics_nearest_1d_z_axis(commondata, params, xx, &griddata[grid].gridfuncs);
+    diagnostics_nearest_1d_y_axis(commondata, params, xx, &{host_griddata}[grid].gridfuncs);
+    diagnostics_nearest_1d_z_axis(commondata, params, xx, &{host_griddata}[grid].gridfuncs);
 
     // 2D output
-    diagnostics_nearest_2d_xy_plane(commondata, params, xx, &griddata[grid].gridfuncs);
-    diagnostics_nearest_2d_yz_plane(commondata, params, xx, &griddata[grid].gridfuncs);
-  }
-""".replace(
-        "griddata", "griddata_host" if parallelization in ["cuda"] else "griddata"
-    )
+    diagnostics_nearest_2d_xy_plane(commondata, params, xx, &{host_griddata}[grid].gridfuncs);
+    diagnostics_nearest_2d_yz_plane(commondata, params, xx, &{host_griddata}[grid].gridfuncs);
+  }}
+"""
     if enable_progress_indicator:
         body += "progress_indicator(commondata, griddata);"
     body += r"""

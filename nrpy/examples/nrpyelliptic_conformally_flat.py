@@ -5,6 +5,7 @@ Authors: Thiago Assumpção; assumpcaothiago **at** gmail **dot** com
          Zachariah B. Etienne; zachetie **at** gmail **dot* com
 """
 
+import argparse
 import os
 
 #########################################################
@@ -35,11 +36,48 @@ from nrpy.infrastructures.BHaH import (
 )
 from nrpy.infrastructures.BHaH.MoLtimestepping import MoL_register_all
 
-# Code-generation-time parameters:
-fp_type = "double"
-parallelization = "cuda"
-project_name = f"nrpyelliptic_conformally_flat_{parallelization}"
+parser = argparse.ArgumentParser(
+    description="NRPyElliptic Solver for Conformally Flat BBH initial data"
+)
+parser.add_argument(
+    "--parallelization",
+    type=str,
+    help="Parallelization strategy to use (e.g. openmp, cuda).",
+    default="openmp",
+)
+parser.add_argument(
+    "--floating_point_precision",
+    type=str,
+    help="Floating point precision (e.g. float, double).",
+    default="double",
+)
+parser.add_argument(
+    "--enable_intrinsics",
+    action="store_true",
+    help="Flag to enable hardware intrinsics",
+    default=False,
+)
+parser.add_argument(
+    "--enable_rfm_precompute",
+    action="store_true",
+    help="Flag to enable RFM precomputation.",
+    default=False,
+)
+args = parser.parse_args()
 
+# Code-generation-time parameters:
+fp_type = args.floating_point_precision.lower()
+parallelization = args.parallelization.lower()
+enable_intrinsics = args.enable_intrinsics
+enable_rfm_precompute = args.enable_rfm_precompute
+
+if parallelization not in ["openmp", "cuda"]:
+    raise ValueError(
+        f"Invalid parallelization strategy: {parallelization}. "
+        "Choose 'openmp' or 'cuda'."
+    )
+
+project_name = "nrpyelliptic_conformally_flat"
 par.set_parval_from_str("fp_type", fp_type)
 par.set_parval_from_str("parallelization", parallelization)
 par.set_parval_from_str("Infrastructure", "BHaH")
@@ -100,11 +138,9 @@ SINHW = 0.06
 
 OMP_collapse = 1
 enable_checkpointing = True
-enable_rfm_precompute = True
 MoL_method = "RK4"
 fd_order = 10
 radiation_BC_fd_order = 6
-enable_intrinsics = True
 parallel_codegen_enable = True
 boundary_conditions_desc = "outgoing radiation"
 set_of_CoordSystems = {CoordSystem}
@@ -411,7 +447,6 @@ post_non_y_n_auxevol_mallocs = (
     f"initialize_constant_auxevol(&commondata, &{compute_griddata}[grid].params, {compute_griddata}[grid].xx, &{compute_griddata}[grid].gridfuncs);\n"
 )
 pre_MoL_step_forward_in_time = f"{write_checkpoint_call}"
-print(pre_MoL_step_forward_in_time)
 main_c.register_CFunction_main_c(
     MoL_method=MoL_method,
     initial_data_desc="",
