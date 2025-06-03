@@ -20,27 +20,12 @@ import nrpy.params as par
 import nrpy.reference_metric as refmetric
 from nrpy.infrastructures.BHaH import griddata_commondata
 
-
-def register_CFunction_bhahaha_find_horizons(
-    CoordSystem: str,
-    max_horizons: int,
-) -> Union[None, pcg.NRPyEnv_type]:
+def bhahaha_register_code_parameters(max_horizons: int) -> None:
     """
-    Register the C function for general-purpose 3D Lagrange interpolation.
+    Register BHaHAHA code parameters and commondata structures.
 
-    :param CoordSystem: CoordSystem of project, where horizon finding will take place.
     :param max_horizons: Maximum number of horizons to search for.
-    :return: None if in registration phase, else the updated NRPy environment.
-    :raises ValueError: If EvolvedConformalFactor_cf set to unsupported value.
-
-    >>> env = register_CFunction_bhahaha_find_horizons()
     """
-    if pcg.pcg_registration_phase():
-        pcg.register_func_call(f"{__name__}.{cast(FT, cfr()).f_code.co_name}", locals())
-        return None
-
-    parallelization = par.parval_from_str("parallelization")
-
     griddata_commondata.register_griddata_commondata(
         __name__,
         f"bhahaha_params_and_data_struct bhahaha_params_and_data[{max_horizons}]",
@@ -177,6 +162,28 @@ def register_CFunction_bhahaha_find_horizons(
         add_to_glb_code_params_dict=True,
         description="BBH mode: Record of which horizons are active.",
     )
+
+def register_CFunction_bhahaha_find_horizons(
+    CoordSystem: str,
+    max_horizons: int,
+) -> Union[None, pcg.NRPyEnv_type]:
+    """
+    Register the C function for general-purpose 3D Lagrange interpolation.
+
+    :param CoordSystem: CoordSystem of project, where horizon finding will take place.
+    :param max_horizons: Maximum number of horizons to search for.
+    :return: None if in registration phase, else the updated NRPy environment.
+    :raises ValueError: If EvolvedConformalFactor_cf set to unsupported value.
+
+    >>> env = register_CFunction_bhahaha_find_horizons()
+    """
+    if pcg.pcg_registration_phase():
+        pcg.register_func_call(f"{__name__}.{cast(FT, cfr()).f_code.co_name}", locals())
+        return None
+
+    bhahaha_register_code_parameters(max_horizons)
+
+    parallelization = par.parval_from_str("parallelization")
 
     includes = [
         "BHaH_defines.h",
