@@ -39,6 +39,8 @@ def register_CFunction_bhahaha_find_horizons(
         pcg.register_func_call(f"{__name__}.{cast(FT, cfr()).f_code.co_name}", locals())
         return None
 
+    parallelization = par.parval_from_str("parallelization")
+
     griddata_commondata.register_griddata_commondata(
         __name__,
         f"bhahaha_params_and_data_struct bhahaha_params_and_data[{max_horizons}]",
@@ -634,6 +636,7 @@ and result updates for multiple horizons.
     params = (
         """commondata_struct *restrict commondata, griddata_struct *restrict griddata"""
     )
+    params += ", griddata_struct *restrict griddata_device" if parallelization in ["cuda"] else ""
 
     body = r"""
   // STEP 1: Check if horizon find is scheduled for the current iteration.

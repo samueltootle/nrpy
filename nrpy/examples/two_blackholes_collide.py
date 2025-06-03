@@ -387,7 +387,7 @@ main_c.register_CFunction_main_c(
     pre_diagnostics=(
         "bhahaha_find_horizons(&commondata, griddata);\n"
         if parallelization == "openmp"
-        else ""
+        else "bhahaha_find_horizons(&commondata, griddata_host, griddata_device);\n"
     ),
     MoL_method=MoL_method,
     boundary_conditions_desc=boundary_conditions_desc,
