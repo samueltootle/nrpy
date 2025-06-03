@@ -74,6 +74,12 @@ parser.add_argument(
     help="Output root directory. Default = project/",
     default="project",
 )
+parser.add_argument(
+    "--parallelization",
+    type=str,
+    help="Parallelization strategy to use (e.g. openmp, cuda).",
+    default="openmp",
+)
 args = parser.parse_args()
 fd_order = args.fdorder
 outrootdir = args.outrootdir
@@ -222,6 +228,15 @@ Bdefines_h.output_BHaH_defines_h(
     project_dir=project_dir,
     enable_intrinsics=enable_simd,
     define_no_simd_UPWIND_ALG=False,
+    restrict_pointer_type='*',
+    supplemental_defines_dict=(
+        {
+            "C++/CUDA safe restrict": """
+            #ifdef __cplusplus
+            #define restrict __restrict__
+            #endif""",
+        }
+    )
 )
 
 #########################################################
@@ -277,8 +292,15 @@ BHaHAHA_h += """
 const char *bah_error_message(const bhahaha_error_codes error_code);
 //===============================================
 
+#ifdef __cplusplus
+}
+#endif
+
 #endif // BHAHAHA_HEADER_H
 """
+
+if args.parallelization.lower() == "cuda":
+    BHaHAHA_h = BHaHAHA_h.replace("REAL *restrict", "REAL *").replace(", *restrict", ", *")
 
 # Write the updated content to the output file
 with Path(project_dir, "BHaHAHA.h").open("w", encoding="utf-8") as output_file:

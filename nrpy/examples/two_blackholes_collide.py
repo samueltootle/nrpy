@@ -146,45 +146,46 @@ par.adjust_CodeParam_default("t_final", t_final)
 #########################################################
 # STEP 2: Declare core C functions & register each to
 #         cfc.CFunction_dict["function_name"]
-if parallelization != "cuda":
-    try:
-        # Attempt to run as a script path
-        subprocess.run(
-            [
-                "python",
-                "nrpy/examples/bhahaha.py",
-                "--fdorder",
-                str(fd_order),
-                "--outrootdir",
-                project_dir,
-            ],
-            check=True,
-        )
-    except subprocess.CalledProcessError:
-        # If it fails (e.g., from a pip install), try running as a module
-        subprocess.run(
-            [
-                "python",
-                "-m",
-                "nrpy.examples.bhahaha",
-                "--fdorder",
-                str(fd_order),
-                "--outrootdir",
-                project_dir,
-            ],
-            check=True,
-        )
-    from nrpy.infrastructures.BHaH.BHaHAHA import (
-        BHaH_implementation,
-        interpolation_3d_general__uniform_src_grid,
+try:
+    # Attempt to run as a script path
+    subprocess.run(
+        [
+            "python",
+            "nrpy/examples/bhahaha.py",
+            "--fdorder",
+            str(fd_order),
+            "--outrootdir",
+            project_dir,
+            f"--parallelization={parallelization}",
+        ],
+        check=True,
     )
+except subprocess.CalledProcessError:
+    # If it fails (e.g., from a pip install), try running as a module
+    subprocess.run(
+        [
+            "python",
+            "-m",
+            "nrpy.examples.bhahaha",
+            "--fdorder",
+            str(fd_order),
+            "--outrootdir",
+            project_dir,
+            f"--parallelization={parallelization}",
+        ],
+        check=True,
+    )
+from nrpy.infrastructures.BHaH.BHaHAHA import (
+    BHaH_implementation,
+    interpolation_3d_general__uniform_src_grid,
+)
 
-    BHaH_implementation.register_CFunction_bhahaha_find_horizons(
-        CoordSystem=CoordSystem, max_horizons=3
-    )
-    interpolation_3d_general__uniform_src_grid.register_CFunction_interpolation_3d_general__uniform_src_grid(
-        enable_simd=enable_intrinsics, project_dir=project_dir
-    )
+BHaH_implementation.register_CFunction_bhahaha_find_horizons(
+    CoordSystem=CoordSystem, max_horizons=3
+)
+interpolation_3d_general__uniform_src_grid.register_CFunction_interpolation_3d_general__uniform_src_grid(
+    enable_simd=enable_intrinsics, project_dir=project_dir
+)
 
 
 if parallelization == "cuda":
@@ -359,11 +360,7 @@ gpu_defines_filename = BHaH_device_defines_h.output_device_headers(
 )
 BHaH_defines_h.output_BHaH_defines_h(
     project_dir=project_dir,
-    additional_includes=(
-        [os.path.join(BHaHAHA_subdir, "BHaHAHA.h")]
-        if parallelization == "openmp"
-        else []
-    ),
+    additional_includes=[os.path.join(BHaHAHA_subdir, "BHaHAHA.h")],
     enable_intrinsics=enable_intrinsics,
     intrinsics_header_lst=(
         ["cuda_intrinsics.h"] if parallelization == "cuda" else ["simd_intrinsics.h"]
@@ -374,7 +371,10 @@ BHaH_defines_h.output_BHaH_defines_h(
     restrict_pointer_type="*" if parallelization == "cuda" else "*restrict",
     supplemental_defines_dict=(
         {
-            "C++/CUDA safe restrict": "#define restrict __restrict__",
+            "C++/CUDA safe restrict": """
+            #ifdef __cplusplus
+            #define restrict __restrict__
+            #endif""",
             "GPU Header": f'#include "{gpu_defines_filename}"',
         }
         if parallelization == "cuda"
@@ -402,7 +402,7 @@ if enable_intrinsics:
     copy_files(
         package="nrpy.helpers",
         filenames_list=(
-            ["cuda_intrinsics.h"]
+            ["cuda_intrinsics.h", "simd_intrinsics.h"]
             if parallelization == "cuda"
             else ["simd_intrinsics.h"]
         ),
@@ -413,10 +413,12 @@ if parallelization == "cuda":
     Makefile_helpers.output_CFunctions_function_prototypes_and_construct_Makefile(
         project_dir=project_dir,
         project_name=project_name,
+        addl_dirs_to_make=[BHaHAHA_subdir],
         exec_or_library_name=project_name,
         CC="nvcc",
         src_code_file_ext="cu",
         compiler_opt_option="nvcc",
+        addl_libraries=[f"-L{BHaHAHA_subdir}", f"-l{BHaHAHA_subdir}"],
     )
 else:
     Makefile_helpers.output_CFunctions_function_prototypes_and_construct_Makefile(
