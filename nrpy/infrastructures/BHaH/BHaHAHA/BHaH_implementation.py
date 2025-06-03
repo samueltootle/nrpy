@@ -163,6 +163,45 @@ def bhahaha_register_code_parameters(max_horizons: int) -> None:
         description="BBH mode: Record of which horizons are active.",
     )
 
+def generate_check_multigrid_resolution_inputs() -> str:
+    """
+    Generate the C code for checking multigrid resolution inputs.
+
+    :return: C code as a string.
+    """
+    return r"""
+/**
+ * Validates BHaHAHA multigrid resolution inputs.
+ * Checks if `bah_num_resolutions_multigrid` is positive and if all
+ * `bah_Ntheta_array_multigrid` and `bah_Nphi_array_multigrid` entries are positive.
+ * If validation fails, prints an error and exits.
+ *
+ * @param commondata - Pointer to `commondata_struct` containing multigrid settings.
+ * @return - None (`void`).
+ */
+static void check_multigrid_resolution_inputs(const commondata_struct *restrict commondata) {
+  int trigger_error = 0;
+  if (commondata->bah_num_resolutions_multigrid <= 0) {
+    trigger_error = 1;
+  } else { // num_resolutions_multigrid > 0
+    for (int res = 0; res < commondata->bah_num_resolutions_multigrid; res++) {
+      if (commondata->bah_Ntheta_array_multigrid[res] <= 0 || commondata->bah_Nphi_array_multigrid[res] <= 0) {
+        trigger_error = 1;
+        break;
+      } // END IF: invalid resolution
+    } // END LOOP: for res
+  } // END ELSE: num_resolutions_multigrid > 0
+  if (trigger_error) {
+    fprintf(stderr, "ERROR: BHaHAHA multigrid resolutions are unset or invalid. Please specify "
+                    "non-zero values, e.g.:\n"
+                    "   bah_num_resolutions_multigrid = 3\n"
+                    "   bah_Ntheta_array_multigrid   = [8, 16, 32]\n"
+                    "   bah_Nphi_array_multigrid     = [16, 32, 64]\n");
+    exit(EXIT_FAILURE);
+  } // END IF: trigger_error
+} // END FUNCTION: check_multigrid_resolution_inputs
+"""
+
 def register_CFunction_bhahaha_find_horizons(
     CoordSystem: str,
     max_horizons: int,
@@ -247,38 +286,9 @@ static REAL timeval_to_seconds(struct timeval start, struct timeval end) {
   const REAL end_seconds = end.tv_sec + end.tv_usec / 1.0e6;
   return end_seconds - start_seconds;
 } // END FUNCTION: timeval_to_seconds
-
-/**
- * Validates BHaHAHA multigrid resolution inputs.
- * Checks if `bah_num_resolutions_multigrid` is positive and if all
- * `bah_Ntheta_array_multigrid` and `bah_Nphi_array_multigrid` entries are positive.
- * If validation fails, prints an error and exits.
- *
- * @param commondata - Pointer to `commondata_struct` containing multigrid settings.
- * @return - None (`void`).
- */
-static void check_multigrid_resolution_inputs(const commondata_struct *restrict commondata) {
-  int trigger_error = 0;
-  if (commondata->bah_num_resolutions_multigrid <= 0) {
-    trigger_error = 1;
-  } else { // num_resolutions_multigrid > 0
-    for (int res = 0; res < commondata->bah_num_resolutions_multigrid; res++) {
-      if (commondata->bah_Ntheta_array_multigrid[res] <= 0 || commondata->bah_Nphi_array_multigrid[res] <= 0) {
-        trigger_error = 1;
-        break;
-      } // END IF: invalid resolution
-    } // END LOOP: for res
-  } // END ELSE: num_resolutions_multigrid > 0
-  if (trigger_error) {
-    fprintf(stderr, "ERROR: BHaHAHA multigrid resolutions are unset or invalid. Please specify "
-                    "non-zero values, e.g.:\n"
-                    "   bah_num_resolutions_multigrid = 3\n"
-                    "   bah_Ntheta_array_multigrid   = [8, 16, 32]\n"
-                    "   bah_Nphi_array_multigrid     = [16, 32, 64]\n");
-    exit(EXIT_FAILURE);
-  } // END IF: trigger_error
-} // END FUNCTION: check_multigrid_resolution_inputs
-
+"""
+    prefunc += generate_check_multigrid_resolution_inputs()
+    prefunc += r"""
 /**
  * Initializes non-persistent BHaHAHA solver parameters for a specific horizon and
  * allocates memory for horizon shape history arrays if it's the first call.
