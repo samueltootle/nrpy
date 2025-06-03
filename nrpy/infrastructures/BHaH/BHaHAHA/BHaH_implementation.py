@@ -314,6 +314,27 @@ static void initialize_bhahaha_solver_params_and_shapes(commondata_struct *restr
 } // END FUNCTION: initialize_bhahaha_solver_params_and_shapes
 """
 
+def generate_timeval_to_seconds() -> str:
+    """
+    Generate the C code for converting `struct timeval` to seconds.
+
+    :return: C code as a string.
+    """
+    return r"""
+/**
+ * Calculates the time difference in seconds between two `struct timeval` instances.
+ *
+ * @param start - The starting `struct timeval`.
+ * @param end - The ending `struct timeval`.
+ * @return - The time difference in seconds as a REAL.
+ */
+static REAL timeval_to_seconds(struct timeval start, struct timeval end) {
+  const REAL start_seconds = start.tv_sec + start.tv_usec / 1.0e6;
+  const REAL end_seconds = end.tv_sec + end.tv_usec / 1.0e6;
+  return end_seconds - start_seconds;
+} // END FUNCTION: timeval_to_seconds
+"""
+
 def generate_bhahaha_interpolate_metric_data(CoordSystem: str) -> str:
     """
     Generate the C code for interpolating BSSN metric data to spherical coordinates.
@@ -321,14 +342,16 @@ def generate_bhahaha_interpolate_metric_data(CoordSystem: str) -> str:
     :param CoordSystem: Coordinate system of the grid
     :return: C code as a string.
     """
-    prefunc = r"""
+    prefunc = generate_enum_definitions()
+    prefunc += r"""
 // BSSN gridfunctions input into the interpolator. Must be in the same order as the enum list below.
 const int bhahaha_gf_interp_indices[BHAHAHA_NUM_INTERP_GFS] = {
     ADD00GF, ADD01GF, ADD02GF, ADD11GF, ADD12GF, ADD22GF, // Traceless, rescaled extrinsic curvature components.
     CFGF,                                                 // Conformal factor.
     HDD00GF, HDD01GF, HDD02GF, HDD11GF, HDD12GF, HDD22GF, // Rescaled conformal 3-metric components.
     TRKGF                                                 // Trace of extrinsic curvature.
-};"""
+};
+"""
     prefunc += r"""
 /**
  * Interpolates BSSN metric data from a Cartesian NRPy grid to a spherical grid,
@@ -566,21 +589,7 @@ def register_CFunction_bhahaha_find_horizons(
         "BHaH_function_prototypes.h",
         "sys/time.h",
     ]
-    prefunc = generate_enum_definitions()
-    prefunc += r"""
-/**
- * Calculates the time difference in seconds between two `struct timeval` instances.
- *
- * @param start - The starting `struct timeval`.
- * @param end - The ending `struct timeval`.
- * @return - The time difference in seconds as a REAL.
- */
-static REAL timeval_to_seconds(struct timeval start, struct timeval end) {
-  const REAL start_seconds = start.tv_sec + start.tv_usec / 1.0e6;
-  const REAL end_seconds = end.tv_sec + end.tv_usec / 1.0e6;
-  return end_seconds - start_seconds;
-} // END FUNCTION: timeval_to_seconds
-"""
+    prefunc = generate_timeval_to_seconds()
     prefunc += generate_check_multigrid_resolution_inputs()
     prefunc += generate_bhahaha_initialization()
     prefunc += generate_bhahaha_interpolate_metric_data(CoordSystem)
