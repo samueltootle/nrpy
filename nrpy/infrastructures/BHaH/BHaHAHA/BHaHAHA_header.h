@@ -6,6 +6,11 @@
 #define REAL double
 #endif
 
+#ifdef __cplusplus
+#define restrict __restrict__
+extern "C" {
+#endif
+
 // Number of external input Cartesian grid functions.
 // gamma_{ij} and K_{ij} each have 6 independent components.
 #ifndef NUM_EXT_INPUT_CARTESIAN_GFS
@@ -225,7 +230,7 @@ void bah_poisoning_check_inputs(const bhahaha_params_and_data_struct *restrict p
 // (required): Set up the (holey) spherical grid for BHaHAHA
 void bah_radial_grid_cell_centered_set_up(const int Nr_interp_max, const REAL max_search_radius, const REAL input_r_min, const REAL input_r_max,
                                           int *restrict output_Nr_interp, REAL *restrict output_r_min, REAL *restrict output_dr,
-                                          REAL radii[Nr_interp_max]);
+                                          REAL radii[]);
 void bah_xyz_center_r_minmax(const bhahaha_params_and_data_struct *restrict pars, REAL *restrict x_center, REAL *restrict y_center,
                              REAL *restrict z_center, REAL *restrict r_min, REAL *restrict r_max);
 // (required): Core BHaHAHA horizon finder
