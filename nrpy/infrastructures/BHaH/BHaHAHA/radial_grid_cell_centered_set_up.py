@@ -75,7 +75,7 @@ This function:
 - Calculates the radial step size (`dr`).
 - Determines the number of interpolation points, ensuring a minimum of 4 interior points.
 - Adjusts `output_r_min` and `output_r_max` to accommodate ghost cells.
-- Populates the `radii` array with computed radial coordinates.
+- Populates the `radii` array, with size Nr_interp_max, with computed radial coordinates.
 
 @param Nr_interp_max               Maximum number of radial interpolation points.
 @param max_search_radius           Upper limit for the search radius; caps the adjusted maximum radius.
@@ -94,7 +94,7 @@ This function:
     name = "radial_grid_cell_centered_set_up"
     params = """const int Nr_interp_max, const REAL max_search_radius, const REAL input_r_min, const REAL input_r_max,
                 int *restrict output_Nr_interp, REAL *restrict output_r_min_interior, REAL *restrict output_dr,
-                REAL radii[Nr_interp_max]"""
+                REAL radii[]"""
     body = r"""
   // Adjust radii to be within permissible range
   REAL r_min_interior = input_r_min < 0.0 ? 0.0 : input_r_min;
