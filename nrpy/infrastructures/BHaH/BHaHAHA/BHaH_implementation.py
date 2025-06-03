@@ -202,34 +202,13 @@ static void check_multigrid_resolution_inputs(const commondata_struct *restrict 
 } // END FUNCTION: check_multigrid_resolution_inputs
 """
 
-def register_CFunction_bhahaha_find_horizons(
-    CoordSystem: str,
-    max_horizons: int,
-) -> Union[None, pcg.NRPyEnv_type]:
+def generate_enum_definitions() -> str:
     """
-    Register the C function for general-purpose 3D Lagrange interpolation.
+    Generate the C code for enum definitions used in BHaHAHA.
 
-    :param CoordSystem: CoordSystem of project, where horizon finding will take place.
-    :param max_horizons: Maximum number of horizons to search for.
-    :return: None if in registration phase, else the updated NRPy environment.
-    :raises ValueError: If EvolvedConformalFactor_cf set to unsupported value.
-
-    >>> env = register_CFunction_bhahaha_find_horizons()
+    :return: C code as a string.
     """
-    if pcg.pcg_registration_phase():
-        pcg.register_func_call(f"{__name__}.{cast(FT, cfr()).f_code.co_name}", locals())
-        return None
-
-    bhahaha_register_code_parameters(max_horizons)
-
-    parallelization = par.parval_from_str("parallelization")
-
-    includes = [
-        "BHaH_defines.h",
-        "BHaH_function_prototypes.h",
-        "sys/time.h",
-    ]
-    prefunc = r"""
+    return r"""
 // Enum for indexing the final ADM metric components BHaHAHA expects.
 enum FINAL_ADM_METRIC_INDICES {
   FINAL_INTERP_GAMMADDXXGF,
@@ -265,30 +244,15 @@ enum INTERP_BSSN_GF_INDICES {
   INTERP_TRKGF_IDX,
   BHAHAHA_NUM_INTERP_GFS
 }; // END ENUM: INTERP_BSSN_GF_INDICES
-
-// BSSN gridfunctions input into the interpolator. Must be in the same order as the enum list below.
-const int bhahaha_gf_interp_indices[BHAHAHA_NUM_INTERP_GFS] = {
-    ADD00GF, ADD01GF, ADD02GF, ADD11GF, ADD12GF, ADD22GF, // Traceless, rescaled extrinsic curvature components.
-    CFGF,                                                 // Conformal factor.
-    HDD00GF, HDD01GF, HDD02GF, HDD11GF, HDD12GF, HDD22GF, // Rescaled conformal 3-metric components.
-    TRKGF                                                 // Trace of extrinsic curvature.
-};
-
-/**
- * Calculates the time difference in seconds between two `struct timeval` instances.
- *
- * @param start - The starting `struct timeval`.
- * @param end - The ending `struct timeval`.
- * @return - The time difference in seconds as a REAL.
- */
-static REAL timeval_to_seconds(struct timeval start, struct timeval end) {
-  const REAL start_seconds = start.tv_sec + start.tv_usec / 1.0e6;
-  const REAL end_seconds = end.tv_sec + end.tv_usec / 1.0e6;
-  return end_seconds - start_seconds;
-} // END FUNCTION: timeval_to_seconds
 """
-    prefunc += generate_check_multigrid_resolution_inputs()
-    prefunc += r"""
+
+def generate_bhahaha_initialization() -> str:
+    """
+    Generate the C code for initializing BHaHAHA parameters and data structures.
+
+    :return: C code as a string.
+    """
+    return r"""
 /**
  * Initializes non-persistent BHaHAHA solver parameters for a specific horizon and
  * allocates memory for horizon shape history arrays if it's the first call.
@@ -348,7 +312,24 @@ static void initialize_bhahaha_solver_params_and_shapes(commondata_struct *restr
   // STEP 4: Sets `current_horizon_params->input_metric_data` to NULL.
   current_horizon_params->input_metric_data = NULL;
 } // END FUNCTION: initialize_bhahaha_solver_params_and_shapes
+"""
 
+def generate_bhahaha_interpolate_metric_data(CoordSystem: str) -> str:
+    """
+    Generate the C code for interpolating BSSN metric data to spherical coordinates.
+
+    :param CoordSystem: Coordinate system of the grid
+    :return: C code as a string.
+    """
+    prefunc = r"""
+// BSSN gridfunctions input into the interpolator. Must be in the same order as the enum list below.
+const int bhahaha_gf_interp_indices[BHAHAHA_NUM_INTERP_GFS] = {
+    ADD00GF, ADD01GF, ADD02GF, ADD11GF, ADD12GF, ADD22GF, // Traceless, rescaled extrinsic curvature components.
+    CFGF,                                                 // Conformal factor.
+    HDD00GF, HDD01GF, HDD02GF, HDD11GF, HDD12GF, HDD22GF, // Rescaled conformal 3-metric components.
+    TRKGF                                                 // Trace of extrinsic curvature.
+};"""
+    prefunc += r"""
 /**
  * Interpolates BSSN metric data from a Cartesian NRPy grid to a spherical grid,
  * transforms it to ADM Cartesian components, and stores it for BHaHAHA.
@@ -556,6 +537,53 @@ static void BHaHAHA_interpolate_metric_data_nrpy(const commondata_struct *restri
   } // END LOOP: for i (freeing dst_data_ptrs_bssn)
 } // END FUNCTION: BHaHAHA_interpolate_metric_data_nrpy
 """
+    return prefunc
+
+def register_CFunction_bhahaha_find_horizons(
+    CoordSystem: str,
+    max_horizons: int,
+) -> Union[None, pcg.NRPyEnv_type]:
+    """
+    Register the C function for general-purpose 3D Lagrange interpolation.
+
+    :param CoordSystem: CoordSystem of project, where horizon finding will take place.
+    :param max_horizons: Maximum number of horizons to search for.
+    :return: None if in registration phase, else the updated NRPy environment.
+    :raises ValueError: If EvolvedConformalFactor_cf set to unsupported value.
+
+    >>> env = register_CFunction_bhahaha_find_horizons()
+    """
+    if pcg.pcg_registration_phase():
+        pcg.register_func_call(f"{__name__}.{cast(FT, cfr()).f_code.co_name}", locals())
+        return None
+
+    bhahaha_register_code_parameters(max_horizons)
+
+    parallelization = par.parval_from_str("parallelization")
+
+    includes = [
+        "BHaH_defines.h",
+        "BHaH_function_prototypes.h",
+        "sys/time.h",
+    ]
+    prefunc = generate_enum_definitions()
+    prefunc += r"""
+/**
+ * Calculates the time difference in seconds between two `struct timeval` instances.
+ *
+ * @param start - The starting `struct timeval`.
+ * @param end - The ending `struct timeval`.
+ * @return - The time difference in seconds as a REAL.
+ */
+static REAL timeval_to_seconds(struct timeval start, struct timeval end) {
+  const REAL start_seconds = start.tv_sec + start.tv_usec / 1.0e6;
+  const REAL end_seconds = end.tv_sec + end.tv_usec / 1.0e6;
+  return end_seconds - start_seconds;
+} // END FUNCTION: timeval_to_seconds
+"""
+    prefunc += generate_check_multigrid_resolution_inputs()
+    prefunc += generate_bhahaha_initialization()
+    prefunc += generate_bhahaha_interpolate_metric_data(CoordSystem)
 
     desc = r"""Main driver function for finding apparent horizons using the BHaHAHA library.
 It orchestrates initialization, BBH logic, extrapolation, interpolation, solving,
