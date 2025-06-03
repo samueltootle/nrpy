@@ -84,9 +84,9 @@ Returns the computed first derivative at the given grid point."""
     params = """const commondata_struct *restrict commondata,
                 const REAL *restrict gf, const int i0, const int i1, const int i2, const int offset"""
     body = """
-  const MAYBE_UNUSED int Nxx_plus_2NGHOSTS0 = commondata->bcstruct_Nxx_plus_2NGHOSTS0;
-  const MAYBE_UNUSED int Nxx_plus_2NGHOSTS1 = commondata->bcstruct_Nxx_plus_2NGHOSTS1;
-  const MAYBE_UNUSED int Nxx_plus_2NGHOSTS2 = commondata->bcstruct_Nxx_plus_2NGHOSTS2;
+  MAYBE_UNUSED const int Nxx_plus_2NGHOSTS0 = commondata->bcstruct_Nxx_plus_2NGHOSTS0;
+  MAYBE_UNUSED const int Nxx_plus_2NGHOSTS1 = commondata->bcstruct_Nxx_plus_2NGHOSTS1;
+  MAYBE_UNUSED const int Nxx_plus_2NGHOSTS2 = commondata->bcstruct_Nxx_plus_2NGHOSTS2;
   const REAL invdxx0 = 1.0 / (commondata->bcstruct_dxx0);
   switch(offset) {
 """

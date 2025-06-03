@@ -191,9 +191,9 @@ Computes proper circumferences along the equator and polar directions for appare
     // Notice we do clever indexing to ensure this 2D computation stays within the memory bounds of (3D) diagnostic_output_gfs.
 #pragma omp parallel for
     for (int i2 = NGHOSTS; i2 < Nxx_plus_2NGHOSTS2 - NGHOSTS; i2++) {
-      const MAYBE_UNUSED REAL xx2 = xx[2][i2]; // Phi coordinate at index i2.
+      MAYBE_UNUSED const REAL xx2 = xx[2][i2]; // Phi coordinate at index i2.
       for (int i1 = NGHOSTS; i1 < Nxx_plus_2NGHOSTS1 - NGHOSTS; i1++) {
-        const MAYBE_UNUSED REAL xx1 = xx[1][i1]; // Theta coordinate at index i1.
+        MAYBE_UNUSED const REAL xx1 = xx[1][i1]; // Theta coordinate at index i1.
 """
     body += ccg.c_codegen(
         [

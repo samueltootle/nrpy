@@ -240,11 +240,11 @@ and computes necessary spatial derivatives.
 
 #pragma omp parallel for
     for (int i2 = NGHOSTS; i2 < Nxx_plus_2NGHOSTS2 - NGHOSTS; i2++) {
-      const MAYBE_UNUSED REAL xx2 = r_theta_phi[2][i2];
+      MAYBE_UNUSED const REAL xx2 = r_theta_phi[2][i2];
       for (int i1 = NGHOSTS; i1 < Nxx_plus_2NGHOSTS1 - NGHOSTS; i1++) {
-        const MAYBE_UNUSED REAL xx1 = r_theta_phi[1][i1];
+        MAYBE_UNUSED const REAL xx1 = r_theta_phi[1][i1];
         for (int i0 = i0_min_shift; i0 < Nxx_plus_2NGHOSTS0; i0++) {
-          const MAYBE_UNUSED REAL xx0 = r_theta_phi[0][i0];
+          MAYBE_UNUSED const REAL xx0 = r_theta_phi[0][i0];
           // We perform this transformation in place; data read in will be written to the same points.
           const REAL external_Sph_W = in_gfs[IDX4(EXTERNAL_SPHERICAL_WWGF, i0, i1, i2)];
           const REAL external_Sph_trK = in_gfs[IDX4(EXTERNAL_SPHERICAL_TRKGF, i0, i1, i2)];
