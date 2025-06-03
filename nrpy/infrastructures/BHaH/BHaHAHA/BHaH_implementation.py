@@ -284,9 +284,9 @@ static void initialize_bhahaha_solver_params_and_shapes(commondata_struct *restr
     const int Ntheta_max_this_h = commondata->bah_Ntheta_array_multigrid[commondata->bah_num_resolutions_multigrid - 1];
     const int Nphi_max_this_h = commondata->bah_Nphi_array_multigrid[commondata->bah_num_resolutions_multigrid - 1];
     // STEP 2.b: Allocates memory for `prev_horizon_m1`, `prev_horizon_m2`, and `prev_horizon_m3`.
-    current_horizon_params->prev_horizon_m1 = (REAL *)malloc(Ntheta_max_this_h * Nphi_max_this_h * sizeof(REAL));
-    current_horizon_params->prev_horizon_m2 = (REAL *)malloc(Ntheta_max_this_h * Nphi_max_this_h * sizeof(REAL));
-    current_horizon_params->prev_horizon_m3 = (REAL *)malloc(Ntheta_max_this_h * Nphi_max_this_h * sizeof(REAL));
+    BHAH_MALLOC(current_horizon_params->prev_horizon_m1, Ntheta_max_this_h * Nphi_max_this_h * sizeof(REAL));
+    BHAH_MALLOC(current_horizon_params->prev_horizon_m2, Ntheta_max_this_h * Nphi_max_this_h * sizeof(REAL));
+    BHAH_MALLOC(current_horizon_params->prev_horizon_m3, Ntheta_max_this_h * Nphi_max_this_h * sizeof(REAL));
     // STEP 2.c: Exits if memory allocation fails.
     if (!current_horizon_params->prev_horizon_m1 || !current_horizon_params->prev_horizon_m2 || !current_horizon_params->prev_horizon_m3) {
       fprintf(stderr, "ERROR: Memory allocation failed for prev_horizon shape data for horizon %d.\n", h);
@@ -451,7 +451,7 @@ static void BHaHAHA_interpolate_metric_data_nrpy(const commondata_struct *restri
   // STEP 6: Allocate temporary memory for interpolated BSSN variables.
   REAL *dst_data_ptrs_bssn[BHAHAHA_NUM_INTERP_GFS];
   for (int i = 0; i < BHAHAHA_NUM_INTERP_GFS; i++) {
-    dst_data_ptrs_bssn[i] = (REAL *)malloc(total_interp_points * sizeof(REAL));
+    BHAH_MALLOC(dst_data_ptrs_bssn[i], total_interp_points * sizeof(REAL));
     if (dst_data_ptrs_bssn[i] == NULL) {
       fprintf(stderr, "ERROR: Failed to allocate memory for dst_data_ptrs_bssn[%d].\n", i);
       for (int k = 0; k < i; ++k)
@@ -907,7 +907,7 @@ and result updates for multiple horizons.
         (size_t)BHAHAHA_NUM_METRIC_COMPONENTS * current_horizon_params->Nr_external_input * Ntheta_interp_eff * Nphi_interp_eff;
 
     if (current_horizon_params->Nr_external_input > 0) {
-      current_horizon_params->input_metric_data = (REAL *)malloc(npts_metric_adm * sizeof(REAL));
+      BHAH_MALLOC(current_horizon_params->input_metric_data, npts_metric_adm * sizeof(REAL));
       if (!current_horizon_params->input_metric_data) {
         fprintf(stderr, "ERROR: malloc() failed for input_metric_data for H%d (%zu REALs).\n", h, npts_metric_adm);
         exit(EXIT_FAILURE);
