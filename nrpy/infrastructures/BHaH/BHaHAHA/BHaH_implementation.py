@@ -340,24 +340,6 @@ static void initialize_bhahaha_solver_params_and_shapes(commondata_struct *restr
 } // END FUNCTION: initialize_bhahaha_solver_params_and_shapes
 
 /**
- * Frees memory allocated for horizon shape history arrays (`prev_horizon_m1/m2/m3`)
- * for all horizons.
- *
- * @param commondata - Pointer to `commondata_struct` containing the BHaHAHA data.
- * @return - None (`void`).
- */
-void free_bhahaha_horizon_shape_data_all_horizons(commondata_struct *restrict commondata) {
-  for (int h = 0; h < commondata->bah_max_num_horizons; ++h) {
-    bhahaha_params_and_data_struct *current_horizon_params = &commondata->bhahaha_params_and_data[h];
-    if (current_horizon_params != NULL) {
-      BHAH_FREE(current_horizon_params->prev_horizon_m1);
-      BHAH_FREE(current_horizon_params->prev_horizon_m2);
-      BHAH_FREE(current_horizon_params->prev_horizon_m3);
-    } // END IF: current_horizon_params != NULL
-  } // END LOOP: for h
-} // END FUNCTION: free_bhahaha_horizon_shape_data_all_horizons
-
-/**
  * Interpolates BSSN metric data from a Cartesian NRPy grid to a spherical grid,
  * transforms it to ADM Cartesian components, and stores it for BHaHAHA.
  *
