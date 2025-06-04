@@ -19,6 +19,8 @@ import nrpy.indexedexp as ixp
 import nrpy.params as par
 import nrpy.reference_metric as refmetric
 from nrpy.infrastructures.BHaH import griddata_commondata
+import nrpy.helpers.loop as lp
+import nrpy.helpers.parallelization.utilities as parallel_utils
 
 def bhahaha_register_code_parameters(max_horizons: int) -> None:
     """
@@ -335,6 +337,138 @@ static REAL timeval_to_seconds(struct timeval start, struct timeval end) {
 } // END FUNCTION: timeval_to_seconds
 """
 
+def generate_BSSN_to_ADM_transform(CoordSystem: str) -> str:
+    """
+    Generate the C code for transforming BSSN variables to ADM variables.
+
+    :return: C code as a string.
+    """
+    params = "const int Nphi_interp, const int Ntheta_interp, const int actual_Nr_interp, const int total_interp_points, const REAL dst_x0x1x2_interp[][3], const REAL *restrict dst_data_ptrs_bssn[], REAL *restrict input_metric_data_target_array"
+    cfunc_type = "static void"
+    desc = "Transform BSSN variables to ADM variables"
+
+    arg_dict_cuda = {
+        "Nphi_interp" : "const int",
+        "Ntheta_interp": "const int",
+        "actual_Nr_interp": "const int",
+        "total_interp_points": "const int",
+        "dst_x0x1x2_interp[][3]": "const REAL",
+        "dst_data_ptrs_bssn[]": "const REAL *restrict",
+        "input_metric_data_target_array": "REAL *restrict"
+    }
+
+    arg_dict_host = arg_dict_cuda
+
+    loop_body = r"""
+    const int offset = total_interp_points;
+    const int idx3 = IDX3_SPH_INTERP_LOCAL(ir, itheta, iphi);
+    const REAL xx0 = dst_x0x1x2_interp[idx3][0];
+    const REAL xx1 = dst_x0x1x2_interp[idx3][1];
+    const REAL xx2 = dst_x0x1x2_interp[idx3][2];
+
+    const REAL cf = dst_data_ptrs_bssn[INTERP_CFGF_IDX][idx3];
+    const REAL trK = dst_data_ptrs_bssn[INTERP_TRKGF_IDX][idx3];
+"""
+    defines_list: List[str] = []
+    for i in range(3):
+        for j in range(i, 3):
+            defines_list += [
+                f"const REAL rfm_hDD{i}{j} = dst_data_ptrs_bssn[INTERP_HDD{i}{j}GF_IDX][idx3];\n"
+            ]
+            defines_list += [
+                f"const REAL rfm_aDD{i}{j} = dst_data_ptrs_bssn[INTERP_ADD{i}{j}GF_IDX][idx3];\n"
+            ]
+    loop_body += "".join(sorted(defines_list, key=str.casefold))
+
+    rfm = refmetric.reference_metric[CoordSystem]
+    rfm_aDD = ixp.declarerank2("rfm_aDD", symmetry="sym01")
+    rfm_hDD = ixp.declarerank2("rfm_hDD", symmetry="sym01")
+    rfm_gammabarDD = ixp.zerorank2()
+    rfm_AbarDD = ixp.zerorank2()
+    for i in range(3):
+        for j in range(3):
+            rfm_gammabarDD[i][j] = rfm_hDD[i][j] * rfm.ReDD[i][j] + rfm.ghatDD[i][j]
+            rfm_AbarDD[i][j] = rfm_aDD[i][j] * rfm.ReDD[i][j]
+    Cart_gammabarDD = jac.basis_transform_tensorDD_from_rfmbasis_to_Cartesian(
+        CoordSystem, rfm_gammabarDD
+    )
+    Cart_AbarDD = jac.basis_transform_tensorDD_from_rfmbasis_to_Cartesian(
+        CoordSystem, rfm_AbarDD
+    )
+    exp4phi = sp.sympify(0)
+    cf = sp.Symbol("cf", real=True)
+    EvolvedConformalFactor_cf = par.parval_from_str("EvolvedConformalFactor_cf")
+    if EvolvedConformalFactor_cf == "phi":
+        exp4phi = sp.exp(4 * cf)
+    elif EvolvedConformalFactor_cf == "chi":
+        exp4phi = 1 / cf
+    elif EvolvedConformalFactor_cf == "W":
+        exp4phi = 1 / cf**2
+    else:
+        raise ValueError(
+            f"Error EvolvedConformalFactor_cf type = {EvolvedConformalFactor_cf} unknown."
+        )
+    expr_list: List[sp.Expr] = []
+    name_list: List[str] = []
+    Cart_gammaDD = ixp.zerorank2()
+    labels = ["X", "Y", "Z"]
+    for i in range(3):
+        for j in range(i, 3):
+            Cart_gammaDD[i][j] = exp4phi * Cart_gammabarDD[i][j]
+            expr_list += [Cart_gammaDD[i][j]]
+            name_list += [
+                f"input_metric_data_target_array[FINAL_INTERP_GAMMADD{labels[i]}{labels[j]}GF * offset + idx3]"
+            ]
+    Cart_KDD = ixp.zerorank2()
+    trK = sp.Symbol("trK", real=True)
+    for i in range(3):
+        for j in range(i, 3):
+            Cart_KDD[i][j] = (
+                exp4phi * Cart_AbarDD[i][j]
+                + sp.Rational(1, 3) * Cart_gammaDD[i][j] * trK
+            )
+            expr_list += [Cart_KDD[i][j]]
+            name_list += [
+                f"input_metric_data_target_array[FINAL_INTERP_KDD{labels[i]}{labels[j]}GF * offset + idx3]"
+            ]
+    loop_body += ccg.c_codegen(expr_list, name_list, include_braces=True, verbose=False)
+
+    parallelization = par.parval_from_str("parallelization")
+    body = parallel_utils.get_thread_parameters(parallelization=parallelization)
+
+    body += "#pragma omp parallel for\n" + lp.loop(
+      idx_var=["iphi", "itheta", "ir"],
+      lower_bound=["0", "0", "0"],
+      upper_bound=["Nphi_interp", "Ntheta_interp", "actual_Nr_interp"],
+      increment=["1", "1", "1"],
+      pragma=["", "", ""],
+      loop_body=loop_body,
+    )
+
+    prefunc = r"""
+// BSSN gridfunctions input into the interpolator. Must be in the same order as the enum list below.
+const int bhahaha_gf_interp_indices[BHAHAHA_NUM_INTERP_GFS] = {
+    ADD00GF, ADD01GF, ADD02GF, ADD11GF, ADD12GF, ADD22GF, // Traceless, rescaled extrinsic curvature components.
+    CFGF,                                                 // Conformal factor.
+    HDD00GF, HDD01GF, HDD02GF, HDD11GF, HDD12GF, HDD22GF, // Rescaled conformal 3-metric components.
+    TRKGF                                                 // Trace of extrinsic curvature.
+};
+"""
+    kernel, launch_body = parallel_utils.generate_kernel_and_launch_code(
+        "BHaHAHA_transform_BSSN_to_ADM",
+        body,
+        arg_dict_cuda,
+        arg_dict_host,
+        parallelization=parallelization,
+        comments=desc,
+        cfunc_type=cfunc_type,
+        launchblock_with_braces=False,
+        thread_tiling_macro_suffix="BHAHAHA_BSSN_TO_ADM",
+    )
+
+    return prefunc+kernel, launch_body.replace("[]", "").replace("[3]", "")
+
+
 def generate_bhahaha_interpolate_metric_data(CoordSystem: str) -> str:
     """
     Generate the C code for interpolating BSSN metric data to spherical coordinates.
@@ -371,15 +505,8 @@ static void populate_dst_x0x1x2_interp(const params_struct *restrict params, con
   } // END LOOP: for iphi (#pragma omp parallel for, spherical grid setup)
 } // END FUNCTION: populate_dst_x0x1x2_interp
 """
-    prefunc += r"""
-// BSSN gridfunctions input into the interpolator. Must be in the same order as the enum list below.
-const int bhahaha_gf_interp_indices[BHAHAHA_NUM_INTERP_GFS] = {
-    ADD00GF, ADD01GF, ADD02GF, ADD11GF, ADD12GF, ADD22GF, // Traceless, rescaled extrinsic curvature components.
-    CFGF,                                                 // Conformal factor.
-    HDD00GF, HDD01GF, HDD02GF, HDD11GF, HDD12GF, HDD22GF, // Rescaled conformal 3-metric components.
-    TRKGF                                                 // Trace of extrinsic curvature.
-};
-"""
+    BSSN_to_ADM_prefunc, BSSN_to_ADM_launch_body = generate_BSSN_to_ADM_transform(CoordSystem)
+    prefunc += BSSN_to_ADM_prefunc
     prefunc += r"""
 /**
  * Interpolates BSSN metric data from a Cartesian NRPy grid to a spherical grid,
@@ -474,93 +601,10 @@ static void BHaHAHA_interpolate_metric_data_nrpy(const commondata_struct *restri
                                              params->Nxx_plus_2NGHOSTS1, params->Nxx_plus_2NGHOSTS2, BHAHAHA_NUM_INTERP_GFS, xx, src_gf_ptrs,
                                              total_interp_points, dst_x0x1x2_interp, dst_data_ptrs_bssn);
 
-  {                             // Start of BSSN to ADM transformation block
-#include "set_CodeParameters.h" // NRPy-specific include for coordinate transformations and symbolic expressions
-
-    // STEP 8: Transform interpolated BSSN data to ADM Cartesian components.
-#pragma omp parallel for
-    for (int iphi = 0; iphi < Nphi_interp; iphi++) {
-      for (int itheta = 0; itheta < Ntheta_interp; itheta++) {
-        for (int ir = 0; ir < actual_Nr_interp; ir++) {
-          const int offset = total_interp_points;
-          const int idx3 = IDX3_SPH_INTERP_LOCAL(ir, itheta, iphi);
-          const REAL xx0 = dst_x0x1x2_interp[idx3][0];
-          const REAL xx1 = dst_x0x1x2_interp[idx3][1];
-          const REAL xx2 = dst_x0x1x2_interp[idx3][2];
-
-          const REAL cf = dst_data_ptrs_bssn[INTERP_CFGF_IDX][idx3];
-          const REAL trK = dst_data_ptrs_bssn[INTERP_TRKGF_IDX][idx3];
+  // STEP 8: Transform interpolated BSSN data to ADM Cartesian components.
 """
-    defines_list: List[str] = []
-    for i in range(3):
-        for j in range(i, 3):
-            defines_list += [
-                f"const REAL rfm_hDD{i}{j} = dst_data_ptrs_bssn[INTERP_HDD{i}{j}GF_IDX][idx3];\n"
-            ]
-            defines_list += [
-                f"const REAL rfm_aDD{i}{j} = dst_data_ptrs_bssn[INTERP_ADD{i}{j}GF_IDX][idx3];\n"
-            ]
-    prefunc += "".join(sorted(defines_list, key=str.casefold))
-
-    rfm = refmetric.reference_metric[CoordSystem]
-    rfm_aDD = ixp.declarerank2("rfm_aDD", symmetry="sym01")
-    rfm_hDD = ixp.declarerank2("rfm_hDD", symmetry="sym01")
-    rfm_gammabarDD = ixp.zerorank2()
-    rfm_AbarDD = ixp.zerorank2()
-    for i in range(3):
-        for j in range(3):
-            rfm_gammabarDD[i][j] = rfm_hDD[i][j] * rfm.ReDD[i][j] + rfm.ghatDD[i][j]
-            rfm_AbarDD[i][j] = rfm_aDD[i][j] * rfm.ReDD[i][j]
-    Cart_gammabarDD = jac.basis_transform_tensorDD_from_rfmbasis_to_Cartesian(
-        CoordSystem, rfm_gammabarDD
-    )
-    Cart_AbarDD = jac.basis_transform_tensorDD_from_rfmbasis_to_Cartesian(
-        CoordSystem, rfm_AbarDD
-    )
-    exp4phi = sp.sympify(0)
-    cf = sp.Symbol("cf", real=True)
-    EvolvedConformalFactor_cf = par.parval_from_str("EvolvedConformalFactor_cf")
-    if EvolvedConformalFactor_cf == "phi":
-        exp4phi = sp.exp(4 * cf)
-    elif EvolvedConformalFactor_cf == "chi":
-        exp4phi = 1 / cf
-    elif EvolvedConformalFactor_cf == "W":
-        exp4phi = 1 / cf**2
-    else:
-        raise ValueError(
-            f"Error EvolvedConformalFactor_cf type = {EvolvedConformalFactor_cf} unknown."
-        )
-    expr_list: List[sp.Expr] = []
-    name_list: List[str] = []
-    Cart_gammaDD = ixp.zerorank2()
-    labels = ["X", "Y", "Z"]
-    for i in range(3):
-        for j in range(i, 3):
-            Cart_gammaDD[i][j] = exp4phi * Cart_gammabarDD[i][j]
-            expr_list += [Cart_gammaDD[i][j]]
-            name_list += [
-                f"input_metric_data_target_array[FINAL_INTERP_GAMMADD{labels[i]}{labels[j]}GF * offset + idx3]"
-            ]
-    Cart_KDD = ixp.zerorank2()
-    trK = sp.Symbol("trK", real=True)
-    for i in range(3):
-        for j in range(i, 3):
-            Cart_KDD[i][j] = (
-                exp4phi * Cart_AbarDD[i][j]
-                + sp.Rational(1, 3) * Cart_gammaDD[i][j] * trK
-            )
-            expr_list += [Cart_KDD[i][j]]
-            name_list += [
-                f"input_metric_data_target_array[FINAL_INTERP_KDD{labels[i]}{labels[j]}GF * offset + idx3]"
-            ]
-    prefunc += ccg.c_codegen(expr_list, name_list, include_braces=True, verbose=False)
-
+    prefunc += BSSN_to_ADM_launch_body.replace("dst_data_ptrs_bssn", "(const double * restrict*)dst_data_ptrs_bssn")
     prefunc += r"""
-        } // END LOOP: for ir (BSSN to ADM transformation)
-      } // END LOOP: for itheta (BSSN to ADM transformation)
-    } // END LOOP: for iphi (#pragma omp parallel for, BSSN to ADM transformation)
-  } // End of BSSN to ADM transformation block
-
   // STEP 10: Free allocated temporary memory.
   BHAH_FREE(dst_x0x1x2_interp);
   for (int i = 0; i < BHAHAHA_NUM_INTERP_GFS; i++) {
