@@ -344,6 +344,34 @@ def generate_bhahaha_interpolate_metric_data(CoordSystem: str) -> str:
     """
     prefunc = generate_enum_definitions()
     prefunc += r"""
+#define IDX3_SPH_INTERP_LOCAL(ir, itheta, iphi) ((ir) + actual_Nr_interp * ((itheta) + Ntheta_interp * (iphi)))
+static void populate_dst_x0x1x2_interp(const params_struct *restrict params, const int Nphi_interp, const int Ntheta_interp, const int actual_Nr_interp, const int total_interp_points,
+  const REAL x_center, const REAL y_center, const REAL z_center, const REAL radii[], REAL dst_x0x1x2_interp[][3]) {
+
+  const REAL dtheta_interp = M_PI / ((REAL)Ntheta_interp);
+  const REAL dphi_interp = 2.0 * M_PI / ((REAL)Nphi_interp);
+
+  #pragma omp parallel for
+  for (int iphi = 0; iphi < Nphi_interp; iphi++) {
+    const REAL phi = -M_PI + ((REAL)iphi + 0.5) * dphi_interp;
+    const REAL sinphi = sin(phi);
+    const REAL cosphi = cos(phi);
+    for (int itheta = 0; itheta < Ntheta_interp; itheta++) {
+      const REAL theta = ((REAL)itheta + 0.5) * dtheta_interp;
+      const REAL sintheta = sin(theta);
+      const REAL costheta = cos(theta);
+      for (int ir = 0; ir < actual_Nr_interp; ir++) {
+        const REAL r = radii[ir];
+        const int idx3 = IDX3_SPH_INTERP_LOCAL(ir, itheta, iphi);
+        const REAL xCart[3] = {x_center + r * sintheta * cosphi, y_center + r * sintheta * sinphi, z_center + r * costheta};
+        int Cart_to_i0i1i2_not_stored_to_save_memory[3];
+        Cart_to_xx_and_nearest_i0i1i2(params, xCart, dst_x0x1x2_interp[idx3], Cart_to_i0i1i2_not_stored_to_save_memory);
+      } // END LOOP: for ir (spherical grid setup)
+    } // END LOOP: for itheta (spherical grid setup)
+  } // END LOOP: for iphi (#pragma omp parallel for, spherical grid setup)
+} // END FUNCTION: populate_dst_x0x1x2_interp
+"""
+    prefunc += r"""
 // BSSN gridfunctions input into the interpolator. Must be in the same order as the enum list below.
 const int bhahaha_gf_interp_indices[BHAHAHA_NUM_INTERP_GFS] = {
     ADD00GF, ADD01GF, ADD02GF, ADD11GF, ADD12GF, ADD22GF, // Traceless, rescaled extrinsic curvature components.
@@ -399,8 +427,6 @@ static void BHaHAHA_interpolate_metric_data_nrpy(const commondata_struct *restri
   // STEP 1: Determine spherical grid parameters and total interpolation points.
   const int Ntheta_interp = current_horizon_params->Ntheta_array_multigrid[current_horizon_params->num_resolutions_multigrid - 1];
   const int Nphi_interp = current_horizon_params->Nphi_array_multigrid[current_horizon_params->num_resolutions_multigrid - 1];
-  const REAL dtheta_interp = M_PI / ((REAL)Ntheta_interp);
-  const REAL dphi_interp = 2.0 * M_PI / ((REAL)Nphi_interp);
 
   const int actual_Nr_interp = current_horizon_params->Nr_external_input;
   const int total_interp_points = actual_Nr_interp * Ntheta_interp * Nphi_interp;
@@ -416,27 +442,9 @@ static void BHaHAHA_interpolate_metric_data_nrpy(const commondata_struct *restri
     exit(EXIT_FAILURE);
   } // END IF: dst_x0x1x2_interp == NULL
 
-#define IDX3_SPH_INTERP_LOCAL(ir, itheta, iphi) ((ir) + actual_Nr_interp * ((itheta) + Ntheta_interp * (iphi)))
-
   // STEP 4: Populate `dst_x0x1x2_interp`.
-#pragma omp parallel for
-  for (int iphi = 0; iphi < Nphi_interp; iphi++) {
-    const REAL phi = -M_PI + ((REAL)iphi + 0.5) * dphi_interp;
-    const REAL sinphi = sin(phi);
-    const REAL cosphi = cos(phi);
-    for (int itheta = 0; itheta < Ntheta_interp; itheta++) {
-      const REAL theta = ((REAL)itheta + 0.5) * dtheta_interp;
-      const REAL sintheta = sin(theta);
-      const REAL costheta = cos(theta);
-      for (int ir = 0; ir < actual_Nr_interp; ir++) {
-        const REAL r = radii[ir];
-        const int idx3 = IDX3_SPH_INTERP_LOCAL(ir, itheta, iphi);
-        const REAL xCart[3] = {x_center + r * sintheta * cosphi, y_center + r * sintheta * sinphi, z_center + r * costheta};
-        int Cart_to_i0i1i2_not_stored_to_save_memory[3];
-        Cart_to_xx_and_nearest_i0i1i2(params, xCart, dst_x0x1x2_interp[idx3], Cart_to_i0i1i2_not_stored_to_save_memory);
-      } // END LOOP: for ir (spherical grid setup)
-    } // END LOOP: for itheta (spherical grid setup)
-  } // END LOOP: for iphi (#pragma omp parallel for, spherical grid setup)
+  populate_dst_x0x1x2_interp(params, Nphi_interp, Ntheta_interp, actual_Nr_interp, total_interp_points,
+                             x_center, y_center, z_center, radii, dst_x0x1x2_interp);
 
   // STEP 5: Initialize source gridfunction pointers.
   const REAL *restrict src_gf_ptrs[BHAHAHA_NUM_INTERP_GFS];
