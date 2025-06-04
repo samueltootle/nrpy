@@ -545,7 +545,7 @@ static void populate_dst_x0x1x2_interp(const params_struct *restrict params, con
  * @param input_metric_data_target_array - Target array for the final ADM metric components.
  * @return - None (`void`).
  */
-static void BHaHAHA_interpolate_metric_data_nrpy(const commondata_struct *restrict commondata, const params_struct *restrict params,
+static void BHaHAHA_interpolate_metric_data_nrpy(const params_struct *restrict params,
                                                  REAL *restrict xx[3], const REAL *restrict y_n_gfs,
                                                  bhahaha_params_and_data_struct *restrict current_horizon_params, const REAL x_center,
                                                  const REAL y_center, const REAL z_center, const REAL radii[],
@@ -976,7 +976,7 @@ and result updates for multiple horizons.
 
     // STEP 7.d: Interpolate metric data.
     if (current_horizon_params->input_metric_data && current_horizon_params->Nr_external_input > 0) {
-      BHaHAHA_interpolate_metric_data_nrpy(commondata, &griddata[0].params, griddata[0].xx, griddata[0].gridfuncs.y_n_gfs, current_horizon_params,
+      BHaHAHA_interpolate_metric_data_nrpy(&griddata[0].params, griddata[0].xx, griddata[0].gridfuncs.y_n_gfs, current_horizon_params,
                                            x_guess[h], y_guess[h],
                                            z_guess[h],   // Use per-horizon guess
                                            radii_interp, // Pass the populated radii_interp array for this horizon
