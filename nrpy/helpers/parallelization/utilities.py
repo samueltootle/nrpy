@@ -192,6 +192,25 @@ def generate_kernel_and_launch_code(
 
     return prefunc, body
 
+def get_thread_parameters(parallelization: str, dim: int = 3) -> str:
+    """
+    Return the appropriate thread parameters for , e.g. CUDA.
+
+    :param parallelization: The parallelization method to use.
+    :param dim: The number of dimensions to loop over.
+    :returns: The appropriate thread parameters.
+    """
+    thread_params = ""
+    if parallelization == "cuda":
+        for i, coord in zip(range(dim), ["x", "y", "z"]):
+            thread_params += f"MAYBE_UNUSED const int tid{i}  = blockIdx.{coord} * blockDim.{coord} + threadIdx.{coord};\n"
+        thread_params += "\n"
+
+        for i, coord in zip(range(dim), ["x", "y", "z"]):
+            thread_params += f"MAYBE_UNUSED const int stride{i}  = blockDim.{coord} * gridDim.{coord};\n"
+        thread_params += "\n"
+
+    return thread_params
 
 def get_loop_parameters(
     parallelization: str, dim: int = 3, enable_intrinsics: bool = False
@@ -220,13 +239,7 @@ def get_loop_parameters(
     loop_params += "\n"
 
     if parallelization == "cuda":
-        for i, coord in zip(range(dim), ["x", "y", "z"]):
-            loop_params += f"MAYBE_UNUSED const int tid{i}  = blockIdx.{coord} * blockDim.{coord} + threadIdx.{coord};\n"
-        loop_params += "\n"
-
-        for i, coord in zip(range(dim), ["x", "y", "z"]):
-            loop_params += f"MAYBE_UNUSED const int stride{i}  = blockDim.{coord} * gridDim.{coord};\n"
-        loop_params += "\n"
+        loop_params += get_thread_parameters(parallelization, dim)
         loop_params = loop_params.replace("SIMD", "CUDA")
 
     return loop_params
