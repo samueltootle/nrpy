@@ -209,12 +209,19 @@ void interpolation_3d_general__uniform_src_grid_host(const int INTERP_ORDER, con
       s_diffs_x0[s_j] = x0_dst - src_x0x1x2[0][base_idx_x0 + j];
       s_diffs_x1[s_j] = x1_dst - src_x0x1x2[1][base_idx_x1 + j];
       s_diffs_x2[s_j] = x2_dst - src_x0x1x2[2][base_idx_x2 + j];
+      // if(dst_pt == 2900)
+      //   printf("dst_pt: %d, s_j: %d, x0_dst: %1.15e, x1_dst: %1.15e, x2_dst: %1.15e, s_diffs_x0[%d]: %1.15e, s_diffs_x1[%d]: %1.15e, s_diffs_x2[%d]: %1.15e\n",
+      //          dst_pt, j, x0_dst, x1_dst, x2_dst, s_j, s_diffs_x0[s_j], s_j, s_diffs_x1[s_j], s_j, s_diffs_x2[s_j]);
     } // END LOOP: Compute differences for Lagrange interpolation.
 
     // Compute the numerator of the Lagrange basis polynomials.
     for (int s_i = shared_ary_idx, i = 0; i < INTERP_ORDER; i++, s_i++) {
       REAL numer_i_x0 = 1.0, numer_i_x1 = 1.0, numer_i_x2 = 1.0;
       for (int j = shared_ary_idx; j < s_i; j++) {
+        // if(blockIdx.x == 0)
+        // printf("dst_pt: %d, s_j: %d, x0_dst: %f, x1_dst: %f, x2_dst: %f, s_diffs_x0[%d]: %f, s_diffs_x1[%d]: %f, s_diffs_x2[%d]: %f\n",
+        //        dst_pt, j, x0_dst, x1_dst, x2_dst, j, s_diffs_x0[j], j, s_diffs_x1[j], j, s_diffs_x2[j]);
+
         numer_i_x0 *= s_diffs_x0[j];
         numer_i_x1 *= s_diffs_x1[j];
         numer_i_x2 *= s_diffs_x2[j];
@@ -227,6 +234,9 @@ void interpolation_3d_general__uniform_src_grid_host(const int INTERP_ORDER, con
       s_coeff_x0[s_i] = numer_i_x0 * inv_denom[i];
       s_coeff_x1[s_i] = numer_i_x1 * inv_denom[i];
       s_coeff_x2[s_i] = numer_i_x2 * inv_denom[i];
+      // if(dst_pt == 2900)
+      // printf("dst_pt: %d, s_i: %d, numer_i_x0: %1.9e, numer_i_x1: %1.9e, numer_i_x2: %1.9e, coeff_x0: %1.9e, coeff_x1: %1.9e, coeff_x2: %1.9e\n",
+      //        dst_pt, i, numer_i_x0, numer_i_x1, numer_i_x2, s_coeff_x0[s_i], s_coeff_x1[s_i], s_coeff_x2[s_i]);
     } // END LOOP: Compute Lagrange basis polynomials.
 
 //     // Compute the combined 3D Lagrange coefficients with reordered indices.
@@ -262,16 +272,24 @@ void interpolation_3d_general__uniform_src_grid_host(const int INTERP_ORDER, con
           const int base_offset = base_idx_x0 + src_Nxx_plus_2NGHOSTS0 * (idx1 + src_Nxx_plus_2NGHOSTS1 * idx2);
 
           // Vectorized loop using CUDA with FMA, if available
-          for (; ix0 <= INTERP_ORDER; ix0 += 1) { // Process simd_width doubles at a time
+          for (; ix0 < INTERP_ORDER; ix0 += 1) { // Process simd_width doubles at a time
             // Calculate the flat index for the current set of ix0
             // Ensure that ix0 is added correctly to the base_offset
             const int current_idx0 = base_offset + ix0;
 
             // Load simd_width elements from src_gf_ptrs and coeff_3d
-            REAL_CUDA_ARRAY vec_src = ReadCUDA(&src_gf_ptrs[gf][current_idx0]);
+            // if(dst_pt == 2900)
+            // printf("idx2: %d, idx1: %d, idx0: %d, src_gf: %1.15e\n", ix2, ix1, ix0, src_gf_ptrs[gf][current_idx0]);
+            REAL_CUDA_ARRAY vec_src = src_gf_ptrs[gf][current_idx0];
+            // printf("dst_pt: %d, gf: %d, ix0: %d, ix1: %d, ix2: %d, vec_src: %f\n",
+            //        dst_pt, gf, ix0, ix1, ix2, ReadCUDA(&vec_src));
             REAL_CUDA_ARRAY vec_coeff = s_coeff_x0[ix0 + shared_ary_idx] * coeff_x1_i * coeff_x2_i;
+            // if(dst_pt == 2900 && gf == 0)
+            // printf("dst_pt: %d, ix2: %d, ix1: %d, ix0: %d, coeff_3d: %1.15e\n", dst_pt, ix2, ix1, ix0, vec_coeff);
             // Use FMA to multiply src and coeff and add to vec_sum
             vec_sum = FusedMulAddCUDA(vec_src, vec_coeff, vec_sum);
+            // printf("ix0: %d, ix1: %d, ix2: %d, gf: %d, vec_src: %f, vec_coeff: %f, vec_sum: %f\n",
+            //        ix0, ix1, ix2, gf, ReadCUDA(&vec_src), ReadCUDA(&vec_coeff), ReadCUDA(&vec_sum));
           }
 
           sum += HorizAddCUDA(vec_sum);
@@ -283,9 +301,11 @@ void interpolation_3d_general__uniform_src_grid_host(const int INTERP_ORDER, con
           // }
         }
       }
+      if(dst_pt == 2900)
+        printf("dst_pt: %d, gf: %d, sum: %1.15e, data: %1.15e\n", dst_pt, gf, sum, sum * src_invdxx012_INTERP_ORDERm1);
 
       // Store the interpolated value for this grid function and destination point.
-      // dst_data[gf][dst_pt] = sum * src_invdxx012_INTERP_ORDERm1;
+      dst_data[gf][dst_pt] = sum * src_invdxx012_INTERP_ORDERm1;
     } // END LOOP: Over grid functions.
   } // END PARALLEL FOR: Interpolate all destination points.
 }
@@ -359,16 +379,10 @@ int interpolation_3d_general__uniform_src_grid(const int N_interp_GHOSTS, const 
   int error_flag = INTERP_SUCCESS;
   {
     const int threadCount = 32; //MAX(1, 32 % num_dst_pts) * 32;
-    const int number_of_arrays = 1;
-    const int s_bytes_per_array = INTERP_ORDER * sizeof(REAL);
-    const int shared_mem_size = (threadCount) * s_bytes_per_array * number_of_arrays;
-    printf("Shared memory size: %d bytes\n", shared_mem_size);
+    const int number_of_arrays = 6;
+    const int s_bytes_per_array = (threadCount) *  INTERP_ORDER * sizeof(REAL);
+    const int shared_mem_size = s_bytes_per_array * number_of_arrays;
     int blockCount = MAX((num_dst_pts + threadCount - 1) / threadCount, 1);
-    printf("Block count: %d\n", blockCount);
-    printf("Number of destination points: %d\n", num_dst_pts);
-    printf("Number of grid functions: %d\n", NUM_INTERP_GFS);
-    printf("Interpolation order: %d\n", INTERP_ORDER);
-    printf("Source grid dimensions (including ghost zones): %d x %d x %d\n", src_Nxx_plus_2NGHOSTS0, src_Nxx_plus_2NGHOSTS1, src_Nxx_plus_2NGHOSTS2);
     interpolation_3d_general__uniform_src_grid_host<<<blockCount, threadCount, shared_mem_size>>>(INTERP_ORDER, src_invdxx012_INTERP_ORDERm1, NinterpGHOSTS,
       src_Nxx_plus_2NGHOSTS0, src_Nxx_plus_2NGHOSTS1, src_Nxx_plus_2NGHOSTS2,
       num_dst_pts, dst_x0x1x2, NUM_INTERP_GFS, src_x0x1x2, src_invdxx0, src_invdxx1, src_invdxx2,
@@ -510,11 +524,11 @@ void print_device_info() {
 }
 
 int main() {
-  print_device_info();
+  // print_device_info();
   const int N_interp_GHOSTS = 4;                    // For 9th order interpolation.
   const int INTERP_ORDER = 2 * N_interp_GHOSTS + 1; // 9th order.
   const int num_resolutions = 3;                    // Number of resolutions to test.
-  const int num_dst_pts = 3000000;                  // Number of destination points.
+  const int num_dst_pts = 3000;                  // Number of destination points.
 
   int N_x0_arr[num_resolutions];
   int N_x1_arr[num_resolutions];
@@ -745,27 +759,32 @@ int main() {
     //   return error_code;
     // }
 
-    // // Compute the L2 norm of the error for each grid function.
-    // for (int gf = 0; gf < NUM_INTERP_GFS; gf++) {
-    //   REAL error_sum = 0.0;
-    //   for (int i = 0; i < num_dst_pts; i++) {
-    //     REAL error = dst_data[gf][i] - f_exact[gf][i];
-    //     error_sum += error * error;
-    //   }
-    //   error_L2_norm[gf][res] = sqrt(error_sum / num_dst_pts);
-    // } // END LOOP: Compute L2 norms.
 
-    // // Output the error for each grid function.
-    // for (int gf = 0; gf < NUM_INTERP_GFS; gf++) {
-    //   printf("Resolution %d: N_x0 = %d, N_x1 = %d, N_x2 = %d, h = %.5e, Grid Function %d, L2 error = %.5e\n", res, N_x0, N_x1, N_x2, h_arr[res],
-    //          gf + 1, error_L2_norm[gf][res]);
-    // } // END LOOP: Output errors.
+
+    // Compute the L2 norm of the error for each grid function.
+    for (int gf = 0; gf < NUM_INTERP_GFS; gf++) {
+      cudaMemcpy(dst_data[gf], dst_data_device[gf], sizeof(REAL) * num_dst_pts, cudaMemcpyDeviceToHost);
+      BHAH_DEVICE_SYNC();
+      REAL error_sum = 0.0;
+      for (int i = 0; i < num_dst_pts; i++) {
+        // printf("dst_pt: %d, gf: %d, dst_data: %.5e, f_exact: %.5e\n", i, gf + 1, dst_data[gf][i], f_exact[gf][i]);
+        REAL error = dst_data[gf][i] - f_exact[gf][i];
+        error_sum += error * error;
+      }
+      error_L2_norm[gf][res] = sqrt(error_sum / num_dst_pts);
+    } // END LOOP: Compute L2 norms.
+
+    // Output the error for each grid function.
+    for (int gf = 0; gf < NUM_INTERP_GFS; gf++) {
+      printf("Resolution %d: N_x0 = %d, N_x1 = %d, N_x2 = %d, h = %.5e, Grid Function %d, L2 error = %.5e\n", res, N_x0, N_x1, N_x2, h_arr[res],
+             gf + 1, error_L2_norm[gf][res]);
+    } // END LOOP: Output errors.
 
     // Free allocated memory for this resolution.
     for (int gf = 0; gf < NUM_INTERP_GFS; gf++) {
       BHAH_FREE_DEVICE(src_gf[gf]);
-      // BHAH_FREE(dst_data[gf]);
-      // BHAH_FREE_DEVICE(dst_data_device[gf]);
+      BHAH_FREE(dst_data[gf]);
+      BHAH_FREE_DEVICE(dst_data_device[gf]);
     }
     for (int dim = 0; dim < 3; dim++) {
       BHAH_FREE_DEVICE(src_x0x1x2[dim]);
