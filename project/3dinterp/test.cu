@@ -508,8 +508,6 @@ int main() {
   N_x2_arr[2] = 64;
 
   // Allocate memory for destination points.
-  // REAL(*dst_pts)[3];
-  // BHAH_MALLOC(dst_pts, sizeof(REAL) * num_dst_pts * 3);
   REAL(*dst_pts)[3] = (REAL(*)[3])malloc(sizeof(REAL) * num_dst_pts * 3);
   if (dst_pts == NULL) {
     fprintf(stderr, "Memory allocation failed for destination points.\n");
@@ -517,12 +515,6 @@ int main() {
   }
   REAL(*dst_pts_device)[3];
   BHAH_MALLOC_DEVICE(dst_pts_device, sizeof(REAL) * num_dst_pts * 3);
-
-  // REAL** dst_ptrs_device;
-  // cudaMalloc(&dst_ptrs_device, sizeof(REAL*) * num_dst_pts);
-
-  // // Step 3: Copy host pointer array to device
-  // cudaMemcpy(dst_ptrs_device, dst_pts_device, sizeof(REAL*) * 3, cudaMemcpyHostToDevice);
 
   // Allocate exact solution arrays for each grid function.
   REAL *f_exact[NUM_INTERP_GFS];
