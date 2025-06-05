@@ -144,20 +144,29 @@ void compute_inverse_denominators(const int INTERP_ORDER, REAL *restrict inv_den
   } // END LOOP: Precompute inverse denominators.
 }
 
+__global__ static void device_mem_test(REAL** data) {
+  printf("Device memory test: data[0][0] = %f\n", data[0][0]);
+}
+
 __global__
 void interpolation_3d_general__uniform_src_grid_host(const int INTERP_ORDER, const REAL src_invdxx012_INTERP_ORDERm1,
   const int NinterpGHOSTS,const int src_Nxx_plus_2NGHOSTS0, const int src_Nxx_plus_2NGHOSTS1, const int src_Nxx_plus_2NGHOSTS2,
-  const int num_dst_pts, REAL** dst_x0x1x2,
+  const int num_dst_pts, const REAL dst_x0x1x2[][3],
   const int NUM_INTERP_GFS, REAL** src_x0x1x2,
   const REAL src_invdxx0, const REAL src_invdxx1, const REAL src_invdxx2,
-  const REAL *restrict inv_denom, REAL** src_gf_ptrs, REAL ** dst_data) {
+  const REAL *restrict inv_denom, REAL** src_gf_ptrs, REAL ** dst_data, const int s_bytes_per_array) {
 
-  extern __shared__ REAL s_coeff_x0[];
-  extern __shared__ REAL s_coeff_x1[];
-  extern __shared__ REAL s_coeff_x2[];
-  extern __shared__ REAL s_diffs_x0[];
-  extern __shared__ REAL s_diffs_x1[];
-  extern __shared__ REAL s_diffs_x2[];
+  extern __shared__ char shared_memory_buffer[];
+
+  REAL* s_diffs_x0 = reinterpret_cast<REAL*>(shared_memory_buffer);
+  REAL* s_diffs_x1 = reinterpret_cast<REAL*>(shared_memory_buffer + s_bytes_per_array); // Offset by 1 array size
+  REAL* s_diffs_x2 = reinterpret_cast<REAL*>(shared_memory_buffer + 2 * s_bytes_per_array); // Offset by 2 array sizes
+
+  REAL* s_coeff_x0 = reinterpret_cast<REAL*>(shared_memory_buffer + 3 * s_bytes_per_array);
+  REAL* s_coeff_x1 = reinterpret_cast<REAL*>(shared_memory_buffer + 4 * s_bytes_per_array);
+  REAL* s_coeff_x2 = reinterpret_cast<REAL*>(shared_memory_buffer + 5 * s_bytes_per_array);
+
+  int shared_ary_idx = threadIdx.x * INTERP_ORDER;
 
   // Perform interpolation for each destination point (x0, x1, x2).
   const REAL xxmin_incl_ghosts0 = src_x0x1x2[0][0];
@@ -167,15 +176,6 @@ void interpolation_3d_general__uniform_src_grid_host(const int INTERP_ORDER, con
 
   const int tid0 = threadIdx.x + blockIdx.x * blockDim.x;                                                                                            \
   const int stride0 = blockDim.x * gridDim.x;
-
-  // Compute differences for Lagrange interpolation.
-  REAL* coeff_x0 = &s_coeff_x0[tid0 * INTERP_ORDER];
-  REAL* coeff_x1 = &s_coeff_x1[tid0 * INTERP_ORDER];
-  REAL* coeff_x2 = &s_coeff_x2[tid0 * INTERP_ORDER];
-  REAL* diffs_x0 = &s_diffs_x0[tid0 * INTERP_ORDER];
-  REAL* diffs_x1 = &s_diffs_x1[tid0 * INTERP_ORDER];
-  REAL* diffs_x2 = &s_diffs_x2[tid0 * INTERP_ORDER];
-
 
   for (int dst_pt = tid0; dst_pt < num_dst_pts; dst_pt+=stride0) {
     // Extract destination point coordinates.
@@ -189,59 +189,57 @@ void interpolation_3d_general__uniform_src_grid_host(const int INTERP_ORDER, con
     int idx_center_x2 = (int)((x2_dst - xxmin_incl_ghosts2) * src_invdxx2 + 0.5);
 
     // Check if the interpolation stencil goes out of bounds, and adjust indices to prevent memory corruption.
-    {
       if ((idx_center_x0 - NinterpGHOSTS < 0) || (idx_center_x0 + NinterpGHOSTS >= src_Nxx_plus_2NGHOSTS0) || (idx_center_x1 - NinterpGHOSTS < 0) ||
           (idx_center_x1 + NinterpGHOSTS >= src_Nxx_plus_2NGHOSTS1) || (idx_center_x2 - NinterpGHOSTS < 0) ||
           (idx_center_x2 + NinterpGHOSTS >= src_Nxx_plus_2NGHOSTS2)) {
         {
-          error_flag = INTERP3D_GENERAL_HORIZON_OUT_OF_BOUNDS;
+          // error_flag = INTERP3D_GENERAL_HORIZON_OUT_OF_BOUNDS;
           // If out of bounds, set indices to NinterpGHOSTS to avoid accessing invalid memory.
           idx_center_x0 = idx_center_x1 = idx_center_x2 = NinterpGHOSTS;
+          continue;
         }
-        continue; // Skip further work for this iteration
       }
-    } // END IF: Set ERROR code & adjust indices if stencil is out of bounds.
 
     // Compute base indices for interpolation stencil.
     const int base_idx_x0 = idx_center_x0 - NinterpGHOSTS;
     const int base_idx_x1 = idx_center_x1 - NinterpGHOSTS;
     const int base_idx_x2 = idx_center_x2 - NinterpGHOSTS;
 
-    for (int j = 0; j < INTERP_ORDER; j++) {
-      diffs_x0[j] = x0_dst - src_x0x1x2[0][base_idx_x0 + j];
-      diffs_x1[j] = x1_dst - src_x0x1x2[1][base_idx_x1 + j];
-      diffs_x2[j] = x2_dst - src_x0x1x2[2][base_idx_x2 + j];
+    for (int s_j = shared_ary_idx, j = 0; j < INTERP_ORDER; j++, s_j++) {
+      s_diffs_x0[s_j] = x0_dst - src_x0x1x2[0][base_idx_x0 + j];
+      s_diffs_x1[s_j] = x1_dst - src_x0x1x2[1][base_idx_x1 + j];
+      s_diffs_x2[s_j] = x2_dst - src_x0x1x2[2][base_idx_x2 + j];
     } // END LOOP: Compute differences for Lagrange interpolation.
 
     // Compute the numerator of the Lagrange basis polynomials.
-    for (int i = 0; i < INTERP_ORDER; i++) {
+    for (int s_i = shared_ary_idx, i = 0; i < INTERP_ORDER; i++, s_i++) {
       REAL numer_i_x0 = 1.0, numer_i_x1 = 1.0, numer_i_x2 = 1.0;
-      for (int j = 0; j < i; j++) {
-        numer_i_x0 *= diffs_x0[j];
-        numer_i_x1 *= diffs_x1[j];
-        numer_i_x2 *= diffs_x2[j];
+      for (int j = shared_ary_idx; j < s_i; j++) {
+        numer_i_x0 *= s_diffs_x0[j];
+        numer_i_x1 *= s_diffs_x1[j];
+        numer_i_x2 *= s_diffs_x2[j];
       }
-      for (int j = i + 1; j < INTERP_ORDER; j++) {
-        numer_i_x0 *= diffs_x0[j];
-        numer_i_x1 *= diffs_x1[j];
-        numer_i_x2 *= diffs_x2[j];
+      for (int j = s_i + 1; j < shared_ary_idx + INTERP_ORDER; j++) {
+        numer_i_x0 *= s_diffs_x0[j];
+        numer_i_x1 *= s_diffs_x1[j];
+        numer_i_x2 *= s_diffs_x2[j];
       }
-      coeff_x0[i] = numer_i_x0 * inv_denom[i];
-      coeff_x1[i] = numer_i_x1 * inv_denom[i];
-      coeff_x2[i] = numer_i_x2 * inv_denom[i];
+      s_coeff_x0[s_i] = numer_i_x0 * inv_denom[i];
+      s_coeff_x1[s_i] = numer_i_x1 * inv_denom[i];
+      s_coeff_x2[s_i] = numer_i_x2 * inv_denom[i];
     } // END LOOP: Compute Lagrange basis polynomials.
 
-    // Compute the combined 3D Lagrange coefficients with reordered indices.
-    // REAL coeff_3d[INTERP_ORDER][INTERP_ORDER][INTERP_ORDER];
-    // for (int ix2 = 0; ix2 < INTERP_ORDER; ix2++) {
-    //   const REAL coeff_x2_i = coeff_x2[ix2];
-    //   for (int ix1 = 0; ix1 < INTERP_ORDER; ix1++) {
-    //     const REAL coeff_x1_i = coeff_x1[ix1];
-    //     for (int ix0 = 0; ix0 < INTERP_ORDER; ix0++) {
-    //       coeff_3d[ix2][ix1][ix0] = coeff_x0[ix0] * coeff_x1_i * coeff_x2_i;
-    //     } // END LOOP: Over ix0.
-    //   } // END LOOP: Over ix1.
-    // } // END LOOP: Over ix2.
+//     // Compute the combined 3D Lagrange coefficients with reordered indices.
+//     // REAL coeff_3d[INTERP_ORDER][INTERP_ORDER][INTERP_ORDER];
+//     // for (int ix2 = 0; ix2 < INTERP_ORDER; ix2++) {
+//     //   const REAL coeff_x2_i = coeff_x2[ix2];
+//     //   for (int ix1 = 0; ix1 < INTERP_ORDER; ix1++) {
+//     //     const REAL coeff_x1_i = coeff_x1[ix1];
+//     //     for (int ix0 = 0; ix0 < INTERP_ORDER; ix0++) {
+//     //       coeff_3d[ix2][ix1][ix0] = coeff_x0[ix0] * coeff_x1_i * coeff_x2_i;
+//     //     } // END LOOP: Over ix0.
+//     //   } // END LOOP: Over ix1.
+//     // } // END LOOP: Over ix2.
 
 #define SRC_IDX3(i0, i1, i2) ((i0) + src_Nxx_plus_2NGHOSTS0 * ((i1) + src_Nxx_plus_2NGHOSTS1 * (i2)))
 
@@ -251,10 +249,10 @@ void interpolation_3d_general__uniform_src_grid_host(const int INTERP_ORDER, con
 
       for (int ix2 = 0; ix2 < INTERP_ORDER; ix2++) {
         const int idx2 = base_idx_x2 + ix2;
-        const REAL coeff_x2_i = coeff_x2[ix2];
+        const REAL coeff_x2_i = s_coeff_x2[ix2 + shared_ary_idx];
         for (int ix1 = 0; ix1 < INTERP_ORDER; ix1++) {
           const int idx1 = base_idx_x1 + ix1;
-          const REAL coeff_x1_i = coeff_x1[ix1];
+          const REAL coeff_x1_i = s_coeff_x1[ix1 + shared_ary_idx];
 
           int ix0 = 0;
           REAL_CUDA_ARRAY vec_sum = SetZeroCUDA; // Initialize vector sum to zero
@@ -271,7 +269,7 @@ void interpolation_3d_general__uniform_src_grid_host(const int INTERP_ORDER, con
 
             // Load simd_width elements from src_gf_ptrs and coeff_3d
             REAL_CUDA_ARRAY vec_src = ReadCUDA(&src_gf_ptrs[gf][current_idx0]);
-            REAL_CUDA_ARRAY vec_coeff = coeff_x0[ix0] * coeff_x1_i * coeff_x2_i;
+            REAL_CUDA_ARRAY vec_coeff = s_coeff_x0[ix0 + shared_ary_idx] * coeff_x1_i * coeff_x2_i;
             // Use FMA to multiply src and coeff and add to vec_sum
             vec_sum = FusedMulAddCUDA(vec_src, vec_coeff, vec_sum);
           }
@@ -287,9 +285,8 @@ void interpolation_3d_general__uniform_src_grid_host(const int INTERP_ORDER, con
       }
 
       // Store the interpolated value for this grid function and destination point.
-      dst_data[gf][dst_pt] = sum * src_invdxx012_INTERP_ORDERm1;
+      // dst_data[gf][dst_pt] = sum * src_invdxx012_INTERP_ORDERm1;
     } // END LOOP: Over grid functions.
-
   } // END PARALLEL FOR: Interpolate all destination points.
 }
 
@@ -323,7 +320,7 @@ void interpolation_3d_general__uniform_src_grid_host(const int INTERP_ORDER, con
 int interpolation_3d_general__uniform_src_grid(const int N_interp_GHOSTS, const REAL src_dxx0, const REAL src_dxx1, const REAL src_dxx2,
                                                const int src_Nxx_plus_2NGHOSTS0, const int src_Nxx_plus_2NGHOSTS1, const int src_Nxx_plus_2NGHOSTS2,
                                                const int NUM_INTERP_GFS, REAL ** src_x0x1x2, REAL** src_gf_ptrs,
-                                               const int num_dst_pts, REAL** dst_x0x1x2, REAL ** dst_data) {
+                                               const int num_dst_pts, const REAL dst_x0x1x2[][3], REAL ** dst_data) {
 
   // Unpack parameters.
   const int NinterpGHOSTS = N_interp_GHOSTS;
@@ -355,25 +352,35 @@ int interpolation_3d_general__uniform_src_grid(const int N_interp_GHOSTS, const 
     int threadCount = 32;
     int blockCount = MAX((INTERP_ORDER + threadCount - 1) / threadCount, 1);
     compute_inverse_denominators<<<blockCount, threadCount>>>(INTERP_ORDER, inv_denom);
+    cudaCheckErrors(compute_inverse_denominators, "compute_inverse_denominators kernel failed");
   }
 
   // fix error_flag for cuda
   int error_flag = INTERP_SUCCESS;
   {
-    int threadCount = MAX(1, 32 % num_dst_pts) * 32;
-    int shared_mem_size = threadCount * sizeof(REAL) * INTERP_ORDER;
+    const int threadCount = 32; //MAX(1, 32 % num_dst_pts) * 32;
+    const int number_of_arrays = 1;
+    const int s_bytes_per_array = INTERP_ORDER * sizeof(REAL);
+    const int shared_mem_size = (threadCount) * s_bytes_per_array * number_of_arrays;
+    printf("Shared memory size: %d bytes\n", shared_mem_size);
     int blockCount = MAX((num_dst_pts + threadCount - 1) / threadCount, 1);
+    printf("Block count: %d\n", blockCount);
+    printf("Number of destination points: %d\n", num_dst_pts);
+    printf("Number of grid functions: %d\n", NUM_INTERP_GFS);
+    printf("Interpolation order: %d\n", INTERP_ORDER);
+    printf("Source grid dimensions (including ghost zones): %d x %d x %d\n", src_Nxx_plus_2NGHOSTS0, src_Nxx_plus_2NGHOSTS1, src_Nxx_plus_2NGHOSTS2);
     interpolation_3d_general__uniform_src_grid_host<<<blockCount, threadCount, shared_mem_size>>>(INTERP_ORDER, src_invdxx012_INTERP_ORDERm1, NinterpGHOSTS,
       src_Nxx_plus_2NGHOSTS0, src_Nxx_plus_2NGHOSTS1, src_Nxx_plus_2NGHOSTS2,
       num_dst_pts, dst_x0x1x2, NUM_INTERP_GFS, src_x0x1x2, src_invdxx0, src_invdxx1, src_invdxx2,
-      inv_denom, src_gf_ptrs, dst_data);
+      inv_denom, src_gf_ptrs, dst_data, s_bytes_per_array);
     cudaCheckErrors(interpolation_3d_general__uniform_src_grid_host, "Interpolation kernel failed");
+
   }
 
   return error_flag;
 } // END FUNCTION interpolation_3d_general__uniform_src_grid
 
-#pragma GCC reset_options // Reset compiler optimizations after the function
+// #pragma GCC reset_options // Reset compiler optimizations after the function
 
 #ifdef STANDALONE
 
@@ -416,9 +423,6 @@ void initialize_coordinates(const int N_interp_GHOSTS, const int N_x0, const int
   *src_dxx2 = (2.0) / N_x2;
 
   // Allocate memory for coordinate arrays.
-  // src_x0x1x2[0] = (REAL *)malloc(sizeof(REAL) * src_Nxx_plus_2NGHOSTS0);
-  // src_x0x1x2[1] = (REAL *)malloc(sizeof(REAL) * src_Nxx_plus_2NGHOSTS1);
-  // src_x0x1x2[2] = (REAL *)malloc(sizeof(REAL) * src_Nxx_plus_2NGHOSTS2);
   BHAH_MALLOC_DEVICE(src_x0x1x2[0], sizeof(REAL) * src_Nxx_plus_2NGHOSTS0);
   BHAH_MALLOC_DEVICE(src_x0x1x2[1], sizeof(REAL) * src_Nxx_plus_2NGHOSTS1);
   BHAH_MALLOC_DEVICE(src_x0x1x2[2], sizeof(REAL) * src_Nxx_plus_2NGHOSTS2);
@@ -484,7 +488,29 @@ void initialize_src_gf(const int src_Nxx_plus_2NGHOSTS0, const int src_Nxx_plus_
   } // END LOOP: Over i2.
 } // END FUNCTION: initialize_src_gf.
 
+void print_device_info() {
+  cudaDeviceProp deviceProp;
+    int dev = 0;
+    cudaError_t error_id = cudaGetDeviceProperties(&deviceProp, dev);
+    if (error_id != cudaSuccess) {
+        fprintf(stderr, "cudaGetDeviceProperties for device %d returned %s\n",
+                dev, cudaGetErrorString(error_id));
+    }
+
+    printf("\n--- Device %d: %s ---\n", dev, deviceProp.name);
+    printf("  Compute Capability: %d.%d\n", deviceProp.major, deviceProp.minor);
+    printf("  Max threads per block: %d\n", deviceProp.maxThreadsPerBlock);
+    printf("  Max shared memory per block: %zu bytes\n", deviceProp.sharedMemPerBlock);
+    printf("  Max dynamic shared memory per block (opt-in): %zu bytes\n", deviceProp.sharedMemPerBlockOptin); // More relevant for configurable SM
+    printf("  Total global memory: %zu bytes (%.2f GB)\n",
+            deviceProp.totalGlobalMem, (double)deviceProp.totalGlobalMem / (1024 * 1024 * 1024));
+    printf("  Multiprocessor count: %d\n", deviceProp.multiProcessorCount);
+    printf("  Max registers per block: %d\n", deviceProp.regsPerBlock);
+    // Add more properties if you're interested
+}
+
 int main() {
+  print_device_info();
   const int N_interp_GHOSTS = 4;                    // For 9th order interpolation.
   const int INTERP_ORDER = 2 * N_interp_GHOSTS + 1; // 9th order.
   const int num_resolutions = 3;                    // Number of resolutions to test.
@@ -510,8 +536,9 @@ int main() {
   N_x2_arr[2] = 64;
 
   // Allocate memory for destination points.
-  REAL(*dst_pts)[3];
-  BHAH_MALLOC(dst_pts, sizeof(REAL) * num_dst_pts * 3);
+  // REAL(*dst_pts)[3];
+  // BHAH_MALLOC(dst_pts, sizeof(REAL) * num_dst_pts * 3);
+  REAL(*dst_pts)[3] = (REAL(*)[3])malloc(sizeof(REAL) * num_dst_pts * 3);
   if (dst_pts == NULL) {
     fprintf(stderr, "Memory allocation failed for destination points.\n");
     return EXIT_FAILURE;
@@ -519,11 +546,11 @@ int main() {
   REAL(*dst_pts_device)[3];
   BHAH_MALLOC_DEVICE(dst_pts_device, sizeof(REAL) * num_dst_pts * 3);
 
-  REAL** dst_ptrs_device;
-  cudaMalloc(&dst_ptrs_device, sizeof(REAL*) * 3);
+  // REAL** dst_ptrs_device;
+  // cudaMalloc(&dst_ptrs_device, sizeof(REAL*) * num_dst_pts);
 
-  // Step 3: Copy host pointer array to device
-  cudaMemcpy(dst_ptrs_device, dst_pts_device, sizeof(REAL*) * 3, cudaMemcpyHostToDevice);
+  // // Step 3: Copy host pointer array to device
+  // cudaMemcpy(dst_ptrs_device, dst_pts_device, sizeof(REAL*) * 3, cudaMemcpyHostToDevice);
 
   // Allocate exact solution arrays for each grid function.
   REAL *f_exact[NUM_INTERP_GFS];
@@ -642,9 +669,13 @@ int main() {
       );
 
       initialize_src_gf<<<blockCount, threadCount>>>(src_Nxx_plus_2NGHOSTS0, src_Nxx_plus_2NGHOSTS1, src_Nxx_plus_2NGHOSTS2, src_x0x1x2_ptrs, src_gf[0], FUNC1);
+      cudaCheckErrors(initialize_src_gf, "initialize_src_gf1 kernel failed");
       initialize_src_gf<<<blockCount, threadCount>>>(src_Nxx_plus_2NGHOSTS0, src_Nxx_plus_2NGHOSTS1, src_Nxx_plus_2NGHOSTS2, src_x0x1x2_ptrs, src_gf[1], FUNC2);
+      cudaCheckErrors(initialize_src_gf, "initialize_src_gf2 kernel failed");
       initialize_src_gf<<<blockCount, threadCount>>>(src_Nxx_plus_2NGHOSTS0, src_Nxx_plus_2NGHOSTS1, src_Nxx_plus_2NGHOSTS2, src_x0x1x2_ptrs, src_gf[2], FUNC3);
+      cudaCheckErrors(initialize_src_gf, "initialize_src_gf3 kernel failed");
       initialize_src_gf<<<blockCount, threadCount>>>(src_Nxx_plus_2NGHOSTS0, src_Nxx_plus_2NGHOSTS1, src_Nxx_plus_2NGHOSTS2, src_x0x1x2_ptrs, src_gf[3], FUNC4);
+      cudaCheckErrors(initialize_src_gf, "initialize_src_gf4 kernel failed");
     }
 
     // Create an array of pointers to src_gf.
@@ -692,7 +723,7 @@ int main() {
     // Call the interpolation function.
     int error_code = interpolation_3d_general__uniform_src_grid(N_interp_GHOSTS, src_dxx0_val, src_dxx1_val, src_dxx2_val, src_Nxx_plus_2NGHOSTS0,
                                                                 src_Nxx_plus_2NGHOSTS1, src_Nxx_plus_2NGHOSTS2, NUM_INTERP_GFS, src_x0x1x2_ptrs,
-                                                                src_gf_ptrs, num_dst_pts, dst_ptrs_device, dst_data_ptrs);
+                                                                src_gf_ptrs, num_dst_pts, dst_pts_device, dst_data_ptrs);
     BHAH_DEVICE_SYNC();
     // if (error_code != INTERP_SUCCESS) {
     //   fprintf(stderr, "Interpolation error code: %d\n", error_code);
