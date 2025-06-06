@@ -3,6 +3,7 @@
 #include "math.h"
 #include "stdio.h"
 #include "stdlib.h"
+#include<chrono>
 #define STANDALONE
 
 #ifndef REAL
@@ -332,9 +333,9 @@ int interpolation_3d_general__uniform_src_grid(const int N_interp_GHOSTS, const 
     compute_inverse_denominators<<<blockCount, threadCount>>>(INTERP_ORDER, inv_denom);
     cudaCheckErrors(compute_inverse_denominators, "compute_inverse_denominators kernel failed");
   }
-
   // fix error_flag for cuda
   int error_flag = INTERP_SUCCESS;
+auto start = std::chrono::high_resolution_clock::now();
   {
     const int threadCount = 32; //MAX(1, 32 % num_dst_pts) * 32;
     const int number_of_arrays = 6;
@@ -346,9 +347,11 @@ int interpolation_3d_general__uniform_src_grid(const int N_interp_GHOSTS, const 
       num_dst_pts, dst_x0x1x2, NUM_INTERP_GFS, src_x0x1x2, src_invdxx0, src_invdxx1, src_invdxx2,
       inv_denom, src_gf_ptrs, dst_data, s_bytes_per_array);
     cudaCheckErrors(interpolation_3d_general__uniform_src_grid_host, "Interpolation kernel failed");
-
+    BHAH_DEVICE_SYNC();
   }
-
+auto end = std::chrono::high_resolution_clock::now();
+std::chrono::duration<double, std::micro> duration = end - start;
+printf("Kernel execution time: %f microseconds\n", duration.count());
   return error_flag;
 } // END FUNCTION interpolation_3d_general__uniform_src_grid
 
@@ -683,12 +686,14 @@ int main() {
     cudaMalloc(&dst_data_ptrs, NUM_INTERP_GFS * sizeof(REAL*));
     cudaMemcpy(dst_data_ptrs, dst_data_device, NUM_INTERP_GFS * sizeof(REAL*), cudaMemcpyHostToDevice);
     BHAH_DEVICE_SYNC();
-
+int error_code;
+for(int k = 0;k < 100; ++k) {
     // Call the interpolation function.
-    int error_code = interpolation_3d_general__uniform_src_grid(N_interp_GHOSTS, src_dxx0_val, src_dxx1_val, src_dxx2_val, src_Nxx_plus_2NGHOSTS0,
+    error_code = interpolation_3d_general__uniform_src_grid(N_interp_GHOSTS, src_dxx0_val, src_dxx1_val, src_dxx2_val, src_Nxx_plus_2NGHOSTS0,
                                                                 src_Nxx_plus_2NGHOSTS1, src_Nxx_plus_2NGHOSTS2, NUM_INTERP_GFS, src_x0x1x2_ptrs,
                                                                 src_gf_ptrs, num_dst_pts, dst_pts_device, dst_data_ptrs);
     BHAH_DEVICE_SYNC();
+    }
     // if (error_code != INTERP_SUCCESS) {
     //   fprintf(stderr, "Interpolation error code: %d\n", error_code);
     //   // Free allocated memory before exiting.
@@ -710,7 +715,7 @@ int main() {
     // }
 
 
-
+/*
     // Compute the L2 norm of the error for each grid function.
     for (int gf = 0; gf < NUM_INTERP_GFS; gf++) {
       cudaMemcpy(dst_data[gf], dst_data_device[gf], sizeof(REAL) * num_dst_pts, cudaMemcpyDeviceToHost);
@@ -728,7 +733,7 @@ int main() {
       printf("Resolution %d: N_x0 = %d, N_x1 = %d, N_x2 = %d, h = %.5e, Grid Function %d, L2 error = %.5e\n", res, N_x0, N_x1, N_x2, h_arr[res],
              gf + 1, error_L2_norm[gf][res]);
     } // END LOOP: Output errors.
-
+*/
     // Free allocated memory for this resolution.
     for (int gf = 0; gf < NUM_INTERP_GFS; gf++) {
       BHAH_FREE_DEVICE(src_gf[gf]);

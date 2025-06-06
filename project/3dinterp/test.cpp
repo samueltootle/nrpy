@@ -2,6 +2,7 @@
 #include "math.h"
 #include "stdio.h"
 #include "stdlib.h"
+#include<chrono>
 #define STANDALONE
 
 #ifndef REAL
@@ -299,11 +300,15 @@ int interpolation_3d_general__uniform_src_grid(const int N_interp_GHOSTS, const 
   BHAH_MALLOC(inv_denom, sizeof(REAL) * INTERP_ORDER);
   compute_inverse_denominators(INTERP_ORDER, inv_denom);
 
+auto start = std::chrono::high_resolution_clock::now();
   int error_flag = interpolation_3d_general__uniform_src_grid_host(INTERP_ORDER, src_invdxx012_INTERP_ORDERm1, NinterpGHOSTS,
     src_Nxx_plus_2NGHOSTS0, src_Nxx_plus_2NGHOSTS1, src_Nxx_plus_2NGHOSTS2,
     num_dst_pts, dst_x0x1x2, NUM_INTERP_GFS, (const REAL *restrict *)src_x0x1x2, src_invdxx0, src_invdxx1, src_invdxx2,
     inv_denom, src_gf_ptrs, dst_data);
 
+auto end = std::chrono::high_resolution_clock::now();
+std::chrono::duration<double, std::micro> duration = end - start;
+printf("Kernel execution time: %f microseconds\n", duration.count());
   return error_flag;
 } // END FUNCTION interpolation_3d_general__uniform_src_grid
 
@@ -526,10 +531,13 @@ int main() {
     }
 
     // Call the interpolation function.
-    int error_code = interpolation_3d_general__uniform_src_grid(N_interp_GHOSTS, src_dxx0_val, src_dxx1_val, src_dxx2_val, src_Nxx_plus_2NGHOSTS0,
+    int error_code;
+for(int k = 0;k < 100; ++k) {
+
+   error_code = interpolation_3d_general__uniform_src_grid(N_interp_GHOSTS, src_dxx0_val, src_dxx1_val, src_dxx2_val, src_Nxx_plus_2NGHOSTS0,
                                                                 src_Nxx_plus_2NGHOSTS1, src_Nxx_plus_2NGHOSTS2, NUM_INTERP_GFS, src_x0x1x2,
                                                                 src_gf_ptrs, num_dst_pts, dst_pts, dst_data);
-
+}
     if (error_code != INTERP_SUCCESS) {
       fprintf(stderr, "Interpolation error code: %d\n", error_code);
       // Free allocated memory before exiting.
@@ -546,7 +554,7 @@ int main() {
       free(dst_pts);
       return error_code;
     }
-
+/*
     // Compute the L2 norm of the error for each grid function.
     for (int gf = 0; gf < NUM_INTERP_GFS; gf++) {
       REAL error_sum = 0.0;
@@ -562,7 +570,7 @@ int main() {
       printf("Resolution %d: N_x0 = %d, N_x1 = %d, N_x2 = %d, h = %.5e, Grid Function %d, L2 error = %.5e\n", res, N_x0, N_x1, N_x2, h_arr[res],
              gf + 1, error_L2_norm[gf][res]);
     } // END LOOP: Output errors.
-
+*/
     // Free allocated memory for this resolution.
     for (int gf = 0; gf < NUM_INTERP_GFS; gf++) {
       free(src_gf[gf]);
