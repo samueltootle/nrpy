@@ -7,44 +7,17 @@ Author: Zachariah B. Etienne
 
 from inspect import currentframe as cfr
 from types import FrameType as FT
-from typing import Union, cast
+from typing import Union, cast, Tuple
 
 import nrpy.c_function as cfc
 import nrpy.helpers.parallel_codegen as pcg
 from nrpy.helpers.generic import copy_files
+import nrpy.params as par
+import nrpy.helpers.parallelization.utilities as parallel_utils
 
-
-def register_CFunction_interpolation_3d_general__uniform_src_grid(
-    enable_simd: bool,
-    project_dir: str,
-) -> Union[None, pcg.NRPyEnv_type]:
-    """
-    Register the C function for general-purpose 3D Lagrange interpolation.
-
-    Even if `enable_simd` is False, `intrinsics/simd_intrinsics.h` is still required.
-
-    :param enable_simd: Whether the rest of the code enables SIMD optimizations, as this code requires simd_intrinsics.h (which includes SIMD-disabled options).
-    :param project_dir: Directory of the project, to set the destination for simd_instrinsics.h .
-    :return: None if in registration phase, else the updated NRPy environment.
-
-    DocTests:
-    >>> env = register_CFunction_interpolation_3d_general__uniform_src_grid(enable_simd=False, project_dir=".")
-    """
-    if pcg.pcg_registration_phase():
-        pcg.register_func_call(f"{__name__}.{cast(FT, cfr()).f_code.co_name}", locals())
-        return None
-
-    if not enable_simd:
-        copy_files(
-            package="nrpy.helpers",
-            filenames_list=["simd_intrinsics.h"],
-            project_dir=project_dir,
-            subdirectory="intrinsics",
-        )
-
-    includes = ["stdio.h", "stdlib.h", "math.h", "intrinsics/simd_intrinsics.h"]
-
-    prefunc = """
+def generate_prefunc_definitions() -> str:
+    parallelization = par.parval_from_str("parallelization")
+    prefunc = r"""
 #ifndef REAL
 #define REAL double
 #endif
@@ -55,6 +28,79 @@ def register_CFunction_interpolation_3d_general__uniform_src_grid(
 #endif
 #endif
 
+#ifndef MAX
+#define MAX(A, B)           \
+  ({                        \
+    __typeof__(A) _a = (A); \
+    __typeof__(B) _b = (B); \
+    _a > _b ? _a : _b;      \
+  })
+#endif
+
+#ifndef BHAH_TYPEOF
+#if __cplusplus >= 2000707L
+#define BHAH_TYPEOF(a) decltype(a)
+#elif defined(__GNUC__) || defined(__clang__) || defined(__NVCC__)
+#define BHAH_TYPEOF(a) __typeof__(a)
+#else
+#define BHAH_TYPEOF(a)
+#endif // END check for GCC, Clang, or C++
+#endif // END BHAH_TYPEOF
+
+#ifndef MAYBE_UNUSED
+#if __cplusplus >= 201703L
+#define MAYBE_UNUSED [[maybe_unused]]
+#elif defined(__GNUC__) || defined(__clang__) || defined(__NVCC__)
+#define MAYBE_UNUSED __attribute__((unused))
+#else
+#define MAYBE_UNUSED
+#endif // END check for GCC, Clang, or NVCC
+#endif // END MAYBE_UNUSED
+
+#ifdef DEBUG
+#define cudaCheckErrors(v, msg)                                                                                      \
+  do {                                                                                                               \
+    cudaError_t __err = cudaGetLastError();                                                                          \
+    if (__err != cudaSuccess) {                                                                                      \
+      fprintf(stderr, "Fatal error: %s %s (%s at %s:%d)\n", #v, msg, cudaGetErrorString(__err), __FILE__, __LINE__); \
+      fprintf(stderr, "*** FAILED - ABORTING\n");                                                                    \
+      exit(1);                                                                                                       \
+    }                                                                                                                \
+  } while (0);
+#else
+#define cudaCheckErrors(v, msg)
+#endif
+
+#define BHAH_MALLOC(a, sz)          \
+  do {                              \
+    a = (BHAH_TYPEOF(a))malloc(sz); \
+  } while (0);
+
+#define BHAH_FREE(a)  \
+do {                  \
+  if (a) {            \
+    free((void *)(a));\
+    (a) = NULL;       \
+  }                   \
+} while (0);
+
+#define BHAH_MALLOC_DEVICE(a, sz)                         \
+  do {                                                    \
+    cudaMalloc(&a, sz);                                   \
+    cudaCheckErrors(cudaMalloc, "Malloc: " #a " failed"); \
+  } while (0);
+
+#define BHAH_FREE_DEVICE(a)                             \
+  do {                                                  \
+    if (a) {                                            \
+      cudaFree((void *)(a));                            \
+      cudaCheckErrors(cudaFree, "Free: " #a " failed"); \
+      (a) = nullptr;                                    \
+    }                                                   \
+  } while (0);
+
+#define BHAH_DEVICE_SYNC() cudaDeviceSynchronize()
+
 enum {
   INTERP_SUCCESS,
   INTERP3D_GENERAL_NULL_PTRS,
@@ -62,86 +108,76 @@ enum {
   INTERP3D_GENERAL_HORIZON_OUT_OF_BOUNDS
 } error_codes;
 
-#pragma GCC optimize("unroll-loops")
 """
-
-    desc = r"""Performs 3D Lagrange interpolation from a set of uniform grid points on the source grid to arbitrary destination points.
-
-This function interpolates scalar grid functions from a source grid to a set of destination points in the x0, x1, and x2 directions,
-using Lagrange interpolation of order INTERP_ORDER.
-
-@param N_interp_GHOSTS - Number of ghost zones from the center of source point; interpolation order = 2 * N_interp_GHOSTS + 1.
-@param src_dxx0 - Grid spacing in the x0 direction on the source grid.
-@param src_dxx1 - Grid spacing in the x1 direction on the source grid.
-@param src_dxx2 - Grid spacing in the x2 direction on the source grid.
-@param src_Nxx_plus_2NGHOSTS0 - Dimension of the source grid in x0, including ghost zones.
-@param src_Nxx_plus_2NGHOSTS1 - Dimension of the source grid in x1, including ghost zones.
-@param src_Nxx_plus_2NGHOSTS2 - Dimension of the source grid in x2, including ghost zones.
-@param NUM_INTERP_GFS - Number of grid functions to interpolate.
-@param src_x0x1x2 - Arrays of coordinate values for x0, x1, and x2 on the source grid.
-@param src_gf_ptrs - Array of pointers to source grid functions data.
-@param num_dst_pts - Number of destination points.
-@param dst_x0x1x2 - Destination points' coordinates (x0, x1, x2).
-@param dst_data - Output interpolated data for each grid function at the destination points, of size [NUM_INTERP_GFS][num_dst_pts].
-
-@return - Error code indicating success or type of error encountered.
-
-@note - The function interpolates each grid function separately and stores the results independently.
-The source and destination grids are assumed to be uniform in x0, x1, and x2 directions.
-The function assumes that the destination grid points are within the range of the source grid.
+    prefunc += """#pragma GCC optimize("unroll-loops")\n""" if parallelization not in ["cuda"] else ""
+    prefunc += (
+      r"""
+#define INTERP_1DLOOP(ii, stop) \
+const int tid0 = threadIdx.x + blockIdx.x*blockDim.x; \
+const int stride0 = blockDim.x * gridDim.x; \
+for(int (ii)=(tid0); (ii)<(stop); (ii)+=(stride0))
+      """
+      if parallelization in ["cuda"] else
+      r"""
+#define INTERP_1DLOOP(ii, stop) \
+_Pragma("omp parallel for") \
+  for(int (ii)=0;(ii)<(stop);(ii)++)
 """
+      )
+    return prefunc
 
-    cfunc_type = "int"
+def generate_interp3d_compute_kernel()-> Tuple[str, str]:
+    parallelization = par.parval_from_str("parallelization")
+
+    cfunc_type = "static void" if parallelization in ["cuda"] else "static int"
     name = "interpolation_3d_general__uniform_src_grid"
-    params = """
-    const int N_interp_GHOSTS, const REAL src_dxx0, const REAL src_dxx1, const REAL src_dxx2,
-    const int src_Nxx_plus_2NGHOSTS0, const int src_Nxx_plus_2NGHOSTS1, const int src_Nxx_plus_2NGHOSTS2,
-    const int NUM_INTERP_GFS, REAL *restrict src_x0x1x2[3], const REAL *restrict src_gf_ptrs[],
-    const int num_dst_pts, const REAL dst_x0x1x2[][3], REAL *restrict dst_data[]"""
+    comments = "Perform 3D interpolation calculation"
 
-    body = r"""
-  // Unpack parameters.
-  const int NinterpGHOSTS = N_interp_GHOSTS;
-  const int INTERP_ORDER = (2 * NinterpGHOSTS + 1); // Interpolation order (number of points in stencil in each dimension).
+    arg_dict_host={
+      "INTERP_ORDER": "const int",
+      "src_invdxx012_INTERP_ORDERm1" : "const REAL",
+      "NinterpGHOSTS": "const int",
+      "src_Nxx_plus_2NGHOSTS0": "const int",
+      "src_Nxx_plus_2NGHOSTS1": "const int",
+      "src_Nxx_plus_2NGHOSTS2": "const int",
+      "num_dst_pts": "const int",
+      "dst_x0x1x2[][3]": "const REAL",
+      "NUM_INTERP_GFS": "const int",
+      "src_x0x1x2": "REAL**",
+      "src_invdxx0": "const REAL",
+      "src_invdxx1": "const REAL",
+      "src_invdxx2": "const REAL",
+      "inv_denom": "const REAL *restrict",
+      "src_gf_ptrs": "REAL**",
+      "dst_data": "REAL **",
+    }
+    arg_dict_cuda={
+      **arg_dict_host,
+      "s_bytes_per_array": "const int"
+    }
 
-  const REAL src_invdxx0 = 1.0 / src_dxx0;
-  const REAL src_invdxx1 = 1.0 / src_dxx1;
-  const REAL src_invdxx2 = 1.0 / src_dxx2;
+    kernel_body = r"""
+  extern __shared__ char shared_memory_buffer[];
 
-  // Compute normalization factor once to avoid repeated expensive pow() operations.
-  const REAL src_invdxx012_INTERP_ORDERm1 = pow(src_dxx0 * src_dxx1 * src_dxx2, -(INTERP_ORDER - 1));
+  REAL* diffs_x0 = reinterpret_cast<REAL*>(shared_memory_buffer);
+  REAL* diffs_x1 = reinterpret_cast<REAL*>(shared_memory_buffer + s_bytes_per_array); // Offset by 1 array size
+  REAL* diffs_x2 = reinterpret_cast<REAL*>(shared_memory_buffer + 2 * s_bytes_per_array); // Offset by 2 array sizes
 
-  // Check for null pointers in source coordinates and output data.
-  if (src_x0x1x2[0] == NULL || src_x0x1x2[1] == NULL || src_x0x1x2[2] == NULL)
-    return INTERP3D_GENERAL_NULL_PTRS;
-  for (int gf = 0; gf < NUM_INTERP_GFS; gf++) {
-    if (dst_data[gf] == NULL)
-      return INTERP3D_GENERAL_NULL_PTRS;
-  }
+  REAL* coeff_x0 = reinterpret_cast<REAL*>(shared_memory_buffer + 3 * s_bytes_per_array);
+  REAL* coeff_x1 = reinterpret_cast<REAL*>(shared_memory_buffer + 4 * s_bytes_per_array);
+  REAL* coeff_x2 = reinterpret_cast<REAL*>(shared_memory_buffer + 5 * s_bytes_per_array);
 
-  // Ensure interpolation order does not exceed grid dimensions.
-  if (INTERP_ORDER > src_Nxx_plus_2NGHOSTS0 || INTERP_ORDER > src_Nxx_plus_2NGHOSTS1 || INTERP_ORDER > src_Nxx_plus_2NGHOSTS2)
-    return INTERP3D_GENERAL_INTERP_ORDER_GT_NXX123;
+  int shared_ary_idx = threadIdx.x * INTERP_ORDER;
+  """ if parallelization in ["cuda"] else ""
 
-  // Precompute inverse denominators for Lagrange interpolation coefficients to optimize performance.
-  REAL inv_denom[INTERP_ORDER];
-  for (int i = 0; i < INTERP_ORDER; i++) {
-    REAL denom = 1.0;
-    for (int j = 0; j < i; j++)
-      denom *= (REAL)(i - j);
-    for (int j = i + 1; j < INTERP_ORDER; j++)
-      denom *= (REAL)(i - j);
-    inv_denom[i] = 1.0 / denom; // Divisions are expensive, so we do them only once.
-  } // END LOOP: Precompute inverse denominators.
-
+    kernel_body += r"""
   // Perform interpolation for each destination point (x0, x1, x2).
   const REAL xxmin_incl_ghosts0 = src_x0x1x2[0][0];
   const REAL xxmin_incl_ghosts1 = src_x0x1x2[1][0];
   const REAL xxmin_incl_ghosts2 = src_x0x1x2[2][0];
   int error_flag = INTERP_SUCCESS;
 
-#pragma omp parallel for
-  for (int dst_pt = 0; dst_pt < num_dst_pts; dst_pt++) {
+  INTERP_1DLOOP(dst_pt, num_dst_pts) {
     // Extract destination point coordinates.
     const REAL x0_dst = dst_x0x1x2[dst_pt][0];
     const REAL x1_dst = dst_x0x1x2[dst_pt][1];
@@ -157,7 +193,9 @@ The function assumes that the destination grid points are within the range of th
       if ((idx_center_x0 - NinterpGHOSTS < 0) || (idx_center_x0 + NinterpGHOSTS >= src_Nxx_plus_2NGHOSTS0) || (idx_center_x1 - NinterpGHOSTS < 0) ||
           (idx_center_x1 + NinterpGHOSTS >= src_Nxx_plus_2NGHOSTS1) || (idx_center_x2 - NinterpGHOSTS < 0) ||
           (idx_center_x2 + NinterpGHOSTS >= src_Nxx_plus_2NGHOSTS2)) {
-#pragma omp critical
+"""
+    kernel_body += "\n#pragma omp critical" if parallelization not in ["cuda"] else ""
+    kernel_body +="""
         {
           error_flag = INTERP3D_GENERAL_HORIZON_OUT_OF_BOUNDS;
           // If out of bounds, set indices to NinterpGHOSTS to avoid accessing invalid memory.
@@ -171,19 +209,33 @@ The function assumes that the destination grid points are within the range of th
     const int base_idx_x0 = idx_center_x0 - NinterpGHOSTS;
     const int base_idx_x1 = idx_center_x1 - NinterpGHOSTS;
     const int base_idx_x2 = idx_center_x2 - NinterpGHOSTS;
+    """
 
+    if parallelization not in ["cuda"]:
+      kernel_body +=rf"""
     // Compute differences for Lagrange interpolation.
     REAL coeff_x0[INTERP_ORDER], coeff_x1[INTERP_ORDER], coeff_x2[INTERP_ORDER];
     REAL diffs_x0[INTERP_ORDER], diffs_x1[INTERP_ORDER], diffs_x2[INTERP_ORDER];
 
 #pragma omp simd
-    for (int j = 0; j < INTERP_ORDER; j++) {
-      diffs_x0[j] = x0_dst - src_x0x1x2[0][base_idx_x0 + j];
-      diffs_x1[j] = x1_dst - src_x0x1x2[1][base_idx_x1 + j];
-      diffs_x2[j] = x2_dst - src_x0x1x2[2][base_idx_x2 + j];
-    } // END LOOP: Compute differences for Lagrange interpolation.
-
+  for (int j = 0; j < INTERP_ORDER; j++) {{
+"""
+    else:
+      kernel_body += r"""
+for (int s_j = shared_ary_idx, j = 0; j < INTERP_ORDER; j++, s_j++) {
+      """
+    array_index_var = "s_j" if parallelization in ["cuda"] else "j"
+    kernel_body += fr"""
+      diffs_x0[{array_index_var}] = x0_dst - src_x0x1x2[0][base_idx_x0 + j];
+      diffs_x1[{array_index_var}] = x1_dst - src_x0x1x2[1][base_idx_x1 + j];
+      diffs_x2[{array_index_var}] = x2_dst - src_x0x1x2[2][base_idx_x2 + j];
+    }} // END LOOP: Compute differences for Lagrange interpolation.
+"""
+    kernel_body +=r"""
     // Compute the numerator of the Lagrange basis polynomials.
+"""
+    if parallelization not in ["cuda"]:
+      kernel_body +="""
 #pragma omp simd
     for (int i = 0; i < INTERP_ORDER; i++) {
       REAL numer_i_x0 = 1.0, numer_i_x1 = 1.0, numer_i_x2 = 1.0;
@@ -254,19 +306,242 @@ The function assumes that the destination grid points are within the range of th
           }
         }
       }
+    """
+    else:
+      kernel_body +="""
+    for (int s_i = shared_ary_idx, i = 0; i < INTERP_ORDER; i++, s_i++) {
+      REAL numer_i_x0 = 1.0, numer_i_x1 = 1.0, numer_i_x2 = 1.0;
+      for (int j = shared_ary_idx; j < s_i; j++) {
+        numer_i_x0 *= diffs_x0[j];
+        numer_i_x1 *= diffs_x1[j];
+        numer_i_x2 *= diffs_x2[j];
+      }
+      for (int j = s_i + 1; j < shared_ary_idx + INTERP_ORDER; j++) {
+        numer_i_x0 *= diffs_x0[j];
+        numer_i_x1 *= diffs_x1[j];
+        numer_i_x2 *= diffs_x2[j];
+      }
+      coeff_x0[s_i] = numer_i_x0 * inv_denom[i];
+      coeff_x1[s_i] = numer_i_x1 * inv_denom[i];
+      coeff_x2[s_i] = numer_i_x2 * inv_denom[i];
+    } // END LOOP: Compute Lagrange basis polynomials.
 
+#define SRC_IDX3(i0, i1, i2) ((i0) + src_Nxx_plus_2NGHOSTS0 * ((i1) + src_Nxx_plus_2NGHOSTS1 * (i2)))
+
+    // For each grid function, compute the interpolated value.
+    for (int gf = 0; gf < NUM_INTERP_GFS; gf++) {
+      REAL sum = 0.0;
+
+      for (int ix2 = 0; ix2 < INTERP_ORDER; ix2++) {
+        const int idx2 = base_idx_x2 + ix2;
+        const REAL coeff_x2_i = coeff_x2[ix2 + shared_ary_idx];
+
+        for (int ix1 = 0; ix1 < INTERP_ORDER; ix1++) {
+          const int idx1 = base_idx_x1 + ix1;
+          const REAL coeff_x1_i = coeff_x1[ix1 + shared_ary_idx];
+
+          REAL_CUDA_ARRAY vec_sum = SetZeroCUDA; // Initialize vector sum to zero
+
+          // Precompute the base offset for the current ix2 and ix1
+          // This avoids recalculating the constant part inside the vector loop
+          const int base_offset = base_idx_x0 + src_Nxx_plus_2NGHOSTS0 * (idx1 + src_Nxx_plus_2NGHOSTS1 * idx2);
+
+          for (int ix0 = 0; ix0 < INTERP_ORDER; ix0 ++) {
+            // Calculate the flat index for the current set of ix0
+            // Ensure that ix0 is added correctly to the base_offset
+            const int current_idx0 = base_offset + ix0;
+
+            REAL_CUDA_ARRAY vec_src = ReadCUDA(&src_gf_ptrs[gf][current_idx0]);
+            REAL_CUDA_ARRAY vec_coeff = coeff_x0[ix0 + shared_ary_idx] * coeff_x1_i * coeff_x2_i;
+            // Use FMA to multiply src and coeff and add to vec_sum
+            vec_sum = FusedMulAddCUDA(vec_src, vec_coeff, vec_sum);
+          }
+
+          sum += HorizAddCUDA(vec_sum);
+
+          // Handle remaining elements that don't fit into a full AVX register
+          for (; ix0 < INTERP_ORDER; ix0++) {
+            const int current_idx0 = base_offset + ix0;
+            sum += src_gf_ptrs[gf][current_idx0] * coeff_3d[ix2][ix1][ix0];
+          }
+        }
+      }
+    """
+    kernel_body +="""
       // Store the interpolated value for this grid function and destination point.
       dst_data[gf][dst_pt] = sum * src_invdxx012_INTERP_ORDERm1;
     } // END LOOP: Over grid functions.
 
   } // END PARALLEL FOR: Interpolate all destination points.
+    """
 
-  return error_flag;
+    interp3d_function, interp3d_launch = parallel_utils.generate_kernel_and_launch_code(
+      kernel_name=name,
+      kernel_body=kernel_body,
+      arg_dict_cuda=arg_dict_cuda,
+      arg_dict_host=arg_dict_host,
+      comments=comments,
+      parallelization=parallelization,
+      launch_dict={
+        "blocks_per_grid": ["MAX((num_dst_pts + threads_in_x_dir - 1) / threads_in_x_dir, 1)"],
+        "threads_per_block": ["32"],
+      },
+      cfunc_type=cfunc_type,
+      launchblock_with_braces=True
+    )
+    # interp3d_launch = rf""""""
+    return interp3d_function, interp3d_launch.replace("dst_x0x1x2[][3]", "dst_x0x1x2")
+
+def register_CFunction_interpolation_3d_general__uniform_src_grid(
+    enable_simd: bool,
+    project_dir: str,
+) -> Union[None, pcg.NRPyEnv_type]:
+    """
+    Register the C function for general-purpose 3D Lagrange interpolation.
+
+    Even if `enable_simd` is False, `intrinsics/simd_intrinsics.h` is still required.
+
+    :param enable_simd: Whether the rest of the code enables SIMD optimizations, as this code requires simd_intrinsics.h (which includes SIMD-disabled options).
+    :param project_dir: Directory of the project, to set the destination for simd_instrinsics.h .
+    :return: None if in registration phase, else the updated NRPy environment.
+
+    DocTests:
+    >>> env = register_CFunction_interpolation_3d_general__uniform_src_grid(enable_simd=False, project_dir=".")
+    """
+    if pcg.pcg_registration_phase():
+        pcg.register_func_call(f"{__name__}.{cast(FT, cfr()).f_code.co_name}", locals())
+        return None
+
+    parallelization = par.parval_from_str("parallelization")
+
+    # The interpolator depends on SIMD intrinsics, however, to avoid a
+    # race condition from parallel code generation we only copy the file
+    # here if the rest of the code base is not using simd, i.e. the
+    # header won't have already been copied elsewhere.
+    intrinsics_headers = ["cuda_intrinsics.h"] if parallelization in ["cuda"] else ["simd_intrinsics.h"]
+    if not enable_simd:
+        copy_files(
+            package="nrpy.helpers",
+            filenames_list=intrinsics_headers,
+            project_dir=project_dir,
+            subdirectory="intrinsics",
+        )
+
+    includes = ["stdio.h", "stdlib.h", "math.h"] + ["intrinsics/" + header for header in intrinsics_headers]
+    desc = r"""Performs 3D Lagrange interpolation from a set of uniform grid points on the source grid to arbitrary destination points.
+
+This function interpolates scalar grid functions from a source grid to a set of destination points in the x0, x1, and x2 directions,
+using Lagrange interpolation of order INTERP_ORDER.
+
+@param N_interp_GHOSTS - Number of ghost zones from the center of source point; interpolation order = 2 * N_interp_GHOSTS + 1.
+@param src_dxx0 - Grid spacing in the x0 direction on the source grid.
+@param src_dxx1 - Grid spacing in the x1 direction on the source grid.
+@param src_dxx2 - Grid spacing in the x2 direction on the source grid.
+@param src_Nxx_plus_2NGHOSTS0 - Dimension of the source grid in x0, including ghost zones.
+@param src_Nxx_plus_2NGHOSTS1 - Dimension of the source grid in x1, including ghost zones.
+@param src_Nxx_plus_2NGHOSTS2 - Dimension of the source grid in x2, including ghost zones.
+@param NUM_INTERP_GFS - Number of grid functions to interpolate.
+@param src_x0x1x2 - Arrays of coordinate values for x0, x1, and x2 on the source grid.
+@param src_gf_ptrs - Array of pointers to source grid functions data.
+@param num_dst_pts - Number of destination points.
+@param dst_x0x1x2 - Destination points' coordinates (x0, x1, x2).
+@param dst_data - Output interpolated data for each grid function at the destination points, of size [NUM_INTERP_GFS][num_dst_pts].
+
+@return - Error code indicating success or type of error encountered.
+
+@note - The function interpolates each grid function separately and stores the results independently.
+The source and destination grids are assumed to be uniform in x0, x1, and x2 directions.
+The function assumes that the destination grid points are within the range of the source grid.
 """
 
-    postfunc = r"""
-#pragma GCC reset_options // Reset compiler optimizations after the function
+    cfunc_type = "int"
+    name = "interpolation_3d_general__uniform_src_grid"
+    params = """
+    const int N_interp_GHOSTS, const REAL src_dxx0, const REAL src_dxx1, const REAL src_dxx2,
+    const int src_Nxx_plus_2NGHOSTS0, const int src_Nxx_plus_2NGHOSTS1, const int src_Nxx_plus_2NGHOSTS2,
+    const int NUM_INTERP_GFS, REAL *restrict src_x0x1x2[3], const REAL *restrict src_gf_ptrs[],
+    const int num_dst_pts, const REAL dst_x0x1x2[][3], REAL *restrict dst_data[]"""
 
+    prefunc = generate_prefunc_definitions()
+
+    inv_denom_function, inv_denom_launch = parallel_utils.generate_kernel_and_launch_code(
+      kernel_name="compute_inverse_denominators",
+      kernel_body=r"""
+INTERP_1DLOOP(i, INTERP_ORDER) {
+  REAL denom = 1.0;
+  for (int j = 0; j < i; j++)
+    denom *= (REAL)(i - j);
+  for (int j = i + 1; j < INTERP_ORDER; j++)
+    denom *= (REAL)(i - j);
+  inv_denom[i] = 1.0 / denom; // Divisions are expensive, so we do them only once.
+} // END LOOP: Precompute inverse denominators.
+""",
+      arg_dict_cuda={
+        "INTERP_ORDER": "const int",
+        "inv_denom" : "REAL *restrict"
+      },
+      arg_dict_host={
+        "INTERP_ORDER": "const int",
+        "inv_denom" : "REAL *restrict"
+      },
+      comments="Pre-compute inverse denominators to save computation time.",
+      parallelization=parallelization,
+      launch_dict={
+        "blocks_per_grid": ["MAX((INTERP_ORDER + threads_in_x_dir - 1) / threads_in_x_dir, 1)"],
+        "threads_per_block": ["32"],
+      },
+      launchblock_with_braces=True
+    )
+
+    prefunc += inv_denom_function
+
+    body = r"""
+  // Unpack parameters.
+  const int NinterpGHOSTS = N_interp_GHOSTS;
+  const int INTERP_ORDER = (2 * NinterpGHOSTS + 1); // Interpolation order (number of points in stencil in each dimension).
+
+  const REAL src_invdxx0 = 1.0 / src_dxx0;
+  const REAL src_invdxx1 = 1.0 / src_dxx1;
+  const REAL src_invdxx2 = 1.0 / src_dxx2;
+
+  // Compute normalization factor once to avoid repeated expensive pow() operations.
+  const REAL src_invdxx012_INTERP_ORDERm1 = pow(src_dxx0 * src_dxx1 * src_dxx2, -(INTERP_ORDER - 1));
+"""
+
+    # These checks don't work for device pointers
+    if parallelization not in ["cuda"]:
+      body +="""
+  // Check for null pointers in source coordinates and output data.
+  if (src_x0x1x2[0] == NULL || src_x0x1x2[1] == NULL || src_x0x1x2[2] == NULL)
+    return INTERP3D_GENERAL_NULL_PTRS;
+  for (int gf = 0; gf < NUM_INTERP_GFS; gf++) {
+    if (dst_data[gf] == NULL)
+      return INTERP3D_GENERAL_NULL_PTRS;
+  }
+"""
+    body +=f"""
+  // Ensure interpolation order does not exceed grid dimensions.
+  if (INTERP_ORDER > src_Nxx_plus_2NGHOSTS0 || INTERP_ORDER > src_Nxx_plus_2NGHOSTS1 || INTERP_ORDER > src_Nxx_plus_2NGHOSTS2)
+    return INTERP3D_GENERAL_INTERP_ORDER_GT_NXX123;
+
+  // Precompute inverse denominators for Lagrange interpolation coefficients to optimize performance.
+  REAL* inv_denom;
+  BHAH_MALLOC(inv_denom, sizeof(REAL) * INTERP_ORDER);
+  {inv_denom_launch}
+  int error_flag = INTERP_SUCCESS;
+""".replace("BHAH_MALLOC", "BHAH_MALLOC_DEVICE" if parallelization in ["cuda"] else "BHAH_MALLOC")
+
+    interp3d_function, interp3d_launch = generate_interp3d_compute_kernel()
+    prefunc += interp3d_function
+
+    body +=f"""
+  {interp3d_launch}
+  return error_flag;
+"""
+    postfunc = ""
+    if parallelization not in ["cuda"]:
+      postfunc += "#pragma GCC reset_options // Reset compiler optimizations after the function\n"
+    postfunc += r"""
 #ifdef STANDALONE
 
 // Define the number of grid functions to interpolate as a macro for compile-time constant.
