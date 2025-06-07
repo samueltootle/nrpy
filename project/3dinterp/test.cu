@@ -123,19 +123,16 @@
 #endif // END check for GCC, Clang, or NVCC
 #endif // END MAYBE_UNUSED
 
+#define INTERP_1DLOOP(ii, stop) \
+const int tid0 = threadIdx.x + blockIdx.x*blockDim.x; \
+const int stride0 = blockDim.x * gridDim.x; \
+for(int (ii)=(tid0); (ii)<stop; (ii)+=(stride0))
+
 enum { INTERP_SUCCESS, INTERP3D_GENERAL_NULL_PTRS, INTERP3D_GENERAL_INTERP_ORDER_GT_NXX123, INTERP3D_GENERAL_HORIZON_OUT_OF_BOUNDS } error_codes;
-
-
-// __global__
-// void interpolation_3d_general__uniform_src_grid_gpu() {
-
-// }
 
 __global__
 void compute_inverse_denominators(const int INTERP_ORDER, REAL *restrict inv_denom) {
-  const int tid0 = threadIdx.x + blockIdx.x * blockDim.x;                                                                                            \
-  const int stride0 = blockDim.x * gridDim.x;
-  for (int i = tid0; i < INTERP_ORDER; i+=stride0) {
+  INTERP_1DLOOP(i, INTERP_ORDER) {
     REAL denom = 1.0;
     for (int j = 0; j < i; j++)
       denom *= (REAL)(i - j);
@@ -687,13 +684,13 @@ int main() {
     cudaMemcpy(dst_data_ptrs, dst_data_device, NUM_INTERP_GFS * sizeof(REAL*), cudaMemcpyHostToDevice);
     BHAH_DEVICE_SYNC();
 int error_code;
-for(int k = 0;k < 100; ++k) {
+// for(int k = 0;k < 100; ++k) {
     // Call the interpolation function.
     error_code = interpolation_3d_general__uniform_src_grid(N_interp_GHOSTS, src_dxx0_val, src_dxx1_val, src_dxx2_val, src_Nxx_plus_2NGHOSTS0,
                                                                 src_Nxx_plus_2NGHOSTS1, src_Nxx_plus_2NGHOSTS2, NUM_INTERP_GFS, src_x0x1x2_ptrs,
                                                                 src_gf_ptrs, num_dst_pts, dst_pts_device, dst_data_ptrs);
     BHAH_DEVICE_SYNC();
-    }
+    // }
     // if (error_code != INTERP_SUCCESS) {
     //   fprintf(stderr, "Interpolation error code: %d\n", error_code);
     //   // Free allocated memory before exiting.
@@ -715,7 +712,6 @@ for(int k = 0;k < 100; ++k) {
     // }
 
 
-/*
     // Compute the L2 norm of the error for each grid function.
     for (int gf = 0; gf < NUM_INTERP_GFS; gf++) {
       cudaMemcpy(dst_data[gf], dst_data_device[gf], sizeof(REAL) * num_dst_pts, cudaMemcpyDeviceToHost);
@@ -733,7 +729,7 @@ for(int k = 0;k < 100; ++k) {
       printf("Resolution %d: N_x0 = %d, N_x1 = %d, N_x2 = %d, h = %.5e, Grid Function %d, L2 error = %.5e\n", res, N_x0, N_x1, N_x2, h_arr[res],
              gf + 1, error_L2_norm[gf][res]);
     } // END LOOP: Output errors.
-*/
+
     // Free allocated memory for this resolution.
     for (int gf = 0; gf < NUM_INTERP_GFS; gf++) {
       BHAH_FREE_DEVICE(src_gf[gf]);
