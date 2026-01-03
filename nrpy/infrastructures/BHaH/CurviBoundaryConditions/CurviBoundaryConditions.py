@@ -25,11 +25,11 @@ import nrpy.indexedexp as ixp  # NRPy+: Symbolic indexed expression (e.g., tenso
 import nrpy.params as par  # NRPy+: Parameter interface
 import nrpy.reference_metric as refmetric  # NRPy+: Reference metric support
 from nrpy.helpers.expression_utils import get_unique_expression_symbols_as_strings
-from nrpy.helpers.parallelization.cuda_utilities import (
-    register_CFunction_cpyHosttoDevice_bc_struct,
-)
 from nrpy.helpers.parallelization.gpu_kernel import GPU_Kernel
 from nrpy.infrastructures.BHaH import BHaH_defines_h, griddata_commondata
+from nrpy.infrastructures.BHaH.parallelization.cuda_utilities import (
+    register_CFunction_cpyHosttoDevice_bc_struct,
+)
 from nrpy.validate_expressions.validate_expressions import check_zero
 
 _ = par.CodeParameter(
@@ -977,6 +977,7 @@ boundary points ("inner maps to outer").
         BHAH_MALLOC_DEVICE(gfs_to_sync_device, num_gfs * sizeof(int));
         cudaMemcpy(gfs_to_sync_device, gfs_to_sync, num_gfs * sizeof(int), cudaMemcpyHostToDevice);
         """
+        new_body = new_body.replace("gfs_to_sync", "gfs_to_sync_device")
     kernel_launch_body += new_body
 
     if parallelization in ["cuda"]:

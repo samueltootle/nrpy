@@ -22,10 +22,10 @@ import shutil
 from pathlib import Path
 
 import nrpy.helpers.parallel_codegen as pcg
-import nrpy.helpers.parallelization.cuda_utilities as cudautils
 import nrpy.infrastructures.BHaH.BHaHAHA.interpolation_2d_general__uniform_src_grid as interpolation2d
 import nrpy.infrastructures.BHaH.CurviBoundaryConditions.CurviBoundaryConditions as cbc
 import nrpy.infrastructures.BHaH.diagnostics.progress_indicator as progress
+import nrpy.infrastructures.BHaH.parallelization.cuda_utilities as cudautils
 import nrpy.infrastructures.BHaH.special_functions.spin_weight_minus2_spherical_harmonics as swm2sh
 import nrpy.params as par
 from nrpy.helpers.generic import copy_files
@@ -382,7 +382,9 @@ copy_files(
     subdirectory="TwoPunctures",
 )
 gpu_defines_filename = BHaH_device_defines_h.output_device_headers(
-    project_dir, num_streams=num_cuda_streams, set_parity_on_aux=True
+    project_dir,
+    num_streams=num_cuda_streams,
+    set_parity_on_aux=True,
 )
 BHaH_defines_h.output_BHaH_defines_h(
     additional_includes=[str(Path("TwoPunctures") / Path("TwoPunctures.h"))],
